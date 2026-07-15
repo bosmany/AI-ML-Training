@@ -1,0 +1,1235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 6: Linear Algebra for ML</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
+  extra seconds while the NumPy package itself downloads; after that it's instant.
+  Your progress on this chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 6: Linear Algebra</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 2 · Chapter 6 of 30</div>
+  </a>
+  <a class="sb-back" href="../python/ch05-oop-files-errors.html">← Ch 5: OOP, Files &amp; Errors</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 6</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 7: Probability &amp; Statistics</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 8: Calculus &amp; Optimization</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 6</div>
+    <div class="tb-title">Linear Algebra for ML</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 5 quiz in this browser yet. This chapter assumes Module 1 (Python Foundations) is solid.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 6:<br/><span>Linear Algebra for ML</span></h1>
+    <p>Welcome to Module 2 — and to NumPy, the library every single ML tool is built on top of. Every dataset you'll ever load is a matrix. Every prediction a model makes is a dot product or a matrix multiplication. This chapter builds that vocabulary from scratch, in code, so the math in every later chapter reads as something you've already touched.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 6.1 -->
+  <div class="lesson-h2">6.1 — Why Linear Algebra? Data IS Vectors and Matrices</div>
+  <p class="lesson-p">A single data sample — one candidate, one image, one sentence turned into numbers — is a list of features. In linear algebra, that's called a <strong>vector</strong>. A whole dataset — many samples, each with the same features — is a <strong>matrix</strong>: one row per sample, one column per feature. This isn't an analogy; it's literally how <code>X</code> and <code>y</code> are represented in every ML library you'll use.</p>
+  <p class="lesson-p">We'll use <strong>NumPy</strong> from here on — the library that makes vectors and matrices fast and convenient. The convention, in every piece of ML code you will ever read, is <code>import numpy as np</code>.</p>
+
+  <!-- 6.2 -->
+  <div class="lesson-h2">6.2 — Vectors: NumPy Arrays vs Python Lists</div>
+  <p class="lesson-p">A NumPy array looks like a list but behaves completely differently for math: operators act <strong>elementwise</strong>, not like list concatenation or repetition.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Lists vs arrays — the exact same operator, different meaning</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Plain Python lists:</span>
+list_a = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]
+<span class="bi">print</span>(list_a + [<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>])   <span class="cm"># [1, 2, 3, 4, 5, 6] — concatenation!</span>
+<span class="bi">print</span>(list_a * <span class="nm">2</span>)          <span class="cm"># [1, 2, 3, 1, 2, 3] — repetition!</span>
+
+<span class="cm"># NumPy arrays:</span>
+v1 = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])
+v2 = np.array([<span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>])
+<span class="bi">print</span>(<span class="bi">list</span>(v1 + v2))    <span class="cm"># [5, 7, 9] — ADDED elementwise!</span>
+<span class="bi">print</span>(<span class="bi">list</span>(v1 * <span class="nm">2</span>))    <span class="cm"># [2, 4, 6] — every element scaled!</span>
+<span class="bi">print</span>(<span class="bi">list</span>(v1 * v2))   <span class="cm"># [4, 10, 18] — MULTIPLIED elementwise!</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>We'll wrap NumPy results in <code>list(...)</code> when printing throughout this chapter.</strong> It's not required — NumPy prints arrays fine on its own — but it keeps the output format simple and 100% predictable while you're still learning.</div></div>
+
+  <!-- 6.3 -->
+  <div class="lesson-h2">6.3 — The Dot Product: The Single Most Important Operation in ML</div>
+  <p class="lesson-p">The <strong>dot product</strong> of two vectors multiplies them elementwise, then sums the result into a single number. It is, quite literally, what a neuron computes: multiply each input by its weight, and add them all up.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Dot product = weighted sum</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+weights  = np.array([<span class="nm">0.5</span>, -<span class="nm">0.2</span>, <span class="nm">0.1</span>])
+features = np.array([<span class="nm">2.0</span>,  <span class="nm">3.0</span>, <span class="nm">5.0</span>])
+
+<span class="cm"># The manual way — elementwise multiply, then sum:</span>
+manual = (weights * features).sum()
+<span class="bi">print</span>(<span class="st">f'Manual: <span class="bi">{manual:.4f}</span>'</span>)
+
+<span class="cm"># The NumPy way — exactly the same thing, one call:</span>
+dot = np.dot(weights, features)      <span class="cm"># or: weights @ features</span>
+<span class="bi">print</span>(<span class="st">f'np.dot: <span class="bi">{dot:.4f}</span>'</span>)
+
+<span class="cm"># A "neuron" is just: dot product + bias</span>
+bias = <span class="nm">0.1</span>
+prediction = np.dot(weights, features) + bias
+<span class="bi">print</span>(<span class="st">f'Prediction: <span class="bi">{prediction:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This IS linear regression, and it IS one neuron of a neural network.</strong> Both compute <code>dot(weights, inputs) + bias</code>. The entire field of deep learning stacks millions of this one operation together.</div></div>
+
+  <!-- 6.4 -->
+  <div class="lesson-h2">6.4 — Vector Norms: Measuring Length and Distance</div>
+  <p class="lesson-p">The <strong>L2 norm</strong> (Euclidean length) of a vector is <code>sqrt(sum(v**2))</code> — the straight-line distance from the origin. The <strong>L1 norm</strong> is <code>sum(abs(v))</code>. The distance BETWEEN two points is just the norm of their difference — this is exactly how algorithms like K-Nearest-Neighbors decide who's "close."</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Norms and distance</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+v = np.array([<span class="nm">3</span>, <span class="nm">4</span>])   <span class="cm"># the classic 3-4-5 triangle</span>
+
+l2 = np.linalg.norm(v)          <span class="cm"># sqrt(3**2 + 4**2) = sqrt(25) = 5</span>
+l1 = np.<span class="bi">abs</span>(v).<span class="bi">sum</span>()          <span class="cm"># |3| + |4| = 7</span>
+<span class="bi">print</span>(<span class="st">f'L2 norm: <span class="bi">{l2:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'L1 norm: <span class="bi">{l1:.4f}</span>'</span>)
+
+<span class="cm"># Distance between two points = norm of their difference</span>
+a = np.array([<span class="nm">1</span>, <span class="nm">2</span>])
+b = np.array([<span class="nm">4</span>, <span class="nm">6</span>])
+distance = np.linalg.norm(a - b)
+<span class="bi">print</span>(<span class="st">f'Distance: <span class="bi">{distance:.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- 6.5 -->
+  <div class="lesson-h2">6.5 — Matrices: Shape and Indexing</div>
+  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A dataset as a matrix — 4 samples, 3 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X = np.array([
+    [<span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">3</span>],
+    [<span class="nm">4</span>,  <span class="nm">5</span>,  <span class="nm">6</span>],
+    [<span class="nm">7</span>,  <span class="nm">8</span>,  <span class="nm">9</span>],
+    [<span class="nm">10</span>, <span class="nm">11</span>, <span class="nm">12</span>],
+])
+
+<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)             <span class="cm"># (4, 3) — 4 samples, 3 features</span>
+<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{list(X[1])}</span>'</span>)          <span class="cm"># [4, 5, 6] — sample at index 1</span>
+<span class="bi">print</span>(<span class="st">f'Column 2: <span class="bi">{list(X[:,2])}</span>'</span>)     <span class="cm"># [3, 6, 9, 12] — feature at index 2, ALL samples</span>
+<span class="bi">print</span>(<span class="st">f'Row 0 sum: <span class="bi">{X[0].sum()}</span>'</span>)</div>
+  </div>
+
+  <!-- 6.6 -->
+  <div class="lesson-h2">6.6 — Matrix Multiplication: Computing an Entire Batch at Once</div>
+  <p class="lesson-p">Matrix multiplication (<code>@</code>) is what lets you run the dot-product "neuron" from 6.3 across EVERY sample in a dataset in one operation, instead of writing a loop. For <code>A @ B</code> to work, A's number of columns must equal B's number of rows: <code>(m, n) @ (n, p) → (m, p)</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One matrix multiplication = predictions for a whole batch</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>],[<span class="nm">3</span>,<span class="nm">4</span>],[<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># 3 samples, 2 features — shape (3, 2)</span>
+w = np.array([<span class="nm">0.5</span>, -<span class="nm">1.0</span>])                     <span class="cm"># 2 weights, one per feature — shape (2,)</span>
+b = <span class="nm">0.2</span>
+
+predictions = X @ w + b     <span class="cm"># (3,2) @ (2,) -> (3,) : ALL 3 predictions, one line, no loop</span>
+<span class="kw">for</span> i, p <span class="kw">in</span> <span class="bi">enumerate</span>(predictions):
+    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: <span class="bi">{p:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>This one line — <code>X @ w + b</code> — IS linear regression's prediction step.</strong> Whether it's 3 samples or 3 million, it's the same operation. This is why NumPy (and by extension PyTorch/TensorFlow) is fast: the loop happens in optimized low-level code, not in slow Python.</div></div>
+
+  <!-- 6.7 -->
+  <div class="lesson-h2">6.7 — Transpose and the Identity Matrix</div>
+  <p class="lesson-p">The <strong>transpose</strong> (<code>.T</code>) flips a matrix's rows and columns — needed constantly to make shapes line up for multiplication. The <strong>identity matrix</strong> (<code>np.eye(n)</code>) is the matrix equivalent of the number 1 — multiplying by it changes nothing.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Transpose and identity</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>],[<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># shape (2, 3)</span>
+<span class="bi">print</span>(<span class="st">f'Original shape: <span class="bi">{X.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Transposed shape: <span class="bi">{X.T.shape}</span>'</span>)     <span class="cm"># (3, 2) — rows and columns swapped</span>
+
+I = np.eye(<span class="nm">3</span>)      <span class="cm"># 3x3 identity matrix</span>
+<span class="bi">print</span>(I)
+v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>])
+<span class="bi">print</span>(<span class="st">f'v @ I: <span class="bi">{list(v @ I)}</span>'</span>)   <span class="cm"># [7, 8, 9] — unchanged, like multiplying by 1</span></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 6 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Data is vectors and matrices.</strong> One sample = a vector. A dataset = a matrix, shape (samples, features).</div></li>
+    <li data-n="2"><div><strong>NumPy arrays do math elementwise</strong> — completely different from Python lists with the same operators.</div></li>
+    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum = the core of a neuron / linear model prediction.</div></li>
+    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN.</div></li>
+    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation.</div></li>
+    <li data-n="6"><div><strong>Transpose</strong> (<code>.T</code>) swaps rows/columns to make shapes compatible; <strong>identity</strong> (<code>np.eye</code>) is the matrix "1".</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Always format printed numbers explicitly (e.g. <code>{value:.4f}</code>) — this keeps output consistent no matter tiny floating-point differences.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Dot Product By Hand</div>
+        <div class="ex-desc">Compute a dot product manually with elementwise multiply + sum, before using np.dot.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+(already given)
+
+Compute the dot product using elementwise multiplication then .sum()
+(don't use np.dot for this one — do it manually).
+
+Print exactly: f'Dot product: {dot}'
+(The correct answer is Dot product: 32)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+
+# dot = (v1 * v2).sum()
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">A Single Neuron's Prediction</div>
+        <div class="ex-desc">Use np.dot to compute a weighted sum plus bias — exactly what one neuron computes.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+(already given)
+
+Compute prediction = np.dot(weights, features) + bias
+
+Print exactly: f'Prediction: {prediction:.4f}'
+(The correct answer is Prediction: 1.0000)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+
+# prediction = np.dot(weights, features) + bias
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Norms and Distance</div>
+        <div class="ex-desc">Compute L2 norm, L1 norm, and the Euclidean distance between two points.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+(already given)
+
+Compute and print exactly:
+  f'L2 norm: {l2:.4f}'         (using np.linalg.norm(v))
+  f'L1 norm: {l1:.4f}'         (using np.abs(v).sum())
+  f'Distance: {distance:.4f}'  (using np.linalg.norm(a - b))
+(Correct: L2 norm: 5.0000 / L1 norm: 7.0000 / Distance: 5.0000)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+
+# l2 = ... ; l1 = ... ; distance = ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Matrix Shape and Indexing</div>
+        <div class="ex-desc">Read a matrix's shape, a row, a column, and a row sum.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+(already given — 4 samples, 3 features)
+
+Print exactly, in this order:
+  f'Shape: {X.shape}'
+  f'Row 1: {list(X[1])}'
+  f'Column 2: {list(X[:,2])}'
+  f'Row 0 sum: {X[0].sum()}'
+(Correct: Shape: (4, 3) / Row 1: [4, 5, 6] / Column 2: [3, 6, 9, 12] / Row 0 sum: 6)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+
+# print shape, row 1, column 2, row 0 sum
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Batch Predictions With Matrix Multiplication</div>
+        <div class="ex-desc">Compute predictions for 3 samples at once using X @ w + b — no loop over samples needed for the math itself.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
+(already given)
+
+Compute predictions = X @ w + b
+Then loop with enumerate(predictions) and print each:
+  f'Sample {i}: {p:.4f}'
+(Correct: Sample 0: -1.3000 / Sample 1: -2.3000 / Sample 2: -3.3000)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
+
+# predictions = X @ w + b
+# for i, p in enumerate(predictions): print(...)
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Vectorized Batch Predictor</span></h2>
+    <p>Back in Chapter 1 you computed MSE by hand for 3 samples with individually named variables. Now do it properly: one matrix multiplication computes every prediction, one NumPy expression computes the error metrics — no loops required for the math.</p>
+    <div class="project-tags">
+      <span class="ptag">X @ w + b</span>
+      <span class="ptag">vectorized MSE</span>
+      <span class="ptag">NumPy</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Compute predictions for all 5 samples at once: predictions = X @ w + b</li>
+      <li>Compute errors = predictions - y (elementwise, all 5 at once)</li>
+      <li>Compute MSE = (errors ** 2).mean() and RMSE = MSE ** 0.5</li>
+      <li>Print each sample's prediction vs actual target</li>
+      <li>Print the final MSE and RMSE</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Vectorized Batch Predictor — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Vectorized Batch Predictor
+# Use ONLY Chapter 6 concepts — no manual per-sample loops for the math
+# ══════════════════════════════════════════
+import numpy as np
+
+X = np.array([
+    [1, 2, 1],
+    [2, 1, 3],
+    [3, 3, 2],
+    [1, 1, 1],
+    [4, 2, 2],
+])
+w = np.array([0.3, 0.5, -0.2])
+b = 0.5
+y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
+
+# === TODO 1: predictions for ALL samples in one line ===
+# predictions = X @ w + b
+
+# === TODO 2: print each sample's prediction vs target ===
+# for i in range(len(y)): print(f'Sample {i}: predicted={predictions[i]:.4f} actual={y[i]:.4f}')
+
+# === TODO 3: compute and print MSE and RMSE ===
+# errors = predictions - y
+# mse = (errors ** 2).mean()
+# rmse = mse ** 0.5
+# print(f'MSE: {mse:.6f}')
+# print(f'RMSE: {rmse:.6f}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>All 5 sample predictions vs their actual targets</div>
+    <div class="check-item"><span class="check-icon">🎯</span>MSE: 0.146000</div>
+    <div class="check-item"><span class="check-icon">📊</span>RMSE: 0.382099</div>
+    <div class="check-item"><span class="check-icon">⚡</span>Predictions computed with X @ w + b — not a manual per-sample formula</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 6 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 7. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A dataset has 100 samples and 5 features. What shape would its feature matrix X have, following ML convention?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> (5, 100) — features first, samples second</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> (100, 5) — one row per sample, one column per feature</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> (100, 100) — always square</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Shape doesn't matter for ML data</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What does the dot product of two vectors compute?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Elementwise multiplication only, giving back a vector</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The sum of elementwise products — a single number, computed with np.dot() or @</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The two vectors joined end to end</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The largest value shared by both vectors</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Matrix A has shape (3, 4) and matrix B has shape (4, 2). What is the shape of A @ B?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> (3, 2) — outer dimensions, since the inner 4s match</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> (4, 4)</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> (3, 4)</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — the shapes are incompatible</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the NumPy expression for the L2 norm (Euclidean length) of a vector <code>v</code>, assigned to a variable called <code>length</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="length = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">X has shape (10, 3) and w has shape (3,). What shape is <code>X @ w</code>?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> (10,) — one prediction per sample</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (3,)</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> (10, 3) — unchanged</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> An error — shapes are incompatible</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🔀</div>
+    <div class="ncc-info">
+      <h3>Chapter 7: Probability &amp; Statistics</h3>
+      <p>Mean, variance, distributions, correlation, and Bayes' theorem — the language every model evaluation report speaks.</p>
+    </div>
+    <a class="ncc-btn" href="ch07-probability-statistics.html">Start Chapter 7 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch06';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch05'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['dot product: 32'],
+    hint:"dot = (v1 * v2).sum()",
+    solution:`import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+dot = (v1 * v2).sum()
+print(f'Dot product: {dot}')`
+  },
+  2:{
+    checks:['prediction: 1.0000'],
+    hint:"prediction = np.dot(weights, features) + bias",
+    solution:`import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+prediction = np.dot(weights, features) + bias
+print(f'Prediction: {prediction:.4f}')`
+  },
+  3:{
+    checks:['l2 norm: 5.0000','l1 norm: 7.0000','distance: 5.0000'],
+    hint:"l2 = np.linalg.norm(v); l1 = np.abs(v).sum(); distance = np.linalg.norm(a - b)",
+    solution:`import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+l2 = np.linalg.norm(v)
+l1 = np.abs(v).sum()
+distance = np.linalg.norm(a - b)
+print(f'L2 norm: {l2:.4f}')
+print(f'L1 norm: {l1:.4f}')
+print(f'Distance: {distance:.4f}')`
+  },
+  4:{
+    checks:['shape: (4, 3)','row 1: [4, 5, 6]','column 2: [3, 6, 9, 12]','row 0 sum: 6'],
+    hint:"X.shape; list(X[1]); list(X[:,2]); X[0].sum()",
+    solution:`import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+print(f'Shape: {X.shape}')
+print(f'Row 1: {list(X[1])}')
+print(f'Column 2: {list(X[:,2])}')
+print(f'Row 0 sum: {X[0].sum()}')`
+  },
+  5:{
+    checks:['sample 0: -1.3000','sample 1: -2.3000','sample 2: -3.3000'],
+    hint:"predictions = X @ w + b; for i, p in enumerate(predictions): print(f'Sample {i}: {p:.4f}')",
+    solution:`import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
+predictions = X @ w + b
+for i, p in enumerate(predictions):
+    print(f'Sample {i}: {p:.4f}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['mse: 0.146000','rmse: 0.382099'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099)';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'A',5:'A'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('np.linalg.norm')&&val.includes('(v)');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! length = np.linalg.norm(v)'
+    :'❌ Not quite. You need: length = np.linalg.norm(v)';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Vectors, dot products, norms, and matrix multiplication are yours now. Every model prediction you'll ever compute is built from exactly these operations.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

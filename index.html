@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6}
+a{color:inherit;text-decoration:none}
+
+.wrap{max-width:900px;margin:0 auto;padding:64px 28px 100px}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:26px;height:1px;background:var(--cyan)}
+h1{font-size:clamp(30px,5vw,46px);font-weight:800;line-height:1.08;letter-spacing:-.02em;margin-bottom:18px}
+h1 span{background:linear-gradient(90deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lede{font-size:16px;color:var(--t2);max-width:600px;line-height:1.7;margin-bottom:28px}
+
+.overall-progress{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:40px;display:flex;align-items:center;gap:18px}
+.op-bar{flex:1;height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+.op-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:3px;transition:width .4s}
+.op-text{font-family:var(--mono);font-size:12.5px;color:var(--t2);white-space:nowrap}
+
+.module{margin-bottom:44px}
+.module-head{display:flex;align-items:baseline;gap:14px;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.module-n{font-family:var(--mono);font-size:12px;color:var(--t3);font-weight:600}
+.module-title{font-size:19px;font-weight:800;flex:1}
+.module-badge{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 9px;border-radius:6px;background:var(--violet-bg);color:var(--violet);white-space:nowrap}
+
+.ch-grid{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.ch{background:var(--card);padding:14px 18px;display:flex;align-items:center;gap:14px;transition:background .15s}
+.ch.avail:hover{background:var(--card2);cursor:pointer}
+.ch.locked{opacity:.45}
+.ch-num{font-family:var(--mono);font-size:12px;color:var(--t3);font-weight:700;width:24px;flex-shrink:0}
+.ch-title{font-size:13.5px;font-weight:600;flex:1}
+.ch-status{font-size:14px;flex-shrink:0}
+.ch-status.done{color:var(--cyan)}
+
+.foot{border-top:1px solid var(--border);padding-top:20px;margin-top:8px;font-size:12px;color:var(--t3)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Zero to Hero</div>
+  <h1>AI &amp; Machine Learning:<br/><span>The Complete Path</span></h1>
+  <p class="lede">Thirty chapters, one continuous console. Every chapter is lesson → practice → mini project → quiz, and every line of code you write actually runs in the browser.</p>
+
+  <div class="overall-progress">
+    <div class="op-bar"><div class="op-fill" id="op-fill" style="width:0%"></div></div>
+    <div class="op-text" id="op-text">0 / 30 chapters passed</div>
+  </div>
+
+  <div class="module">
+    <div class="module-head">
+      <div class="module-n">MODULE 01</div>
+      <div class="module-title">Python Foundations</div>
+      <div class="module-badge">START HERE</div>
+    </div>
+    <div class="ch-grid" id="mod1"></div>
+  </div>
+
+  <div class="module">
+    <div class="module-head">
+      <div class="module-n">MODULE 02</div>
+      <div class="module-title">Math &amp; Stats for ML</div>
+      <div class="module-badge">DONE</div>
+    </div>
+    <div class="ch-grid" id="mod2"></div>
+  </div>
+
+  <div class="module">
+    <div class="module-head">
+      <div class="module-n">MODULE 03</div>
+      <div class="module-title">Data Tools</div>
+      <div class="module-badge">COMING NEXT</div>
+    </div>
+    <div class="ch-grid" id="mod3"></div>
+  </div>
+
+  <div class="foot">Modules 4-7 (Classical ML, Deep Learning, NLP/LLMs, MLOps) unlock as they're built. Progress is saved to this browser only.</div>
+</div>
+
+<script>
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+const store = loadStore();
+
+const MODULES = {
+  mod1: [
+    {id:'ch01', title:'Ch 1 — Python Basics', href:'python/ch01-python-basics.html', avail:true},
+    {id:'ch02', title:'Ch 2 — Control Flow', href:'python/ch02-control-flow.html', avail:true},
+    {id:'ch03', title:'Ch 3 — Functions & Modules', href:'python/ch03-functions-modules.html', avail:true},
+    {id:'ch04', title:'Ch 4 — Data Structures', href:'python/ch04-data-structures.html', avail:true},
+    {id:'ch05', title:'Ch 5 — OOP, Files & Errors (Capstone)', href:'python/ch05-oop-files-errors.html', avail:true},
+  ],
+  mod2: [
+    {id:'ch06', title:'Ch 6 — Linear Algebra for ML', href:'math/ch06-linear-algebra.html', avail:true},
+    {id:'ch07', title:'Ch 7 — Probability & Statistics', href:'math/ch07-probability-statistics.html', avail:true},
+    {id:'ch08', title:'Ch 8 — Calculus & Optimization (Capstone)', href:'math/ch08-calculus-optimization.html', avail:true},
+  ],
+  mod3: [
+    {id:'ch09', title:'Ch 9 — NumPy Deep Dive', href:'data/ch09-numpy-deep-dive.html', avail:true},
+    {id:'ch10', title:'Ch 10 — Pandas Fundamentals', href:'data/ch10-pandas-fundamentals.html', avail:true},
+    {id:'ch11', title:'Ch 11 — Data Cleaning & Wrangling', href:'data/ch11-data-cleaning-wrangling.html', avail:false},
+    {id:'ch12', title:'Ch 12 — Data Visualization (Capstone)', href:'data/ch12-data-visualization.html', avail:false},
+  ],
+};
+
+let totalDone=0, totalAll=0;
+Object.entries(MODULES).forEach(([modId, chapters])=>{
+  const grid=document.getElementById(modId);
+  chapters.forEach(ch=>{
+    totalAll++;
+    const saved=store.chapters && store.chapters[ch.id];
+    const done=!!(saved && saved.quizDone);
+    if(done) totalDone++;
+    const row=document.createElement(ch.avail?'a':'div');
+    row.className='ch '+(ch.avail?'avail':'locked');
+    if(ch.avail) row.href=ch.href;
+    row.innerHTML=`<span class="ch-num">${ch.id.replace('ch','')}</span><span class="ch-title">${ch.title}</span><span class="ch-status ${done?'done':''}">${done?'✓':(ch.avail?'→':'🔒')}</span>`;
+    grid.appendChild(row);
+  });
+});
+document.getElementById('op-fill').style.width=(totalDone/totalAll*100)+'%';
+document.getElementById('op-text').textContent=`${totalDone} / 30 chapters passed`;
+</script>
+</body>
+</html>

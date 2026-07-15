@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 1: Python Basics</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
+  Works from a plain double-click (file://) or hosted anywhere (Netlify Drop, GitHub Pages, etc).
+  Your progress on this chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+/* ── LAYOUT ── */
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+/* ── SIDEBAR ── */
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+/* ── TOPBAR ── */
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+/* ── MAIN CONTENT ── */
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+/* ── SECTION TABS ── */
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+/* ── LESSON STYLES ── */
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-h3{font-size:15px;font-weight:700;margin:24px 0 8px;color:var(--text)}
+
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+/* Info boxes */
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+/* Type cards */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.type-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.type-card .tc-type{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--violet);margin-bottom:4px}
+.type-card .tc-desc{font-size:12.5px;color:var(--t2);margin-bottom:8px}
+.type-card .tc-ex{font-family:var(--mono);font-size:11.5px;color:var(--t3);margin-bottom:6px}
+.type-card .tc-ml{font-size:11px;color:var(--cyan);font-weight:600;padding:3px 8px;background:var(--cyan-bg);border-radius:5px;display:inline-block}
+
+/* Code blocks */
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+/* Syntax */
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+/* Tables */
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+/* Step list */
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+/* ── PRACTICE STYLES ── */
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+/* ── PROJECT STYLES ── */
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+.check-icon.pending{opacity:.3}
+
+/* ── QUIZ STYLES ── */
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+/* ── CONSOLE DOCK ── */
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+/* ── MOBILE ── */
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+.mobile-console{display:none!important}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .type-grid{grid-template-columns:1fr}
+}
+
+/* ── NEXT CHAPTER PREVIEW ── */
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+/* Spark animation */
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<!-- Mobile top bar -->
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 1: Python Basics</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<!-- ══════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════ -->
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 1 of 30</div>
+  </a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 1</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 2: Control Flow</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 3: Functions &amp; Modules</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 4: Data Structures</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 5: OOP, Files &amp; Errors</span></div>
+</div>
+
+<!-- ══════════════════════════════════════
+     CONTENT
+══════════════════════════════════════ -->
+<div id="content">
+  <!-- Topbar -->
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 1</div>
+    <div class="tb-title">Python Basics</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <!-- Main content area -->
+  <div id="main-content">
+    <!-- Section tabs -->
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<!-- ══════════════════════════════════════
+     LESSON
+══════════════════════════════════════ -->
+<div class="lesson-section show" id="sec-lesson">
+
+  <div class="lesson-intro">
+    <h1>Chapter 1:<br/><span>Python Basics</span></h1>
+    <p>Before you train your first model, build your first neural network, or deploy your first AI — you need Python. This chapter gives you the absolute foundation: how Python stores data, how to manipulate it, and how to format output. Every concept here will appear in real ML code.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~45 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 1.1 -->
+  <div class="lesson-h2">1.1 — What Is Python and Why Do AI/ML Engineers Use It?</div>
+  <p class="lesson-p">Python is a programming language created in 1991. Today it is <strong>the dominant language for AI and ML</strong> — not because it is the fastest (it isn't), but because:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>The libraries are unmatched.</strong> NumPy, Pandas, PyTorch, TensorFlow, scikit-learn, HuggingFace — every major ML tool is built for Python first.</div></li>
+    <li data-n="2"><div><strong>It reads like English.</strong> <code>if accuracy > 0.9:</code> is obvious even without programming experience. This matters when you are learning complex ML concepts — you want the language to stay out of the way.</div></li>
+    <li data-n="3"><div><strong>It is what your future colleagues use.</strong> Every ML team at Google, Meta, and every AI startup writes Python. Learning it is not optional.</div></li>
+  </ul>
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>Your goal for this chapter</strong> is not to memorize syntax. It is to understand how Python thinks about data — so that when you write <code>accuracy = 0.94</code> next month in a PyTorch training loop, you know exactly what is happening.</div></div>
+
+  <!-- 1.2 -->
+  <div class="lesson-h2">1.2 — Variables: How Python Stores Data</div>
+  <p class="lesson-p">A <strong>variable</strong> is a name that points to a value. When you write <code>loss = 0.2341</code>, Python creates a box labelled <code>loss</code> and puts the value <code>0.2341</code> inside it. Any time you use <code>loss</code> later, Python looks it up and gives you <code>0.2341</code>.</p>
+  <p class="lesson-p">Unlike some other languages, Python is <strong>dynamically typed</strong> — you never need to declare what type of data a variable holds. Python figures it out by looking at the value.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Variables in ML — run this</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># In a real ML training loop, you would see variables like these:</span>
+model_name  = <span class="st">'ResNet50'</span>      <span class="cm"># str  — name of the model</span>
+epoch       = <span class="nm">1</span>                <span class="cm"># int  — which training pass we are on</span>
+loss        = <span class="nm">0.2341</span>           <span class="cm"># float — how wrong the model is right now</span>
+accuracy    = <span class="nm">0.9423</span>           <span class="cm"># float — how correct (as a fraction)</span>
+is_training = <span class="kw">True</span>             <span class="cm"># bool  — are we training or evaluating?</span>
+
+<span class="cm"># Python tells you what type a variable is:</span>
+<span class="bi">print</span>(<span class="bi">type</span>(model_name))   <span class="cm"># &lt;class 'str'&gt;</span>
+<span class="bi">print</span>(<span class="bi">type</span>(epoch))        <span class="cm"># &lt;class 'int'&gt;</span>
+<span class="bi">print</span>(<span class="bi">type</span>(loss))         <span class="cm"># &lt;class 'float'&gt;</span>
+<span class="bi">print</span>(<span class="bi">type</span>(is_training))  <span class="cm"># &lt;class 'bool'&gt;</span>
+
+<span class="cm"># You can reassign any variable any time:</span>
+epoch = <span class="nm">2</span>       <span class="cm"># epoch was 1, now it is 2</span>
+loss  = <span class="nm">0.1987</span>  <span class="cm"># loss dropped — model is improving</span>
+<span class="bi">print</span>(<span class="st">f'Epoch <span class="bi">{epoch}</span>: loss improved to <span class="bi">{loss}</span>'</span>)</div>
+  </div>
+
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Naming convention:</strong> Python variables use <code>snake_case</code> — words separated by underscores. <code>learning_rate</code>, not <code>LearningRate</code> or <code>learningRate</code>. This is the standard across all Python ML code.</div></div>
+
+  <!-- 1.3 -->
+  <div class="lesson-h2">1.3 — The Four Core Data Types</div>
+  <p class="lesson-p">Python has four data types you will use constantly in ML. Understanding each one — and when to use which — prevents a whole class of bugs.</p>
+
+  <div class="type-grid">
+    <div class="type-card">
+      <div class="tc-type">int</div>
+      <div class="tc-desc">Whole numbers. No decimal point.</div>
+      <div class="tc-ex">epoch = 50<br/>batch_size = 32<br/>num_layers = 12</div>
+      <div class="tc-ml">ML use: counting things — epochs, layers, samples</div>
+    </div>
+    <div class="type-card">
+      <div class="tc-type">float</div>
+      <div class="tc-desc">Decimal numbers. Always has a point.</div>
+      <div class="tc-ex">lr = 0.001<br/>loss = 0.2341<br/>dropout = 0.5</div>
+      <div class="tc-ml">ML use: model weights, loss values, accuracy</div>
+    </div>
+    <div class="type-card">
+      <div class="tc-type">str</div>
+      <div class="tc-desc">Text. Always in quotes (single or double).</div>
+      <div class="tc-ex">model = 'BERT'<br/>path = '/models/v2'<br/>label = "cat"</div>
+      <div class="tc-ml">ML use: file paths, class names, model names</div>
+    </div>
+    <div class="type-card">
+      <div class="tc-type">bool</div>
+      <div class="tc-desc">Only True or False. Capital first letter.</div>
+      <div class="tc-ex">is_training = True<br/>verbose = False<br/>use_gpu = True</div>
+      <div class="tc-ml">ML use: flags, mode switches, conditions</div>
+    </div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">All four types in action</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">epochs     = <span class="nm">50</span>           <span class="cm"># int — whole number</span>
+learning_rate = <span class="nm">0.001</span>    <span class="cm"># float — decimal</span>
+model_name = <span class="st">'ResNet50'</span>  <span class="cm"># str — text in quotes</span>
+use_gpu    = <span class="kw">True</span>         <span class="cm"># bool — only True or False</span>
+
+<span class="cm"># Check each type:</span>
+<span class="bi">print</span>(epochs, <span class="bi">type</span>(epochs))
+<span class="bi">print</span>(learning_rate, <span class="bi">type</span>(learning_rate))
+<span class="bi">print</span>(model_name, <span class="bi">type</span>(model_name))
+<span class="bi">print</span>(use_gpu, <span class="bi">type</span>(use_gpu))
+
+<span class="cm"># Important: '50' is NOT the same as 50</span>
+a = <span class="st">'50'</span>   <span class="cm"># str</span>
+b = <span class="nm">50</span>    <span class="cm"># int</span>
+<span class="bi">print</span>(a == b)  <span class="cm"># False! Different types</span></div>
+  </div>
+
+  <!-- 1.4 -->
+  <div class="lesson-h2">1.4 — Type Conversion: The #1 Beginner Bug in ML</div>
+  <p class="lesson-p">When you load a CSV file in Python, <strong>every single value comes in as a string</strong> — even numbers. This catches almost every beginner off guard. You cannot add strings. You cannot calculate with them. You must convert them first.</p>
+
+  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Real bug that kills real ML projects:</strong> You load candidate ages from a CSV. They come as strings: <code>'25'</code>, <code>'30'</code>, <code>'45'</code>. You try to calculate average age. Python gives you a TypeError. Your entire preprocessing pipeline crashes. This is type conversion — learn it now.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Type conversion — every ML engineer uses this daily</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># ── Converting TO int ──────────────────────────────────</span>
+age_str = <span class="st">'25'</span>          <span class="cm"># came from CSV — it's a STRING</span>
+age_int = <span class="bi">int</span>(age_str)  <span class="cm"># now it's an integer: 25</span>
+<span class="bi">print</span>(age_int + <span class="nm">5</span>)       <span class="cm"># 30 — works now</span>
+
+<span class="cm"># ── Converting TO float ────────────────────────────────</span>
+score_str   = <span class="st">'94.5'</span>
+score_float = <span class="bi">float</span>(score_str)  <span class="cm"># 94.5</span>
+<span class="bi">print</span>(score_float / <span class="nm">100</span>)        <span class="cm"># 0.945</span>
+
+<span class="cm"># ── The TRAP: int('3.9') CRASHES ──────────────────────</span>
+<span class="cm"># int('3.9')     &lt;-- DO NOT do this. Python will crash.</span>
+<span class="cm"># The correct way: go through float first</span>
+safe = <span class="bi">int</span>(<span class="bi">float</span>(<span class="st">'3.9'</span>))   <span class="cm"># step 1: float('3.9')=3.9  step 2: int(3.9)=3</span>
+<span class="bi">print</span>(safe)                 <span class="cm"># 3 (truncates, does NOT round)</span>
+
+<span class="cm"># ── Converting TO str ──────────────────────────────────</span>
+loss = <span class="nm">0.2341</span>
+message = <span class="st">'Loss is: '</span> + <span class="bi">str</span>(loss)   <span class="cm"># must convert to combine</span>
+<span class="bi">print</span>(message)
+
+<span class="cm"># ── bool conversions ───────────────────────────────────</span>
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="nm">0</span>))      <span class="cm"># False — zero is falsy</span>
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="nm">1</span>))      <span class="cm"># True  — any nonzero is truthy</span>
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="st">''</span>))     <span class="cm"># False — empty string is falsy</span>
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="st">'hi'</span>))   <span class="cm"># True  — non-empty string is truthy</span></div>
+  </div>
+
+  <table class="lesson-table">
+    <tr><th>Function</th><th>What it does</th><th>Example</th><th>Result</th></tr>
+    <tr><td>int(x)</td><td>Convert to integer</td><td>int('42')</td><td class="highlight">42</td></tr>
+    <tr><td>float(x)</td><td>Convert to decimal</td><td>float('3.14')</td><td class="highlight">3.14</td></tr>
+    <tr><td>str(x)</td><td>Convert to text</td><td>str(100)</td><td class="highlight">'100'</td></tr>
+    <tr><td>bool(x)</td><td>Convert to True/False</td><td>bool(0)</td><td class="highlight">False</td></tr>
+    <tr><td>int(float(x))</td><td>String decimal → int</td><td>int(float('3.9'))</td><td class="highlight">3</td></tr>
+  </table>
+
+  <!-- 1.5 -->
+  <div class="lesson-h2">1.5 — Strings: Working With Text Data</div>
+  <p class="lesson-p">Strings are how Python handles text. In ML, you use strings constantly: loading file paths, labelling classes, printing progress messages, processing text in NLP models. Strings have a rich set of built-in methods that let you clean, transform, and analyze text.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">String methods you will use in every ML project</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">text = <span class="st">'  Hello, World! This is Python for ML.  '</span>
+
+<span class="cm"># Cleaning methods — NLP preprocessing uses all of these</span>
+<span class="bi">print</span>(text.strip())              <span class="cm"># remove leading/trailing spaces</span>
+<span class="bi">print</span>(text.lower())              <span class="cm"># lowercase — always do this before NLP</span>
+<span class="bi">print</span>(text.upper())              <span class="cm"># uppercase</span>
+<span class="bi">print</span>(text.strip().lower())      <span class="cm"># chain methods together</span>
+
+<span class="cm"># Finding and replacing</span>
+<span class="bi">print</span>(text.replace(<span class="st">'Python'</span>, <span class="st">'Python3'</span>))   <span class="cm"># replace</span>
+<span class="bi">print</span>(text.find(<span class="st">'ML'</span>))                       <span class="cm"># index of first match</span>
+<span class="bi">print</span>(<span class="st">'Python'</span> <span class="kw">in</span> text)                       <span class="cm"># True if present</span>
+
+<span class="cm"># Splitting — tokenization at its simplest</span>
+words = text.strip().split()           <span class="cm"># split on whitespace</span>
+<span class="bi">print</span>(words)
+<span class="bi">print</span>(<span class="bi">len</span>(words), <span class="st">'words'</span>)
+
+csv_line = <span class="st">'Alice,28,ML Engineer,Hubli'</span>
+parts = csv_line.split(<span class="st">','</span>)            <span class="cm"># split on comma — reading CSV</span>
+<span class="bi">print</span>(parts)
+
+<span class="cm"># String slicing — accessing characters by index</span>
+s = <span class="st">'Python for ML'</span>
+<span class="bi">print</span>(s[<span class="nm">0</span>])       <span class="cm"># P  — index starts at 0</span>
+<span class="bi">print</span>(s[-<span class="nm">1</span>])      <span class="cm"># L  — negative index counts from end</span>
+<span class="bi">print</span>(s[<span class="nm">0</span>:<span class="nm">6</span>])     <span class="cm"># Python — characters 0,1,2,3,4,5</span>
+<span class="bi">print</span>(s[<span class="nm">7</span>:])      <span class="cm"># for ML — from index 7 to end</span>
+<span class="bi">print</span>(s[::<span class="nm">2</span>])     <span class="cm"># Pto o L — every 2nd character</span>
+
+<span class="cm"># Other useful methods</span>
+<span class="bi">print</span>(<span class="bi">len</span>(s))               <span class="cm"># 14 — number of characters</span>
+<span class="bi">print</span>(s.startswith(<span class="st">'Py'</span>))  <span class="cm"># True</span>
+<span class="bi">print</span>(s.endswith(<span class="st">'ML'</span>))    <span class="cm"># True</span>
+<span class="bi">print</span>(<span class="st">' '</span>.join([<span class="st">'cat'</span>,<span class="st">'dog'</span>,<span class="st">'bird'</span>]))  <span class="cm"># join a list into a string</span></div>
+  </div>
+
+  <!-- 1.6 -->
+  <div class="lesson-h2">1.6 — F-strings: The Professional Way to Format Output</div>
+  <p class="lesson-p">F-strings let you embed variable values directly inside a string. They are the standard in all modern Python code. You will write thousands of f-strings in your ML career — for training logs, metric reporting, debugging, and UI output. Learn this format deeply.</p>
+  <p class="lesson-p">An f-string starts with <code>f</code> before the quote. Variables go inside <code>{curly braces}</code>. You can also put format specifications after a colon inside the braces.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">F-string formats — from basic to ML production level</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">name     = <span class="st">'Bilal'</span>
+epoch    = <span class="nm">15</span>
+total    = <span class="nm">50</span>
+loss     = <span class="nm">0.23412738</span>
+accuracy = <span class="nm">0.9423</span>
+salary   = <span class="nm">85000</span>
+
+<span class="cm"># Basic f-string</span>
+<span class="bi">print</span>(<span class="st">f'Hello, <span class="bi">{name}</span>!'</span>)                         <span class="cm"># Hello, Bilal!</span>
+
+<span class="cm"># Integer formatting</span>
+<span class="bi">print</span>(<span class="st">f'Epoch <span class="bi">{epoch}</span> of <span class="bi">{total}</span>'</span>)               <span class="cm"># Epoch 15 of 50</span>
+<span class="bi">print</span>(<span class="st">f'Epoch <span class="bi">{epoch:03d}</span> of <span class="bi">{total:03d}</span>'</span>)       <span class="cm"># Epoch 015 of 050  ← zero-padded</span>
+
+<span class="cm"># Float formatting</span>
+<span class="bi">print</span>(<span class="st">f'Loss: <span class="bi">{loss}</span>'</span>)                           <span class="cm"># full precision — messy</span>
+<span class="bi">print</span>(<span class="st">f'Loss: <span class="bi">{loss:.4f}</span>'</span>)                      <span class="cm"># 0.2341 — 4 decimal places</span>
+<span class="bi">print</span>(<span class="st">f'Loss: <span class="bi">{loss:.2f}</span>'</span>)                      <span class="cm"># 0.23 — 2 decimal places</span>
+
+<span class="cm"># Percentage</span>
+<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy:.1%}</span>'</span>)              <span class="cm"># 94.2% ← auto × 100</span>
+<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy:.2%}</span>'</span>)              <span class="cm"># 94.23%</span>
+
+<span class="cm"># Thousands separator</span>
+<span class="bi">print</span>(<span class="st">f'Salary: Rs.<span class="bi">{salary:,}</span>'</span>)                 <span class="cm"># Rs.85,000</span>
+
+<span class="cm"># Width and alignment</span>
+<span class="bi">print</span>(<span class="st">f"<span class="bi">{'Metric':<15}</span> <span class="bi">{'Value':>10}</span>"</span>)          <span class="cm"># aligned columns</span>
+<span class="bi">print</span>(<span class="st">f"<span class="bi">{'accuracy':<15}</span> <span class="bi">{accuracy:>10.4f}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"<span class="bi">{'loss':<15}</span> <span class="bi">{loss:>10.4f}</span>"</span>)
+
+<span class="cm"># Expression inside f-string</span>
+<span class="bi">print</span>(<span class="st">f'Status: <span class="bi">{"GOOD" if accuracy > 0.9 else "NEEDS WORK"}</span>'</span>)
+
+<span class="cm"># A real training log line:</span>
+<span class="bi">print</span>(<span class="st">f'Epoch <span class="bi">{epoch:03d}</span>/<span class="bi">{total:03d}</span> | Loss: <span class="bi">{loss:.4f}</span> | Acc: <span class="bi">{accuracy:.2%}</span> | <span class="bi">{"✓" if accuracy>0.9 else "✗"}</span>'</span>)</div>
+  </div>
+
+  <!-- 1.7 -->
+  <div class="lesson-h2">1.7 — Operators: The Math of ML</div>
+  <p class="lesson-p">Python supports all standard mathematical operations plus a few special ones that appear constantly in ML code. You need to know all of them.</p>
+
+  <table class="lesson-table">
+    <tr><th>Operator</th><th>Name</th><th>Example</th><th>Result</th><th>ML Use</th></tr>
+    <tr><td>+</td><td>Addition</td><td>3 + 4</td><td class="highlight">7</td><td>Summing losses</td></tr>
+    <tr><td>-</td><td>Subtraction</td><td>10 - 3</td><td class="highlight">7</td><td>Error calculation</td></tr>
+    <tr><td>*</td><td>Multiplication</td><td>4 * 3</td><td class="highlight">12</td><td>Scaling values</td></tr>
+    <tr><td>/</td><td>Division</td><td>10 / 3</td><td class="highlight">3.333</td><td>Averages, ratios</td></tr>
+    <tr><td>//</td><td>Floor division</td><td>10 // 3</td><td class="highlight">3</td><td>Number of full batches</td></tr>
+    <tr><td>%</td><td>Modulo (remainder)</td><td>10 % 3</td><td class="highlight">1</td><td>Batch index cycling</td></tr>
+    <tr><td>**</td><td>Power (exponent)</td><td>2 ** 8</td><td class="highlight">256</td><td>Squaring, square root</td></tr>
+  </table>
+
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The two operators that appear most in ML math:</strong><br/><code>**</code> — to square: <code>error**2</code>. To square root: <code>x**0.5</code>. To any power.<br/><code>%</code> — to check if a number divides evenly: <code>if epoch % 10 == 0: save_checkpoint()</code></div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Operators in ML context</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># Batch math</span>
+dataset_size = <span class="nm">1000</span>
+batch_size   = <span class="nm">32</span>
+full_batches = dataset_size // batch_size   <span class="cm"># 31</span>
+leftover     = dataset_size  % batch_size   <span class="cm"># 8 samples in last batch</span>
+<span class="bi">print</span>(<span class="st">f'<span class="bi">{full_batches}</span> full batches + <span class="bi">{leftover}</span> leftover samples'</span>)
+
+<span class="cm"># The power operator — used in loss functions</span>
+error = <span class="nm">0.3</span>
+squared_error = error ** <span class="nm">2</span>    <span class="cm"># 0.09 — squaring the error</span>
+<span class="bi">print</span>(<span class="st">f'Squared error: <span class="bi">{squared_error}</span>'</span>)
+
+<span class="cm"># Square root using **0.5</span>
+mse = <span class="nm">0.09</span>
+rmse = mse ** <span class="nm">0.5</span>             <span class="cm"># 0.3 — square root</span>
+<span class="bi">print</span>(<span class="st">f'RMSE: <span class="bi">{rmse}</span>'</span>)
+
+<span class="cm"># MSE (Mean Squared Error) — your first ML formula</span>
+<span class="cm"># MSE = (1/n) × Σ(predicted - actual)²</span>
+p1, a1 = <span class="nm">0.8</span>, <span class="nm">1.0</span>   <span class="cm"># predicted=0.8, actual=1.0</span>
+p2, a2 = <span class="nm">0.3</span>, <span class="nm">0.0</span>   <span class="cm"># predicted=0.3, actual=0.0</span>
+p3, a3 = <span class="nm">0.9</span>, <span class="nm">1.0</span>   <span class="cm"># predicted=0.9, actual=1.0</span>
+mse = ((p1-a1)**<span class="nm">2</span> + (p2-a2)**<span class="nm">2</span> + (p3-a3)**<span class="nm">2</span>) / <span class="nm">3</span>
+<span class="bi">print</span>(<span class="st">f'MSE: <span class="bi">{mse:.6f}</span>'</span>)   <span class="cm"># You just implemented your first ML loss function!</span>
+
+<span class="cm"># Comparison operators — return True or False</span>
+<span class="bi">print</span>(<span class="nm">0.95</span> > <span class="nm">0.90</span>)   <span class="cm"># True</span>
+<span class="bi">print</span>(<span class="nm">0.80</span> == <span class="nm">0.80</span>)  <span class="cm"># True (use == not = for comparison)</span>
+<span class="bi">print</span>(<span class="nm">0.70</span> != <span class="nm">0.80</span>)  <span class="cm"># True (not equal)</span></div>
+  </div>
+
+  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>You just implemented MSE from scratch.</strong> Mean Squared Error is one of the most important loss functions in machine learning. You used only Chapter 1 Python — no libraries. This is exactly what libraries like sklearn calculate internally.</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 1 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Variables</strong> are named boxes. Python figures out the type automatically. Use snake_case naming.</div></li>
+    <li data-n="2"><div><strong>4 types:</strong> int (whole), float (decimal), str (text), bool (True/False). Each has a specific ML use case.</div></li>
+    <li data-n="3"><div><strong>Type conversion:</strong> CSV files load everything as strings. Use int(), float(), str(). Never int() a decimal string directly — go through float() first.</div></li>
+    <li data-n="4"><div><strong>Strings</strong> have methods: .strip(), .lower(), .split(), .replace(). Chain them for NLP preprocessing.</div></li>
+    <li data-n="5"><div><strong>F-strings:</strong> <code>f'Loss: {loss:.4f}'</code>. Use {:03d} for zero-padded integers, {:.4f} for decimals, {:.2%} for percentages.</div></li>
+    <li data-n="6"><div><strong>Operators:</strong> ** for power (squaring, sqrt), % for remainder (batch indexing), // for floor division (batch counting).</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+
+</div><!-- end lesson -->
+
+<!-- ══════════════════════════════════════
+     PRACTICE
+══════════════════════════════════════ -->
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises, each building on the lesson. Write code in the editor, click Run to see your output, then check if it passes. Read each task carefully before writing. Use the console on the right to experiment first if needed.</p>
+  </div>
+
+  <!-- Exercise 1 -->
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Variables and Printing</div>
+        <div class="ex-desc">Create variables for a candidate profile and print them in a formatted sentence. This is exactly what you'll do when building the candidate scoring AI — store data, then display it.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Create these 5 variables (use YOUR OWN values):
+  name       = your name (string)
+  age        = your age (integer)
+  city       = your city (string)
+  salary     = your monthly salary in numbers (integer)
+  is_employed = True or False (bool)
+
+Then print ONE formatted line using an f-string, following this exact pattern:
+"NAME (AGE) from CITY — Rs.SALARY/month — Employed: True/False"
+
+Example: "Bilal (28) from Hubli — Rs.85,000/month — Employed: True"
+(Use commas in the salary via {salary:,} — your own name/city/age/salary are fine, just match the pattern)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code" placeholder="# Write your solution here...
+name =
+age =
+..."></textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <!-- Exercise 2 -->
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Type Conversion Chain</div>
+        <div class="ex-desc">Practice converting between types — a skill you'll use every time you load data from a file.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+You have these values as STRINGS (they came from a CSV file):
+  age_str    = '28'
+  salary_str = '85000'
+  score_str  = '94.5'
+  rate_str   = '3.9'
+
+Convert each to the correct numeric type and print:
+  age as integer
+  salary as integer
+  score as float
+  rate as int (careful! use int(float(...)) pattern)
+
+Also print: is age == 28? (should be True, not False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">age_str    = '28'
+salary_str = '85000'
+score_str  = '94.5'
+rate_str   = '3.9'
+
+# Convert and print each one
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <!-- Exercise 3 -->
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">String Cleaning Pipeline</div>
+        <div class="ex-desc">Clean messy text data — a core NLP preprocessing task. Every ML model trained on text data starts with cleaning like this.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+raw_text = '  The QUICK Brown FOX!!! jumps Over the LAZY dog...   '
+
+Clean this text in steps and print each step:
+  Step 1: Remove leading/trailing spaces (strip)
+  Step 2: Convert to lowercase
+  Step 3: Remove all '!' characters (replace with nothing)
+  Step 4: Remove all '.' characters
+  Step 5: Split into individual words
+  Step 6: Print the word count
+
+Final output should include the cleaned text and word count.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">raw_text = '  The QUICK Brown FOX!!! jumps Over the LAZY dog...   '
+
+# Step 1: strip
+# Step 2: lowercase
+# Step 3: remove !
+# Step 4: remove .
+# Step 5: split into words
+# Step 6: print word count
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <!-- Exercise 4 -->
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Professional Training Log</div>
+        <div class="ex-desc">Format training metrics exactly as they appear in production ML systems. This is what you'll see — and write — in every ML training loop.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+You have these training metrics:
+  epoch    = 15
+  total    = 50
+  loss     = 0.23412738
+  accuracy = 0.9423
+  lr       = 0.001
+
+Print EXACTLY this output (match the format precisely):
+  ╔══════════════════════════════════╗
+  ║     TRAINING LOG — EPOCH 15     ║
+  ╚══════════════════════════════════╝
+  Progress : 015 / 050
+  Loss     : 0.2341
+  Accuracy : 94.23%
+  Lrn Rate : 0.001000
+  Status   : ✓ GOOD
+
+Status is ✓ GOOD if accuracy > 0.9, else ✗ NEEDS WORK</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">epoch    = 15
+total    = 50
+loss     = 0.23412738
+accuracy = 0.9423
+lr       = 0.001
+
+# Print the formatted training log
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <!-- Exercise 5 -->
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Implement MSE and RMSE</div>
+        <div class="ex-desc">Implement two real ML loss metrics from scratch using only Chapter 1 Python — no libraries. This is what sklearn and PyTorch calculate inside their loss functions.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+predictions = [0.8, 0.3, 0.9, 0.6, 0.3]
+targets     = [1.0, 0.0, 1.0, 0.5, 0.0]
+
+Calculate manually (no imports needed):
+  1. For each pair: compute (prediction - target)²
+  2. MSE = average of all squared differences
+  3. RMSE = square root of MSE  (use ** 0.5)
+  4. MAE = average of |prediction - target|  (use abs())
+
+Print:
+  MSE:  0.XXXXXX  (6 decimal places)
+  RMSE: 0.XXXXXX  (6 decimal places)
+  MAE:  0.XXXXXX  (6 decimal places)
+  Model quality: Good / Acceptable / Needs work
+    (Good if RMSE < 0.2, Acceptable if < 0.4, else Needs work)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">predictions = [0.8, 0.3, 0.9, 0.6, 0.3]
+targets     = [1.0, 0.0, 1.0, 0.5, 0.0]
+
+# Step 1: squared differences for each pair
+sq1 = (predictions[0] - targets[0]) ** 2
+sq2 =
+sq3 =
+sq4 =
+sq5 =
+
+# Step 2: MSE = average of squared differences
+mse =
+
+# Step 3: RMSE = square root of MSE
+rmse =
+
+# Step 4: MAE = average of absolute differences
+mae =
+
+# Print results
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<!-- ══════════════════════════════════════
+     PROJECT
+══════════════════════════════════════ -->
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>AI Training Dashboard</span></h2>
+    <p>You are building the monitoring UI for a candidate-scoring AI. The system trains for multiple epochs and needs a clean dashboard that shows every run's metrics at a glance. Build it using ONLY Chapter 1 concepts.</p>
+    <div class="project-tags">
+      <span class="ptag">Variables</span>
+      <span class="ptag">F-strings</span>
+      <span class="ptag">Operators</span>
+      <span class="ptag">Strings</span>
+      <span class="ptag">Type conversion</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Store model name, current epoch, total epochs, train loss, val loss, accuracy, learning rate as variables</li>
+      <li>Calculate: improvement needed to reach 95% accuracy target</li>
+      <li>Calculate: how many more epochs remain</li>
+      <li>Calculate: average of train and val loss</li>
+      <li>Print a full formatted dashboard with a border, all metrics, and a recommendation</li>
+      <li>Recommendation: "On track" if val_loss &lt; train_loss * 1.2, else "Watch for overfitting"</li>
+    </ul>
+  </div>
+
+  <div class="project-spec">
+    <h3>✅ Your output must include all of these</h3>
+    <ul class="check-list spec-list">
+      <li>Model name and current epoch / total epochs</li>
+      <li>Training loss AND validation loss (formatted to 4 decimal places)</li>
+      <li>Accuracy formatted as a percentage</li>
+      <li>Improvement needed to reach 95% target</li>
+      <li>Epochs remaining</li>
+      <li>Recommendation (On track / Watch for overfitting)</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ AI Training Dashboard — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: AI Training Dashboard
+# Use ONLY Chapter 1 concepts
+# ══════════════════════════════════════════
+
+# === TRAINING DATA ===
+# Fill these in — try different values to see how the dashboard changes
+model_name  = 'CandidateScorer-v1'
+epoch       = 23
+total_epochs = 50
+train_loss  = 0.2341
+val_loss    = 0.2687
+accuracy    = 0.8923
+learning_rate = 0.001
+target_accuracy = 0.95
+
+# === CALCULATIONS ===
+# Calculate these using the variables above:
+epochs_remaining = total_epochs - epoch
+improvement_needed = target_accuracy - accuracy
+avg_loss = (train_loss + val_loss) / 2
+overfitting = val_loss > train_loss * 1.2   # True if overfitting
+recommendation = 'Watch for overfitting' if overfitting else 'On track'
+
+# === PRINT YOUR DASHBOARD ===
+# Make it look professional. Include all required fields.
+# Use f-strings, formatting, borders made of = or ─ characters.
+
+print('=' * 48)
+print(f'  AI TRAINING DASHBOARD — {model_name}')
+print('=' * 48)
+
+# Add the rest of your dashboard below:
+# (epoch/total, losses, accuracy, improvement needed, recommendation)
+
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>Model name and epoch progress (e.g. Epoch 23/50)</div>
+    <div class="check-item"><span class="check-icon">📉</span>Train loss AND val loss formatted to 4 decimal places</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Accuracy as a percentage (e.g. 89.23%)</div>
+    <div class="check-item"><span class="check-icon">📈</span>Improvement needed to hit 95% target</div>
+    <div class="check-item"><span class="check-icon">⏳</span>Epochs remaining</div>
+    <div class="check-item"><span class="check-icon">⚠️</span>Recommendation (On track / Watch for overfitting)</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<!-- ══════════════════════════════════════
+     QUIZ
+══════════════════════════════════════ -->
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 1 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 2. Take your time — re-read the lesson if needed. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <!-- Q1 -->
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Which data type would you use to store a model's accuracy score of <code>0.9423</code>?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> int — because it is a measurement</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> float — because it has a decimal point</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> str — because you will print it</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> bool — because it represents a result</button>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">A CSV file gives you the string <code>'3.9'</code>. You want to convert it to an integer. Which code is CORRECT?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> <code>int('3.9')</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> <code>integer('3.9')</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> <code>int(float('3.9'))</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> <code>str(int('3.9'))</code></button>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">What does the <code>%</code> operator return? If <code>dataset_size = 1000</code> and <code>batch_size = 32</code>, what does <code>1000 % 32</code> give you?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> 31 — the number of full batches</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> 8 — the leftover samples after all full batches</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> 31.25 — the exact number of batches</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> 32000 — multiplied result</button>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write an f-string that produces exactly this output:<br/><code>Epoch 007/050 | Loss: 0.2341 | Acc: 94.23%</code><br/><br/>Given: <code>epoch=7, total=50, loss=0.2341, accuracy=0.9423</code></div>
+    <textarea class="q-code-input" id="q4-input" placeholder="f'...'" rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What is the output of this code?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">x = '50'
+y = 50
+print(x == y)
+print(int(x) == y)</pre></div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> True then True</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> False then False</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> False then True</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> True then False</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🔀</div>
+    <div class="ncc-info">
+      <h3>Chapter 2: Control Flow</h3>
+      <p>If/else decisions, for loops, while loops, enumerate(), zip(), and list comprehensions — the building blocks of every ML training loop. Ready to continue?</p>
+    </div>
+    <a class="ncc-btn" href="ch02-control-flow.html">Start Chapter 2 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<!-- ══════════════════════════════════════
+     PYTHON CONSOLE DOCK
+══════════════════════════════════════ -->
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<!-- Pyodide — real CPython compiled to WebAssembly. Runs entirely in the browser, no server needed. -->
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+// ══════════════════════════════════════
+// PROGRESS PERSISTENCE (shared across all chapters, this browser only)
+// ══════════════════════════════════════
+const CH_ID='ch01';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+// ══════════════════════════════════════
+// STATE
+// ══════════════════════════════════════
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+// Restore any saved progress for this chapter before first paint
+(function restore(){
+  const saved=loadStore().chapters && loadStore().chapters[CH_ID];
+  if(!saved)return;
+  completedItems=new Set(saved.completed||[]);
+  xp=saved.xp||0;
+  quizDone=!!saved.quizDone;
+})();
+
+// ══════════════════════════════════════
+// PYODIDE INIT
+// ══════════════════════════════════════
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# This console is yours — experiment freely','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+// ══════════════════════════════════════
+// PYTHON RUNNER
+// ══════════════════════════════════════
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+// ══════════════════════════════════════
+// CONSOLE
+// ══════════════════════════════════════
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+// ══════════════════════════════════════
+// SECTION NAVIGATION
+// ══════════════════════════════════════
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+// ══════════════════════════════════════
+// EXERCISES
+// ══════════════════════════════════════
+const EXERCISES = {
+  1:{
+    checks:['from ','rs.','employed'],
+    hint:"f'{name} ({age}) from {city} — Rs.{salary:,}/month — Employed: {is_employed}'",
+    solution:`name = 'Bilal'
+age = 28
+city = 'Hubli'
+salary = 85000
+is_employed = True
+print(f'{name} ({age}) from {city} — Rs.{salary:,}/month — Employed: {is_employed}')`
+  },
+  2:{
+    checks:['true'],
+    hint:"int(age_str), int(salary_str), float(score_str), int(float(rate_str)). Then compare: int(age_str) == 28",
+    solution:`age_str='28'; salary_str='85000'; score_str='94.5'; rate_str='3.9'
+age=int(age_str); salary=int(salary_str); score=float(score_str); rate=int(float(rate_str))
+print(age, type(age))
+print(salary, type(salary))
+print(score, type(score))
+print(rate, type(rate))
+print(age == 28)`
+  },
+  3:{
+    checks:['words','the quick brown fox'],
+    hint:"step=text.strip(); step=step.lower(); step=step.replace('!',''); step=step.replace('.',''); words=step.split(); print(len(words),'words')",
+    solution:`raw_text = '  The QUICK Brown FOX!!! jumps Over the LAZY dog...   '
+step1 = raw_text.strip()
+step2 = step1.lower()
+step3 = step2.replace('!','')
+step4 = step3.replace('.','')
+words = step4.split()
+print('Cleaned:', step4.strip())
+print('Words:', words)
+print(len(words), 'words')`
+  },
+  4:{
+    checks:['training log','015','94.23%','good'],
+    hint:"Use f'{epoch:03d}' for zero-padded. f'{accuracy:.2%}' for percentage. status = '✓ GOOD' if accuracy > 0.9 else '✗ NEEDS WORK'",
+    solution:`epoch=15;total=50;loss=0.23412738;accuracy=0.9423;lr=0.001
+status='✓ GOOD' if accuracy>0.9 else '✗ NEEDS WORK'
+print('╔══════════════════════════════════╗')
+print('║     TRAINING LOG — EPOCH 15     ║')
+print('╚══════════════════════════════════╝')
+print(f'Progress : {epoch:03d} / {total:03d}')
+print(f'Loss     : {loss:.4f}')
+print(f'Accuracy : {accuracy:.2%}')
+print(f'Lrn Rate : {lr:.6f}')
+print(f'Status   : {status}')`
+  },
+  5:{
+    checks:['mse:','rmse:','mae:'],
+    hint:"MSE=(sq1+sq2+sq3+sq4+sq5)/5. RMSE=mse**0.5. MAE=(abs(0.8-1)+abs(0.3-0)+abs(0.9-1)+abs(0.6-0.5)+abs(0.3-0))/5",
+    solution:`predictions=[0.8,0.3,0.9,0.6,0.3];targets=[1.0,0.0,1.0,0.5,0.0]
+sq1=(predictions[0]-targets[0])**2;sq2=(predictions[1]-targets[1])**2
+sq3=(predictions[2]-targets[2])**2;sq4=(predictions[3]-targets[3])**2
+sq5=(predictions[4]-targets[4])**2
+mse=(sq1+sq2+sq3+sq4+sq5)/5;rmse=mse**0.5
+mae=(abs(predictions[0]-targets[0])+abs(predictions[1]-targets[1])+abs(predictions[2]-targets[2])+abs(predictions[3]-targets[3])+abs(predictions[4]-targets[4]))/5
+print(f'MSE:  {mse:.6f}')
+print(f'RMSE: {rmse:.6f}')
+print(f'MAE:  {mae:.6f}')
+q='Good' if rmse<0.2 else 'Acceptable' if rmse<0.4 else 'Needs work'
+print(f'Model quality: {q}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+// ══════════════════════════════════════
+// PROJECT
+// ══════════════════════════════════════
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['training','epoch','loss','accuracy','recommendation'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required elements — check the checklist above';
+  }
+};
+
+// ══════════════════════════════════════
+// QUIZ
+// ══════════════════════════════════════
+const CORRECT={1:'B',2:'C',3:'B',5:'C'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim();
+  const fb=document.getElementById('q4-feedback');
+  const hasEpoch=val.includes('epoch:03d')||val.includes('epoch:3d')||val.includes('epoch:03');
+  const hasTotal=val.includes('total:03d')||val.includes('total:3d')||val.includes('total');
+  const hasLoss=val.includes('loss:.4f')||val.includes('loss:0.4f');
+  const hasAcc=val.includes('accuracy:.2%')||val.includes('accuracy:0.2%')||val.includes('.2%');
+  const passed=hasEpoch&&hasTotal&&hasLoss&&hasAcc;
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! The key format specs: {:03d} for zero-padded int, {:.4f} for 4 decimal float, {:.2%} for percentage.'
+    :'❌ Not quite. Remember: {epoch:03d} for zero-padding, {loss:.4f} for 4 decimals, {accuracy:.2%} for percentage with % sign.';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Excellent work. You have mastered Python Basics. Chapter 2 is now unlocked. Variables, types, strings, f-strings, and operators are yours — you will use them in every line of ML code you ever write.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake. You can retake as many times as needed.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false; // allow retake without waiting for reload
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+// ══════════════════════════════════════
+// UI UPDATES
+// ══════════════════════════════════════
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  // Mark sidebar items done
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+// ══════════════════════════════════════
+// MOBILE
+// ══════════════════════════════════════
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+// Close sidebar on item click (mobile)
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

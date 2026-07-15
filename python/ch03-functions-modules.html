@@ -1,0 +1,1225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 3: Functions &amp; Modules</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
+  Your progress on this chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 3: Functions &amp; Modules</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 3 of 30</div>
+  </a>
+  <a class="sb-back" href="ch02-control-flow.html">← Ch 2: Control Flow</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 3</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 4: Data Structures</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 5: OOP, Files &amp; Errors</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 3</div>
+    <div class="tb-title">Functions &amp; Modules</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 2 quiz in this browser yet. This chapter assumes you're comfortable with loops and conditionals.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 3:<br/><span>Functions &amp; Modules</span></h1>
+    <p>Every ML library you'll ever use — <code>sklearn.metrics.accuracy_score()</code>, <code>torch.nn.functional.relu()</code> — is just a function someone wrote once and packaged so everyone could reuse it. This chapter teaches you to write your own: reusable, well-named blocks of logic that turn "code you wrote once" into "a tool you use forever."</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~50 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 3.1 -->
+  <div class="lesson-h2">3.1 — Why Functions? From Copy-Paste to Reusable Tools</div>
+  <p class="lesson-p">Without functions, computing accuracy for three different models means writing the same loop three times. If you find a bug in that logic, you now have to fix it in three places — and you will forget one. A <strong>function</strong> packages logic once, under a name, so you write it once and call it forever.</p>
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This is exactly what a library is.</strong> When you call <code>accuracy_score(y_true, y_pred)</code> from scikit-learn, you're calling a function someone else wrote. By the end of this chapter you'll understand precisely what's happening inside that call.</div></div>
+
+  <!-- 3.2 -->
+  <div class="lesson-h2">3.2 — def, Parameters, and return vs print</div>
+  <p class="lesson-p">Define a function with <code>def name(parameters):</code>. Inside, <code>return</code> sends a value back to whoever called the function, so it can be stored or reused. This is completely different from <code>print()</code>, which only displays text on screen and gives nothing back.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">return vs print — the most important distinction in this chapter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">compute_accuracy</span>(predictions, targets):
+    correct = <span class="nm">0</span>
+    <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
+        <span class="kw">if</span> p == t:
+            correct += <span class="nm">1</span>
+    <span class="kw">return</span> correct / <span class="bi">len</span>(targets)   <span class="cm"># hands the value back to the caller</span>
+
+preds   = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>]
+targets = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>]
+
+acc = <span class="fn">compute_accuracy</span>(preds, targets)   <span class="cm"># the returned value is now stored in acc</span>
+<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{acc:.2%}</span>'</span>)         <span class="cm"># we can use acc anywhere now — format it, compare it, save it</span>
+
+<span class="cm"># Contrast: a function that only prints, returns nothing useful</span>
+<span class="kw">def</span> <span class="fn">show_accuracy</span>(predictions, targets):
+    <span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{compute_accuracy(predictions, targets):.2%}</span>'</span>)
+    <span class="cm"># no return statement — this function's result is None</span>
+
+result = <span class="fn">show_accuracy</span>(preds, targets)
+<span class="bi">print</span>(<span class="st">f'What show_accuracy() gave back: <span class="bi">{result}</span>'</span>)  <span class="cm"># None — it never returned anything</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> A function with no <code>return</code> statement doesn't fail — it silently returns <code>None</code>. If you ever see <code>None</code> where you expected a number, check whether the function you called actually has a <code>return</code>.</div></div>
+
+  <!-- 3.3 -->
+  <div class="lesson-h2">3.3 — Default Parameters and Keyword Arguments</div>
+  <p class="lesson-p">A parameter can have a default value, used only when the caller doesn't supply one. This lets a function have sensible behavior out of the box, while still being configurable.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Defaults make a function flexible without being complicated</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(name, value, decimals=<span class="nm">4</span>):
+    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
+
+<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'loss'</span>, <span class="nm">0.123456</span>))               <span class="cm"># uses the default: 4 decimals</span>
+<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'accuracy'</span>, <span class="nm">0.9423</span>, decimals=<span class="nm">2</span>))  <span class="cm"># overrides the default: 2 decimals</span>
+<span class="bi">print</span>(<span class="fn">format_metric</span>(name=<span class="st">'f1'</span>, value=<span class="nm">0.88</span>, decimals=<span class="nm">1</span>))  <span class="cm"># keyword arguments — order no longer matters</span></div>
+  </div>
+
+  <!-- 3.4 -->
+  <div class="lesson-h2">3.4 — *args and **kwargs</div>
+  <p class="lesson-p">Sometimes you don't know in advance how many arguments a function will receive. <code>*args</code> collects any number of extra positional arguments into a tuple. <code>**kwargs</code> collects any number of extra keyword arguments into a dict.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">*args — accept any number of values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">average_loss</span>(*losses):
+    <span class="bi">print</span>(<span class="st">'Received:'</span>, losses, <span class="cm">'— a tuple, no matter how many arguments'</span>)
+    <span class="kw">return</span> <span class="bi">sum</span>(losses) / <span class="bi">len</span>(losses)
+
+<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.5, 0.3, 0.4, 0.2):.4f}</span>'</span>)   <span class="cm"># 4 values</span>
+<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.9, 0.1):.4f}</span>'</span>)             <span class="cm"># 2 values — same function</span>
+
+<span class="cm"># **kwargs — accept any number of named settings</span>
+<span class="kw">def</span> <span class="fn">train_model</span>(name, **settings):
+    <span class="bi">print</span>(<span class="st">f'Training <span class="bi">{name}</span> with settings:'</span>, settings)
+
+<span class="fn">train_model</span>(<span class="st">'ResNet50'</span>, epochs=<span class="nm">50</span>, lr=<span class="nm">0.001</span>, batch_size=<span class="nm">32</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>You'll see this constantly in real ML code:</strong> <code>model.fit(X, y, epochs=10, batch_size=32, **kwargs)</code> is exactly this pattern — accept the required arguments, then forward whatever extra settings the caller wants.</div></div>
+
+  <!-- 3.5 -->
+  <div class="lesson-h2">3.5 — Lambda: Small, Throwaway Functions</div>
+  <p class="lesson-p">A <code>lambda</code> is a function written in one line, with no name, usually passed directly into another function. The most common use in ML code is as the <code>key</code> for sorting.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">lambda + sorted() — ranking model results</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [(<span class="st">'alice'</span>, <span class="nm">0.72</span>), (<span class="st">'bob'</span>, <span class="nm">0.95</span>), (<span class="st">'carol'</span>, <span class="nm">0.81</span>), (<span class="st">'dave'</span>, <span class="nm">0.60</span>)]
+
+<span class="cm"># Sort by the SECOND item in each tuple (the score), highest first</span>
+ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</span> x: x[<span class="nm">1</span>], reverse=<span class="kw">True</span>)
+<span class="bi">print</span>(ranked)
+<span class="bi">print</span>(<span class="st">f'Top performer: <span class="bi">{ranked[0][0]}</span>'</span>)
+
+<span class="cm"># A named function does the same thing, just with more words:</span>
+<span class="kw">def</span> <span class="fn">get_score</span>(item):
+    <span class="kw">return</span> item[<span class="nm">1</span>]
+<span class="bi">print</span>(<span class="bi">sorted</span>(scores, key=get_score, reverse=<span class="kw">True</span>))</div>
+  </div>
+
+  <!-- 3.6 -->
+  <div class="lesson-h2">3.6 — Scope: Local vs Global Variables</div>
+  <p class="lesson-p">A variable created <em>inside</em> a function only exists inside that function — this is <strong>local scope</strong>. It disappears the moment the function returns, and it never affects a variable of the same name outside the function, unless you explicitly say <code>global</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The classic scope surprise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">total_processed = <span class="nm">0</span>   <span class="cm"># global variable</span>
+
+<span class="kw">def</span> <span class="fn">process_batch_wrong</span>(batch_size):
+    total_processed = total_processed + batch_size  <span class="cm"># this LOOKS right...</span>
+    <span class="bi">print</span>(total_processed)
+
+<span class="cm"># process_batch_wrong(32)   # <-- would raise UnboundLocalError! Python sees the assignment</span>
+<span class="cm"># and assumes total_processed is a NEW local variable for the whole function body —</span>
+<span class="cm"># so reading it on the right-hand side before it's assigned fails.</span>
+
+<span class="kw">def</span> <span class="fn">process_batch</span>(batch_size):
+    <span class="kw">global</span> total_processed     <span class="cm"># explicitly say: use the outer variable, don't make a local one</span>
+    total_processed += batch_size
+    <span class="bi">print</span>(<span class="st">f'Running total: <span class="bi">{total_processed}</span>'</span>)
+
+<span class="fn">process_batch</span>(<span class="nm">32</span>)
+<span class="fn">process_batch</span>(<span class="nm">16</span>)
+<span class="fn">process_batch</span>(<span class="nm">8</span>)
+<span class="bi">print</span>(<span class="st">f'Total processed: <span class="bi">{total_processed}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Best practice: avoid <code>global</code> when you can.</strong> It's shown here because you WILL encounter it, but the cleaner pattern is almost always to <code>return</code> the new value and let the caller decide what to do with it. Fewer hidden side effects, easier to test.</div></div>
+
+  <!-- 3.7 -->
+  <div class="lesson-h2">3.7 — Modules: import and Organizing Code Across Files</div>
+  <p class="lesson-p">A <strong>module</strong> is just a <code>.py</code> file. <code>import</code> lets you use functions defined in another file — this is exactly how <code>import numpy as np</code> or <code>from sklearn.metrics import accuracy_score</code> work. Python also ships a large standard library of built-in modules you can import for free.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Using Python's built-in modules</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+
+<span class="bi">print</span>(math.sqrt(<span class="nm">16</span>))         <span class="cm"># 4.0 — same idea as **0.5, but more explicit</span>
+<span class="bi">print</span>(math.pi)              <span class="cm"># 3.14159...</span>
+<span class="bi">print</span>(math.ceil(<span class="nm">4.1</span>))       <span class="cm"># 5 — round up</span>
+<span class="bi">print</span>(math.floor(<span class="nm">4.9</span>))      <span class="cm"># 4 — round down</span>
+
+<span class="cm"># Importing just one function, so you don't need the "math." prefix:</span>
+<span class="kw">from</span> math <span class="kw">import</span> sqrt
+<span class="bi">print</span>(sqrt(<span class="nm">25</span>))            <span class="cm"># 5.0</span>
+
+<span class="cm"># This is exactly the pattern you'll use for every ML library:</span>
+<span class="cm"># import numpy as np</span>
+<span class="cm"># from sklearn.metrics import accuracy_score</span>
+<span class="cm"># import pandas as pd</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>If you were writing your own file</strong> (say, <code>metrics.py</code>) full of functions, another file could use them with <code>from metrics import compute_accuracy</code>. This is how real ML projects are structured: one file per concern (data loading, model, metrics, training loop), stitched together with imports.</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 3 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>def name(params): ... return value</strong> — functions package logic once so you can reuse it everywhere. <code>return</code> hands a value back; <code>print</code> just displays it.</div></li>
+    <li data-n="2"><div><strong>Default parameters</strong> (<code>decimals=4</code>) make functions flexible without forcing every caller to specify everything.</div></li>
+    <li data-n="3"><div><strong>*args</strong> collects extra positional arguments into a tuple. <strong>**kwargs</strong> collects extra keyword arguments into a dict.</div></li>
+    <li data-n="4"><div><strong>lambda</strong> writes a tiny function inline — most often as the <code>key</code> for <code>sorted()</code>.</div></li>
+    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable — but prefer <code>return</code>ing values instead when you can.</div></li>
+    <li data-n="6"><div><strong>Modules:</strong> <code>import math</code>, <code>from math import sqrt</code> — every ML library (NumPy, Pandas, sklearn) is used exactly this way.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely — write functions around it, don't change the given values.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Write compute_accuracy()</div>
+        <div class="ex-desc">Turn Chapter 2's accuracy loop into a real, reusable function that returns a value.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+predictions = [1,0,1,0,1,1,0,1,0,1]
+targets     = [1,0,0,0,1,0,0,1,1,1]
+(already given — do not change them)
+
+Write a function compute_accuracy(predictions, targets) that RETURNS
+(not prints) the accuracy as a float between 0 and 1.
+
+Then call it and print exactly: f'Accuracy: {accuracy:.2%}'
+(The correct answer is Accuracy: 70.00%)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">predictions = [1,0,1,0,1,1,0,1,0,1]
+targets     = [1,0,0,0,1,0,0,1,1,1]
+
+# def compute_accuracy(predictions, targets): ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">format_metric() With a Default</div>
+        <div class="ex-desc">Write a formatting function with a default parameter, then call it once using the default and once overriding it.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write format_metric(name, value, decimals=4) that RETURNS the string
+f'{name}: {value:.{decimals}f}'   (use this exact f-string pattern)
+
+Then print:
+  format_metric('loss', 0.123456)              -> uses the default (4 decimals)
+  format_metric('accuracy', 0.9423, decimals=2) -> overrides to 2 decimals
+
+(Correct output lines: "loss: 0.1235" and "accuracy: 0.94")</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def format_metric(name, value, decimals=4): ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">average_loss(*losses) With *args</div>
+        <div class="ex-desc">Write a function that can average ANY number of loss values, using *args.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write average_loss(*losses) that RETURNS the average of however many
+values it's given.
+
+Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
+(The correct answer is Average: 0.3500)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># def average_loss(*losses): ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Rank Results With lambda</div>
+        <div class="ex-desc">Sort a leaderboard of model results by score using sorted() and a lambda key.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
+(already given — do not change it)
+
+Using sorted() with a lambda key, sort scores by the score (2nd item)
+from HIGHEST to lowest.
+
+Print exactly: f'Top performer: {sorted_scores[0][0]}'
+(The correct answer is Top performer: bob)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
+
+# sorted_scores = sorted(scores, key=..., reverse=...)
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Running Total With global</div>
+        <div class="ex-desc">Practice global scope by tracking a running total of samples processed across multiple function calls.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+total_processed = 0   (already given as a global variable)
+
+Write process_batch(batch_size) that uses "global total_processed"
+and adds batch_size to it (no return needed).
+
+Call it three times: process_batch(32), process_batch(16), process_batch(8)
+Then print exactly: f'Total processed: {total_processed}'
+(The correct answer is Total processed: 56)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">total_processed = 0
+
+# def process_batch(batch_size): ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Metrics Toolkit</span></h2>
+    <p>Build the small function library that sits at the heart of every classification project: accuracy, precision, recall, and F1 — then a report() function that ties them together. This is a simplified version of what sklearn.metrics does internally.</p>
+    <div class="project-tags">
+      <span class="ptag">def</span>
+      <span class="ptag">return</span>
+      <span class="ptag">default params</span>
+      <span class="ptag">reuse</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>accuracy(preds, targets) — fraction of predictions that match the target</li>
+      <li>precision(preds, targets) — of everything you predicted positive (1), what fraction was actually positive</li>
+      <li>recall(preds, targets) — of everything that was actually positive, what fraction did you correctly predict</li>
+      <li>f1(preds, targets) — the harmonic mean of precision and recall: 2·P·R / (P+R)</li>
+      <li>report(preds, targets, model_name='Model') — calls all four functions above and prints a formatted report</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Metrics Toolkit — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Metrics Toolkit
+# Use ONLY Chapter 1-3 concepts — build the functions, then use them
+# ══════════════════════════════════════════
+
+preds   = [1,0,1,1,0,1,0,0,1,1]
+targets = [1,0,0,1,0,1,0,1,1,1]
+
+def accuracy(preds, targets):
+    # TODO: fraction of preds that match targets
+    pass
+
+def precision(preds, targets):
+    # TODO: TP / (TP + FP)  — of predicted positives, how many were correct
+    pass
+
+def recall(preds, targets):
+    # TODO: TP / (TP + FN)  — of actual positives, how many did you catch
+    pass
+
+def f1(preds, targets):
+    # TODO: 2 * precision * recall / (precision + recall)
+    pass
+
+def report(preds, targets, model_name='Model'):
+    # TODO: print a formatted report using all four functions above.
+    # Must include the words "accuracy", "precision", "recall", "f1"
+    # each followed by a percentage, e.g. "Accuracy: 80.00%"
+    pass
+
+report(preds, targets, model_name='CandidateScorer-v1')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>Accuracy: 80.00%</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Precision: 83.33%</div>
+    <div class="check-item"><span class="check-icon">🔁</span>Recall: 83.33%</div>
+    <div class="check-item"><span class="check-icon">⚖️</span>F1: 83.33%</div>
+    <div class="check-item"><span class="check-icon">🏗️</span>All four values computed by calling your four separate functions — not hardcoded numbers</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 3 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 4. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">What's the real difference between <code>return</code> and <code>print</code> inside a function?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> No difference — both just display output</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> return sends a value back to the caller to store or reuse; print only displays text and gives back None</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> print is faster so it should always be preferred</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> return can only be used once in an entire program</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Given <code>def greet(name, greeting='Hello'):</code>, what happens if you call <code>greet('Bilal')</code>?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> TypeError — greeting is required and missing</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> greeting automatically uses its default value, 'Hello'</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Both name and greeting become 'Bilal'</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> SyntaxError, because defaults require keyword calls</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">What does <code>**kwargs</code> let a function accept?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Any number of positional arguments, collected as a tuple</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Any number of keyword arguments, collected as a dict</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only exactly two extra arguments</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> A way to return multiple values from a function</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write a lambda assigned to a variable called <code>square</code> that takes a number <code>x</code> and returns <code>x</code> squared.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="square = lambda x: ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does this code print?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">counter = 0
+def increment():
+    counter = 1
+    return counter
+print(increment())
+print(counter)</pre></div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> 1 then 1</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> 0 then 0</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> 1 then 0 — the local counter inside the function never touches the global one</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> UnboundLocalError</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🔀</div>
+    <div class="ncc-info">
+      <h3>Chapter 4: Data Structures</h3>
+      <p>Lists, tuples, dicts, and sets in depth — slicing, nesting, sorting with keys, and the JSON-shaped data every real dataset arrives in.</p>
+    </div>
+    <a class="ncc-btn" href="ch04-data-structures.html">Start Chapter 4 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch03';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch02'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# This console is yours — experiment freely','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['accuracy: 70.00%'],
+    hint:"def compute_accuracy(predictions, targets): correct=0; for p,t in zip(predictions,targets): if p==t: correct+=1; return correct/len(targets)",
+    solution:`predictions = [1,0,1,0,1,1,0,1,0,1]
+targets     = [1,0,0,0,1,0,0,1,1,1]
+
+def compute_accuracy(predictions, targets):
+    correct = 0
+    for p, t in zip(predictions, targets):
+        if p == t:
+            correct += 1
+    return correct / len(targets)
+
+accuracy = compute_accuracy(predictions, targets)
+print(f'Accuracy: {accuracy:.2%}')`
+  },
+  2:{
+    checks:['loss: 0.1235','accuracy: 0.94'],
+    hint:"def format_metric(name, value, decimals=4): return f'{name}: {value:.{decimals}f}'",
+    solution:`def format_metric(name, value, decimals=4):
+    return f'{name}: {value:.{decimals}f}'
+
+print(format_metric('loss', 0.123456))
+print(format_metric('accuracy', 0.9423, decimals=2))`
+  },
+  3:{
+    checks:['average: 0.3500'],
+    hint:"def average_loss(*losses): return sum(losses)/len(losses)",
+    solution:`def average_loss(*losses):
+    return sum(losses) / len(losses)
+
+print(f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}')`
+  },
+  4:{
+    checks:['top performer: bob'],
+    hint:"sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)",
+    solution:`scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
+sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
+print(f'Top performer: {sorted_scores[0][0]}')`
+  },
+  5:{
+    checks:['total processed: 56'],
+    hint:"def process_batch(batch_size): global total_processed; total_processed += batch_size",
+    solution:`total_processed = 0
+
+def process_batch(batch_size):
+    global total_processed
+    total_processed += batch_size
+
+process_batch(32)
+process_batch(16)
+process_batch(8)
+print(f'Total processed: {total_processed}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['accuracy: 80.00%','precision: 83.33%','recall: 83.33%','f1: 83.33%'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above (need all four metrics at the exact percentages)';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'C'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const hasLambda=val.includes('lambda');
+  const hasX=val.includes('x');
+  const hasSquare=val.includes('x**2')||val.includes('x ** 2')||val.includes('x*x');
+  const passed=hasLambda&&hasX&&hasSquare;
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! square = lambda x: x**2'
+    :'❌ Not quite. You need: square = lambda x: x**2 (or x*x)';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Functions and modules are yours now — def, return, defaults, *args/**kwargs, lambda, scope, and import. You can now build reusable tools instead of copy-pasting logic.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

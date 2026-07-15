@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 4: Data Structures</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
+  Your progress on this chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0}
+.type-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:16px}
+.type-card .tc-type{font-family:var(--mono);font-size:16px;font-weight:700;color:var(--violet);margin-bottom:4px}
+.type-card .tc-desc{font-size:12.5px;color:var(--t2);margin-bottom:8px}
+.type-card .tc-ex{font-family:var(--mono);font-size:11.5px;color:var(--t3);margin-bottom:6px}
+.type-card .tc-ml{font-size:11px;color:var(--cyan);font-weight:600;padding:3px 8px;background:var(--cyan-bg);border-radius:5px;display:inline-block}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .type-grid{grid-template-columns:1fr}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 4: Data Structures</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 4 of 30</div>
+  </a>
+  <a class="sb-back" href="ch03-functions-modules.html">← Ch 3: Functions &amp; Modules</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 4</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 5: OOP, Files &amp; Errors</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 4</div>
+    <div class="tb-title">Data Structures</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 3 quiz in this browser yet. This chapter assumes you're comfortable writing your own functions.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 4:<br/><span>Data Structures</span></h1>
+    <p>Real datasets don't arrive as five neat variables — they arrive as thousands of records, each with several fields, often nested inside each other. This chapter covers the four containers Python gives you to hold that data: lists, tuples, dicts, and sets — and the shape you'll see constantly once you start loading real data: lists of dictionaries.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 4.1 -->
+  <div class="lesson-h2">4.1 — Lists in Depth: Mutable, Ordered Collections</div>
+  <p class="lesson-p">You've used lists since Chapter 1. A list is <strong>mutable</strong> — you can change it after creating it — and <strong>ordered</strong> — items keep the position you put them in. Its methods change the list <em>in place</em> and usually return <code>None</code>, which is a common source of confusion.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">List methods — building and reordering a scores list</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">72</span>, <span class="nm">85</span>, <span class="nm">60</span>, <span class="nm">91</span>, <span class="nm">78</span>]
+
+scores.append(<span class="nm">95</span>)        <span class="cm"># adds to the end — modifies scores in place</span>
+<span class="bi">print</span>(scores)
+
+scores.remove(<span class="nm">60</span>)        <span class="cm"># removes the FIRST 60 it finds</span>
+<span class="bi">print</span>(scores)
+
+scores.sort(reverse=<span class="kw">True</span>)  <span class="cm"># sorts in place, highest first</span>
+<span class="bi">print</span>(scores)
+<span class="bi">print</span>(<span class="st">f'Top score: <span class="bi">{scores[0]}</span>'</span>)
+
+last = scores.pop()      <span class="cm"># removes AND returns the last item</span>
+<span class="bi">print</span>(<span class="st">f'Removed: <span class="bi">{last}</span>, remaining: <span class="bi">{scores}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> <code>scores = scores.sort()</code> sets <code>scores</code> to <code>None</code>! <code>.sort()</code> reorders the list in place and returns nothing. Just call <code>scores.sort()</code> on its own line — don't reassign it.</div></div>
+
+  <!-- 4.2 -->
+  <div class="lesson-h2">4.2 — Tuples: Immutable, Ordered Collections</div>
+  <p class="lesson-p">A tuple looks like a list but uses <code>()</code> instead of <code>[]</code>, and once created, <strong>it cannot be changed</strong>. Use a tuple when a value shouldn't ever be modified — coordinates, a fixed record, a return value made of several parts.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Tuples and unpacking</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">point = (<span class="nm">3</span>, <span class="nm">4</span>)
+x, y = point               <span class="cm"># unpacking — x=3, y=4</span>
+<span class="bi">print</span>(<span class="st">f'x=<span class="bi">{x}</span>, y=<span class="bi">{y}</span>'</span>)
+
+<span class="cm"># point[0] = 5   # <-- TypeError! tuples don't support item assignment</span>
+
+<span class="cm"># Unpacking a list of tuples in a loop — a very common ML pattern</span>
+records = [(<span class="st">'alice'</span>, <span class="nm">28</span>, <span class="st">'Hubli'</span>), (<span class="st">'bob'</span>, <span class="nm">34</span>, <span class="st">'Pune'</span>)]
+<span class="kw">for</span> name, age, city <span class="kw">in</span> records:
+    <span class="bi">print</span>(<span class="st">f'<span class="bi">{name}</span> is <span class="bi">{age}</span> from <span class="bi">{city}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why this matters in ML:</strong> a dataset row is often naturally a tuple — fixed fields, in a fixed order, that shouldn't change once loaded. Functions that return multiple values (like <code>train_test_split()</code> in sklearn) return them as a tuple.</div></div>
+
+  <!-- 4.3 -->
+  <div class="lesson-h2">4.3 — Dictionaries: Key-Value Pairs</div>
+  <p class="lesson-p">A dict maps <strong>keys</strong> to <strong>values</strong>. It's the single most-used data structure in real ML code — model configs, API responses, and JSON files are all, fundamentally, dicts.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Building and reading a model config</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">model_config = {<span class="st">'name'</span>: <span class="st">'ResNet50'</span>, <span class="st">'epochs'</span>: <span class="nm">50</span>, <span class="st">'lr'</span>: <span class="nm">0.001</span>}
+
+<span class="bi">print</span>(model_config[<span class="st">'epochs'</span>])            <span class="cm"># 50 — direct access by key</span>
+<span class="bi">print</span>(model_config.get(<span class="st">'batch_size'</span>, <span class="nm">32</span>))  <span class="cm"># 32 — .get() returns a default instead of crashing</span>
+<span class="cm"># model_config['batch_size']  # <-- this would raise a KeyError! the key doesn't exist yet</span>
+
+model_config[<span class="st">'batch_size'</span>] = <span class="nm">32</span>   <span class="cm"># adding a new key is just an assignment</span>
+
+<span class="kw">for</span> key, value <span class="kw">in</span> model_config.items():
+    <span class="bi">print</span>(<span class="st">f'<span class="bi">{key}</span>: <span class="bi">{value}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Real bug that kills real ML pipelines:</strong> <code>config['batch_size']</code> raises <code>KeyError</code> the instant that key is missing — and it WILL be missing sometimes, from an incomplete config file or an old dataset version. <code>config.get('batch_size', 32)</code> never crashes; it just uses your default.</div></div>
+
+  <!-- 4.4 -->
+  <div class="lesson-h2">4.4 — Sets: Unique, Unordered Collections</div>
+  <p class="lesson-p">A set holds only <strong>unique</strong> values, with no guaranteed order, and supports fast mathematical operations: union, intersection, difference. Use it to deduplicate, or to compare two collections of things.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Comparing feature sets between two model versions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">model_a_features = {<span class="st">'age'</span>, <span class="st">'income'</span>, <span class="st">'education'</span>, <span class="st">'city'</span>}
+model_b_features = {<span class="st">'age'</span>, <span class="st">'income'</span>, <span class="st">'job_title'</span>}
+
+common   = model_a_features & model_b_features   <span class="cm"># intersection — in BOTH</span>
+only_a   = model_a_features - model_b_features   <span class="cm"># difference — in A but not B</span>
+combined = model_a_features | model_b_features   <span class="cm"># union — in EITHER</span>
+
+<span class="cm"># sorted() gives a stable, printable order — sets themselves have none</span>
+<span class="bi">print</span>(<span class="st">f'Common: <span class="bi">{sorted(common)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Only in A: <span class="bi">{sorted(only_a)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'All features: <span class="bi">{sorted(combined)}</span>'</span>)
+
+<span class="cm"># A classic use: removing duplicate labels</span>
+raw_labels = [<span class="st">'cat'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>, <span class="st">'bird'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>]
+unique_labels = <span class="bi">set</span>(raw_labels)
+<span class="bi">print</span>(<span class="st">f'Unique classes: <span class="bi">{sorted(unique_labels)}</span>'</span>)</div>
+  </div>
+
+  <!-- 4.5 -->
+  <div class="lesson-h2">4.5 — The Shape of Real Data: Lists of Dictionaries</div>
+  <p class="lesson-p">This is the pattern you'll see everywhere once you start loading real datasets — CSV rows, API responses, JSON files. Each record is a dict, and the whole dataset is a list of them.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A tiny dataset, ML-shaped</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">candidates = [
+    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'skills'</span>: [<span class="st">'Python'</span>, <span class="st">'SQL'</span>], <span class="st">'score'</span>: <span class="nm">0.92</span>},
+    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'skills'</span>: [<span class="st">'Java'</span>],           <span class="st">'score'</span>: <span class="nm">0.75</span>},
+]
+
+<span class="kw">for</span> c <span class="kw">in</span> candidates:
+    <span class="bi">print</span>(<span class="st">f"<span class="bi">{c['name']}</span>: <span class="bi">{c['score']:.0%}</span> — skills: <span class="bi">{', '.join(c['skills'])}</span>"</span>)</div>
+  </div>
+
+  <!-- 4.6 -->
+  <div class="lesson-h2">4.6 — Sorting Complex Structures</div>
+  <p class="lesson-p">You already met <code>sorted(..., key=lambda ...)</code> in Chapter 3. It works exactly the same way on a list of dicts — the lambda just picks which field to sort by.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Ranking candidates by score</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">candidates = [
+    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'score'</span>: <span class="nm">0.92</span>},
+    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'score'</span>: <span class="nm">0.75</span>},
+    {<span class="st">'name'</span>: <span class="st">'Carol'</span>, <span class="st">'score'</span>: <span class="nm">0.81</span>},
+]
+
+ranked = <span class="bi">sorted</span>(candidates, key=<span class="kw">lambda</span> c: c[<span class="st">'score'</span>], reverse=<span class="kw">True</span>)
+<span class="kw">for</span> i, c <span class="kw">in</span> <span class="bi">enumerate</span>(ranked, start=<span class="nm">1</span>):
+    <span class="bi">print</span>(<span class="st">f'#<span class="bi">{i}</span>: <span class="bi">{c["name"]}</span> — <span class="bi">{c["score"]:.0%}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong><code>enumerate(ranked, start=1)</code></strong> — the optional <code>start</code> argument you haven't seen yet lets ranks begin at 1 instead of 0. Small thing, very commonly used for leaderboards and reports.</div></div>
+
+  <!-- 4.7 -->
+  <div class="lesson-h2">4.7 — Nested Dicts: The JSON Shape</div>
+  <p class="lesson-p">Config files and API responses often nest a dict inside a dict. Accessing a nested value just means chaining the keys: <code>data['train']['accuracy']</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A nested dataset-stats structure</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">dataset_stats = {
+    <span class="st">'train'</span>: {<span class="st">'size'</span>: <span class="nm">8000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.91</span>},
+    <span class="st">'val'</span>:   {<span class="st">'size'</span>: <span class="nm">1000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.87</span>},
+    <span class="st">'test'</span>:  {<span class="st">'size'</span>: <span class="nm">1000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.85</span>},
+}
+
+<span class="kw">for</span> split, stats <span class="kw">in</span> dataset_stats.items():
+    <span class="bi">print</span>(<span class="st">f"<span class="bi">{split}</span>: <span class="bi">{stats['size']}</span> samples, <span class="bi">{stats['accuracy']:.0%}</span> accuracy"</span>)
+
+<span class="cm"># Direct nested access — chain the keys:</span>
+<span class="bi">print</span>(<span class="st">f"Test accuracy specifically: <span class="bi">{dataset_stats['test']['accuracy']:.0%}</span>"</span>)</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 4 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Lists</strong> are mutable and ordered. Methods like <code>.sort()</code> and <code>.append()</code> change the list in place and return <code>None</code> — never reassign their result.</div></li>
+    <li data-n="2"><div><strong>Tuples</strong> are immutable and ordered — use them for fixed records, and for unpacking multiple values at once.</div></li>
+    <li data-n="3"><div><strong>Dicts</strong> map keys to values. Use <code>.get(key, default)</code> instead of <code>[key]</code> whenever the key might not exist.</div></li>
+    <li data-n="4"><div><strong>Sets</strong> hold unique values and support <code>&amp;</code> (intersection), <code>-</code> (difference), <code>|</code> (union).</div></li>
+    <li data-n="5"><div><strong>Lists of dicts</strong> are the shape of real datasets. <strong>Nested dicts</strong> are the shape of real configs and JSON.</div></li>
+    <li data-n="6"><div><strong>sorted(data, key=lambda x: x['field'])</strong> ranks any list of dicts by any field.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">List Methods</div>
+        <div class="ex-desc">Practice the mutating list methods: append, remove, sort — in place, no reassignment.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+scores = [72, 85, 60, 91, 78]   (already given)
+
+Append 95 to scores.
+Remove 60 from scores.
+Sort scores in place, descending (highest first).
+
+Print exactly: f'Top score: {scores[0]}'
+(The correct answer is Top score: 95)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">scores = [72, 85, 60, 91, 78]
+
+# append, remove, sort (in place), then print
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Tuple Unpacking</div>
+        <div class="ex-desc">Unpack a list of record tuples in a loop, and compute an average across them.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+records = [('alice', 28, 'Hubli'), ('bob', 34, 'Pune'), ('carol', 25, 'Mumbai')]
+(already given)
+
+Loop through records, unpacking each into name, age, city.
+Print each: f'{name} is {age} from {city}'
+
+Then compute the average age across all three records.
+Print exactly: f'Average age: {average_age:.1f}'
+(The correct answer is Average age: 29.0)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">records = [('alice', 28, 'Hubli'), ('bob', 34, 'Pune'), ('carol', 25, 'Mumbai')]
+
+# loop with unpacking, then compute average age
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Safe Dict Access With .get()</div>
+        <div class="ex-desc">Practice using .get() with a default value for a key that doesn't exist yet.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+model_config = {'name': 'ResNet50', 'epochs': 50, 'lr': 0.001}
+(already given — notice batch_size is NOT in there)
+
+Use .get('batch_size', 32) to read batch_size with a default of 32,
+then ADD it to model_config under that key.
+
+Print exactly:
+  f"{model_config['name']} — epochs={model_config['epochs']}, batch_size={model_config['batch_size']}"
+(The correct answer is ResNet50 — epochs=50, batch_size=32)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">model_config = {'name': 'ResNet50', 'epochs': 50, 'lr': 0.001}
+
+# use .get() with a default, then add batch_size to the dict, then print
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Set Operations</div>
+        <div class="ex-desc">Compare two feature sets from two model versions using intersection and difference.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+model_a_features = {'age','income','education','city'}
+model_b_features = {'age','income','job_title'}
+(already given)
+
+Compute common = the features in BOTH sets.
+Compute only_in_a = the features in A but NOT in B.
+
+Print exactly (use sorted() so the order is consistent):
+  f'Common: {sorted(common)}'
+  f'Only in A: {sorted(only_in_a)}'
+(Correct: Common: ['age', 'income']  and  Only in A: ['city', 'education'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">model_a_features = {'age','income','education','city'}
+model_b_features = {'age','income','job_title'}
+
+# common = ... ; only_in_a = ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Filter a List of Dicts</div>
+        <div class="ex-desc">Filter and sort a small list of candidate records — the core pattern behind every ranking/leaderboard feature.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+candidates = [
+    {'name':'Alice','score':0.92},
+    {'name':'Bob','score':0.75},
+    {'name':'Carol','score':0.81},
+    {'name':'Dave','score':0.60},
+]
+(already given)
+
+Build "qualified" = only the candidates with score >= 0.8, sorted by
+score from HIGHEST to lowest.
+
+Print exactly: f'Qualified: {[c["name"] for c in qualified]}'
+Print exactly: f'Qualified count: {len(qualified)}'
+(Correct: Qualified: ['Alice', 'Carol']  and  Qualified count: 2)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">candidates = [
+    {'name':'Alice','score':0.92},
+    {'name':'Bob','score':0.75},
+    {'name':'Carol','score':0.81},
+    {'name':'Dave','score':0.60},
+]
+
+# filter score >= 0.8, sort descending by score, then print
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Candidate Ranking System</span></h2>
+    <p>Pull together every structure from this chapter — lists, dicts, nesting, sorting, and filtering — over a small candidate dataset shaped exactly like a real one: a list of records, each with a name, demographics, a list of skills, and a score.</p>
+    <div class="project-tags">
+      <span class="ptag">list of dicts</span>
+      <span class="ptag">sorted + lambda</span>
+      <span class="ptag">filtering</span>
+      <span class="ptag">list comprehension</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Filter candidates to those with score >= 0.8 into "qualified"</li>
+      <li>Sort qualified by score, highest first</li>
+      <li>Print a ranked list: rank, name, city, score, and skills (joined by comma)</li>
+      <li>Count how many of ALL candidates (not just qualified) have 'Python' in their skills</li>
+      <li>Print a summary with the total candidate count, qualified count, and Python count</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Candidate Ranking System — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Candidate Ranking System
+# Use ONLY Chapter 1-4 concepts
+# ══════════════════════════════════════════
+
+candidates = [
+    {'name':'Alice','age':28,'city':'Hubli', 'skills':['Python','SQL','ML'],'score':0.92},
+    {'name':'Bob',  'age':34,'city':'Pune',  'skills':['Java','Spring'],    'score':0.75},
+    {'name':'Carol','age':25,'city':'Mumbai','skills':['Python','ML'],     'score':0.81},
+    {'name':'Dave', 'age':40,'city':'Delhi', 'skills':['Python'],          'score':0.60},
+    {'name':'Eve',  'age':30,'city':'Hubli', 'skills':['Python','SQL'],    'score':0.88},
+]
+
+# === TODO 1: filter + sort ===
+# qualified = candidates with score >= 0.8, sorted by score descending
+
+# === TODO 2: ranked printout ===
+# for rank, c in enumerate(qualified, start=1): print a line with
+#   rank, name, city, score (as %), and skills joined by ', '
+
+# === TODO 3: count Python users across ALL candidates ===
+# python_count = ...
+
+# === TODO 4: summary ===
+# print(f'Total candidates: {len(candidates)}')
+# print(f'Qualified candidates: {len(qualified)}')
+# print(f'Candidates with Python: {python_count}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>A ranked list showing Alice first (highest score)</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Total candidates: 5</div>
+    <div class="check-item"><span class="check-icon">✅</span>Qualified candidates: 3</div>
+    <div class="check-item"><span class="check-icon">🐍</span>Candidates with Python: 4</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 4 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 5. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">What's the key difference between a list and a tuple?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Lists can only hold numbers; tuples can hold anything</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Lists are mutable (can change); tuples are immutable (cannot change after creation)</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> There is no real difference, just different brackets</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Tuples are always sorted automatically</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why is <code>config.get('batch_size', 32)</code> usually safer than <code>config['batch_size']</code>?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> .get() is faster to type</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> [key] always raises an error, .get() never does anything useful</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> .get() returns a default value if the key is missing, instead of raising a KeyError and crashing</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> They behave identically in every case</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Given <code>a = {1,2,3}</code> and <code>b = {2,3,4}</code>, what is <code>a & b</code>?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> {1,2,3,4} — union of both</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> {2,3} — intersection, the items in both</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> {1} — items only in a</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> A TypeError, since sets don't support &amp;</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Given <code>people = [{'name':'Ann','age':31}, {'name':'Sam','age':22}]</code>, write the sorted() call that sorts people by age, YOUNGEST first.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="sorted(people, key=...)" rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does this code print?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">nums = [3, 1, 2]
+result = nums.sort()
+print(result)
+print(nums)</pre></div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> [1, 2, 3] then [1, 2, 3]</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> None then [1, 2, 3] — .sort() returns None but changes nums in place</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> [3, 1, 2] then [3, 1, 2] — nothing changes</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> TypeError, because sort() has no return value</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🔀</div>
+    <div class="ncc-info">
+      <h3>Chapter 5: OOP, Files &amp; Errors</h3>
+      <p>Classes, try/except, and reading real CSV/JSON files from disk — the Module 1 capstone: build a Dataset class that loads, cleans, and reports on messy real data.</p>
+    </div>
+    <a class="ncc-btn" href="ch05-oop-files-errors.html">Start Chapter 5 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch04';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch03'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# This console is yours — experiment freely','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['top score: 95'],
+    hint:"scores.append(95); scores.remove(60); scores.sort(reverse=True); print(f'Top score: {scores[0]}')",
+    solution:`scores = [72, 85, 60, 91, 78]
+scores.append(95)
+scores.remove(60)
+scores.sort(reverse=True)
+print(f'Top score: {scores[0]}')`
+  },
+  2:{
+    checks:['average age: 29.0'],
+    hint:"total = 0; for name, age, city in records: print(...); total += age. average_age = total/len(records)",
+    solution:`records = [('alice', 28, 'Hubli'), ('bob', 34, 'Pune'), ('carol', 25, 'Mumbai')]
+total = 0
+for name, age, city in records:
+    print(f'{name} is {age} from {city}')
+    total += age
+average_age = total / len(records)
+print(f'Average age: {average_age:.1f}')`
+  },
+  3:{
+    checks:['resnet50 — epochs=50, batch_size=32'],
+    hint:"batch_size = model_config.get('batch_size', 32); model_config['batch_size'] = batch_size",
+    solution:`model_config = {'name': 'ResNet50', 'epochs': 50, 'lr': 0.001}
+batch_size = model_config.get('batch_size', 32)
+model_config['batch_size'] = batch_size
+print(f"{model_config['name']} — epochs={model_config['epochs']}, batch_size={model_config['batch_size']}")`
+  },
+  4:{
+    checks:["common: ['age', 'income']","only in a: ['city', 'education']"],
+    hint:"common = model_a_features & model_b_features; only_in_a = model_a_features - model_b_features",
+    solution:`model_a_features = {'age','income','education','city'}
+model_b_features = {'age','income','job_title'}
+common = model_a_features & model_b_features
+only_in_a = model_a_features - model_b_features
+print(f'Common: {sorted(common)}')
+print(f'Only in A: {sorted(only_in_a)}')`
+  },
+  5:{
+    checks:["qualified: ['alice', 'carol']","qualified count: 2"],
+    hint:"qualified = sorted([c for c in candidates if c['score'] >= 0.8], key=lambda c: c['score'], reverse=True)",
+    solution:`candidates = [
+    {'name':'Alice','score':0.92},
+    {'name':'Bob','score':0.75},
+    {'name':'Carol','score':0.81},
+    {'name':'Dave','score':0.60},
+]
+qualified = [c for c in candidates if c['score'] >= 0.8]
+qualified = sorted(qualified, key=lambda c: c['score'], reverse=True)
+print(f'Qualified: {[c["name"] for c in qualified]}')
+print(f'Qualified count: {len(qualified)}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['total candidates: 5','qualified candidates: 3','candidates with python: 4','alice'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'C',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const hasSorted=val.includes('sorted(people');
+  const hasKey=val.includes("key=lambda")&&val.includes("['age']");
+  const hasNoReverse=!val.includes('reverse=true');
+  const passed=hasSorted&&hasKey&&hasNoReverse;
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! sorted(people, key=lambda p: p['age']) — ascending is the default, so no reverse needed for youngest-first."
+    :"❌ Not quite. You need: sorted(people, key=lambda p: p['age']) — no reverse=True, since ascending (youngest first) is the default.";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Lists, tuples, dicts, and sets are yours now — plus the list-of-dicts shape that every real dataset arrives in. Chapter 5 puts all of this inside your own classes.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 5: OOP, Files &amp; Errors</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
+  Your progress on this chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 5: OOP, Files &amp; Errors</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 5 of 30</div>
+  </a>
+  <a class="sb-back" href="ch04-data-structures.html">← Ch 4: Data Structures</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 5 · Capstone</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 6: Linear Algebra for ML</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 7: Probability &amp; Statistics</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 8: Calculus &amp; Optimization</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 5 · Module 1 Capstone</div>
+    <div class="tb-title">OOP, Files &amp; Errors</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 4 quiz in this browser yet. This chapter assumes you're comfortable with lists, dicts, and functions.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 5:<br/><span>OOP, Files &amp; Errors</span></h1>
+    <p>This is the Module 1 capstone — the chapter where everything from Chapters 1-4 comes together. Classes let you bundle data and behavior into one reusable unit (this is what a <code>DataFrame</code> or a PyTorch <code>Model</code> actually is). try/except lets your code survive bad data instead of crashing on it. And file I/O is how data gets from disk into your program in the first place. By the end, you'll build a Dataset class that loads, cleans, and reports on real messy data.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Module 1 Capstone Project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 5.1 -->
+  <div class="lesson-h2">5.1 — Classes: Bundling Data and Behavior</div>
+  <p class="lesson-p">Every object you've used so far — a list, a string, a dict — is an <strong>instance</strong> of a class someone else wrote. A <strong>class</strong> is a blueprint for creating your own objects that carry both data (<strong>attributes</strong>) and behavior (<strong>methods</strong>) together. <code>self</code> refers to "this particular instance" inside the class.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Your first class</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
+        self.name = name           <span class="cm"># attribute — data that belongs to THIS instance</span>
+        self.accuracy = accuracy
+
+    <span class="kw">def</span> <span class="fn">report</span>(self):
+        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>   <span class="cm"># method — behavior that uses the data</span>
+
+    <span class="kw">def</span> <span class="fn">is_production_ready</span>(self):
+        <span class="kw">return</span> self.accuracy >= <span class="nm">0.9</span>
+
+<span class="cm"># __init__ runs automatically when you create an instance:</span>
+model_a = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
+model_b = <span class="cls">Model</span>(<span class="st">'MobileNet'</span>, <span class="nm">0.847</span>)
+
+<span class="bi">print</span>(model_a.report())
+<span class="bi">print</span>(model_b.report())
+<span class="bi">print</span>(<span class="st">f'model_a production ready? <span class="bi">{model_a.is_production_ready()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'model_b production ready? <span class="bi">{model_b.is_production_ready()}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>This is exactly what real ML classes look like.</strong> <code>sklearn.LinearRegression()</code> is a class. When you call <code>.fit(X, y)</code>, you're calling a method that reads and writes attributes on <code>self</code> (like the learned weights). You've been using this pattern since Chapter 1 — now you know how to build one.</div></div>
+
+  <!-- 5.2 -->
+  <div class="lesson-h2">5.2 — Methods Calling Other Methods</div>
+  <p class="lesson-p">Methods on the same object can call each other through <code>self</code>. This lets you build up complex behavior from small, single-purpose pieces — exactly like functions in Chapter 3, but scoped to one object's data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A class with several cooperating methods</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">TrainingRun</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, model_name, train_loss, val_loss):
+        self.model_name = model_name
+        self.train_loss = train_loss
+        self.val_loss = val_loss
+
+    <span class="kw">def</span> <span class="fn">is_overfitting</span>(self):
+        <span class="kw">return</span> self.val_loss > self.train_loss * <span class="nm">1.2</span>
+
+    <span class="kw">def</span> <span class="fn">verdict</span>(self):
+        <span class="kw">if</span> self.is_overfitting():          <span class="cm"># calling another method on self</span>
+            <span class="kw">return</span> <span class="st">'Watch for overfitting'</span>
+        <span class="kw">return</span> <span class="st">'On track'</span>
+
+    <span class="kw">def</span> <span class="fn">summary</span>(self):
+        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.model_name}</span>: train=<span class="bi">{self.train_loss:.4f}</span>, val=<span class="bi">{self.val_loss:.4f}</span> → <span class="bi">{self.verdict()}</span>'</span>
+
+run = <span class="cls">TrainingRun</span>(<span class="st">'CandidateScorer-v1'</span>, <span class="nm">0.12</span>, <span class="nm">0.31</span>)
+<span class="bi">print</span>(run.summary())</div>
+  </div>
+
+  <!-- 5.3 -->
+  <div class="lesson-h2">5.3 — try/except: Surviving Bad Data</div>
+  <p class="lesson-p">Real data is messy. A `try` block runs code that might fail; if it raises an exception, the matching `except` block runs instead of crashing your whole program. This is the difference between a pipeline that dies on row 4,000 of 10,000, and one that skips the bad row and keeps going.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Catching a specific error type</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_ages = [<span class="st">'28'</span>, <span class="st">'34'</span>, <span class="st">'unknown'</span>, <span class="st">'25'</span>]   <span class="cm"># 'unknown' will break int()</span>
+
+valid_ages = []
+errors = <span class="nm">0</span>
+<span class="kw">for</span> a <span class="kw">in</span> raw_ages:
+    <span class="kw">try</span>:
+        valid_ages.append(<span class="bi">int</span>(a))
+    <span class="kw">except</span> ValueError:
+        errors += <span class="nm">1</span>
+        <span class="bi">print</span>(<span class="st">f'Skipping bad value: <span class="bi">{a!r}</span>'</span>)
+
+<span class="bi">print</span>(<span class="st">f'Valid ages: <span class="bi">{valid_ages}</span>, errors: <span class="bi">{errors}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Catch the specific exception, not everything.</strong> A bare <code>except:</code> catches EVERY error — including bugs in your own code — and hides them silently. Always name the exception type you expect: <code>except ValueError:</code>, <code>except KeyError:</code>, <code>except FileNotFoundError:</code>.</div></div>
+
+  <!-- 5.4 -->
+  <div class="lesson-h2">5.4 — raise: Creating Your Own Errors</div>
+  <p class="lesson-p">Sometimes YOUR code should refuse bad input rather than silently accepting it. <code>raise</code> lets you throw an exception on purpose, with a message that explains exactly what went wrong.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Validating input before using it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">validate_accuracy</span>(value):
+    <span class="kw">if</span> <span class="kw">not</span> (<span class="nm">0</span> <= value <= <span class="nm">1</span>):
+        <span class="kw">raise</span> ValueError(<span class="st">f'accuracy must be between 0 and 1, got <span class="bi">{value}</span>'</span>)
+    <span class="kw">return</span> value
+
+<span class="kw">try</span>:
+    <span class="bi">print</span>(<span class="st">f'Valid: <span class="bi">{validate_accuracy(0.92)}</span>'</span>)
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f'Error: <span class="bi">{e}</span>'</span>)
+
+<span class="kw">try</span>:
+    <span class="bi">print</span>(<span class="st">f'Valid: <span class="bi">{validate_accuracy(1.5)}</span>'</span>)   <span class="cm"># 1.5 is not a valid accuracy!</span>
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f'Error caught: <span class="bi">{e}</span>'</span>)</div>
+  </div>
+
+  <!-- 5.5 -->
+  <div class="lesson-h2">5.5 — Reading and Writing Files</div>
+  <p class="lesson-p"><code>open(filename, mode)</code> gives you a file handle. Use <code>'w'</code> to write, no mode (or <code>'r'</code>) to read. Always use <code>with</code> — it automatically closes the file for you, even if an error happens partway through.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Writing, then reading, a file</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">log_text = <span class="st">'epoch,loss\n1,0.82\n2,0.61\n'</span>
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'log.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(log_text)     <span class="cm"># file is automatically closed when this block ends</span>
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'log.csv'</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> line <span class="kw">in</span> f:              <span class="cm"># looping over a file gives you one line at a time</span>
+        <span class="bi">print</span>(line.strip())   <span class="cm"># .strip() removes the trailing newline</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This console really does read and write files</strong> — Pyodide gives your Python code its own private virtual filesystem in the browser. It behaves exactly like real file I/O (nothing is saved to your actual computer, and it resets each time you reload the page).</div></div>
+
+  <!-- 5.6 -->
+  <div class="lesson-h2">5.6 — Parsing CSV Data</div>
+  <p class="lesson-p">CSV (comma-separated values) is the most common format for tabular data. Python's built-in <code>csv</code> module handles the edge cases (commas inside quoted fields, etc.) that manual <code>.split(',')</code> gets wrong.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The csv module, reading rows as dicts</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+
+csv_text = <span class="st">'name,score\nAlice,0.92\nBob,0.75\nCarol,0.81\n'</span>
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(csv_text)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>) <span class="kw">as</span> f:
+    reader = csv.DictReader(f)     <span class="cm"># uses the first line as column names automatically</span>
+    rows = <span class="bi">list</span>(reader)
+    <span class="kw">for</span> row <span class="kw">in</span> rows:
+        <span class="bi">print</span>(row)              <span class="cm"># each row is already a dict! {'name': 'Alice', 'score': '0.92'}</span>
+
+<span class="cm"># Remember: EVERY value from a CSV is a string — convert before math (Chapter 1!)</span>
+scores = [<span class="bi">float</span>(row[<span class="st">'score'</span>]) <span class="kw">for</span> row <span class="kw">in</span> rows]
+<span class="bi">print</span>(<span class="st">f'Average score: <span class="bi">{sum(scores)/len(scores):.2%}</span>'</span>)</div>
+  </div>
+
+  <!-- 5.7 -->
+  <div class="lesson-h2">5.7 — Parsing JSON Data</div>
+  <p class="lesson-p">JSON is a text format that looks almost exactly like Python dicts and lists nested together — because that's exactly what it is. The <code>json</code> module converts between JSON text and real Python objects.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">json.loads() and json.dumps()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+json_text = <span class="st">'{"name": "ResNet50", "epochs": 50, "metrics": {"accuracy": 0.94, "loss": 0.12}}'</span>
+
+config = json.loads(json_text)     <span class="cm"># JSON text -> Python dict</span>
+<span class="bi">print</span>(<span class="bi">type</span>(config))
+<span class="bi">print</span>(config[<span class="st">'name'</span>])
+<span class="bi">print</span>(config[<span class="st">'metrics'</span>][<span class="st">'accuracy'</span>])   <span class="cm"># nested access, same as Chapter 4</span>
+
+config[<span class="st">'epochs'</span>] = <span class="nm">100</span>
+back_to_text = json.dumps(config, indent=<span class="nm">2</span>)   <span class="cm"># Python dict -> JSON text, nicely formatted</span>
+<span class="bi">print</span>(back_to_text)</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 5 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>class / __init__ / self</strong> — bundle data (attributes) and behavior (methods) together. This is what every ML library object actually is.</div></li>
+    <li data-n="2"><div><strong>try/except</strong> lets code survive bad data instead of crashing. Always catch specific exception types.</div></li>
+    <li data-n="3"><div><strong>raise</strong> lets your own code refuse invalid input on purpose, with a clear error message.</div></li>
+    <li data-n="4"><div><strong>with open(file, mode) as f:</strong> reads or writes files safely, closing them automatically.</div></li>
+    <li data-n="5"><div><strong>csv.DictReader</strong> turns CSV rows into dicts. Remember: every value from a CSV arrives as a string.</div></li>
+    <li data-n="6"><div><strong>json.loads() / json.dumps()</strong> convert between JSON text and Python dicts/lists.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Your First Class</div>
+        <div class="ex-desc">Write a class with __init__ and one method that returns a formatted string.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write a class Model with:
+  __init__(self, name, accuracy) — stores both as attributes
+  report(self) — RETURNS f'{self.name}: {self.accuracy:.2%}'
+
+Create Model('ResNet50', 0.9423) and print the result of calling .report()
+(The correct answer is ResNet50: 94.23%)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># class Model:
+#     def __init__(self, name, accuracy): ...
+#     def report(self): ...
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Catching ValueError</div>
+        <div class="ex-desc">Use try/except to skip bad values while summing the good ones.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+raw_ages = ['28', '34', 'unknown', '25']   (already given)
+
+Loop through raw_ages. For each one, try to convert it with int().
+If it fails with ValueError, count it as an error (don't add it to the total)
+and continue to the next one.
+
+Print exactly: f'Valid ages sum: {total}, errors skipped: {errors}'
+(The correct answer is Valid ages sum: 87, errors skipped: 1)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">raw_ages = ['28', '34', 'unknown', '25']
+
+# try/except int() conversion, sum the valid ones, count the errors
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Validating Input With raise</div>
+        <div class="ex-desc">Write a validation function that refuses bad input, and catch it with try/except.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write validate_accuracy(value): if value is not between 0 and 1
+(inclusive), raise ValueError with any message. Otherwise return value.
+
+Wrap TWO calls in separate try/except blocks:
+  validate_accuracy(0.92)  -> should succeed, print f'Valid: {result}'
+  validate_accuracy(1.5)   -> should fail, print f'Error caught: {e}'
+  (where e is the caught exception)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># def validate_accuracy(value): ...
+
+# try/except for validate_accuracy(0.92)
+# try/except for validate_accuracy(1.5)
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Write, Then Read, a File</div>
+        <div class="ex-desc">Practice the full write-then-read file lifecycle using with open().</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write the string 'epoch,loss\n1,0.82\n2,0.61\n' to a file called 'log.csv'
+using with open(...) as f.
+
+Then open it again for reading, loop over its lines, and print each one
+stripped of its trailing newline.
+
+(Correct output — 3 lines: epoch,loss / 1,0.82 / 2,0.61)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">text = 'epoch,loss\n1,0.82\n2,0.61\n'
+
+# write text to log.csv, then read it back line by line
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Parse CSV and Aggregate</div>
+        <div class="ex-desc">Use the csv module to parse text into rows, then compute an average across a numeric column.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+csv_text = 'name,score\nAlice,0.92\nBob,0.75\nCarol,0.81\n'   (already given)
+
+Write it to 'scores.csv', read it back with csv.DictReader, convert
+each score to float, and compute the average.
+
+Print exactly: f'Average score: {avg:.2%}'
+(The correct answer is Average score: 82.67%)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import csv
+csv_text = 'name,score\nAlice,0.92\nBob,0.75\nCarol,0.81\n'
+
+# write to scores.csv, read with csv.DictReader, compute average score
+
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Module 1 Capstone: <span>The Dataset Class</span></h2>
+    <p>This project uses EVERY concept from Chapters 1-5: variables and f-strings, control flow, functions, dicts and lists, and now classes, files, and error handling. You'll build a Dataset class that loads a real (deliberately messy) CSV file, cleans it while surviving bad rows, and reports statistics — exactly the shape of the first step in almost every real ML project.</p>
+    <div class="project-tags">
+      <span class="ptag">class</span>
+      <span class="ptag">csv.DictReader</span>
+      <span class="ptag">try/except</span>
+      <span class="ptag">aggregation</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A Dataset class whose __init__ takes the raw CSV text and writes it to a file, then loads it with csv.DictReader into self.rows</li>
+      <li>A method valid_ages() that returns a list of ages successfully converted to int, using try/except to silently skip rows where age is missing or not a number</li>
+      <li>A method average_score() that returns the average of the 'score' column across ALL rows (score is always present and valid in this data)</li>
+      <li>A method summary() that prints: total row count, valid age count, invalid age count, average valid age, and average score</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Dataset Class — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Module 1 Capstone: The Dataset Class
+# Use ONLY Chapter 1-5 concepts — classes, files, csv, try/except
+# ══════════════════════════════════════════
+import csv
+
+# Deliberately messy data: Bob has no age, Dave's age isn't a number
+csv_text = """name,age,city,score
+Alice,28,Hubli,0.92
+Bob,,Pune,0.75
+Carol,25,Mumbai,0.81
+Dave,forty,Delhi,0.60
+Eve,30,Hubli,0.88
+"""
+
+class Dataset:
+    def __init__(self, raw_text, filename='candidates.csv'):
+        with open(filename, 'w') as f:
+            f.write(raw_text)
+        with open(filename) as f:
+            reader = csv.DictReader(f)
+            self.rows = list(reader)
+
+    def valid_ages(self):
+        # TODO: loop self.rows, try int(row['age']), except ValueError: skip
+        # (an empty string '' also fails int() with a ValueError)
+        pass
+
+    def average_score(self):
+        # TODO: average of float(row['score']) across ALL self.rows
+        pass
+
+    def summary(self):
+        # TODO: print a report including:
+        #   total rows, valid age count, invalid age count,
+        #   average valid age (1 decimal), average score (as a percentage)
+        pass
+
+ds = Dataset(csv_text)
+ds.summary()
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>Total rows: 5</div>
+    <div class="check-item"><span class="check-icon">✅</span>Valid ages: 3 (Alice, Carol, Eve)</div>
+    <div class="check-item"><span class="check-icon">❌</span>Invalid ages: 2 (Bob's missing, Dave's "forty")</div>
+    <div class="check-item"><span class="check-icon">📊</span>Average valid age: 27.7</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Average score: 79.20%</div>
+    <div class="check-item"><span class="check-icon">🛡️</span>No crash — the bad rows were skipped, not fatal</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 5 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Module 2. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">What is <code>self</code>, inside a class's methods?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> A reserved keyword with no real purpose, required by Python syntax</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> A reference to the specific instance the method is being called on</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The name of the class itself</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> A global variable shared by all instances</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why should you catch a specific exception like <code>except ValueError:</code> instead of a bare <code>except:</code>?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Bare except is not valid Python syntax</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A bare except silently swallows every error, including real bugs in your own code, making them invisible</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Bare except is slower to execute</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> There's no difference, it's just a style preference</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">What does <code>with open('data.csv') as f:</code> guarantee, compared to plain <code>f = open('data.csv')</code>?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> The file will be read faster</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> The file will automatically be closed when the block ends, even if an error occurs inside it</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> The file contents will be automatically converted to a dict</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> No difference — with is purely stylistic</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write a class named Point with __init__(self, x, y) that stores x and y as attributes.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="class Point:&#10;    def __init__(self, x, y):&#10;        ..." rows="4"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does this code print?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">values = ['10', 'abc', '20']
+total = 0
+for v in values:
+    try:
+        total += int(v)
+    except ValueError:
+        pass
+print(total)</pre></div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> A crash — 'abc' can't convert to int</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> 30 — the bad value is silently skipped, the good ones are summed</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> 0 — nothing gets added because one value failed</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> 10abc20 — string concatenation happens instead</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎓</div>
+    <div class="ncc-info">
+      <h3>Module 2: Math &amp; Stats for ML — Chapter 6: Linear Algebra</h3>
+      <p>Module 1 complete! Vectors and matrices as data, dot products, and NumPy from line one — the math underneath every model you'll ever train.</p>
+    </div>
+    <a class="ncc-btn" href="../math/ch06-linear-algebra.html">Start Chapter 6 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch05';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch04'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# This console is yours — experiment freely','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['resnet50: 94.23%'],
+    hint:"class Model: def __init__(self, name, accuracy): self.name=name; self.accuracy=accuracy. def report(self): return f'{self.name}: {self.accuracy:.2%}'",
+    solution:`class Model:
+    def __init__(self, name, accuracy):
+        self.name = name
+        self.accuracy = accuracy
+
+    def report(self):
+        return f'{self.name}: {self.accuracy:.2%}'
+
+m = Model('ResNet50', 0.9423)
+print(m.report())`
+  },
+  2:{
+    checks:['valid ages sum: 87, errors skipped: 1'],
+    hint:"total=0; errors=0; for a in raw_ages: try: total += int(a) except ValueError: errors += 1",
+    solution:`raw_ages = ['28', '34', 'unknown', '25']
+total = 0
+errors = 0
+for a in raw_ages:
+    try:
+        total += int(a)
+    except ValueError:
+        errors += 1
+print(f'Valid ages sum: {total}, errors skipped: {errors}')`
+  },
+  3:{
+    checks:['valid: 0.92','error caught'],
+    hint:"def validate_accuracy(value): if not (0<=value<=1): raise ValueError(f'...{value}'); return value",
+    solution:`def validate_accuracy(value):
+    if not (0 <= value <= 1):
+        raise ValueError(f'accuracy must be between 0 and 1, got {value}')
+    return value
+
+try:
+    print(f'Valid: {validate_accuracy(0.92)}')
+except ValueError as e:
+    print(f'Error: {e}')
+
+try:
+    print(f'Valid: {validate_accuracy(1.5)}')
+except ValueError as e:
+    print(f'Error caught: {e}')`
+  },
+  4:{
+    checks:['epoch,loss','1,0.82','2,0.61'],
+    hint:"with open('log.csv','w') as f: f.write(text). with open('log.csv') as f: for line in f: print(line.strip())",
+    solution:`text = 'epoch,loss\\n1,0.82\\n2,0.61\\n'
+with open('log.csv', 'w') as f:
+    f.write(text)
+with open('log.csv') as f:
+    for line in f:
+        print(line.strip())`
+  },
+  5:{
+    checks:['average score: 82.67%'],
+    hint:"with open('scores.csv','w') as f: f.write(csv_text). with open('scores.csv') as f: rows=list(csv.DictReader(f)). avg = sum(float(r['score']) for r in rows)/len(rows)",
+    solution:`import csv
+csv_text = 'name,score\\nAlice,0.92\\nBob,0.75\\nCarol,0.81\\n'
+with open('scores.csv', 'w') as f:
+    f.write(csv_text)
+with open('scores.csv') as f:
+    rows = list(csv.DictReader(f))
+scores = [float(row['score']) for row in rows]
+avg = sum(scores) / len(scores)
+print(f'Average score: {avg:.2%}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — call ds.summary())':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['27.7','79.20%','valid','invalid'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! Module 1 finished. +250 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=250;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above (5 rows, 3 valid ages, 2 invalid, avg age 27.7, avg score 79.20%)';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const hasClass=val.includes('class point');
+  const hasInit=val.includes('def __init__(self, x, y)')||val.includes('def __init__(self,x,y)');
+  const hasAssignX=val.includes('self.x')&&val.includes('=');
+  const hasAssignY=val.includes('self.y')&&val.includes('=');
+  const passed=hasClass&&hasInit&&hasAssignX&&hasAssignY;
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! class Point: def __init__(self, x, y): self.x = x; self.y = y'
+    :'❌ Not quite. You need: class Point: def __init__(self, x, y): self.x = x  and  self.y = y';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Module 1 Complete! ${score}/5 correct</div>
+      <div class="qrb-sub">Classes, error handling, and file I/O are yours now — and with them, all of Python Foundations. You can write, structure, and safely run real programs. Module 2 starts the math underneath every ML model.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
