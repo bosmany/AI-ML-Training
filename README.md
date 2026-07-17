@@ -4,20 +4,22 @@ An interactive, self-contained, browser-based course that takes someone from zer
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
 
-## Status: all 32 core chapters complete. Module 8 (bonus): Ch 33-34 complete & verified, Ch 35 in progress.
+## Status: all 35 chapters complete, verified, committed & pushed. The course is done.
 
 The course was expanded from 30 to 32 chapters partway through Module 1 (see renumbering note
 below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
 module capstone (Ch 7, 10, 14, 20, 26, 30, 32), and a bonus **Module 8: Production Projects**
-appended after Ch 32 (no renumbering — Module 8 lives in a new `projects/` folder, chapters 33+,
-explicitly including a dedicated **Agentic AI** project).
+appended after Ch 32 (no renumbering — Module 8 lives in a new `projects/` folder, chapters 33-35,
+including a dedicated **Agentic AI** project and a **RAG Chatbot, Deployed** course finale).
 
-**Verification done on the full 32-chapter set**: every `.html` file passes a syntax + div-balance
+**Verification done on the full 35-chapter set**: every `.html` file passes a syntax + div-balance
 + textarea-balance check; the entire `sb-back`/`prereq`/`next-chapter-card` link chain from Ch 1
-through Ch 32 was walked programmatically and confirmed consistent (no gaps, no mismatches); a
-factual error (a chapter cross-reference off by one) and an outdated model-name string were found
-and fixed during a content spot-check of Ch 29/30. `index.html`'s `MODULES` object now lists all
-32 chapters across 7 modules plus a placeholder Module 8.
+through Ch 35 was walked programmatically and confirmed consistent (no gaps, no mismatches); every
+exercise, capstone-project reference solution, and quiz answer key was executed via `py -3` and
+matched against its checker strings; a factual error (a chapter cross-reference off by one) and an
+outdated model-name string were found and fixed during a content spot-check of Ch 29/30; a
+parameter-name-collision bug was found and fixed in Ch 34's capstone. `index.html`'s `MODULES`
+object lists all 35 chapters across 8 modules, all `avail:true`.
 
 | # | Chapter | File |
 |---|---------|------|
@@ -55,7 +57,7 @@ and fixed during a content spot-check of Ch 29/30. `index.html`'s `MODULES` obje
 | 32 | MLOps Fundamentals *(core-curriculum capstone 💼)* | `mlops/ch32-mlops-fundamentals-capstone.html` |
 | 33 | Production Project: End-to-End ML Pipeline | `projects/ch33-production-ml-pipeline.html` |
 | 34 | Production Project: **Agentic AI System** *(centerpiece project 💼)* | `projects/ch34-agentic-ai-system.html` |
-| 35 | Production Project: RAG Chatbot, Deployed | `projects/ch35-rag-chatbot-deployed.html` | ⬜ In progress |
+| 35 | Production Project: RAG Chatbot, Deployed *(course finale 🎉)* | `projects/ch35-rag-chatbot-deployed.html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
@@ -182,33 +184,29 @@ Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
 
 ## Resuming this project
 
-**The core 32-chapter curriculum is done, verified, and pushed. Module 8's Ch 33 and Ch 34 are also
-done, independently verified (every exercise/project solution actually executed via `py -3` against
-its checker strings), and pushed.** Only Ch 35 remains:
+**All 35 chapters are done, independently verified, and pushed. There is no chapter work left.**
+Every exercise, capstone-project reference solution, and quiz answer key across all 35 files was
+actually executed via `py -3` and matched against its checker strings — nothing was hand-calculated
+or trusted on the strength of an agent's self-report alone.
 
-1. **Ch 35 — RAG Chatbot, Deployed** (`projects/ch35-rag-chatbot-deployed.html`, being built now) —
-   combine Ch 30's RAG pattern with Ch 31's deployment patterns (FastAPI-shaped request handling,
-   health checks) into one deployable service. This is the **final chapter of the whole course** —
-   give it a "Course Complete" celebration screen instead of a normal `next-chapter-card`. Same
-   verification discipline as every other chapter: every checker value must come from actually
-   running the exact solution code, not hand-calculated.
-   - Ch 33 (`projects/ch33-production-ml-pipeline.html`) is done: a real messy-data → clean →
-     feature-engineer → cross-validate (LogisticRegression vs RandomForest) → GridSearchCV tune →
-     evaluate → pickle/serve/monitor → ship-or-hold-gate pipeline. All 5 exercises + the capstone
-     project's reference solution (embedded as commented-out TODOs in the `project-editor`
-     textarea) were executed and matched against every checker string.
-   - Ch 34 (`projects/ch34-agentic-ai-system.html`) is done: a genuine multi-step ReAct-pattern
-     agent loop (tool registry → decide_next_action → call_tool → observe → repeat) that answers a
-     multi-hop question requiring chained tool calls, plus a `max_steps` guardrail demo and a
-     capstone "Candidate Research Agent." This was the user's explicitly-named priority
-     ("agentic AI") and got the most personal attention/hand-verification of any chapter in the
-     course — a parameter-name-collision bug (`call_tool(name, **kwargs)` breaking when a tool's
-     own kwarg is named `name`) was caught and fixed here.
-   - When Ch 35 lands: run the syntax/div/textarea-balance check, verify every numeric answer via
-     `py -3`, confirm the link chain (`ch34` → `ch35`, `ch35`'s "Course Complete" screen has no
-     `ncc-btn`), flip `index.html`'s `mod8[2].avail` to `true`, update this README's status table
-     (remove "In progress" from the Ch 35 row), then final commit + push.
-2. **Author the Colab `.ipynb` notebooks** — every Colab-chapter HTML page (Ch 22-24, 26, 28) links
+- Ch 33 (`projects/ch33-production-ml-pipeline.html`): a real messy-data → clean → feature-engineer
+  → cross-validate (LogisticRegression vs RandomForest) → GridSearchCV tune → evaluate →
+  pickle/serve/monitor → ship-or-hold-gate pipeline.
+- Ch 34 (`projects/ch34-agentic-ai-system.html`): a genuine multi-step ReAct-pattern agent loop
+  (tool registry → decide_next_action → call_tool → observe → repeat) that answers a multi-hop
+  question requiring chained tool calls, a `max_steps` guardrail demo, and a capstone "Candidate
+  Research Agent." This was the user's explicitly-named priority ("agentic AI") and got the most
+  personal hand-verification of any chapter — a parameter-name-collision bug
+  (`call_tool(name, **kwargs)` breaking when a tool's own kwarg is named `name`) was caught and
+  fixed here.
+- Ch 35 (`projects/ch35-rag-chatbot-deployed.html`, the course finale): a fully-runnable
+  `RagChatbot` class (TF-IDF retrieval, prompt construction, similarity-threshold-gated grounding,
+  health monitoring) plus a reference-only FastAPI wrapper section. Ends with a "🎉 Course Complete"
+  banner instead of a next-chapter card, linking back to `../index.html`.
+
+What's left is one deliberately-deferred, non-blocking item:
+
+1. **Author the Colab `.ipynb` notebooks** — every Colab-chapter HTML page (Ch 22-24, 26, 28) links
    to a specific GitHub path
    (`https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/<folder>/<slug>.ipynb`)
    but none of those notebook files exist in the repo yet — the badges currently 404. This is
@@ -216,11 +214,12 @@ its checker strings), and pushed.** Only Ch 35 remains:
    network read-timeout (`download-r2.pytorch.org`), and shipping unverified notebook code would
    conflict with this project's "make sure everything actually works" standard. Needs either a
    working torch environment or explicit user sign-off to ship untested notebooks.
-3. Numeric verification discipline continues to apply everywhere: every checker's expected value
-   must come from actually running the exact solution code (this machine's Anaconda Python works
-   via `py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's own
-   text/history for `Library/bin` if the exact command is needed again), never hand-calculated.
+2. Numeric verification discipline still applies if anything is ever edited: every checker's
+   expected value must come from actually running the exact solution code (this machine's Anaconda
+   Python works via `py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's
+   own text/history for `Library/bin` if the exact command is needed again), never hand-calculated.
 
-Tell whoever picks this up: **"Continue the AI/ML Zero to Hero course — 32 core chapters plus Ch 33-34
-are done, verified, and pushed. Finish Ch 35 (RAG Chatbot, Deployed), verify it the same way, give it
-the course's celebration ending, and ship it — then the whole 35-chapter course is complete."**
+Tell whoever picks this up: **"The AI/ML Zero to Hero course is complete — all 35 chapters done,
+verified, and pushed. The only open item is authoring real Colab `.ipynb` notebooks for the
+PyTorch/HuggingFace chapters (22-24, 26, 28), deferred because torch wouldn't install on the
+original build machine for verification."**
