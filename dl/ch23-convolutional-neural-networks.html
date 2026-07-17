@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 23: Convolutional Neural Networks</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  for the console (used only for light, non-PyTorch snippets in this chapter).
+  IMPORTANT: PyTorch cannot run inside Pyodide/WebAssembly (it's a large compiled native library
+  with no WASM build) — this chapter's PyTorch code blocks are reference-only (no Run button).
+  A real, runnable Colab notebook is linked at the top of the lesson and in the project section —
+  that notebook is where you actually execute this chapter's code, with a real Python + PyTorch
+  runtime and free GPU access. Practice exercises here are graded by checking the CODE YOU TYPE
+  for required patterns (not by executing it) — same spirit as every other chapter's autograder,
+  adapted to a library this browser genuinely cannot run.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.colab{background:var(--gold-bg);border-color:rgba(255,184,0,.3);color:var(--gold)}
+
+.colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.14),rgba(124,92,252,.08));border:1px solid rgba(255,184,0,.3);border-radius:14px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;gap:18px}
+.colab-banner .cb-icon{font-size:32px;flex-shrink:0}
+.colab-banner h3{font-size:15px;font-weight:800;margin-bottom:4px}
+.colab-banner p{font-size:13px;color:var(--t2);line-height:1.6}
+.colab-btn{margin-left:auto;background:var(--gold);color:#1a1200;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;text-decoration:none;flex-shrink:0}
+.colab-btn:hover{background:#ffc933}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .colab-banner{flex-wrap:wrap}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 23: Convolutional Neural Networks</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 5 · Chapter 23 of 32</div>
+  </a>
+  <a class="sb-back" href="ch22-intro-to-pytorch.html">← Ch 22: Intro to PyTorch</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 23 · Colab Notebook</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 5</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 24: RNNs &amp; LSTMs (Colab)</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 25: Transformers Explained</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 23</div>
+    <div class="tb-title">Convolutional Neural Networks</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 22 quiz in this browser yet.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 23:<br/><span>Convolutional Neural Networks</span></h1>
+    <p>Chapter 22's <code>nn.Linear</code> layers treat every input as a flat list of unrelated numbers. That's fine for tabular data, but images have structure — nearby pixels are related, and the same visual pattern (an edge, an eye, a wheel) can appear anywhere in the frame. <strong>Convolutional Neural Networks (CNNs)</strong> exploit that structure with a small, shared filter that slides across the image, giving you dramatically fewer parameters and a built-in notion of "this pattern, wherever it appears."</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge colab">🎬 Colab Notebook</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <div class="colab-banner">
+    <div class="cb-icon">🎬</div>
+    <div>
+      <h3>PyTorch can't run in this browser — run this chapter's code in Colab instead</h3>
+      <p>Pyodide (the in-browser Python powering the rest of this course) can't load PyTorch — it's a large compiled native library with no WebAssembly build. Open the companion notebook in Google Colab (free, no install, optional free GPU) to actually run everything below.</p>
+    </div>
+    <a class="colab-btn" href="https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/dl/ch23-convolutional-neural-networks.ipynb" target="_blank" rel="noopener">Open in Colab →</a>
+  </div>
+
+  <!-- 23.1 -->
+  <div class="lesson-h2">23.1 — Why Not Just Flatten the Image?</div>
+  <p class="lesson-p">Nothing stops you from flattening a 28×28 grayscale image into a 784-number vector and feeding it to <code>nn.Linear(784, 128)</code> like Chapter 22. But that single layer already has <strong>784 × 128 + 128 = 100,480 parameters</strong> — for a tiny image and a modest hidden size — and every one of those weights is learned independently per pixel position. The network has no idea that a "3" shifted two pixels to the right is still a "3"; it has to relearn every pattern at every position separately.</p>
+  <p class="lesson-p">A convolution fixes this by using a <strong>small filter with shared weights</strong> that slides across the whole image. The same 3×3 filter that learns to detect a vertical edge in the top-left corner detects that exact same edge anywhere else in the image — with no extra parameters.</p>
+
+  <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code — run it in the Colab notebook, not here</strong><br/>Every code block in this chapter needs a real PyTorch install, so there's no "▶ Run" button. Read it, understand it, then open the notebook linked above to actually execute it.</div></div>
+
+  <!-- 23.2 -->
+  <div class="lesson-h2">23.2 — The Convolution Operation: Kernels &amp; Feature Maps</div>
+  <p class="lesson-p">A <strong>kernel</strong> (or <strong>filter</strong>) is a small grid of learnable weights — commonly 3×3 or 5×5. Convolution slides that kernel across the image, and at every position it does an element-wise multiply between the kernel and the patch of image underneath it, then sums the results into a single number. Repeating this at every position produces a <strong>feature map</strong> — an image-shaped grid of "how strongly does this pattern appear here?" scores.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — a Conv2d layer</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="cm"># in_channels=1 (grayscale), out_channels=8 filters, each filter is 3x3</span>
+conv = nn.Conv2d(in_channels=<span class="nm">1</span>, out_channels=<span class="nm">8</span>, kernel_size=<span class="nm">3</span>)
+
+x = torch.randn(<span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">28</span>, <span class="nm">28</span>)   <span class="cm"># (batch, channels, height, width) — one 28x28 grayscale image</span>
+out = conv(x)
+<span class="bi">print</span>(out.shape)      <span class="cm"># torch.Size([1, 8, 26, 26]) -- 8 feature maps, one per filter</span>
+<span class="bi">print</span>(<span class="bi">sum</span>(p.numel() <span class="kw">for</span> p <span class="kw">in</span> conv.parameters()))   <span class="cm"># 80 params: (3*3*1)*8 filters + 8 biases</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>80 parameters vs. 100,480.</strong> That's the whole point — the same 8 tiny filters are reused at every one of the 26×26 output positions instead of learning a brand-new weight per pixel.</div></div>
+
+  <!-- 23.3 -->
+  <div class="lesson-h2">23.3 — Padding &amp; Stride</div>
+  <p class="lesson-p">Notice the output above shrank from 28×28 to 26×26 — a 3×3 kernel with no padding "loses" one pixel off each edge. <strong>Padding</strong> adds zeros around the border so the output can stay the same size; <strong>stride</strong> controls how many pixels the kernel jumps each step (stride 2 skips every other position, halving the output size). The output size formula: <code>out = floor((in + 2*padding - kernel_size) / stride) + 1</code>.</p>
+
+  <table class="lesson-table">
+    <tr><th>Input</th><th>kernel_size</th><th>padding</th><th>stride</th><th>Output</th></tr>
+    <tr><td>28×28</td><td>3</td><td>0</td><td>1</td><td class="highlight">26×26 (shrinks)</td></tr>
+    <tr><td>28×28</td><td>3</td><td>1</td><td>1</td><td class="highlight">28×28 (same size — "same" padding)</td></tr>
+    <tr><td>28×28</td><td>3</td><td>1</td><td>2</td><td class="highlight">14×14 (downsamples)</td></tr>
+  </table>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — padding='same' keeps spatial size</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="cm"># padding=1 exactly offsets what a 3x3 kernel would otherwise shrink</span>
+conv_same = nn.Conv2d(in_channels=<span class="nm">1</span>, out_channels=<span class="nm">16</span>, kernel_size=<span class="nm">3</span>, padding=<span class="nm">1</span>)</div>
+  </div>
+
+  <!-- 23.4 -->
+  <div class="lesson-h2">23.4 — Pooling: Max Pooling for Downsampling</div>
+  <p class="lesson-p">After a few convolutions, <strong>pooling</strong> shrinks the spatial size on purpose — fewer numbers to process downstream, and a bit of built-in tolerance to small shifts in the image. <code>nn.MaxPool2d(kernel_size=2, stride=2)</code> slides a 2×2 window across the feature map and keeps only the largest value in each window, halving both height and width.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — max pooling halves spatial size</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+pool = nn.MaxPool2d(kernel_size=<span class="nm">2</span>, stride=<span class="nm">2</span>)
+feature_map = torch.randn(<span class="nm">1</span>, <span class="nm">16</span>, <span class="nm">28</span>, <span class="nm">28</span>)
+<span class="bi">print</span>(pool(feature_map).shape)   <span class="cm"># torch.Size([1, 16, 14, 14]) -- channels unchanged, H and W halved</span></div>
+  </div>
+
+  <!-- 23.5 -->
+  <div class="lesson-h2">23.5 — Channels: RGB In, Feature Maps Out</div>
+  <p class="lesson-p">A grayscale image has 1 channel; a color image has 3 (red, green, blue). The first <code>Conv2d</code>'s <code>in_channels</code> must match the image's channel count. Its <code>out_channels</code> is a design choice — the number of different filters you want the layer to learn, which becomes a stack of <code>out_channels</code> feature maps. Every subsequent layer's <code>in_channels</code> must match the previous layer's <code>out_channels</code>.</p>
+
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Channels are NOT the same as RGB after the first layer.</strong> A layer with <code>out_channels=32</code> outputs 32 learned feature maps ("is there an edge here", "is there a curve here", ...) — not colors. Deeper layers combine simple features (edges) from earlier layers into complex ones (eyes, wheels, digits).</div></div>
+
+  <!-- 23.6 -->
+  <div class="lesson-h2">23.6 — A Full CNN Architecture With nn.Module</div>
+  <p class="lesson-p">The classic CNN pattern repeats <strong>Conv2d → ReLU → MaxPool2d</strong> a few times to build up increasingly abstract feature maps while shrinking spatial size, then <strong>Flatten</strong>s the final feature maps into a vector and finishes with one or more <code>Linear</code> layers to produce class scores — exactly like the MNIST digit classifier below.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — a small MNIST-style CNN</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="kw">class</span> <span class="cls">SimpleCNN</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, num_classes=<span class="nm">10</span>):
+        <span class="bi">super</span>().__init__()
+        self.conv1 = nn.Conv2d(in_channels=<span class="nm">1</span>, out_channels=<span class="nm">16</span>, kernel_size=<span class="nm">3</span>, padding=<span class="nm">1</span>)
+        self.conv2 = nn.Conv2d(in_channels=<span class="nm">16</span>, out_channels=<span class="nm">32</span>, kernel_size=<span class="nm">3</span>, padding=<span class="nm">1</span>)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(kernel_size=<span class="nm">2</span>, stride=<span class="nm">2</span>)
+        self.flatten = nn.Flatten()
+        self.fc1 = nn.Linear(<span class="nm">32</span> * <span class="nm">7</span> * <span class="nm">7</span>, <span class="nm">128</span>)   <span class="cm"># 28 -> 14 -> 7 after two pools</span>
+        self.fc2 = nn.Linear(<span class="nm">128</span>, num_classes)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        x = self.pool(self.relu(self.conv1(x)))   <span class="cm"># (1,16,28,28) -> (1,16,14,14)</span>
+        x = self.pool(self.relu(self.conv2(x)))   <span class="cm"># (1,32,14,14) -> (1,32,7,7)</span>
+        x = self.flatten(x)                       <span class="cm"># (1, 32*7*7)</span>
+        x = self.relu(self.fc1(x))
+        x = self.fc2(x)                           <span class="cm"># (1, num_classes) -- raw class scores</span>
+        <span class="kw">return</span> x
+
+model = SimpleCNN(num_classes=<span class="nm">10</span>)
+<span class="bi">print</span>(<span class="st">f'Total parameters: <span class="bi">{sum(p.numel() for p in model.parameters())}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>The Linear layer's input size must match exactly.</strong> After two 2×2 pools, a 28×28 input becomes 7×7. If you get <code>fc1</code>'s input size wrong (e.g. forgetting a pool, or the wrong channel count), PyTorch raises a shape-mismatch error at the first forward pass — always trace the spatial size through each layer before writing the Linear.</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 23 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div>A <strong>convolution</strong> slides a small, shared filter across an image, giving far fewer parameters than a fully-connected layer and reusing the same learned pattern at every position.</div></li>
+    <li data-n="2"><div><strong>Padding</strong> controls whether the output shrinks; <strong>stride</strong> controls how far the kernel jumps each step (larger stride = smaller output).</div></li>
+    <li data-n="3"><div><strong>Max pooling</strong> downsamples a feature map by keeping only the strongest activation in each window.</div></li>
+    <li data-n="4"><div><strong>Channels</strong> in = image channels (1 grayscale, 3 RGB); channels out = number of learned filters, which feeds the next layer's in_channels.</div></li>
+    <li data-n="5"><div>The classic CNN shape: <strong>(Conv2d → ReLU → MaxPool2d) × N → Flatten → Linear</strong> layers for classification.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Since PyTorch can't execute in this browser, these are checked by pattern-matching the CODE you write (not by running it) — write real, correct PyTorch, then paste it into the Colab notebook to see it actually run.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Create a Conv2d Layer</div>
+        <div class="ex-desc">Write a convolution layer for a 3-channel (RGB) input.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write PyTorch code that:
+  1. imports torch.nn as nn
+  2. creates conv = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)
+
+(This checks your typed code for the required pattern — it is not executed.)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import torch.nn as nn
+
+# conv = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(1)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Create a Max Pooling Layer</div>
+        <div class="ex-desc">Write a pooling layer that halves the spatial dimensions.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write PyTorch code that:
+  1. imports torch.nn as nn
+  2. creates pool = nn.MaxPool2d(kernel_size=2, stride=2)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import torch.nn as nn
+
+# pool = nn.MaxPool2d(kernel_size=2, stride=2)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(2)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">A Conv → ReLU → Pool Block</div>
+        <div class="ex-desc">Write a small nn.Module that chains one conv, one ReLU, and one pool.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write a class ConvBlock(nn.Module) with:
+  - __init__ defining self.conv = nn.Conv2d(1, 16, 3, padding=1), self.relu = nn.ReLU(), self.pool = nn.MaxPool2d(2, 2)
+  - forward(self, x) that returns self.pool(self.relu(self.conv(x)))</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import torch.nn as nn
+
+# class ConvBlock(nn.Module):
+#     def __init__(self):
+#         super().__init__()
+#         self.conv = nn.Conv2d(1, 16, 3, padding=1)
+#         self.relu = nn.ReLU()
+#         self.pool = nn.MaxPool2d(2, 2)
+#
+#     def forward(self, x):
+#         return self.pool(self.relu(self.conv(x)))
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(3)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Flatten and a Linear Head</div>
+        <div class="ex-desc">Write the layers that turn feature maps into class scores.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write PyTorch code that defines, for a 7x7x32 feature map:
+  self.flatten = nn.Flatten()
+  self.fc1 = nn.Linear(32 * 7 * 7, 128)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import torch.nn as nn
+
+# self.flatten = nn.Flatten()
+# self.fc1 = nn.Linear(32 * 7 * 7, 128)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(4)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Write the Full CNN Forward Pass</div>
+        <div class="ex-desc">Assemble two conv blocks, a flatten, and two linear layers in the right order.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given self.conv1, self.conv2, self.relu, self.pool, self.flatten, self.fc1, self.fc2
+already defined (as in the SimpleCNN lesson example), write forward(self, x) whose
+body, in order:
+  1. x = self.pool(self.relu(self.conv1(x)))
+  2. x = self.pool(self.relu(self.conv2(x)))
+  3. x = self.flatten(x)
+  4. x = self.relu(self.fc1(x))
+  5. x = self.fc2(x)
+  6. return x</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># def forward(self, x):
+#     x = self.pool(self.relu(self.conv1(x)))
+#     x = self.pool(self.relu(self.conv2(x)))
+#     x = self.flatten(x)
+#     x = self.relu(self.fc1(x))
+#     x = self.fc2(x)
+#     return x
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(5)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>MNIST-Style Digit Classifier CNN</span></h2>
+    <p>Build the SimpleCNN from this chapter as real PyTorch code, then run it in the Colab notebook on the MNIST dataset — confirm the forward pass produces the right output shape and that training loss drops over a few epochs.</p>
+    <div class="project-tags">
+      <span class="ptag">nn.Conv2d</span>
+      <span class="ptag">nn.MaxPool2d</span>
+      <span class="ptag">nn.Module</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build (in the Colab notebook)</h3>
+    <ul class="spec-list">
+      <li>Define SimpleCNN(nn.Module): Conv2d(1,16,3,padding=1) → ReLU → MaxPool2d(2,2) → Conv2d(16,32,3,padding=1) → ReLU → MaxPool2d(2,2) → Flatten → Linear(32*7*7,128) → ReLU → Linear(128,10)</li>
+      <li>Confirm model(torch.randn(1,1,28,28)).shape is torch.Size([1, 10])</li>
+      <li>criterion = nn.CrossEntropyLoss(), optimizer = optim.Adam(model.parameters(), lr=0.001)</li>
+      <li>Train on the MNIST training set for a few epochs using the 5-line loop from Chapter 22</li>
+      <li>Print the loss each epoch and confirm it decreases</li>
+    </ul>
+  </div>
+
+  <div class="colab-banner">
+    <div class="cb-icon">🎬</div>
+    <div>
+      <h3>This project runs in the Colab notebook, not this page</h3>
+      <p>Open the notebook, find the "Mini Project" section at the bottom, and fill in the TODOs there. Come back here and check the box below once your model trains and loss decreases.</p>
+    </div>
+    <a class="colab-btn" href="https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/dl/ch23-convolutional-neural-networks.ipynb" target="_blank" rel="noopener">Open in Colab →</a>
+  </div>
+
+  <div class="project-spec">
+    <h3>✅ Confirm and Continue</h3>
+    <div class="ex-editor-wrap" style="padding:0">
+      <textarea class="ex-editor" id="project-editor" style="min-height:100px" placeholder="Paste your SimpleCNN class and training loop here once it runs successfully in Colab, then click Check below."></textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkProject()">✓ Check My Code</button>
+      </div>
+      <div class="ex-result" id="project-result"></div>
+    </div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist</h3>
+    <div class="check-item"><span class="check-icon">🧠</span>SimpleCNN defined with nn.Module, two Conv2d layers, and MaxPool2d</div>
+    <div class="check-item"><span class="check-icon">📐</span>Forward pass produces shape (batch, 10)</div>
+    <div class="check-item"><span class="check-icon">🔁</span>Training loop with zero_grad / forward / loss / backward / step</div>
+    <div class="check-item"><span class="check-icon">📉</span>Loss decreases over training epochs when run in Colab</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 23 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 24. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why do CNNs use far fewer parameters than a fully-connected layer for the same image?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> CNNs skip the bias term entirely</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> A convolution kernel's weights are shared across every spatial position in the image, instead of learning a separate weight per pixel per output unit</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> CNNs only ever look at half the image</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Convolution always uses fewer color channels than the raw image</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">With <code>kernel_size=3</code>, <code>stride=1</code>, and <code>padding=1</code> on a 28×28 input, what is the output spatial size?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> 26×26</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> 14×14</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> 28×28 — padding=1 exactly offsets the size a 3x3 kernel would otherwise shrink</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> 30×30</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">What does <code>nn.MaxPool2d(kernel_size=2, stride=2)</code> do to a feature map?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Adds two new channels to the feature map</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Doubles the spatial resolution</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Halves each spatial dimension by keeping only the maximum value in each non-overlapping 2x2 window</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Randomly zeroes out 2% of the activations</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that creates a max pooling layer with a 2x2 window and stride 2 (assign it to <code>pool</code>).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="pool = nn.MaxPool2d(...)" rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">In the SimpleCNN architecture from this chapter, what is the correct order of operations in <code>forward()</code>?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Flatten → Conv2d → Linear → MaxPool2d → ReLU</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (Conv2d → ReLU → MaxPool2d), repeated, then Flatten → Linear</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Linear → Conv2d → ReLU → Flatten → MaxPool2d</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> MaxPool2d → Flatten → Conv2d → ReLU → Linear</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎬</div>
+    <div class="ncc-info">
+      <h3>Chapter 24: RNNs & LSTMs (Colab)</h3>
+      <p>Images have spatial structure — sequences (text, time series) have temporal structure. Learn why recurrent networks need a hidden state carried across time, and how LSTMs fix the vanishing-gradient problem that breaks vanilla RNNs on long sequences.</p>
+    </div>
+    <a class="ncc-btn" href="ch24-rnns-lstms.html">Start Chapter 24 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run (no PyTorch — that's Colab-only)" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch23';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch22'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓ (no PyTorch — use Colab)';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# NOTE: PyTorch is NOT available here. This console is for light non-PyTorch snippets only.','info');
+    clog('# Use the Colab notebook (link in the lesson) to run this chapter\'s actual PyTorch code.','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+// Exercises here are graded by PATTERN-MATCHING the typed code (not execution) —
+// PyTorch cannot run in Pyodide. `checks` are matched against the code with all
+// whitespace stripped, lowercased.
+const EXERCISES = {
+  1:{
+    checks:['nn.conv2d(','in_channels=3','out_channels=16','kernel_size=3','padding=1'],
+    hint:"conv = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)",
+    solution:`import torch.nn as nn
+conv = nn.Conv2d(in_channels=3, out_channels=16, kernel_size=3, padding=1)`
+  },
+  2:{
+    checks:['nn.maxpool2d(','kernel_size=2','stride=2'],
+    hint:"pool = nn.MaxPool2d(kernel_size=2, stride=2)",
+    solution:`import torch.nn as nn
+pool = nn.MaxPool2d(kernel_size=2, stride=2)`
+  },
+  3:{
+    checks:['nn.module','nn.conv2d(1,16,3,padding=1)','nn.relu()','nn.maxpool2d(2,2)','defforward','self.pool(self.relu(self.conv(x)))'],
+    hint:"class ConvBlock(nn.Module): def __init__(self): super().__init__(); self.conv = nn.Conv2d(1, 16, 3, padding=1); self.relu = nn.ReLU(); self.pool = nn.MaxPool2d(2, 2); def forward(self, x): return self.pool(self.relu(self.conv(x)))",
+    solution:`import torch.nn as nn
+class ConvBlock(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(1, 16, 3, padding=1)
+        self.relu = nn.ReLU()
+        self.pool = nn.MaxPool2d(2, 2)
+
+    def forward(self, x):
+        return self.pool(self.relu(self.conv(x)))`
+  },
+  4:{
+    checks:['nn.flatten()','nn.linear(32*7*7,128)'],
+    hint:"self.flatten = nn.Flatten(); self.fc1 = nn.Linear(32 * 7 * 7, 128)",
+    solution:`import torch.nn as nn
+self.flatten = nn.Flatten()
+self.fc1 = nn.Linear(32 * 7 * 7, 128)`
+  },
+  5:{
+    checks:['self.pool(self.relu(self.conv1(x)))','self.pool(self.relu(self.conv2(x)))','self.flatten(x)','self.fc1(x)','self.fc2(x)'],
+    hint:"x = self.pool(self.relu(self.conv1(x))); x = self.pool(self.relu(self.conv2(x))); x = self.flatten(x); x = self.relu(self.fc1(x)); x = self.fc2(x); return x",
+    solution:`def forward(self, x):
+    x = self.pool(self.relu(self.conv1(x)))
+    x = self.pool(self.relu(self.conv2(x)))
+    x = self.flatten(x)
+    x = self.relu(self.fc1(x))
+    x = self.fc2(x)
+    return x`
+  }
+};
+
+window.checkTextEx=function(n){
+  const raw=document.getElementById(`ex${n}-code`).value;
+  const noSpaces=raw.toLowerCase().replace(/\s/g,'');
+  const resEl=document.getElementById(`ex${n}-result`);
+  const ex=EXERCISES[n];
+  const passed=ex.checks.every(c=>noSpaces.includes(c.toLowerCase().replace(/\s/g,'')));
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct pattern! +50 XP — now try it for real in the Colab notebook.';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent='❌ Missing required code — check the task requirements, or view the solution';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.checkProject=function(){
+  const raw=document.getElementById('project-editor').value;
+  const noSpaces=raw.toLowerCase().replace(/\s/g,'');
+  const res=document.getElementById('project-result');
+  const checks=['nn.module','nn.conv2d','nn.maxpool2d','nn.linear','optimizer.step()'];
+  const passed=checks.every(c=>noSpaces.includes(c.replace(/\s/g,'')));
+  res.style.display='flex';res.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else{
+    res.textContent='❌ Paste the model definition and training loop you ran in Colab — missing required pieces';
+  }
+};
+
+const CORRECT={1:'B',2:'C',3:'C',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('nn.maxpool2d(kernel_size=2,stride=2)')||val.includes('nn.maxpool2d(2,2)');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! pool = nn.MaxPool2d(kernel_size=2, stride=2)"
+    :"❌ Not quite. You need: pool = nn.MaxPool2d(kernel_size=2, stride=2)";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Convolutions, padding, stride, pooling, and channels — you can now read and build real CNN architectures.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

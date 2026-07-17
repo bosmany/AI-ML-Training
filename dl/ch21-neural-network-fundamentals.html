@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 21: Neural Network Fundamentals</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy compiled to WebAssembly). Your progress on this chapter is saved to
+  this browser's localStorage automatically. Unlike Chapters 22-24 and 26 (which need real
+  PyTorch and link out to a Colab notebook), this chapter builds a real neural network with
+  NumPy alone — forward pass, backprop, and gradient descent, all runnable right here.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:400px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 21: Neural Network Fundamentals</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 5 · Chapter 21 of 32</div>
+  </a>
+  <a class="sb-back" href="../ml/ch20-classical-ml-capstone.html">← Ch 20: Classical ML Capstone</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 21</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 5</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 22: Intro to PyTorch (Colab)</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 23: CNNs (Colab)</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 21</div>
+    <div class="tb-title">Neural Network Fundamentals</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 20 quiz in this browser yet. Welcome to Module 5 — this chapter assumes Chapter 8's matrix multiplication and Chapter 10's gradient descent.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 21:<br/><span>Neural Network Fundamentals</span></h1>
+    <p>Every deep learning framework — PyTorch, TensorFlow, JAX — is doing exactly what you're about to build by hand: a forward pass through layers of weighted sums and nonlinear activations, a loss that measures how wrong the output is, and backpropagation (the chain rule, mechanically applied) to compute how to nudge every weight to reduce that loss. Build it once from raw NumPy and PyTorch code stops looking like magic — it's this, with a GPU and better bookkeeping.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~70 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 21.1 -->
+  <div class="lesson-h2">21.1 — What Is a Neural Network?</div>
+  <p class="lesson-p">A neural network is layers of simple units stacked together. Each unit ("neuron") does exactly one thing: take inputs, multiply each by a learned <strong>weight</strong>, sum them plus a <strong>bias</strong>, then squash the result through a nonlinear <strong>activation function</strong>. Chapter 8 already taught you the matrix-multiply that computes an ENTIRE LAYER of neurons at once: <code>X @ W + b</code>. A "deep" network is just several of these layers chained together.</p>
+
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Why layers, why nonlinearity?</strong><br/>Stack linear layers with NO activation function between them and the whole stack collapses mathematically into one single linear layer — no extra power gained. The activation function between layers is what lets a network learn curved, non-linear decision boundaries (like XOR, which you'll train on in 21.5 — a single linear layer literally cannot solve XOR).</div></div>
+
+  <!-- 21.2 -->
+  <div class="lesson-h2">21.2 — Activation Functions</div>
+  <p class="lesson-p">The <strong>sigmoid</strong> function squashes any real number into (0, 1) — useful for binary outputs (probabilities). <strong>ReLU</strong> (Rectified Linear Unit) just zeroes out negatives and passes positives through unchanged — simpler, faster, and the default choice inside hidden layers of modern networks.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Sigmoid and ReLU</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">sigmoid</span>(x):
+    <span class="kw">return</span> <span class="nm">1</span> / (<span class="nm">1</span> + np.exp(-x))
+
+<span class="kw">def</span> <span class="fn">relu</span>(x):
+    <span class="kw">return</span> np.maximum(<span class="nm">0</span>, x)
+
+z = np.array([-<span class="nm">2.0</span>, -<span class="nm">0.5</span>, <span class="nm">0.0</span>, <span class="nm">0.5</span>, <span class="nm">2.0</span>])
+<span class="bi">print</span>(<span class="st">f'Sigmoid: <span class="bi">{[round(float(v),4) for v in sigmoid(z)]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'ReLU: <span class="bi">{relu(z).tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>sigmoid(0) is always exactly 0.5</strong> — the function is symmetric around the origin. This is a fast sanity check any time you implement it: if <code>sigmoid(0)</code> doesn't come out to 0.5, there's a bug in your formula.</div></div>
+
+  <!-- 21.3 -->
+  <div class="lesson-h2">21.3 — Forward Propagation: One Pass Through the Network</div>
+  <p class="lesson-p"><strong>Forward propagation</strong> is just running the input through every layer in order: multiply by that layer's weights, add its bias, apply its activation, feed the result into the next layer. For a 2-layer network: <code>a1 = sigmoid(X @ W1 + b1)</code> then <code>a2 = sigmoid(a1 @ W2 + b2)</code> — <code>a2</code> is the network's final prediction.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A full forward pass, 4 samples at once</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">sigmoid</span>(x): <span class="kw">return</span> <span class="nm">1</span> / (<span class="nm">1</span> + np.exp(-x))
+
+X = np.array([[<span class="nm">0</span>,<span class="nm">0</span>],[<span class="nm">0</span>,<span class="nm">1</span>],[<span class="nm">1</span>,<span class="nm">0</span>],[<span class="nm">1</span>,<span class="nm">1</span>]], dtype=<span class="bi">float</span>)   <span class="cm"># 4 samples, 2 features each</span>
+W1 = np.array([[<span class="nm">0.5</span>, -<span class="nm">0.3</span>], [<span class="nm">0.2</span>, <span class="nm">0.8</span>]])   <span class="cm"># 2 inputs -> 2 hidden units</span>
+b1 = np.array([<span class="nm">0.1</span>, -<span class="nm">0.1</span>])
+W2 = np.array([[<span class="nm">0.6</span>], [-<span class="nm">0.4</span>]])            <span class="cm"># 2 hidden units -> 1 output</span>
+b2 = np.array([<span class="nm">0.05</span>])
+
+z1 = X @ W1 + b1
+a1 = sigmoid(z1)          <span class="cm"># hidden layer activations</span>
+z2 = a1 @ W2 + b2
+a2 = sigmoid(z2)          <span class="cm"># final predictions, shape (4, 1)</span>
+
+<span class="bi">print</span>(<span class="st">f'Hidden activations shape: <span class="bi">{a1.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Output predictions: <span class="bi">{[round(float(v),4) for v in a2.flatten()]}</span>'</span>)</div>
+  </div>
+  <p class="lesson-p">These predictions are near 0.5 and wrong (random initial weights) — that's expected. The network hasn't learned anything yet; that's what training does.</p>
+
+  <!-- 21.4 -->
+  <div class="lesson-h2">21.4 — Loss Functions: Measuring "How Wrong"</div>
+  <p class="lesson-p">A <strong>loss function</strong> turns "predictions vs. true labels" into a single number to minimize. <strong>Mean Squared Error (MSE)</strong> — average of <code>(true - predicted)²</code> — works for regression. <strong>Binary cross-entropy</strong> is the standard choice for binary classification; it penalizes confident wrong predictions much more heavily than MSE does.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">MSE and binary cross-entropy</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+y_true = np.array([<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>], dtype=<span class="bi">float</span>)
+y_pred = np.array([<span class="nm">0.1</span>, <span class="nm">0.9</span>, <span class="nm">0.8</span>, <span class="nm">0.3</span>])
+
+mse = np.mean((y_true - y_pred)**<span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">f'MSE: <span class="bi">{mse:.4f}</span>'</span>)
+
+eps = <span class="nm">1e-9</span>   <span class="cm"># avoids log(0)</span>
+bce = -np.mean(y_true*np.log(y_pred+eps) + (<span class="nm">1</span>-y_true)*np.log(<span class="nm">1</span>-y_pred+eps))
+<span class="bi">print</span>(<span class="st">f'Binary cross-entropy: <span class="bi">{bce:.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- 21.5 -->
+  <div class="lesson-h2">21.5 — Backpropagation: The Chain Rule, Mechanically</div>
+  <p class="lesson-p"><strong>Backpropagation</strong> computes the gradient of the loss with respect to EVERY weight, by applying the chain rule backward from the output. For a 2-layer network with sigmoid activations and MSE loss, the gradients have a clean closed form (derived once, reused forever):</p>
+
+  <table class="lesson-table">
+    <tr><th>Quantity</th><th>Formula</th></tr>
+    <tr><td>d_a2 (output error)</td><td class="highlight">(a2 - y_true) * 2 / n_samples</td></tr>
+    <tr><td>d_z2</td><td>d_a2 * a2 * (1 - a2)   <span style="color:var(--t3)"># sigmoid derivative: a*(1-a)</span></td></tr>
+    <tr><td>d_W2, d_b2</td><td>a1.T @ d_z2,  &nbsp; d_z2.sum(axis=0)</td></tr>
+    <tr><td>d_a1</td><td class="highlight">d_z2 @ W2.T</td></tr>
+    <tr><td>d_z1, d_W1, d_b1</td><td>same pattern, one layer earlier</td></tr>
+  </table>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One backprop step, by hand</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">sigmoid</span>(x): <span class="kw">return</span> <span class="nm">1</span> / (<span class="nm">1</span> + np.exp(-x))
+
+np.random.seed(<span class="nm">7</span>)
+X = np.array([[<span class="nm">1.0</span>, <span class="nm">0.5</span>]])
+y = np.array([[<span class="nm">1.0</span>]])
+W1 = np.array([[<span class="nm">0.2</span>, -<span class="nm">0.1</span>],[<span class="nm">0.3</span>, <span class="nm">0.4</span>]])
+b1 = np.zeros(<span class="nm">2</span>)
+W2 = np.array([[<span class="nm">0.5</span>],[-<span class="nm">0.2</span>]])
+b2 = np.zeros(<span class="nm">1</span>)
+
+<span class="cm"># forward</span>
+z1 = X @ W1 + b1; a1 = sigmoid(z1)
+z2 = a1 @ W2 + b2; a2 = sigmoid(z2)
+loss_before = np.mean((y - a2)**<span class="nm">2</span>)
+
+<span class="cm"># backward</span>
+d_a2 = (a2 - y) * <span class="nm">2</span> / <span class="bi">len</span>(X)
+d_z2 = d_a2 * a2 * (<span class="nm">1</span> - a2)
+d_W2 = a1.T @ d_z2
+d_b2 = d_z2.sum(axis=<span class="nm">0</span>)
+d_a1 = d_z2 @ W2.T
+d_z1 = d_a1 * a1 * (<span class="nm">1</span> - a1)
+d_W1 = X.T @ d_z1
+d_b1 = d_z1.sum(axis=<span class="nm">0</span>)
+
+<span class="cm"># gradient descent step (Chapter 10!)</span>
+lr = <span class="nm">1.0</span>
+W2 = W2 - lr*d_W2; b2 = b2 - lr*d_b2
+W1 = W1 - lr*d_W1; b1 = b1 - lr*d_b1
+
+<span class="cm"># forward again, after the update</span>
+z1 = X @ W1 + b1; a1 = sigmoid(z1)
+z2 = a1 @ W2 + b2; a2 = sigmoid(z2)
+loss_after = np.mean((y - a2)**<span class="nm">2</span>)
+
+<span class="bi">print</span>(<span class="st">f'Loss before: <span class="bi">{loss_before:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Loss after one step: <span class="bi">{loss_after:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>One gradient step, measurably lower loss.</strong> That's the entire training loop, over and over: forward pass → compute loss → backward pass → update weights → repeat. PyTorch's <code>loss.backward()</code> and <code>optimizer.step()</code> (Chapter 22) do exactly this, automatically, for networks with millions of weights.</div></div>
+
+  <!-- 21.6 -->
+  <div class="lesson-h2">21.6 — The Training Loop: Solving XOR</div>
+  <p class="lesson-p">XOR is famous in deep learning history because it's NOT linearly separable — no single straight line divides the "true" points from the "false" points, so a single-layer network (no hidden layer) provably cannot solve it. A 2-layer network can. Watch the loss fall over 5000 epochs of forward → backward → update.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Training a 2-layer network on XOR</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">sigmoid</span>(x): <span class="kw">return</span> <span class="nm">1</span> / (<span class="nm">1</span> + np.exp(-x))
+
+np.random.seed(<span class="nm">1</span>)
+X = np.array([[<span class="nm">0</span>,<span class="nm">0</span>],[<span class="nm">0</span>,<span class="nm">1</span>],[<span class="nm">1</span>,<span class="nm">0</span>],[<span class="nm">1</span>,<span class="nm">1</span>]], dtype=<span class="bi">float</span>)
+y = np.array([[<span class="nm">0</span>],[<span class="nm">1</span>],[<span class="nm">1</span>],[<span class="nm">0</span>]], dtype=<span class="bi">float</span>)   <span class="cm"># XOR truth table</span>
+
+W1 = np.random.randn(<span class="nm">2</span>, <span class="nm">4</span>) * <span class="nm">0.5</span>; b1 = np.zeros(<span class="nm">4</span>)
+W2 = np.random.randn(<span class="nm">4</span>, <span class="nm">1</span>) * <span class="nm">0.5</span>; b2 = np.zeros(<span class="nm">1</span>)
+lr = <span class="nm">0.5</span>
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5000</span>):
+    a1 = sigmoid(X @ W1 + b1)
+    a2 = sigmoid(a1 @ W2 + b2)
+    loss = np.mean((y - a2)**<span class="nm">2</span>)
+
+    d_a2 = (a2 - y) * <span class="nm">2</span> / <span class="bi">len</span>(X)
+    d_z2 = d_a2 * a2 * (<span class="nm">1</span> - a2)
+    d_W2 = a1.T @ d_z2; d_b2 = d_z2.sum(axis=<span class="nm">0</span>)
+    d_a1 = d_z2 @ W2.T
+    d_z1 = d_a1 * a1 * (<span class="nm">1</span> - a1)
+    d_W1 = X.T @ d_z1; d_b1 = d_z1.sum(axis=<span class="nm">0</span>)
+
+    W2 -= lr*d_W2; b2 -= lr*d_b2
+    W1 -= lr*d_W1; b1 -= lr*d_b1
+
+<span class="bi">print</span>(<span class="st">f'Final loss: <span class="bi">{loss:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Rounded predictions: <span class="bi">{[int(round(float(v))) for v in a2.flatten()]}</span>'</span>)   <span class="cm"># [0, 1, 1, 0]</span></div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 21 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>A layer</strong> is <code>activation(X @ W + b)</code>. A network is several layers chained together.</div></li>
+    <li data-n="2"><div><strong>sigmoid</strong> squashes to (0,1) for probabilities; <strong>ReLU</strong> is the default hidden-layer activation.</div></li>
+    <li data-n="3"><div><strong>Forward pass</strong> computes predictions. <strong>Loss</strong> (MSE or cross-entropy) measures how wrong they are.</div></li>
+    <li data-n="4"><div><strong>Backpropagation</strong> uses the chain rule to compute every weight's gradient. <strong>Gradient descent</strong> (Chapter 10) uses those gradients to improve the weights.</div></li>
+    <li data-n="5"><div>Repeat forward → loss → backward → update, and a network with a hidden layer can learn non-linear patterns like XOR that a single layer cannot.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Implement Sigmoid</div>
+        <div class="ex-desc">Write the sigmoid function and apply it to a fixed array of values.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+values = np.array([0.0, 1.0, -1.0, 2.5])
+(already given)
+
+Define sigmoid(x) = 1 / (1 + np.exp(-x))
+Compute result = sigmoid(values)
+
+Print exactly: f'Sigmoid outputs: {[round(float(v),4) for v in result]}'
+(Correct: Sigmoid outputs: [0.5, 0.7311, 0.2689, 0.9241])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+values = np.array([0.0, 1.0, -1.0, 2.5])
+
+# def sigmoid(x):
+#     return 1 / (1 + np.exp(-x))
+# result = sigmoid(values)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">A Single-Layer Forward Pass</div>
+        <div class="ex-desc">Compute one layer's pre-activation and activation for a single sample.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+Xe = np.array([[1.0, 2.0]])
+W1e = np.array([[0.1, 0.2, -0.1], [0.4, -0.3, 0.2]])
+b1e = np.array([0.0, 0.1, -0.05])
+(already given)
+
+Compute z1e = Xe @ W1e + b1e
+Compute a1e = sigmoid(z1e)
+
+Print exactly:
+  f'z1: {[round(float(v),4) for v in z1e.flatten()]}'
+  f'a1: {[round(float(v),4) for v in a1e.flatten()]}'
+(Correct: z1: [0.9, -0.3, 0.25] / a1: [0.7109, 0.4256, 0.5622])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+Xe = np.array([[1.0, 2.0]])
+W1e = np.array([[0.1, 0.2, -0.1], [0.4, -0.3, 0.2]])
+b1e = np.array([0.0, 0.1, -0.05])
+
+# z1e = Xe @ W1e + b1e
+# a1e = sigmoid(z1e)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Mean Squared Error</div>
+        <div class="ex-desc">Compute MSE between true labels and predictions.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+yt = np.array([1.0, 0.0, 1.0])
+yp = np.array([0.9, 0.2, 0.6])
+(already given)
+
+Compute mse3 = np.mean((yt - yp)**2)
+
+Print exactly: f'MSE: {mse3:.4f}'
+(Correct: MSE: 0.0700)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import numpy as np
+yt = np.array([1.0, 0.0, 1.0])
+yp = np.array([0.9, 0.2, 0.6])
+
+# mse3 = np.mean((yt - yp)**2)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">One Backprop Step Reduces Loss</div>
+        <div class="ex-desc">Run forward, backward, and one weight update — confirm the loss actually goes down.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+np.random.seed(7)
+Xs = np.array([[1.0, 0.5]])
+ys = np.array([[1.0]])
+W1s = np.array([[0.2, -0.1],[0.3, 0.4]])
+b1s = np.zeros(2)
+W2s = np.array([[0.5],[-0.2]])
+b2s = np.zeros(1)
+(already given)
+
+Forward: z1s=Xs@W1s+b1s; a1s=sigmoid(z1s); z2s=a1s@W2s+b2s; a2s=sigmoid(z2s)
+loss_before = np.mean((ys - a2s)**2)
+
+Backward (lr=1.0), update W1s/b1s/W2s/b2s, then forward again to get a2s2.
+loss_after = np.mean((ys - a2s2)**2)
+
+Print exactly:
+  f'Loss before: {loss_before:.4f}'
+  f'Loss after one step: {loss_after:.4f}'
+(Correct: Loss before: 0.2053 / Loss after one step: 0.1319)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+np.random.seed(7)
+Xs = np.array([[1.0, 0.5]])
+ys = np.array([[1.0]])
+W1s = np.array([[0.2, -0.1],[0.3, 0.4]])
+b1s = np.zeros(2)
+W2s = np.array([[0.5],[-0.2]])
+b2s = np.zeros(1)
+
+# z1s = Xs @ W1s + b1s; a1s = sigmoid(z1s)
+# z2s = a1s @ W2s + b2s; a2s = sigmoid(z2s)
+# loss_before = np.mean((ys - a2s)**2)
+#
+# d_a2 = (a2s - ys) * 2 / len(Xs)
+# d_z2 = d_a2 * a2s * (1 - a2s)
+# d_W2 = a1s.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+# d_a1 = d_z2 @ W2s.T
+# d_z1 = d_a1 * a1s * (1 - a1s)
+# d_W1 = Xs.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+#
+# lr = 1.0
+# W2s = W2s - lr*d_W2; b2s = b2s - lr*d_b2
+# W1s = W1s - lr*d_W1; b1s = b1s - lr*d_b1
+#
+# z1s2 = Xs @ W1s + b1s; a1s2 = sigmoid(z1s2)
+# z2s2 = a1s2 @ W2s + b2s; a2s2 = sigmoid(z2s2)
+# loss_after = np.mean((ys - a2s2)**2)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Train a Network on XOR</div>
+        <div class="ex-desc">Run the full 5000-epoch training loop and confirm it solves XOR.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Use the exact training loop from lesson 21.6 (np.random.seed(1), same
+architecture, same 5000 epochs, same lr=0.5) on the XOR dataset.
+
+Print exactly:
+  f'Final loss: {loss:.4f}'
+  f'Rounded predictions: {[int(round(float(v))) for v in a2.flatten()]}'
+(Correct: Final loss: 0.0016 / Rounded predictions: [0, 1, 1, 0])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+
+np.random.seed(1)
+X = np.array([[0,0],[0,1],[1,0],[1,1]], dtype=float)
+y = np.array([[0],[1],[1],[0]], dtype=float)
+
+# W1 = np.random.randn(2, 4) * 0.5; b1 = np.zeros(4)
+# W2 = np.random.randn(4, 1) * 0.5; b2 = np.zeros(1)
+# lr = 0.5
+#
+# for epoch in range(5000):
+#     a1 = sigmoid(X @ W1 + b1)
+#     a2 = sigmoid(a1 @ W2 + b2)
+#     loss = np.mean((y - a2)**2)
+#
+#     d_a2 = (a2 - y) * 2 / len(X)
+#     d_z2 = d_a2 * a2 * (1 - a2)
+#     d_W2 = a1.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+#     d_a1 = d_z2 @ W2.T
+#     d_z1 = d_a1 * a1 * (1 - a1)
+#     d_W1 = X.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+#
+#     W2 -= lr*d_W2; b2 -= lr*d_b2
+#     W1 -= lr*d_W1; b1 -= lr*d_b1
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Candidate Qualifier Network</span></h2>
+    <p>Train the same 2-layer network architecture from 21.6 — but this time on a small "candidate qualification" dataset instead of XOR: two normalized features (score, interview rating) predicting whether a candidate is qualified. Same forward/backward/update loop, different data.</p>
+    <div class="project-tags">
+      <span class="ptag">forward pass</span>
+      <span class="ptag">backprop</span>
+      <span class="ptag">gradient descent</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Build a 2-layer network (2 inputs → 4 hidden units → 1 output), sigmoid activations</li>
+      <li>Train for 3000 epochs with lr=0.5 using MSE loss and manual backprop (same equations as 21.5/21.6)</li>
+      <li>After training, round every prediction to 0 or 1 and compute accuracy against the true labels</li>
+      <li>Print the final loss, the rounded predictions, and the accuracy</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Candidate Qualifier Network — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Candidate Qualifier Network
+# Use ONLY Chapter 21 concepts
+# ══════════════════════════════════════════
+import numpy as np
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+np.random.seed(3)
+# columns: normalized_score, normalized_interview
+X = np.array([
+    [0.92, 0.80],
+    [0.75, 0.60],
+    [0.81, 0.70],
+    [0.60, 0.40],
+    [0.88, 0.85],
+    [0.55, 0.50],
+    [0.95, 0.90],
+    [0.65, 0.45],
+], dtype=float)
+y = np.array([[1],[0],[1],[0],[1],[0],[1],[0]], dtype=float)
+
+# === TODO 1: initialize weights ===
+# n_hidden = 4
+# W1 = np.random.randn(2, n_hidden) * 0.5; b1 = np.zeros(n_hidden)
+# W2 = np.random.randn(n_hidden, 1) * 0.5; b2 = np.zeros(1)
+
+# === TODO 2: training loop (3000 epochs, lr=0.5) ===
+# lr = 0.5
+# for epoch in range(3000):
+#     a1 = sigmoid(X @ W1 + b1)
+#     a2 = sigmoid(a1 @ W2 + b2)
+#     loss = np.mean((y - a2)**2)
+#
+#     d_a2 = (a2 - y) * 2 / len(X)
+#     d_z2 = d_a2 * a2 * (1 - a2)
+#     d_W2 = a1.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+#     d_a1 = d_z2 @ W2.T
+#     d_z1 = d_a1 * a1 * (1 - a1)
+#     d_W1 = X.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+#
+#     W2 -= lr*d_W2; b2 -= lr*d_b2
+#     W1 -= lr*d_W1; b1 -= lr*d_b1
+
+# === TODO 3: evaluate ===
+# preds = a2.flatten()
+# rounded = [int(round(float(v))) for v in preds]
+# accuracy = np.mean([r == int(t) for r, t in zip(rounded, y.flatten())])
+# print(f'Final loss: {loss:.4f}')
+# print(f'Rounded: {rounded}')
+# print(f'Accuracy: {accuracy:.4f}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📉</span>Final loss: 0.0138</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Rounded: [1, 0, 1, 0, 1, 0, 1, 0]</div>
+    <div class="check-item"><span class="check-icon">✅</span>Accuracy: 1.0000</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 21 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 22. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why does a network need a NONLINEAR activation function between layers?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It doesn't — activations are purely optional decoration</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Without it, stacked linear layers collapse mathematically into a single linear layer, gaining no extra representational power</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> It only matters for image data</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Nonlinearity makes training faster, not more powerful</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What does backpropagation actually compute?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> The final prediction of the network</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The gradient of the loss with respect to every weight, via the chain rule applied backward from the output</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> A random reinitialization of all weights</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The number of layers a network needs</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Why can't a single-layer (no hidden layer) network solve XOR?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> XOR has too many training examples</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> XOR is not linearly separable — no single straight line divides the true points from the false points, which is all a single layer can draw</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> XOR requires more than 2 input features</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Sigmoid can't be used with XOR</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the sigmoid derivative formula in terms of <code>a</code> (the sigmoid's own output), as used in backprop: <code>d_z = d_a * ...</code></div>
+    <textarea class="q-code-input" id="q4-input" placeholder="d_z = d_a * ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What is the standard training loop, in order?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Backward pass → forward pass → compute loss → update weights</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Forward pass → compute loss → backward pass (compute gradients) → update weights — then repeat</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Update weights → forward pass → backward pass → compute loss</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Compute loss → update weights → forward pass</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎬</div>
+    <div class="ncc-info">
+      <h3>Chapter 22: Intro to PyTorch (Colab Notebook)</h3>
+      <p>Everything you just built by hand — forward pass, autograd, optimizers — now with a real framework and GPU support. This chapter links to a Colab notebook (PyTorch can't run in this browser).</p>
+    </div>
+    <a class="ncc-btn" href="ch22-intro-to-pytorch.html">Start Chapter 22 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch21';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch20'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['sigmoid outputs: [0.5, 0.7311, 0.2689, 0.9241]'],
+    hint:"sigmoid(x) = 1 / (1 + np.exp(-x))",
+    solution:`import numpy as np
+values = np.array([0.0, 1.0, -1.0, 2.5])
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+result = sigmoid(values)
+print(f'Sigmoid outputs: {[round(float(v),4) for v in result]}')`
+  },
+  2:{
+    checks:['z1: [0.9, -0.3, 0.25]','a1: [0.7109, 0.4256, 0.5622]'],
+    hint:"z1e = Xe @ W1e + b1e; a1e = sigmoid(z1e)",
+    solution:`import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+Xe = np.array([[1.0, 2.0]])
+W1e = np.array([[0.1, 0.2, -0.1], [0.4, -0.3, 0.2]])
+b1e = np.array([0.0, 0.1, -0.05])
+z1e = Xe @ W1e + b1e
+a1e = sigmoid(z1e)
+print(f'z1: {[round(float(v),4) for v in z1e.flatten()]}')
+print(f'a1: {[round(float(v),4) for v in a1e.flatten()]}')`
+  },
+  3:{
+    checks:['mse: 0.0700'],
+    hint:"mse3 = np.mean((yt - yp)**2)",
+    solution:`import numpy as np
+yt = np.array([1.0, 0.0, 1.0])
+yp = np.array([0.9, 0.2, 0.6])
+mse3 = np.mean((yt - yp)**2)
+print(f'MSE: {mse3:.4f}')`
+  },
+  4:{
+    checks:['loss before: 0.2053','loss after one step: 0.1319'],
+    hint:"forward, compute d_a2/d_z2/d_W2/d_b2/d_a1/d_z1/d_W1/d_b1, update with lr=1.0, forward again",
+    solution:`import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+np.random.seed(7)
+Xs = np.array([[1.0, 0.5]])
+ys = np.array([[1.0]])
+W1s = np.array([[0.2, -0.1],[0.3, 0.4]])
+b1s = np.zeros(2)
+W2s = np.array([[0.5],[-0.2]])
+b2s = np.zeros(1)
+
+z1s = Xs @ W1s + b1s; a1s = sigmoid(z1s)
+z2s = a1s @ W2s + b2s; a2s = sigmoid(z2s)
+loss_before = np.mean((ys - a2s)**2)
+
+d_a2 = (a2s - ys) * 2 / len(Xs)
+d_z2 = d_a2 * a2s * (1 - a2s)
+d_W2 = a1s.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+d_a1 = d_z2 @ W2s.T
+d_z1 = d_a1 * a1s * (1 - a1s)
+d_W1 = Xs.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+
+lr = 1.0
+W2s = W2s - lr*d_W2; b2s = b2s - lr*d_b2
+W1s = W1s - lr*d_W1; b1s = b1s - lr*d_b1
+
+z1s2 = Xs @ W1s + b1s; a1s2 = sigmoid(z1s2)
+z2s2 = a1s2 @ W2s + b2s; a2s2 = sigmoid(z2s2)
+loss_after = np.mean((ys - a2s2)**2)
+
+print(f'Loss before: {loss_before:.4f}')
+print(f'Loss after one step: {loss_after:.4f}')`
+  },
+  5:{
+    checks:['final loss: 0.0016','rounded predictions: [0, 1, 1, 0]'],
+    hint:"same architecture/seed/lr/epochs as lesson 21.6",
+    solution:`import numpy as np
+def sigmoid(x): return 1 / (1 + np.exp(-x))
+
+np.random.seed(1)
+X = np.array([[0,0],[0,1],[1,0],[1,1]], dtype=float)
+y = np.array([[0],[1],[1],[0]], dtype=float)
+
+W1 = np.random.randn(2, 4) * 0.5; b1 = np.zeros(4)
+W2 = np.random.randn(4, 1) * 0.5; b2 = np.zeros(1)
+lr = 0.5
+
+for epoch in range(5000):
+    a1 = sigmoid(X @ W1 + b1)
+    a2 = sigmoid(a1 @ W2 + b2)
+    loss = np.mean((y - a2)**2)
+
+    d_a2 = (a2 - y) * 2 / len(X)
+    d_z2 = d_a2 * a2 * (1 - a2)
+    d_W2 = a1.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+    d_a1 = d_z2 @ W2.T
+    d_z1 = d_a1 * a1 * (1 - a1)
+    d_W1 = X.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+
+    W2 -= lr*d_W2; b2 -= lr*d_b2
+    W1 -= lr*d_W1; b1 -= lr*d_b1
+
+print(f'Final loss: {loss:.4f}')
+print(f'Rounded predictions: {[int(round(float(v))) for v in a2.flatten()]}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['final loss: 0.0138','rounded: [1, 0, 1, 0, 1, 0, 1, 0]','accuracy: 1.0000'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const noSpaces=val.replace(/\s/g,'');
+  const passed=noSpaces.includes('a*(1-a)')||noSpaces.includes('a*(1.0-a)');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! d_z = d_a * a * (1 - a)'
+    :'❌ Not quite. You need: d_z = d_a * a * (1 - a)';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Forward pass, loss functions, backpropagation, and gradient descent — you've built a neural network from raw NumPy. Every framework from here is a convenience layer on top of exactly this.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
+

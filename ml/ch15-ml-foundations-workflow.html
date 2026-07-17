@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 15: ML Foundations &amp; Workflow</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy + Pandas + scikit-learn compiled to WebAssembly). Your progress on this
+  chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 15: ML Foundations &amp; Workflow</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 4 · Chapter 15 of 32</div>
+  </a>
+  <a class="sb-back" href="../data/ch14-data-visualization.html">← Ch 14: Data Visualization</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 15</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 4</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 16: Linear &amp; Logistic Regression</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 17: Trees, Forests &amp; Ensembles</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 15</div>
+    <div class="tb-title">ML Foundations &amp; Workflow</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 14 quiz in this browser yet.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 15:<br/><span>ML Foundations &amp; Workflow</span></h1>
+    <p>Welcome to Module 4. Everything before this point — NumPy arrays, Pandas DataFrames, gradient descent — was building the tools. This chapter is where they become <strong>machine learning</strong>: giving a model examples with known answers (features <code>X</code>, labels <code>y</code>) and letting it find a pattern that generalizes to NEW, unseen examples. That last word, generalizes, is the entire game — a model that only memorizes what it already saw is useless. This chapter covers the workflow every one of the next five chapters will reuse: split your data, train, predict, evaluate — and the vocabulary (overfitting, bias-variance, precision/recall) you need to know whether a model is actually any good.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 15.1 -->
+  <div class="lesson-h2">15.1 — What "Training" a Model Actually Means</div>
+  <p class="lesson-p">A <strong>supervised</strong> ML problem has two parts: a matrix of <strong>features</strong> <code>X</code> (the inputs — one row per example, one column per measurement) and a vector of <strong>labels</strong> <code>y</code> (the known correct answers). "Training" means running an algorithm that searches for parameters making the model's predictions match <code>y</code> as closely as possible ON THE DATA IT SEES. Chapter 10 already built this from scratch with gradient descent — Module 4 is about the sklearn library that packages the same idea behind <code>.fit()</code> and <code>.predict()</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Features (X) and labels (y) — the candidate-qualification dataset</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># Each row: [interview_score, years_experience]. Each label: 1 = qualified, 0 = not.</span>
+X = np.array([
+    [<span class="nm">62</span>,<span class="nm">1</span>], [<span class="nm">68</span>,<span class="nm">2</span>], [<span class="nm">70</span>,<span class="nm">1</span>], [<span class="nm">75</span>,<span class="nm">3</span>], [<span class="nm">78</span>,<span class="nm">4</span>],
+    [<span class="nm">82</span>,<span class="nm">3</span>], [<span class="nm">85</span>,<span class="nm">5</span>], [<span class="nm">88</span>,<span class="nm">6</span>], [<span class="nm">91</span>,<span class="nm">4</span>], [<span class="nm">95</span>,<span class="nm">7</span>],
+])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+<span class="bi">print</span>(<span class="st">f'X shape: <span class="bi">{X.shape}</span>'</span>)   <span class="cm"># (10 rows, 2 features)</span>
+<span class="bi">print</span>(<span class="st">f'y shape: <span class="bi">{y.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'One example: features=<span class="bi">{X[4]}</span>, label=<span class="bi">{y[4]}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>X is always 2D, even with one feature</strong> — sklearn expects a matrix of shape <code>(n_samples, n_features)</code>. A single feature still needs shape <code>(n, 1)</code>, not a flat <code>(n,)</code> array — this trips up almost everyone the first time.</div></div>
+
+  <!-- 15.2 -->
+  <div class="lesson-h2">15.2 — Train/Test Split: The Most Important Line in ML</div>
+  <p class="lesson-p">If you train a model AND evaluate it on the exact same data, you learn nothing about whether it generalizes — a model that just memorizes the answer key will score perfectly and still fail on anything new. <code>sklearn.model_selection.train_test_split</code> randomly carves off a held-out chunk (commonly 20-30%) that the model never sees during training, so you can honestly measure performance on unseen data. <code>random_state</code> fixes the shuffle so the split is reproducible.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">train_test_split</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)  <span class="cm"># 30% held out, reproducible shuffle</span>
+
+<span class="bi">print</span>(<span class="st">f'X_train shape: <span class="bi">{X_train.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'X_test shape: <span class="bi">{X_test.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'y_test: <span class="bi">{y_test.tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Never touch the test set until final evaluation</strong> — not to pick features, not to tune settings, not "just to check." Every peek that influences a decision leaks information from the test set into your model choices, quietly making your evaluation optimistic. That's why Chapter 19 introduces a THIRD split (validation / cross-validation) for tuning.</div></div>
+
+  <!-- 15.3 -->
+  <div class="lesson-h2">15.3 — Overfitting vs Underfitting</div>
+  <p class="lesson-p"><strong>Underfitting</strong>: the model is too simple to capture the real pattern — it does poorly on both training AND test data. <strong>Overfitting</strong>: the model is complex enough to memorize noise and quirks specific to the training data — it does GREAT on training data but noticeably worse on test data. The gap between train accuracy and test accuracy is the tell-tale sign of overfitting.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same data, three tree depths — watch the train/test gap grow</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+
+X = np.array([[i] <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">20</span>)])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])  <span class="cm"># noisy — a few flips</span>
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)
+
+<span class="kw">for</span> depth <span class="kw">in</span> [<span class="nm">1</span>, <span class="nm">3</span>, <span class="kw">None</span>]:
+    clf = DecisionTreeClassifier(max_depth=depth, random_state=<span class="nm">42</span>)
+    clf.fit(X_train, y_train)
+    train_acc = accuracy_score(y_train, clf.predict(X_train))
+    test_acc  = accuracy_score(y_test, clf.predict(X_test))
+    <span class="bi">print</span>(<span class="st">f'depth=<span class="bi">{depth}</span>: train_acc=<span class="bi">{train_acc:.4f}</span> test_acc=<span class="bi">{test_acc:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>depth=None gets 100% train accuracy but its test accuracy does NOT improve over shallower trees</strong> — that's overfitting: the unlimited-depth tree carved out a rule for every single training noise-flip instead of learning the real pattern. Chapter 17 goes deep (pun intended) on exactly why trees do this and how forests fix it.</div></div>
+
+  <!-- 15.4 -->
+  <div class="lesson-h2">15.4 — The Bias-Variance Tradeoff</div>
+  <p class="lesson-p">This is the same idea as 15.3, given its formal name. <strong>Bias</strong> is error from a model being too simple to capture the real relationship (underfitting). <strong>Variance</strong> is error from a model being too sensitive to the specific training sample it happened to see (overfitting) — retrain it on a slightly different sample and its predictions swing wildly. Every model sits somewhere on this spectrum, and total error is roughly <code>bias² + variance + irreducible noise</code>. You cannot drive both to zero at once — reducing one usually raises the other, which is exactly what depth 1 vs depth None showed above.</p>
+
+  <table class="lesson-table">
+    <tr><th>Symptom</th><th>Diagnosis</th><th>Typical fix</th></tr>
+    <tr><td>Low train accuracy, low test accuracy</td><td class="highlight">High bias (underfitting)</td><td>More complex model, more/better features</td></tr>
+    <tr><td>High train accuracy, much lower test accuracy</td><td class="highlight">High variance (overfitting)</td><td>Simpler model, more data, regularization</td></tr>
+    <tr><td>High train accuracy, comparably high test accuracy</td><td class="highlight">Good fit</td><td>Ship it</td></tr>
+  </table>
+
+  <!-- 15.5 -->
+  <div class="lesson-h2">15.5 — Classification Metrics, By Hand</div>
+  <p class="lesson-p">For a binary classifier, every prediction falls into one of four buckets against the truth: <strong>True Positive</strong> (predicted 1, actually 1), <strong>False Positive</strong> (predicted 1, actually 0), <strong>False Negative</strong> (predicted 0, actually 1), <strong>True Negative</strong> (predicted 0, actually 0). From those four counts: <code>accuracy = (TP+TN)/total</code>, <code>precision = TP/(TP+FP)</code> ("of what I called positive, how much was right?"), <code>recall = TP/(TP+FN)</code> ("of the actual positives, how many did I find?"), and <code>F1 = 2·precision·recall/(precision+recall)</code> (their harmonic mean — a single number that punishes a model for being lopsided).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Computing every metric from raw TP/FP/FN/TN counts</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">y_true = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
+y_pred = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
+
+TP=FP=FN=TN=<span class="nm">0</span>
+<span class="kw">for</span> t, p <span class="kw">in</span> <span class="bi">zip</span>(y_true, y_pred):
+    <span class="kw">if</span> t==<span class="nm">1</span> <span class="kw">and</span> p==<span class="nm">1</span>: TP+=<span class="nm">1</span>
+    <span class="kw">elif</span> t==<span class="nm">0</span> <span class="kw">and</span> p==<span class="nm">1</span>: FP+=<span class="nm">1</span>
+    <span class="kw">elif</span> t==<span class="nm">1</span> <span class="kw">and</span> p==<span class="nm">0</span>: FN+=<span class="nm">1</span>
+    <span class="kw">else</span>: TN+=<span class="nm">1</span>
+
+accuracy  = (TP+TN)/<span class="bi">len</span>(y_true)
+precision = TP/(TP+FP)
+recall    = TP/(TP+FN)
+f1        = <span class="nm">2</span>*precision*recall/(precision+recall)
+
+<span class="bi">print</span>(<span class="st">f'TP=<span class="bi">{TP}</span> FP=<span class="bi">{FP}</span> FN=<span class="bi">{FN}</span> TN=<span class="bi">{TN}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Precision: <span class="bi">{precision:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Recall: <span class="bi">{recall:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{f1:.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- 15.6 -->
+  <div class="lesson-h2">15.6 — The Same Metrics via sklearn.metrics</div>
+  <p class="lesson-p">You'll never hand-roll the TP/FP/FN/TN loop in real code — <code>sklearn.metrics</code> provides <code>accuracy_score</code>, <code>precision_score</code>, <code>recall_score</code>, <code>f1_score</code>, and <code>confusion_matrix</code> (the 2×2 grid of those four counts), plus <code>classification_report</code> which prints all of them at once, per class.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">sklearn.metrics — same data as 15.5, confirming the hand calc</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+
+y_true = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
+y_pred = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
+
+<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy_score(y_true, y_pred):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Precision: <span class="bi">{precision_score(y_true, y_pred):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Recall: <span class="bi">{recall_score(y_true, y_pred):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{f1_score(y_true, y_pred):.4f}</span>'</span>)
+cm = confusion_matrix(y_true, y_pred)
+<span class="bi">print</span>(<span class="st">'Confusion matrix:'</span>)
+<span class="bi">print</span>(cm)      <span class="cm"># rows = actual, cols = predicted: [[TN,FP],[FN,TP]]</span></div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Accuracy lies on imbalanced data.</strong> If 95% of candidates are NOT qualified, a model that predicts "not qualified" for everyone scores 95% accuracy while catching zero actual positives (recall = 0). Always check precision/recall/F1 alongside accuracy — especially when the classes aren't roughly balanced.</div></div>
+
+  <!-- 15.7 -->
+  <div class="lesson-h2">15.7 — Putting It Together: The ML Workflow</div>
+  <p class="lesson-p">Every classical ML chapter from here follows this exact shape: <strong>split</strong> the data, <strong>fit</strong> a model on the training set, <strong>predict</strong> on the test set, <strong>evaluate</strong> with metrics. This is the whole loop — everything else in Module 4 (which model, which features, which settings) is a variation on these four verbs.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">split → fit → predict → evaluate</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+<span class="cm"># 1. SPLIT</span>
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)
+<span class="cm"># 2. FIT</span>
+model = LogisticRegression()
+model.fit(X_train, y_train)
+<span class="cm"># 3. PREDICT</span>
+preds = model.predict(X_test)
+<span class="cm"># 4. EVALUATE</span>
+<span class="bi">print</span>(<span class="st">f'Predictions: <span class="bi">{preds.tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Actual:      <span class="bi">{y_test.tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Test accuracy: <span class="bi">{accuracy_score(y_test, preds):.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 15 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>X</strong> (2D feature matrix) and <strong>y</strong> (label vector) — the shape of every supervised learning problem.</div></li>
+    <li data-n="2"><div><strong>train_test_split(X, y, test_size=..., random_state=...)</strong> holds out unseen data so evaluation is honest.</div></li>
+    <li data-n="3"><div><strong>Underfitting</strong> = too simple, bad everywhere. <strong>Overfitting</strong> = too complex, great on train, worse on test.</div></li>
+    <li data-n="4"><div><strong>Bias-variance tradeoff</strong>: simplicity fights complexity — you can't minimize both errors at once.</div></li>
+    <li data-n="5"><div><strong>accuracy / precision / recall / F1</strong> — computed by hand from TP/FP/FN/TN, or via <code>sklearn.metrics</code>. Accuracy alone is misleading on imbalanced data.</div></li>
+    <li data-n="6"><div><strong>The workflow</strong>: split → fit → predict → evaluate. Every chapter from here reuses this exact loop.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Split a Dataset</div>
+        <div class="ex-desc">Use train_test_split with a fixed test_size and random_state, then report the shapes.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.model_selection import train_test_split
+X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
+y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
+(already given)
+
+X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+
+Print exactly:
+  f'Train size: {len(X1_train)}'
+  f'Test size: {len(X1_test)}'
+  f'Test labels: {y1_test.tolist()}'
+(Correct: Train size: 9 / Test size: 3 / Test labels: [0, 0, 0])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+from sklearn.model_selection import train_test_split
+X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
+y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
+
+# X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Metrics By Hand</div>
+        <div class="ex-desc">Count TP/FP/FN/TN from two fixed lists, then compute accuracy, precision and recall.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+y_true2 = [1,1,0,1,0,0,1,0]
+y_pred2 = [1,0,0,1,0,1,1,0]
+(already given)
+
+Count TP, FP, FN, TN with a loop (see 15.5), then:
+acc2 = (TP+TN)/len(y_true2)
+prec2 = TP/(TP+FP)
+rec2 = TP/(TP+FN)
+
+Print exactly:
+  f'TP: {TP}, FP: {FP}, FN: {FN}, TN: {TN}'
+  f'Accuracy: {acc2:.4f}'
+  f'Precision: {prec2:.4f}'
+  f'Recall: {rec2:.4f}'
+(Correct: TP: 3, FP: 1, FN: 1, TN: 3 / Accuracy: 0.7500 / Precision: 0.7500 / Recall: 0.7500)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">y_true2 = [1,1,0,1,0,0,1,0]
+y_pred2 = [1,0,0,1,0,1,1,0]
+
+# TP=FP=FN=TN=0
+# for t, p in zip(y_true2, y_pred2):
+#     if t==1 and p==1: TP+=1
+#     elif t==0 and p==1: FP+=1
+#     elif t==1 and p==0: FN+=1
+#     else: TN+=1
+# acc2 = (TP+TN)/len(y_true2)
+# prec2 = TP/(TP+FP)
+# rec2 = TP/(TP+FN)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">sklearn.metrics Precision, Recall, F1</div>
+        <div class="ex-desc">Use the sklearn functions instead of hand-rolling the loop.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+from sklearn.metrics import precision_score, recall_score, f1_score
+y_true3 = [0,1,1,1,0,1,0,0,1,1]
+y_pred3 = [0,1,0,1,0,1,1,0,1,0]
+(already given)
+
+Print exactly:
+  f'Precision: {precision_score(y_true3, y_pred3):.4f}'
+  f'Recall: {recall_score(y_true3, y_pred3):.4f}'
+  f'F1: {f1_score(y_true3, y_pred3):.4f}'
+(Correct: Precision: 0.8000 / Recall: 0.6667 / F1: 0.7273)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">from sklearn.metrics import precision_score, recall_score, f1_score
+y_true3 = [0,1,1,1,0,1,0,0,1,1]
+y_pred3 = [0,1,0,1,0,1,1,0,1,0]
+
+# print(f'Precision: {precision_score(y_true3, y_pred3):.4f}')
+# print(f'Recall: {recall_score(y_true3, y_pred3):.4f}')
+# print(f'F1: {f1_score(y_true3, y_pred3):.4f}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Read a Confusion Matrix</div>
+        <div class="ex-desc">Build a confusion matrix and pull specific cells out of it by index.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+from sklearn.metrics import confusion_matrix
+y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
+y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
+(already given)
+
+cm = confusion_matrix(y_true4, y_pred4)   # [[TN,FP],[FN,TP]]
+
+Print exactly:
+  f'True negatives: {cm[0,0]}'
+  f'False positives: {cm[0,1]}'
+  f'False negatives: {cm[1,0]}'
+  f'True positives: {cm[1,1]}'
+(Correct: True negatives: 5 / False positives: 1 / False negatives: 2 / True positives: 4)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">from sklearn.metrics import confusion_matrix
+y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
+y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
+
+# cm = confusion_matrix(y_true4, y_pred4)
+# print(f'True negatives: {cm[0,0]}')
+# print(f'False positives: {cm[0,1]}')
+# print(f'False negatives: {cm[1,0]}')
+# print(f'True positives: {cm[1,1]}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Spot the Overfitting</div>
+        <div class="ex-desc">Compare a shallow tree to an unlimited-depth tree and report the train/test gap for each.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+X5 = np.array([[i] for i in range(24)])
+y5 = np.array([0,0,1,0,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1])
+(already given)
+
+X5_train, X5_test, y5_train, y5_test = train_test_split(X5, y5, test_size=0.25, random_state=3)
+
+For depth in [1, None]: fit a DecisionTreeClassifier(max_depth=depth, random_state=42),
+compute train and test accuracy, print:
+  f'depth={depth}: train={train_acc:.4f} test={test_acc:.4f}'
+(Correct: depth=1: train=0.7778 test=0.6667 / depth=None: train=1.0000 test=0.6667)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+X5 = np.array([[i] for i in range(24)])
+y5 = np.array([0,0,1,0,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1])
+
+# X5_train, X5_test, y5_train, y5_test = train_test_split(X5, y5, test_size=0.25, random_state=3)
+# for depth in [1, None]:
+#     clf = DecisionTreeClassifier(max_depth=depth, random_state=42)
+#     clf.fit(X5_train, y5_train)
+#     train_acc = accuracy_score(y5_train, clf.predict(X5_train))
+#     test_acc = accuracy_score(y5_test, clf.predict(X5_test))
+#     print(f'depth={depth}: train={train_acc:.4f} test={test_acc:.4f}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Full Evaluation Workflow</span></h2>
+    <p>Twelve candidates, two features, a qualified/not-qualified label. Split the data, train a LogisticRegression classifier, predict on the held-out set, and report all four metrics — the exact split → fit → predict → evaluate loop from 15.7, now with a full metrics report instead of just accuracy.</p>
+    <div class="project-tags">
+      <span class="ptag">train_test_split</span>
+      <span class="ptag">LogisticRegression</span>
+      <span class="ptag">metrics</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Split Xp, yp with test_size=0.25, random_state=7</li>
+      <li>Train a LogisticRegression() on the training split</li>
+      <li>Predict on the test split</li>
+      <li>Print predictions, actual labels, and accuracy/precision/recall/F1 (all to 4 decimal places)</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Full Evaluation Workflow — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Full Evaluation Workflow
+# Use ONLY Chapter 15 concepts
+# ══════════════════════════════════════════
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+
+Xp = np.array([[55,1],[60,2],[63,1],[68,2],[70,3],[72,2],
+               [75,4],[78,3],[80,5],[83,4],[86,6],[90,5]])
+yp = np.array([0,0,0,0,0,1,1,1,1,1,1,1])
+
+# === TODO 1: split ===
+# Xp_train, Xp_test, yp_train, yp_test = train_test_split(Xp, yp, test_size=0.25, random_state=7)
+
+# === TODO 2: fit ===
+# model = LogisticRegression()
+# model.fit(Xp_train, yp_train)
+
+# === TODO 3: predict ===
+# preds = model.predict(Xp_test)
+
+# === TODO 4: evaluate and report ===
+# print(f'Predictions: {preds.tolist()}')
+# print(f'Actual: {yp_test.tolist()}')
+# print(f'Accuracy: {accuracy_score(yp_test, preds):.4f}')
+# print(f'Precision: {precision_score(yp_test, preds):.4f}')
+# print(f'Recall: {recall_score(yp_test, preds):.4f}')
+# print(f'F1: {f1_score(yp_test, preds):.4f}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>Predictions: [1, 1, 0]</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Actual: [1, 1, 0]</div>
+    <div class="check-item"><span class="check-icon">✅</span>Accuracy: 1.0000</div>
+    <div class="check-item"><span class="check-icon">📐</span>Precision: 1.0000</div>
+    <div class="check-item"><span class="check-icon">🔁</span>Recall: 1.0000</div>
+    <div class="check-item"><span class="check-icon">⚖️</span>F1: 1.0000</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 15 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 16. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why do we split data into a training set and a test set before training a model?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> To make training run faster by using less data</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> To honestly evaluate whether the model generalizes to data it never saw during training, instead of just measuring memorization</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Because sklearn requires exactly two arrays as input</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> To remove missing values automatically</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">A model scores 99% training accuracy but only 61% test accuracy. What does this describe?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Underfitting — the model is too simple</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Overfitting — the model memorized the training data instead of learning a pattern that generalizes</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> A bug in train_test_split</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Perfect performance — nothing wrong here</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Why can accuracy alone be a misleading metric?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Accuracy is always exactly equal to precision, so it's redundant</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> On imbalanced data, a model that always predicts the majority class can score high accuracy while completely failing to catch the minority class (low recall)</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Accuracy cannot be computed for classification problems</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It only works with regression models</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that splits <code>X</code> and <code>y</code> into training and test sets, using 20% of the data for testing and <code>random_state=42</code> for reproducibility.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="X_train, X_test, y_train, y_test = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does the F1 score measure that accuracy, precision, or recall alone does not?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It's the harmonic mean of precision and recall, giving one balanced number that punishes a model for being lopsided (great precision, terrible recall, or vice versa)</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It measures how fast the model trains</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It only applies to regression problems</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It's identical to accuracy in every case</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎓</div>
+    <div class="ncc-info">
+      <h3>Chapter 16: Linear &amp; Logistic Regression</h3>
+      <p>From-scratch gradient descent meets sklearn's one-liner — then logistic regression for classification, decision boundaries, and predict_proba().</p>
+    </div>
+    <a class="ncc-btn" href="ch16-linear-logistic-regression.html">Start Chapter 16 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch15';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch14'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# import sklearn — first use auto-fetches it, may take a few extra seconds','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['train size: 9','test size: 3','test labels: [0, 0, 0]'],
+    hint:"X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1); use .tolist() when printing",
+    solution:`import numpy as np
+from sklearn.model_selection import train_test_split
+X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
+y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
+X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+print(f'Train size: {len(X1_train)}')
+print(f'Test size: {len(X1_test)}')
+print(f'Test labels: {y1_test.tolist()}')`
+  },
+  2:{
+    checks:['tp: 3, fp: 1, fn: 1, tn: 3','accuracy: 0.7500','precision: 0.7500','recall: 0.7500'],
+    hint:"loop through zip(y_true2,y_pred2) counting TP/FP/FN/TN, then acc2=(TP+TN)/len(y_true2), prec2=TP/(TP+FP), rec2=TP/(TP+FN)",
+    solution:`y_true2 = [1,1,0,1,0,0,1,0]
+y_pred2 = [1,0,0,1,0,1,1,0]
+TP=FP=FN=TN=0
+for t, p in zip(y_true2, y_pred2):
+    if t==1 and p==1: TP+=1
+    elif t==0 and p==1: FP+=1
+    elif t==1 and p==0: FN+=1
+    else: TN+=1
+acc2 = (TP+TN)/len(y_true2)
+prec2 = TP/(TP+FP)
+rec2 = TP/(TP+FN)
+print(f'TP: {TP}, FP: {FP}, FN: {FN}, TN: {TN}')
+print(f'Accuracy: {acc2:.4f}')
+print(f'Precision: {prec2:.4f}')
+print(f'Recall: {rec2:.4f}')`
+  },
+  3:{
+    checks:['precision: 0.8000','recall: 0.6667','f1: 0.7273'],
+    hint:"precision_score(y_true3,y_pred3), recall_score(y_true3,y_pred3), f1_score(y_true3,y_pred3) — all formatted :.4f",
+    solution:`from sklearn.metrics import precision_score, recall_score, f1_score
+y_true3 = [0,1,1,1,0,1,0,0,1,1]
+y_pred3 = [0,1,0,1,0,1,1,0,1,0]
+print(f'Precision: {precision_score(y_true3, y_pred3):.4f}')
+print(f'Recall: {recall_score(y_true3, y_pred3):.4f}')
+print(f'F1: {f1_score(y_true3, y_pred3):.4f}')`
+  },
+  4:{
+    checks:['true negatives: 5','false positives: 1','false negatives: 2','true positives: 4'],
+    hint:"cm = confusion_matrix(y_true4, y_pred4); cm[0,0] is TN, cm[0,1] is FP, cm[1,0] is FN, cm[1,1] is TP",
+    solution:`from sklearn.metrics import confusion_matrix
+y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
+y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
+cm = confusion_matrix(y_true4, y_pred4)
+print(f'True negatives: {cm[0,0]}')
+print(f'False positives: {cm[0,1]}')
+print(f'False negatives: {cm[1,0]}')
+print(f'True positives: {cm[1,1]}')`
+  },
+  5:{
+    checks:['depth=1: train=0.7778 test=0.6667','depth=none: train=1.0000 test=0.6667'],
+    hint:"for depth in [1, None]: clf = DecisionTreeClassifier(max_depth=depth, random_state=42); clf.fit(X5_train, y5_train); then accuracy_score on train and test predictions",
+    solution:`import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+X5 = np.array([[i] for i in range(24)])
+y5 = np.array([0,0,1,0,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1])
+X5_train, X5_test, y5_train, y5_test = train_test_split(X5, y5, test_size=0.25, random_state=3)
+for depth in [1, None]:
+    clf = DecisionTreeClassifier(max_depth=depth, random_state=42)
+    clf.fit(X5_train, y5_train)
+    train_acc = accuracy_score(y5_train, clf.predict(X5_train))
+    test_acc = accuracy_score(y5_test, clf.predict(X5_test))
+    print(f'depth={depth}: train={train_acc:.4f} test={test_acc:.4f}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['predictions: [1, 1, 0]','actual: [1, 1, 0]','accuracy: 1.0000','precision: 1.0000','recall: 1.0000','f1: 1.0000'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'A'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('train_test_split')&&val.includes('test_size=0.2')&&val.includes('random_state=42');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)"
+    :"❌ Not quite. You need: X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Train/test splits, overfitting vs underfitting, bias-variance, and classification metrics — you now have the vocabulary and workflow every remaining Module 4 chapter builds on.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
