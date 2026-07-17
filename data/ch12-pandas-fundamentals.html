@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 8: Calculus &amp; Optimization</title>
+<title>AI/ML: Zero to Hero — Chapter 12: Pandas Fundamentals</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
-  extra seconds while the NumPy package itself downloads; after that it's instant.
+  (real CPython + NumPy + Pandas compiled to WebAssembly). First run of a Pandas example may
+  take a bit longer while the package downloads; after that it's instant.
   Your progress on this chapter is saved to this browser's localStorage automatically.
 -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
@@ -77,7 +77,6 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
 .lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
-.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
 
 .lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
@@ -167,7 +166,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:320px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -276,7 +275,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 8: Calculus &amp; Optimization</div>
+  <div id="mob-title">Ch 12: Pandas Fundamentals</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -285,25 +284,25 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 2 · Chapter 8 of 30</div>
+    <div class="sb-logo-sub">Module 3 · Chapter 12 of 32</div>
   </a>
-  <a class="sb-back" href="ch07-probability-statistics.html">← Ch 7: Probability &amp; Statistics</a>
+  <a class="sb-back" href="ch11-numpy-deep-dive.html">← Ch 11: NumPy Deep Dive</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 8 · Capstone</div>
+  <div class="sb-section">Chapter 12</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
   <div class="sb-section" style="margin-top:12px">Coming Next — Module 3</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 9: NumPy Deep Dive</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 10: Pandas Fundamentals</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 13: Data Cleaning &amp; Wrangling</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 14: Data Visualization</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 8 · Module 2 Capstone</div>
-    <div class="tb-title">Calculus &amp; Optimization</div>
+    <div class="tb-chapter">Chapter 12</div>
+    <div class="tb-title">Pandas Fundamentals</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -314,116 +313,143 @@ textarea#project-editor:focus{outline:none}
     <div class="section-tabs">
       <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
       <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
-      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
       <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 7 quiz in this browser yet.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 11 quiz in this browser yet.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 8:<br/><span>Calculus &amp; Optimization</span></h1>
-    <p>This is the Module 2 capstone — and the single idea that makes ML training possible: a derivative tells you which direction makes a function bigger or smaller. "Training a model" is nothing more than repeatedly asking "which way is downhill?" and taking a small step that way. By the end of this chapter, you will have implemented that algorithm — gradient descent — from scratch, and used it to discover a linear relationship in data with no library doing the learning for you.</p>
+    <h1>Chapter 12:<br/><span>Pandas Fundamentals</span></h1>
+    <p>NumPy handles numbers in arrays. Pandas handles TABLES — rows and columns, with labels, mixed types, and missing values — which is what almost every real dataset actually looks like. This is the tool you'll use to load, inspect, filter, and summarize data for the rest of this course.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~55 min read</span>
       <span class="badge">💻 5 exercises</span>
-      <span class="badge capstone">🏗️ Module 2 Capstone Project</span>
+      <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 8.1 -->
-  <div class="lesson-h2">8.1 — The Derivative: Which Way Is Downhill?</div>
-  <p class="lesson-p">The <strong>derivative</strong> of a function at a point tells you its slope there — how fast it's changing, and in which direction. If you're standing on a curve and the derivative is positive, going right increases the function's value; going left decreases it. That's the entire intuition you need: <strong>the derivative points uphill; the negative derivative points downhill.</strong></p>
-
-  <!-- 8.2 -->
-  <div class="lesson-h2">8.2 — Computing a Derivative Numerically</div>
-  <p class="lesson-p">You don't need to remember calculus rules to use derivatives in code. A <strong>numerical derivative</strong> approximates the slope by checking the function's value at two nearby points and dividing by the distance between them — a direct translation of "rise over run."</p>
+  <!-- 12.1 -->
+  <div class="lesson-h2">12.1 — DataFrame: The Spreadsheet Inside Python</div>
+  <p class="lesson-p">A <strong>DataFrame</strong> is a table: rows and named columns, like a spreadsheet. A <strong>Series</strong> is a single column (or row) of it. Remember Chapter 4's "list of dicts" pattern? A DataFrame is that same idea, but built for fast, convenient bulk operations.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Numerical derivative — no calculus rules needed</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">numerical_derivative</span>(f, x, h=<span class="nm">0.0001</span>):
-    <span class="kw">return</span> (f(x + h) - f(x - h)) / (<span class="nm">2</span> * h)   <span class="cm"># rise over run, at a tiny scale</span>
+    <div class="cb-header"><span class="cb-label">Creating a DataFrame from a dict of lists</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-<span class="kw">def</span> <span class="fn">f</span>(x):
-    <span class="kw">return</span> x ** <span class="nm">2</span>
+data = {
+    <span class="st">'name'</span>:  [<span class="st">'Alice'</span>, <span class="st">'Bob'</span>, <span class="st">'Carol'</span>],
+    <span class="st">'score'</span>: [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>],
+    <span class="st">'city'</span>:  [<span class="st">'Hubli'</span>, <span class="st">'Pune'</span>, <span class="st">'Mumbai'</span>],
+}
+df = pd.DataFrame(data)
 
-<span class="kw">for</span> x <span class="kw">in</span> [-<span class="nm">2</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">3</span>]:
-    slope = numerical_derivative(f, x)
-    <span class="bi">print</span>(<span class="st">f'At x=<span class="bi">{x}</span>: slope ≈ <span class="bi">{slope:.4f}</span>'</span>)
-<span class="cm"># Compare: the true derivative of x^2 is 2x — 2*(-2)=-4, 2*0=0, 2*1=2, 2*3=6. Matches!</span></div>
+<span class="bi">print</span>(df)             <span class="cm"># pandas prints a nicely formatted table</span>
+<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{df.shape}</span>'</span>)   <span class="cm"># (3, 3) — 3 rows, 3 columns</span>
+<span class="bi">print</span>(<span class="st">f'Columns: <span class="bi">{list(df.columns)}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>This is exactly what deep learning frameworks compute automatically</strong> — PyTorch's "autograd" and TensorFlow's "GradientTape" compute derivatives of enormous functions (entire neural networks) so you never have to derive them by hand. You're building the concept from the ground up here so that later, when a framework does it for you, you know exactly what it's doing.</div></div>
 
-  <!-- 8.3 -->
-  <div class="lesson-h2">8.3 — Gradient Descent: The Algorithm That Trains Every Model</div>
-  <p class="lesson-p">To MINIMIZE a function, repeatedly step in the direction of the NEGATIVE derivative — downhill. This is <strong>gradient descent</strong>: the algorithm underneath linear regression, logistic regression, and every neural network you will ever train.</p>
+  <!-- 12.2 -->
+  <div class="lesson-h2">12.2 — Reading a Real CSV File</div>
+  <p class="lesson-p">Chapter 5 parsed CSVs manually with the <code>csv</code> module. Pandas does the whole thing — including type conversion — in one line: <code>pd.read_csv()</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Minimizing (x-3)² — the minimum is obviously at x=3</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">f</span>(x):
-    <span class="kw">return</span> (x - <span class="nm">3</span>) ** <span class="nm">2</span>
+    <div class="cb-header"><span class="cb-label">One line replaces a whole csv.DictReader loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-<span class="kw">def</span> <span class="fn">gradient</span>(x):
-    <span class="kw">return</span> <span class="nm">2</span> * (x - <span class="nm">3</span>)      <span class="cm"># the true derivative of (x-3)^2</span>
+csv_text = <span class="st">'name,age,score\nAlice,28,92\nBob,34,75\nCarol,25,81\n'</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'people.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(csv_text)
 
-x = <span class="nm">0.0</span>              <span class="cm"># start anywhere</span>
-learning_rate = <span class="nm">0.1</span>   <span class="cm"># how big a step to take each time</span>
-
-<span class="kw">for</span> step <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">10</span>):
-    grad = gradient(x)
-    x = x - learning_rate * grad     <span class="cm"># step DOWNHILL — opposite the gradient</span>
-    <span class="bi">print</span>(<span class="st">f'Step <span class="bi">{step+1}</span>: x=<span class="bi">{x:.4f}</span>, f(x)=<span class="bi">{f(x):.4f}</span>'</span>)
-
-<span class="bi">print</span>(<span class="st">f'Approaching the true minimum at x=3: <span class="bi">{x:.4f}</span>'</span>)</div>
+df = pd.read_csv(<span class="st">'people.csv'</span>)   <span class="cm"># numbers are ALREADY int/float — no manual conversion needed</span>
+<span class="bi">print</span>(df.dtypes)     <span class="cm"># shows the type pandas inferred for each column</span>
+<span class="bi">print</span>(<span class="st">f'Average age: <span class="bi">{df["age"].mean():.1f}</span>'</span>)</div>
   </div>
 
-  <!-- 8.4 -->
-  <div class="lesson-h2">8.4 — Learning Rate: The Most Important Number in ML Training</div>
-  <p class="lesson-p">The <strong>learning rate</strong> controls step size. Too small, and training crawls. Too large, and you overshoot the minimum — sometimes so badly the loss explodes instead of shrinking.</p>
+  <!-- 12.3 -->
+  <div class="lesson-h2">12.3 — Indexing: .loc vs .iloc</div>
+  <p class="lesson-p"><code>.iloc</code> selects by integer POSITION (like a list index). <code>.loc</code> selects by LABEL (the actual index value, or column name) — for a default DataFrame these often look the same, but they mean different things and diverge the moment your index isn't a simple 0,1,2....</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Same problem, three learning rates</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">f</span>(x): <span class="kw">return</span> (x - <span class="nm">3</span>) ** <span class="nm">2</span>
-<span class="kw">def</span> <span class="fn">gradient</span>(x): <span class="kw">return</span> <span class="nm">2</span> * (x - <span class="nm">3</span>)
+    <div class="cb-header"><span class="cb-label">.loc and .iloc side by side</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-<span class="kw">for</span> lr <span class="kw">in</span> [<span class="nm">0.01</span>, <span class="nm">0.5</span>, <span class="nm">1.1</span>]:
-    x = <span class="nm">0.0</span>
-    <span class="kw">for</span> step <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>):
-        x = x - lr * gradient(x)
-    <span class="bi">print</span>(<span class="st">f'lr=<span class="bi">{lr}</span> after 5 steps: x=<span class="bi">{x:.4f}</span> (target: 3.0)'</span>)
-<span class="cm"># lr=0.01: barely moved. lr=0.5: converges fast and cleanly. lr=1.1: OVERSHOOTS and diverges!</span></div>
+df = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>], <span class="st">'score'</span>: [<span class="nm">92</span>,<span class="nm">75</span>,<span class="nm">81</span>]})
+
+<span class="bi">print</span>(df.iloc[<span class="nm">1</span>])          <span class="cm"># the 2nd ROW by POSITION — Bob's row</span>
+<span class="bi">print</span>(df.loc[<span class="nm">1</span>, <span class="st">'name'</span>])  <span class="cm"># the value at index label 1, column 'name' — 'Bob'</span>
+<span class="bi">print</span>(df[<span class="st">'score'</span>])      <span class="cm"># a whole column, as a Series</span>
+<span class="bi">print</span>(df.head(<span class="nm">2</span>))       <span class="cm"># first 2 rows</span></div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>If your model's loss is increasing or oscillating wildly during training, the learning rate is almost always the first thing to check.</strong> This single number causes more failed training runs than any other hyperparameter.</div></div>
 
-  <!-- 8.5 -->
-  <div class="lesson-h2">8.5 — Partial Derivatives: Gradients in Multiple Dimensions</div>
-  <p class="lesson-p">Real models have many parameters, not just one. A <strong>partial derivative</strong> is the slope with respect to ONE variable, holding the others fixed. The <strong>gradient</strong> is the vector of all partial derivatives — it points in the direction of steepest increase, across every dimension at once.</p>
+  <!-- 12.4 -->
+  <div class="lesson-h2">12.4 — Filtering Rows</div>
+  <p class="lesson-p">Same boolean-masking idea from Chapter 11, applied to a DataFrame: <code>df[condition]</code> keeps only the matching rows. Combine conditions the same way — <code>&amp;</code> / <code>|</code>, each side in parentheses.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Partial derivatives of f(x, y) = x² + y²</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">f</span>(x, y):
-    <span class="kw">return</span> x**<span class="nm">2</span> + y**<span class="nm">2</span>
+    <div class="cb-header"><span class="cb-label">Filtering a DataFrame</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-<span class="kw">def</span> <span class="fn">partial_x</span>(x, y, h=<span class="nm">0.0001</span>):
-    <span class="kw">return</span> (f(x+h, y) - f(x-h, y)) / (<span class="nm">2</span>*h)
+df = pd.DataFrame({
+    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Dave'</span>],
+    <span class="st">'score'</span>: [<span class="nm">92</span>,<span class="nm">75</span>,<span class="nm">81</span>,<span class="nm">60</span>],
+    <span class="st">'dept'</span>: [<span class="st">'Sales'</span>,<span class="st">'Eng'</span>,<span class="st">'Sales'</span>,<span class="st">'Eng'</span>],
+})
 
-<span class="kw">def</span> <span class="fn">partial_y</span>(x, y, h=<span class="nm">0.0001</span>):
-    <span class="kw">return</span> (f(x, y+h) - f(x, y-h)) / (<span class="nm">2</span>*h)
+qualified = df[df[<span class="st">'score'</span>] >= <span class="nm">80</span>]
+<span class="bi">print</span>(<span class="st">f'Qualified: <span class="bi">{list(qualified["name"])}</span>'</span>)
 
-x, y = <span class="nm">2</span>, <span class="nm">3</span>
-<span class="bi">print</span>(<span class="st">f'∂f/∂x at (2,3): <span class="bi">{partial_x(x, y):.4f}</span>'</span>)   <span class="cm"># true value: 2x = 4</span>
-<span class="bi">print</span>(<span class="st">f'∂f/∂y at (2,3): <span class="bi">{partial_y(x, y):.4f}</span>'</span>)   <span class="cm"># true value: 2y = 6</span></div>
+sales_high = df[(df[<span class="st">'dept'</span>] == <span class="st">'Sales'</span>) & (df[<span class="st">'score'</span>] >= <span class="nm">80</span>)]
+<span class="bi">print</span>(<span class="st">f'Sales &amp; qualified: <span class="bi">{list(sales_high["name"])}</span>'</span>)</div>
   </div>
+
+  <!-- 12.5 -->
+  <div class="lesson-h2">12.5 — Sorting</div>
+  <p class="lesson-p"><code>.sort_values('column')</code> sorts a DataFrame by any column, ascending by default.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Ranking by score</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+df = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>], <span class="st">'score'</span>: [<span class="nm">92</span>,<span class="nm">75</span>,<span class="nm">81</span>]})
+
+ranked = df.sort_values(<span class="st">'score'</span>, ascending=<span class="kw">False</span>)
+<span class="bi">print</span>(<span class="st">f'Ranked: <span class="bi">{list(ranked["name"])}</span>'</span>)   <span class="cm"># highest score first</span></div>
+  </div>
+
+  <!-- 12.6 -->
+  <div class="lesson-h2">12.6 — GroupBy: Aggregating by Category</div>
+  <p class="lesson-p"><code>.groupby('column')</code> splits a DataFrame into groups sharing a value, so you can aggregate each group separately — "average score PER department," not just overall.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Average score by department</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+df = pd.DataFrame({
+    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Dave'</span>,<span class="st">'Eve'</span>],
+    <span class="st">'dept'</span>: [<span class="st">'Sales'</span>,<span class="st">'Eng'</span>,<span class="st">'Sales'</span>,<span class="st">'Eng'</span>,<span class="st">'Sales'</span>],
+    <span class="st">'score'</span>: [<span class="nm">85</span>,<span class="nm">72</span>,<span class="nm">91</span>,<span class="nm">68</span>,<span class="nm">77</span>],
+})
+
+avg_by_dept = df.groupby(<span class="st">'dept'</span>)[<span class="st">'score'</span>].mean()
+<span class="bi">print</span>(avg_by_dept)
+<span class="bi">print</span>(<span class="st">f'Sales average: <span class="bi">{avg_by_dept["Sales"]:.4f}</span>'</span>)
+
+<span class="cm"># value_counts() — how many rows per category</span>
+<span class="bi">print</span>(df[<span class="st">'dept'</span>].value_counts())</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>groupby is the pandas analogue of NumPy's axis=0 aggregation</strong> — instead of collapsing by position (rows/columns), it collapses by CATEGORY. Same mental move as Chapter 11, applied to labeled data.</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 8 Summary</div>
+  <div class="lesson-h2">Chapter 12 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>The derivative</strong> is slope — which way, and how steeply, a function is changing.</div></li>
-    <li data-n="2"><div><strong>Gradient descent:</strong> repeatedly step in the direction of the negative gradient to minimize a function.</div></li>
-    <li data-n="3"><div><strong>Learning rate</strong> controls step size — too small is slow, too large can diverge entirely.</div></li>
-    <li data-n="4"><div><strong>Partial derivatives</strong> generalize this to functions of many variables — exactly what a model with many weights needs.</div></li>
-    <li data-n="5"><div><strong>Training a model IS gradient descent</strong> on its loss function, with respect to its parameters. You just implemented the core loop.</div></li>
+    <li data-n="1"><div><strong>DataFrame</strong> = a table (rows + named columns). <strong>Series</strong> = a single column.</div></li>
+    <li data-n="2"><div><strong>pd.read_csv()</strong> loads and type-converts a CSV in one line.</div></li>
+    <li data-n="3"><div><strong>.loc</strong> selects by label; <strong>.iloc</strong> selects by position.</div></li>
+    <li data-n="4"><div><strong>df[condition]</strong> filters rows — same boolean masking as NumPy, combined with <code>&amp;</code> / <code>|</code>.</div></li>
+    <li data-n="5"><div><strong>.sort_values()</strong> ranks by any column. <strong>.groupby().agg()</strong> summarizes by category.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -434,7 +460,7 @@ x, y = <span class="nm">2</span>, <span class="nm">3</span>
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Follow the exact formulas given — this keeps every implementation numerically identical, so your output can be checked precisely.</p>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Print specific extracted values (not the raw DataFrame) so results are checkable.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -442,22 +468,26 @@ x, y = <span class="nm">2</span>, <span class="nm">3</span>
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Numerical Derivative of x²</div>
-        <div class="ex-desc">Implement the central-difference formula and check it against a known derivative.</div>
+        <div class="ex-title">Build and Inspect a DataFrame</div>
+        <div class="ex-desc">Create a DataFrame from a dict of lists and read its basic properties.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write numerical_derivative(f, x, h=0.0001) returning (f(x+h) - f(x-h)) / (2*h)
+import pandas as pd
+data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
 
-Define f(x) = x ** 2
-Compute the derivative at x = 3 using your function.
+Create df = pd.DataFrame(data)
 
-Print exactly: f'Derivative: {result:.4f}'
-(The correct answer is Derivative: 6.0000 — matching the true derivative, 2x)</div>
+Print exactly:
+  f'Shape: {df.shape}'
+  f'Columns: {list(df.columns)}'
+  f'First name: {df.loc[0, "name"]}'
+(Correct: Shape: (4, 2) / Columns: ['name', 'score'] / First name: Alice)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code"># def numerical_derivative(f, x, h=0.0001): ...
-# def f(x): return x ** 2
-# result = numerical_derivative(f, 3)
+      <textarea class="ex-editor" id="ex1-code">import pandas as pd
+data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
+
+# df = pd.DataFrame(data)
 
 </textarea>
       <div class="ex-btn-row">
@@ -476,24 +506,24 @@ Print exactly: f'Derivative: {result:.4f}'
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Numerical Derivative of a Cubic</div>
-        <div class="ex-desc">Same method, a different function — proving it generalizes.</div>
+        <div class="ex-title">.loc vs .iloc</div>
+        <div class="ex-desc">Use both indexing styles on the same DataFrame.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Reuse numerical_derivative(f, x, h=0.0001) from Exercise 1.
+import pandas as pd
+df = pd.DataFrame({'name':['Alice','Bob','Carol','Dave','Eve'], 'score':[85,72,91,68,77]})
+(already given)
 
-Define f(x) = x**3 - 2*x
-Compute the derivative at x = 2.
-
-Print exactly: f'Derivative: {result:.4f}'
-(The correct answer is Derivative: 10.0000 — the true derivative is 3x²-2 = 3*4-2 = 10)</div>
+Print exactly:
+  f'Row 2 name (iloc): {df.iloc[2]["name"]}'
+  f'Row 4 score (loc): {df.loc[4, "score"]}'
+(Correct: Row 2 name (iloc): Carol / Row 4 score (loc): 77)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">def numerical_derivative(f, x, h=0.0001):
-    return (f(x + h) - f(x - h)) / (2 * h)
+      <textarea class="ex-editor" id="ex2-code">import pandas as pd
+df = pd.DataFrame({'name':['Alice','Bob','Carol','Dave','Eve'], 'score':[85,72,91,68,77]})
 
-# def f(x): return x**3 - 2*x
-# result = numerical_derivative(f, 2)
+# print using df.iloc[...] and df.loc[...]
 
 </textarea>
       <div class="ex-btn-row">
@@ -512,24 +542,34 @@ Print exactly: f'Derivative: {result:.4f}'
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Gradient Descent, 20 Steps</div>
-        <div class="ex-desc">Implement the gradient descent loop exactly as shown in the lesson.</div>
+        <div class="ex-title">Filtering With Combined Conditions</div>
+        <div class="ex-desc">Filter a DataFrame using two conditions combined with &.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Minimize f(x) = (x - 3) ** 2, whose true gradient is 2*(x - 3).
+import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'score':[85,72,91,68,77],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+})
+(already given)
 
-Start at x = 0.0, learning_rate = 0.1
-Run EXACTLY 20 steps of: x = x - learning_rate * gradient(x)
+Filter rows where department == 'Sales' AND score > 80, into "filtered".
 
-Print exactly: f'Final x: {x:.4f}'
-(The correct answer is Final x: 2.9654 — close to, but not exactly, the true minimum of 3)</div>
+Print exactly:
+  f'Qualified: {list(filtered["name"])}'
+  f'Count: {len(filtered)}'
+(Correct: Qualified: ['Alice', 'Carol'] / Count: 2)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">x = 0.0
-learning_rate = 0.1
+      <textarea class="ex-editor" id="ex3-code">import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'score':[85,72,91,68,77],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+})
 
-# def gradient(x): return 2 * (x - 3)
-# for step in range(20): x = x - learning_rate * gradient(x)
+# filtered = df[(df['department'] == 'Sales') & (df['score'] > 80)]
 
 </textarea>
       <div class="ex-btn-row">
@@ -548,30 +588,24 @@ learning_rate = 0.1
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Partial Derivatives</div>
-        <div class="ex-desc">Compute both partial derivatives of a two-variable function.</div>
+        <div class="ex-title">Sorting by a Column</div>
+        <div class="ex-desc">Rank rows by score, descending.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Define f(x, y) = x**2 + y**2
+import pandas as pd
+df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]})
+(already given)
 
-Using central differences with h=0.0001, compute:
-  partial_x at (x=2, y=3)
-  partial_y at (x=2, y=3)
+Sort by score, descending, into "sorted_df".
 
-Print exactly:
-  f'dx: {dx:.4f}'
-  f'dy: {dy:.4f}'
-(Correct: dx: 4.0000 / dy: 6.0000)</div>
+Print exactly: f'Ranked: {list(sorted_df["name"])}'
+(The correct answer is Ranked: ['Carol', 'Alice', 'Bob', 'Dave'])</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">def f(x, y):
-    return x**2 + y**2
+      <textarea class="ex-editor" id="ex4-code">import pandas as pd
+df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]})
 
-h = 0.0001
-x, y = 2, 3
-
-# dx = (f(x+h, y) - f(x-h, y)) / (2*h)
-# dy = (f(x, y+h) - f(x, y-h)) / (2*h)
+# sorted_df = df.sort_values('score', ascending=False)
 
 </textarea>
       <div class="ex-btn-row">
@@ -589,33 +623,35 @@ x, y = 2, 3
     <div class="ex-header">
       <div class="ex-num">5</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Gradient Descent Until Convergence</div>
-        <div class="ex-desc">Run gradient descent until the loss drops below a threshold, and count how many steps it took.</div>
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">GroupBy Aggregation</div>
+        <div class="ex-desc">Compute the average score for each department using groupby.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Minimize f(x) = (x - 5) ** 2, gradient = 2*(x - 5).
-Start at x = 0.0, learning_rate = 0.2, max 100 iterations.
+import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+    'score':[85,72,91,68,77],
+})
+(already given)
 
-Loop: if loss = f(x) < 0.0001, stop (before updating further).
-Otherwise: x = x - learning_rate * gradient(x), and count the step.
+Compute avg = df.groupby('department')['score'].mean()
 
-Print exactly: f'Converged in {steps} steps, final x={x:.4f}'
-(The correct answer is Converged in 13 steps, final x=4.9935)</div>
+Print exactly:
+  f'Sales avg: {avg["Sales"]:.4f}'
+  f'Eng avg: {avg["Eng"]:.4f}'
+(Correct: Sales avg: 84.3333 / Eng avg: 70.0000)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">def f(x): return (x - 5) ** 2
-def gradient(x): return 2 * (x - 5)
+      <textarea class="ex-editor" id="ex5-code">import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+    'score':[85,72,91,68,77],
+})
 
-x = 0.0
-learning_rate = 0.2
-steps = 0
-
-# while steps < 100:
-#     loss = f(x)
-#     if loss < 0.0001: break
-#     x = x - learning_rate * gradient(x)
-#     steps += 1
+# avg = df.groupby('department')['score'].mean()
 
 </textarea>
       <div class="ex-btn-row">
@@ -630,78 +666,68 @@ steps = 0
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
-    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone Project →</button>
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
   </div>
 </div><!-- end practice -->
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Module 2 Capstone: <span>Linear Regression From Scratch</span></h2>
-    <p>Everything converges here: Chapter 6's <code>X @ w + b</code>, Chapter 7's MSE, and this chapter's gradient descent. You'll fit a straight line to data using nothing but a loop and derivatives — no scikit-learn, no black box. Module 4 will show you the one-line version; this is what that one line is actually doing.</p>
+    <h2>🏗️ Mini Project: <span>Candidate Database, Now in Pandas</span></h2>
+    <p>Chapter 4 built a candidate ranking system with plain lists of dicts. Rebuild the same result with Pandas, and see how much shorter it gets — this is exactly why Pandas exists.</p>
     <div class="project-tags">
-      <span class="ptag">gradient descent</span>
-      <span class="ptag">MSE loss</span>
-      <span class="ptag">from scratch</span>
+      <span class="ptag">filtering</span>
+      <span class="ptag">sort_values</span>
+      <span class="ptag">groupby</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Data: x = [1,2,3,4,5], y = [3,5,7,9,11] (the true relationship is y = 2x + 1)</li>
-      <li>Initialize w = 0.0, b = 0.0</li>
-      <li>Repeat 2000 times: compute predictions = w*x + b for every point, compute the MSE gradient with respect to w and b, and step both downhill</li>
-      <li>Gradient formulas: dw = (2/n) * sum(error * x), db = (2/n) * sum(error), where error = predictions - y</li>
-      <li>Print the learned w and b, and the final MSE — they should land close to the true w=2, b=1</li>
+      <li>Filter candidates to score >= 0.8, sorted by score descending, into "qualified"</li>
+      <li>Print the qualified candidates' names, in rank order</li>
+      <li>Compute the average score per city using groupby</li>
+      <li>Print the average score for every city, as a percentage</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Linear Regression From Scratch — Your Solution</div>
+      <div class="pe-title">🏗️ Candidate Database — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Module 2 Capstone: Linear Regression From Scratch
-# Use ONLY Chapter 6-8 concepts — this IS gradient descent linear regression
+# Mini Project: Candidate Database, Now in Pandas
+# Use ONLY Chapter 12 concepts
 # ══════════════════════════════════════════
-import numpy as np
+import pandas as pd
 
-x = np.array([1, 2, 3, 4, 5], dtype=float)
-y = np.array([3, 5, 7, 9, 11], dtype=float)   # true relationship: y = 2x + 1
-n = len(x)
+candidates = pd.DataFrame({
+    'name':  ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
+    'city':  ['Hubli', 'Pune', 'Mumbai', 'Delhi', 'Hubli'],
+    'score': [0.92, 0.75, 0.81, 0.60, 0.88],
+})
 
-w = 0.0
-b = 0.0
-learning_rate = 0.01
-iterations = 2000
+# === TODO 1: filter + sort ===
+# qualified = candidates[candidates['score'] >= 0.8].sort_values('score', ascending=False)
+# print(f'Qualified: {list(qualified["name"])}')
 
-# === TODO: the training loop ===
-# for i in range(iterations):
-#     predictions = w * x + b
-#     error = predictions - y
-#     dw = (2 / n) * np.sum(error * x)
-#     db = (2 / n) * np.sum(error)
-#     w -= learning_rate * dw
-#     b -= learning_rate * db
-
-# === TODO: report results ===
-# final_predictions = w * x + b
-# mse = np.mean((final_predictions - y) ** 2)
-# print(f'Learned w: {w:.4f}')
-# print(f'Learned b: {b:.4f}')
-# print(f'Final MSE: {mse:.6f}')
+# === TODO 2: average score per city ===
+# avg_by_city = candidates.groupby('city')['score'].mean()
+# for city, avg in avg_by_city.items():
+#     print(f'{city}: {avg:.2%}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
   </div>
 
   <div class="checklist">
-    <h3>✅ Capstone Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📈</span>Learned w close to 2.0 (the true slope)</div>
-    <div class="check-item"><span class="check-icon">📊</span>Learned b close to 1.0 (the true intercept)</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Final MSE very small (well under 0.01)</div>
-    <div class="check-item"><span class="check-icon">🛠️</span>Values reached by gradient descent, not hardcoded</div>
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📋</span>Qualified: ['Alice', 'Eve', 'Carol'] — same ranking as Chapter 4's project</div>
+    <div class="check-item"><span class="check-icon">🏙️</span>Hubli: 90.00%</div>
+    <div class="check-item"><span class="check-icon">🏙️</span>Pune: 75.00%</div>
+    <div class="check-item"><span class="check-icon">🏙️</span>Mumbai: 81.00%</div>
+    <div class="check-item"><span class="check-icon">🏙️</span>Delhi: 60.00%</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -711,60 +737,60 @@ iterations = 2000
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 8 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Module 3. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 12 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 13. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">What does the derivative of a function at a point tell you?</div>
+    <div class="q-text">What's the difference between <code>.loc</code> and <code>.iloc</code>?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> The function's value at that point</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The slope — how fast, and in which direction, the function is changing there</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Whether the function is a straight line</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> The total area under the curve</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> No difference, they're aliases</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> .loc selects by label (index value); .iloc selects by integer position</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> .loc only works on columns; .iloc only works on rows</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> .iloc is deprecated in favor of .loc</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">To MINIMIZE a function with gradient descent, which direction do you step?</div>
+    <div class="q-text">What does <code>pd.read_csv('file.csv')</code> give you, compared to Chapter 5's <code>csv.DictReader</code>?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> In the direction of the gradient (uphill)</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Opposite the gradient (downhill) — that's why it's subtracted</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> It doesn't matter, any direction eventually finds the minimum</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Sideways, perpendicular to the gradient</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> The exact same thing, just a different function name</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A full DataFrame with columns already type-converted (numbers as numbers), not just strings</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Only the column headers, not the data</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> A NumPy array with no column names</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What typically happens if the learning rate is set much too high?</div>
+    <div class="q-text">What does <code>df.groupby('department')['score'].mean()</code> compute?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Training converges instantly with no downside</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Training overshoots the minimum and can diverge — the loss gets worse, not better</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Nothing — learning rate only affects speed, never stability</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Python raises a ValueError</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> The overall mean of the entire score column</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> The average score computed separately for each distinct department</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> The number of rows per department</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — mean() doesn't work after groupby</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write one line of Python that updates <code>x</code> using gradient descent, given <code>gradient(x)</code> and <code>learning_rate</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="x = ..." rows="3"></textarea>
+    <div class="q-text">Write the pandas expression that filters a DataFrame <code>df</code> to rows where <code>df['age']</code> is at least 18, assigned to <code>adults</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="adults = ..." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">A model has two weights, w1 and w2. What is the "gradient" of its loss function with respect to both?</div>
+    <div class="q-text">Which line correctly sorts a DataFrame <code>df</code> by column 'price', highest first?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> A single number, the average of the two partial derivatives</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> A vector containing the partial derivative with respect to w1 AND the partial derivative with respect to w2</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Whichever partial derivative is larger</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> The loss value itself</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> df.sort_values('price')</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> df.sort_values('price', ascending=False)</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> df.sort('price', reverse=True)</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> df.groupby('price').max()</button>
     </div>
   </div>
 
@@ -773,12 +799,12 @@ iterations = 2000
   <div class="quiz-result-banner" id="quiz-result"></div>
 
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
-    <div class="ncc-icon">🎓</div>
+    <div class="ncc-icon">🔀</div>
     <div class="ncc-info">
-      <h3>Module 3: Data Tools — Chapter 9: NumPy Deep Dive</h3>
-      <p>Module 2 complete! Broadcasting, vectorized operations, and boolean masking — turning NumPy from "new syntax" into a reflex.</p>
+      <h3>Chapter 13: Data Cleaning &amp; Wrangling</h3>
+      <p>Missing values, duplicates, merges, and pivot tables — cleaning a genuinely messy dataset end to end.</p>
     </div>
-    <a class="ncc-btn" href="../data/ch09-numpy-deep-dive.html">Start Chapter 9 →</a>
+    <a class="ncc-btn" href="ch13-data-cleaning-wrangling.html">Start Chapter 13 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -805,7 +831,7 @@ iterations = 2000
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch08';
+const CH_ID='ch12';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -836,7 +862,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch07'];
+  const prev=store.chapters && store.chapters['ch11'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -856,7 +882,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    clog('# import pandas as pd — loads on first use, may take a few extra seconds','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -929,70 +955,56 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['derivative: 6.0000'],
-    hint:"numerical_derivative(f, x, h=0.0001): return (f(x+h)-f(x-h))/(2*h). f(x)=x**2. result=numerical_derivative(f,3)",
-    solution:`def numerical_derivative(f, x, h=0.0001):
-    return (f(x + h) - f(x - h)) / (2 * h)
-
-def f(x):
-    return x ** 2
-
-result = numerical_derivative(f, 3)
-print(f'Derivative: {result:.4f}')`
+    checks:['shape: (4, 2)',"columns: ['name', 'score']",'first name: alice'],
+    hint:"df = pd.DataFrame(data); df.shape; list(df.columns); df.loc[0, 'name']",
+    solution:`import pandas as pd
+data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
+df = pd.DataFrame(data)
+print(f'Shape: {df.shape}')
+print(f'Columns: {list(df.columns)}')
+print(f'First name: {df.loc[0, "name"]}')`
   },
   2:{
-    checks:['derivative: 10.0000'],
-    hint:"f(x) = x**3 - 2*x. result = numerical_derivative(f, 2)",
-    solution:`def numerical_derivative(f, x, h=0.0001):
-    return (f(x + h) - f(x - h)) / (2 * h)
-
-def f(x):
-    return x**3 - 2*x
-
-result = numerical_derivative(f, 2)
-print(f'Derivative: {result:.4f}')`
+    checks:['row 2 name (iloc): carol','row 4 score (loc): 77'],
+    hint:"df.iloc[2]['name']; df.loc[4, 'score']",
+    solution:`import pandas as pd
+df = pd.DataFrame({'name':['Alice','Bob','Carol','Dave','Eve'], 'score':[85,72,91,68,77]})
+print(f'Row 2 name (iloc): {df.iloc[2]["name"]}')
+print(f'Row 4 score (loc): {df.loc[4, "score"]}')`
   },
   3:{
-    checks:['final x: 2.9654'],
-    hint:"def gradient(x): return 2*(x-3). for step in range(20): x = x - learning_rate*gradient(x)",
-    solution:`def gradient(x):
-    return 2 * (x - 3)
-
-x = 0.0
-learning_rate = 0.1
-for step in range(20):
-    x = x - learning_rate * gradient(x)
-print(f'Final x: {x:.4f}')`
+    checks:["qualified: ['alice', 'carol']",'count: 2'],
+    hint:"filtered = df[(df['department'] == 'Sales') & (df['score'] > 80)]",
+    solution:`import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'score':[85,72,91,68,77],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+})
+filtered = df[(df['department'] == 'Sales') & (df['score'] > 80)]
+print(f'Qualified: {list(filtered["name"])}')
+print(f'Count: {len(filtered)}')`
   },
   4:{
-    checks:['dx: 4.0000','dy: 6.0000'],
-    hint:"dx = (f(x+h,y)-f(x-h,y))/(2*h); dy = (f(x,y+h)-f(x,y-h))/(2*h)",
-    solution:`def f(x, y):
-    return x**2 + y**2
-
-h = 0.0001
-x, y = 2, 3
-dx = (f(x+h, y) - f(x-h, y)) / (2*h)
-dy = (f(x, y+h) - f(x, y-h)) / (2*h)
-print(f'dx: {dx:.4f}')
-print(f'dy: {dy:.4f}')`
+    checks:["ranked: ['carol', 'alice', 'bob', 'dave']"],
+    hint:"sorted_df = df.sort_values('score', ascending=False)",
+    solution:`import pandas as pd
+df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]})
+sorted_df = df.sort_values('score', ascending=False)
+print(f'Ranked: {list(sorted_df["name"])}')`
   },
   5:{
-    checks:['converged in 13 steps, final x=4.9935'],
-    hint:"while steps<100: loss=f(x); if loss<0.0001: break; x = x - learning_rate*gradient(x); steps += 1",
-    solution:`def f(x): return (x - 5) ** 2
-def gradient(x): return 2 * (x - 5)
-
-x = 0.0
-learning_rate = 0.2
-steps = 0
-while steps < 100:
-    loss = f(x)
-    if loss < 0.0001:
-        break
-    x = x - learning_rate * gradient(x)
-    steps += 1
-print(f'Converged in {steps} steps, final x={x:.4f}')`
+    checks:['sales avg: 84.3333','eng avg: 70.0000'],
+    hint:"avg = df.groupby('department')['score'].mean()",
+    solution:`import pandas as pd
+df = pd.DataFrame({
+    'name':['Alice','Bob','Carol','Dave','Eve'],
+    'department':['Sales','Eng','Sales','Eng','Sales'],
+    'score':[85,72,91,68,77],
+})
+avg = df.groupby('department')['score'].mean()
+print(f'Sales avg: {avg["Sales"]:.4f}')
+print(f'Eng avg: {avg["Eng"]:.4f}')`
   }
 };
 
@@ -1050,26 +1062,16 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  // Numeric range check (not exact match) — different valid implementations of the
-  // sum/average step can differ in the last few floating-point digits after 2000
-  // iterations, so we check the learned values are CLOSE to the true w=2, b=1, not exact.
-  const wMatch = full.match(/learned w:\s*(-?\d+\.?\d*)/i);
-  const bMatch = full.match(/learned b:\s*(-?\d+\.?\d*)/i);
-  const mseMatch = full.match(/final mse:\s*(-?\d+\.?\d*)/i);
-  const w = wMatch ? parseFloat(wMatch[1]) : NaN;
-  const b = bMatch ? parseFloat(bMatch[1]) : NaN;
-  const mse = mseMatch ? parseFloat(mseMatch[1]) : NaN;
-  const passed = ok && !isNaN(w) && !isNaN(b) && !isNaN(mse) &&
-    Math.abs(w - 2) < 0.1 && Math.abs(b - 1) < 0.15 && mse < 0.01;
-
+  const checks=["qualified: ['alice', 'eve', 'carol']",'hubli: 90.00%','pune: 75.00%','mumbai: 81.00%','delhi: 60.00%'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
-    res.textContent='✅ Capstone complete! Module 2 finished. +250 XP';
-    if(!completedItems.has('project')){completedItems.add('project');xp+=250;updateUI();spark();persistChapter();}
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Not close enough yet — check your gradient formulas and that you ran all 2000 iterations';
+    res.textContent='❌ Missing some required values — check the checklist above';
   }
 };
 
@@ -1087,12 +1089,12 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const passed=val.includes('x')&&val.includes('=')&&val.includes('-')&&val.includes('learning_rate')&&val.includes('gradient(x)');
+  const passed=val.includes("df[df['age']")&&(val.includes('>= 18')||val.includes('>=18'));
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! x = x - learning_rate * gradient(x)'
-    :'❌ Not quite. You need: x = x - learning_rate * gradient(x)';
+    ?"✅ Correct! adults = df[df['age'] >= 18]"
+    :"❌ Not quite. You need: adults = df[df['age'] >= 18]";
 };
 
 function revealNextChapter(){
@@ -1121,8 +1123,8 @@ window.submitQuiz=function(){
   document.getElementById('quiz-score').textContent=score;
   if(passed){
     banner.innerHTML=`
-      <div class="qrb-title">🎉 Module 2 Complete! ${score}/5 correct</div>
-      <div class="qrb-sub">Derivatives, gradient descent, and learning rate are yours now — the exact mechanism that trains every model you'll build from here on. Module 3 puts NumPy and Pandas to work on real data.</div>`;
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">DataFrames, .loc/.iloc, filtering, sorting, and groupby are yours now. You can load, explore, and summarize any tabular dataset.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();

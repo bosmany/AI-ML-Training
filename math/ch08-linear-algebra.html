@@ -3,10 +3,11 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 3: Functions &amp; Modules</title>
+<title>AI/ML: Zero to Hero — Chapter 8: Linear Algebra for ML</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
+  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
+  extra seconds while the NumPy package itself downloads; after that it's instant.
   Your progress on this chapter is saved to this browser's localStorage automatically.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
@@ -274,7 +275,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 3: Functions &amp; Modules</div>
+  <div id="mob-title">Ch 8: Linear Algebra</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -283,25 +284,25 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 1 · Chapter 3 of 32</div>
+    <div class="sb-logo-sub">Module 2 · Chapter 8 of 32</div>
   </a>
-  <a class="sb-back" href="ch02-control-flow.html">← Ch 2: Control Flow</a>
+  <a class="sb-back" href="../python/ch07-python-devops-apis.html">← Ch 7: Python for DevOps &amp; APIs</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 3</div>
+  <div class="sb-section">Chapter 8</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 4: Data Structures</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 5: OOP, Files &amp; Errors</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 9: Probability &amp; Statistics</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 10: Calculus &amp; Optimization</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 3</div>
-    <div class="tb-title">Functions &amp; Modules</div>
+    <div class="tb-chapter">Chapter 8</div>
+    <div class="tb-title">Linear Algebra for ML</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -317,168 +318,160 @@ textarea#project-editor:focus{outline:none}
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 2 quiz in this browser yet. This chapter assumes you're comfortable with loops and conditionals.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 7 quiz in this browser yet. This chapter assumes Module 1 (Python Foundations) is solid.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 3:<br/><span>Functions &amp; Modules</span></h1>
-    <p>Every ML library you'll ever use — <code>sklearn.metrics.accuracy_score()</code>, <code>torch.nn.functional.relu()</code> — is just a function someone wrote once and packaged so everyone could reuse it. This chapter teaches you to write your own: reusable, well-named blocks of logic that turn "code you wrote once" into "a tool you use forever."</p>
+    <h1>Chapter 8:<br/><span>Linear Algebra for ML</span></h1>
+    <p>Welcome to Module 2 — and to NumPy, the library every single ML tool is built on top of. Every dataset you'll ever load is a matrix. Every prediction a model makes is a dot product or a matrix multiplication. This chapter builds that vocabulary from scratch, in code, so the math in every later chapter reads as something you've already touched.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~50 min read</span>
+      <span class="badge">🕐 ~55 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 3.1 -->
-  <div class="lesson-h2">3.1 — Why Functions? From Copy-Paste to Reusable Tools</div>
-  <p class="lesson-p">Without functions, computing accuracy for three different models means writing the same loop three times. If you find a bug in that logic, you now have to fix it in three places — and you will forget one. A <strong>function</strong> packages logic once, under a name, so you write it once and call it forever.</p>
-  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This is exactly what a library is.</strong> When you call <code>accuracy_score(y_true, y_pred)</code> from scikit-learn, you're calling a function someone else wrote. By the end of this chapter you'll understand precisely what's happening inside that call.</div></div>
+  <!-- 8.1 -->
+  <div class="lesson-h2">8.1 — Why Linear Algebra? Data IS Vectors and Matrices</div>
+  <p class="lesson-p">A single data sample — one candidate, one image, one sentence turned into numbers — is a list of features. In linear algebra, that's called a <strong>vector</strong>. A whole dataset — many samples, each with the same features — is a <strong>matrix</strong>: one row per sample, one column per feature. This isn't an analogy; it's literally how <code>X</code> and <code>y</code> are represented in every ML library you'll use.</p>
+  <p class="lesson-p">We'll use <strong>NumPy</strong> from here on — the library that makes vectors and matrices fast and convenient. The convention, in every piece of ML code you will ever read, is <code>import numpy as np</code>.</p>
 
-  <!-- 3.2 -->
-  <div class="lesson-h2">3.2 — def, Parameters, and return vs print</div>
-  <p class="lesson-p">Define a function with <code>def name(parameters):</code>. Inside, <code>return</code> sends a value back to whoever called the function, so it can be stored or reused. This is completely different from <code>print()</code>, which only displays text on screen and gives nothing back.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">return vs print — the most important distinction in this chapter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">compute_accuracy</span>(predictions, targets):
-    correct = <span class="nm">0</span>
-    <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
-        <span class="kw">if</span> p == t:
-            correct += <span class="nm">1</span>
-    <span class="kw">return</span> correct / <span class="bi">len</span>(targets)   <span class="cm"># hands the value back to the caller</span>
-
-preds   = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>]
-targets = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>]
-
-acc = <span class="fn">compute_accuracy</span>(preds, targets)   <span class="cm"># the returned value is now stored in acc</span>
-<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{acc:.2%}</span>'</span>)         <span class="cm"># we can use acc anywhere now — format it, compare it, save it</span>
-
-<span class="cm"># Contrast: a function that only prints, returns nothing useful</span>
-<span class="kw">def</span> <span class="fn">show_accuracy</span>(predictions, targets):
-    <span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{compute_accuracy(predictions, targets):.2%}</span>'</span>)
-    <span class="cm"># no return statement — this function's result is None</span>
-
-result = <span class="fn">show_accuracy</span>(preds, targets)
-<span class="bi">print</span>(<span class="st">f'What show_accuracy() gave back: <span class="bi">{result}</span>'</span>)  <span class="cm"># None — it never returned anything</span></div>
-  </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> A function with no <code>return</code> statement doesn't fail — it silently returns <code>None</code>. If you ever see <code>None</code> where you expected a number, check whether the function you called actually has a <code>return</code>.</div></div>
-
-  <!-- 3.3 -->
-  <div class="lesson-h2">3.3 — Default Parameters and Keyword Arguments</div>
-  <p class="lesson-p">A parameter can have a default value, used only when the caller doesn't supply one. This lets a function have sensible behavior out of the box, while still being configurable.</p>
+  <!-- 8.2 -->
+  <div class="lesson-h2">8.2 — Vectors: NumPy Arrays vs Python Lists</div>
+  <p class="lesson-p">A NumPy array looks like a list but behaves completely differently for math: operators act <strong>elementwise</strong>, not like list concatenation or repetition.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Defaults make a function flexible without being complicated</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(name, value, decimals=<span class="nm">4</span>):
-    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
+    <div class="cb-header"><span class="cb-label">Lists vs arrays — the exact same operator, different meaning</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'loss'</span>, <span class="nm">0.123456</span>))               <span class="cm"># uses the default: 4 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'accuracy'</span>, <span class="nm">0.9423</span>, decimals=<span class="nm">2</span>))  <span class="cm"># overrides the default: 2 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(name=<span class="st">'f1'</span>, value=<span class="nm">0.88</span>, decimals=<span class="nm">1</span>))  <span class="cm"># keyword arguments — order no longer matters</span></div>
+<span class="cm"># Plain Python lists:</span>
+list_a = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]
+<span class="bi">print</span>(list_a + [<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>])   <span class="cm"># [1, 2, 3, 4, 5, 6] — concatenation!</span>
+<span class="bi">print</span>(list_a * <span class="nm">2</span>)          <span class="cm"># [1, 2, 3, 1, 2, 3] — repetition!</span>
+
+<span class="cm"># NumPy arrays:</span>
+v1 = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])
+v2 = np.array([<span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>])
+<span class="bi">print</span>(<span class="bi">list</span>(v1 + v2))    <span class="cm"># [5, 7, 9] — ADDED elementwise!</span>
+<span class="bi">print</span>(<span class="bi">list</span>(v1 * <span class="nm">2</span>))    <span class="cm"># [2, 4, 6] — every element scaled!</span>
+<span class="bi">print</span>(<span class="bi">list</span>(v1 * v2))   <span class="cm"># [4, 10, 18] — MULTIPLIED elementwise!</span></div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>We'll wrap NumPy results in <code>list(...)</code> when printing throughout this chapter.</strong> It's not required — NumPy prints arrays fine on its own — but it keeps the output format simple and 100% predictable while you're still learning.</div></div>
 
-  <!-- 3.4 -->
-  <div class="lesson-h2">3.4 — *args and **kwargs</div>
-  <p class="lesson-p">Sometimes you don't know in advance how many arguments a function will receive. <code>*args</code> collects any number of extra positional arguments into a tuple. <code>**kwargs</code> collects any number of extra keyword arguments into a dict.</p>
+  <!-- 8.3 -->
+  <div class="lesson-h2">8.3 — The Dot Product: The Single Most Important Operation in ML</div>
+  <p class="lesson-p">The <strong>dot product</strong> of two vectors multiplies them elementwise, then sums the result into a single number. It is, quite literally, what a neuron computes: multiply each input by its weight, and add them all up.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">*args — accept any number of values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">average_loss</span>(*losses):
-    <span class="bi">print</span>(<span class="st">'Received:'</span>, losses, <span class="cm">'— a tuple, no matter how many arguments'</span>)
-    <span class="kw">return</span> <span class="bi">sum</span>(losses) / <span class="bi">len</span>(losses)
+    <div class="cb-header"><span class="cb-label">Dot product = weighted sum</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.5, 0.3, 0.4, 0.2):.4f}</span>'</span>)   <span class="cm"># 4 values</span>
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.9, 0.1):.4f}</span>'</span>)             <span class="cm"># 2 values — same function</span>
+weights  = np.array([<span class="nm">0.5</span>, -<span class="nm">0.2</span>, <span class="nm">0.1</span>])
+features = np.array([<span class="nm">2.0</span>,  <span class="nm">3.0</span>, <span class="nm">5.0</span>])
 
-<span class="cm"># **kwargs — accept any number of named settings</span>
-<span class="kw">def</span> <span class="fn">train_model</span>(name, **settings):
-    <span class="bi">print</span>(<span class="st">f'Training <span class="bi">{name}</span> with settings:'</span>, settings)
+<span class="cm"># The manual way — elementwise multiply, then sum:</span>
+manual = (weights * features).sum()
+<span class="bi">print</span>(<span class="st">f'Manual: <span class="bi">{manual:.4f}</span>'</span>)
 
-<span class="fn">train_model</span>(<span class="st">'ResNet50'</span>, epochs=<span class="nm">50</span>, lr=<span class="nm">0.001</span>, batch_size=<span class="nm">32</span>)</div>
+<span class="cm"># The NumPy way — exactly the same thing, one call:</span>
+dot = np.dot(weights, features)      <span class="cm"># or: weights @ features</span>
+<span class="bi">print</span>(<span class="st">f'np.dot: <span class="bi">{dot:.4f}</span>'</span>)
+
+<span class="cm"># A "neuron" is just: dot product + bias</span>
+bias = <span class="nm">0.1</span>
+prediction = np.dot(weights, features) + bias
+<span class="bi">print</span>(<span class="st">f'Prediction: <span class="bi">{prediction:.4f}</span>'</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>You'll see this constantly in real ML code:</strong> <code>model.fit(X, y, epochs=10, batch_size=32, **kwargs)</code> is exactly this pattern — accept the required arguments, then forward whatever extra settings the caller wants.</div></div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This IS linear regression, and it IS one neuron of a neural network.</strong> Both compute <code>dot(weights, inputs) + bias</code>. The entire field of deep learning stacks millions of this one operation together.</div></div>
 
-  <!-- 3.5 -->
-  <div class="lesson-h2">3.5 — Lambda: Small, Throwaway Functions</div>
-  <p class="lesson-p">A <code>lambda</code> is a function written in one line, with no name, usually passed directly into another function. The most common use in ML code is as the <code>key</code> for sorting.</p>
+  <!-- 8.4 -->
+  <div class="lesson-h2">8.4 — Vector Norms: Measuring Length and Distance</div>
+  <p class="lesson-p">The <strong>L2 norm</strong> (Euclidean length) of a vector is <code>sqrt(sum(v**2))</code> — the straight-line distance from the origin. The <strong>L1 norm</strong> is <code>sum(abs(v))</code>. The distance BETWEEN two points is just the norm of their difference — this is exactly how algorithms like K-Nearest-Neighbors decide who's "close."</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">lambda + sorted() — ranking model results</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [(<span class="st">'alice'</span>, <span class="nm">0.72</span>), (<span class="st">'bob'</span>, <span class="nm">0.95</span>), (<span class="st">'carol'</span>, <span class="nm">0.81</span>), (<span class="st">'dave'</span>, <span class="nm">0.60</span>)]
+    <div class="cb-header"><span class="cb-label">Norms and distance</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="cm"># Sort by the SECOND item in each tuple (the score), highest first</span>
-ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</span> x: x[<span class="nm">1</span>], reverse=<span class="kw">True</span>)
-<span class="bi">print</span>(ranked)
-<span class="bi">print</span>(<span class="st">f'Top performer: <span class="bi">{ranked[0][0]}</span>'</span>)
+v = np.array([<span class="nm">3</span>, <span class="nm">4</span>])   <span class="cm"># the classic 3-4-5 triangle</span>
 
-<span class="cm"># A named function does the same thing, just with more words:</span>
-<span class="kw">def</span> <span class="fn">get_score</span>(item):
-    <span class="kw">return</span> item[<span class="nm">1</span>]
-<span class="bi">print</span>(<span class="bi">sorted</span>(scores, key=get_score, reverse=<span class="kw">True</span>))</div>
+l2 = np.linalg.norm(v)          <span class="cm"># sqrt(3**2 + 4**2) = sqrt(25) = 5</span>
+l1 = np.<span class="bi">abs</span>(v).<span class="bi">sum</span>()          <span class="cm"># |3| + |4| = 7</span>
+<span class="bi">print</span>(<span class="st">f'L2 norm: <span class="bi">{l2:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'L1 norm: <span class="bi">{l1:.4f}</span>'</span>)
+
+<span class="cm"># Distance between two points = norm of their difference</span>
+a = np.array([<span class="nm">1</span>, <span class="nm">2</span>])
+b = np.array([<span class="nm">4</span>, <span class="nm">6</span>])
+distance = np.linalg.norm(a - b)
+<span class="bi">print</span>(<span class="st">f'Distance: <span class="bi">{distance:.4f}</span>'</span>)</div>
   </div>
 
-  <!-- 3.6 -->
-  <div class="lesson-h2">3.6 — Scope: Local vs Global Variables</div>
-  <p class="lesson-p">A variable created <em>inside</em> a function only exists inside that function — this is <strong>local scope</strong>. It disappears the moment the function returns, and it never affects a variable of the same name outside the function, unless you explicitly say <code>global</code>.</p>
+  <!-- 8.5 -->
+  <div class="lesson-h2">8.5 — Matrices: Shape and Indexing</div>
+  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">The classic scope surprise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">total_processed = <span class="nm">0</span>   <span class="cm"># global variable</span>
+    <div class="cb-header"><span class="cb-label">A dataset as a matrix — 4 samples, 3 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="kw">def</span> <span class="fn">process_batch_wrong</span>(batch_size):
-    total_processed = total_processed + batch_size  <span class="cm"># this LOOKS right...</span>
-    <span class="bi">print</span>(total_processed)
+X = np.array([
+    [<span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">3</span>],
+    [<span class="nm">4</span>,  <span class="nm">5</span>,  <span class="nm">6</span>],
+    [<span class="nm">7</span>,  <span class="nm">8</span>,  <span class="nm">9</span>],
+    [<span class="nm">10</span>, <span class="nm">11</span>, <span class="nm">12</span>],
+])
 
-<span class="cm"># process_batch_wrong(32)   # <-- would raise UnboundLocalError! Python sees the assignment</span>
-<span class="cm"># and assumes total_processed is a NEW local variable for the whole function body —</span>
-<span class="cm"># so reading it on the right-hand side before it's assigned fails.</span>
-
-<span class="kw">def</span> <span class="fn">process_batch</span>(batch_size):
-    <span class="kw">global</span> total_processed     <span class="cm"># explicitly say: use the outer variable, don't make a local one</span>
-    total_processed += batch_size
-    <span class="bi">print</span>(<span class="st">f'Running total: <span class="bi">{total_processed}</span>'</span>)
-
-<span class="fn">process_batch</span>(<span class="nm">32</span>)
-<span class="fn">process_batch</span>(<span class="nm">16</span>)
-<span class="fn">process_batch</span>(<span class="nm">8</span>)
-<span class="bi">print</span>(<span class="st">f'Total processed: <span class="bi">{total_processed}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)             <span class="cm"># (4, 3) — 4 samples, 3 features</span>
+<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{list(X[1])}</span>'</span>)          <span class="cm"># [4, 5, 6] — sample at index 1</span>
+<span class="bi">print</span>(<span class="st">f'Column 2: <span class="bi">{list(X[:,2])}</span>'</span>)     <span class="cm"># [3, 6, 9, 12] — feature at index 2, ALL samples</span>
+<span class="bi">print</span>(<span class="st">f'Row 0 sum: <span class="bi">{X[0].sum()}</span>'</span>)</div>
   </div>
-  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Best practice: avoid <code>global</code> when you can.</strong> It's shown here because you WILL encounter it, but the cleaner pattern is almost always to <code>return</code> the new value and let the caller decide what to do with it. Fewer hidden side effects, easier to test.</div></div>
 
-  <!-- 3.7 -->
-  <div class="lesson-h2">3.7 — Modules: import and Organizing Code Across Files</div>
-  <p class="lesson-p">A <strong>module</strong> is just a <code>.py</code> file. <code>import</code> lets you use functions defined in another file — this is exactly how <code>import numpy as np</code> or <code>from sklearn.metrics import accuracy_score</code> work. Python also ships a large standard library of built-in modules you can import for free.</p>
+  <!-- 8.6 -->
+  <div class="lesson-h2">8.6 — Matrix Multiplication: Computing an Entire Batch at Once</div>
+  <p class="lesson-p">Matrix multiplication (<code>@</code>) is what lets you run the dot-product "neuron" from 8.3 across EVERY sample in a dataset in one operation, instead of writing a loop. For <code>A @ B</code> to work, A's number of columns must equal B's number of rows: <code>(m, n) @ (n, p) → (m, p)</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Using Python's built-in modules</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> math
+    <div class="cb-header"><span class="cb-label">One matrix multiplication = predictions for a whole batch</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="bi">print</span>(math.sqrt(<span class="nm">16</span>))         <span class="cm"># 4.0 — same idea as **0.5, but more explicit</span>
-<span class="bi">print</span>(math.pi)              <span class="cm"># 3.14159...</span>
-<span class="bi">print</span>(math.ceil(<span class="nm">4.1</span>))       <span class="cm"># 5 — round up</span>
-<span class="bi">print</span>(math.floor(<span class="nm">4.9</span>))      <span class="cm"># 4 — round down</span>
+X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>],[<span class="nm">3</span>,<span class="nm">4</span>],[<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># 3 samples, 2 features — shape (3, 2)</span>
+w = np.array([<span class="nm">0.5</span>, -<span class="nm">1.0</span>])                     <span class="cm"># 2 weights, one per feature — shape (2,)</span>
+b = <span class="nm">0.2</span>
 
-<span class="cm"># Importing just one function, so you don't need the "math." prefix:</span>
-<span class="kw">from</span> math <span class="kw">import</span> sqrt
-<span class="bi">print</span>(sqrt(<span class="nm">25</span>))            <span class="cm"># 5.0</span>
-
-<span class="cm"># This is exactly the pattern you'll use for every ML library:</span>
-<span class="cm"># import numpy as np</span>
-<span class="cm"># from sklearn.metrics import accuracy_score</span>
-<span class="cm"># import pandas as pd</span></div>
+predictions = X @ w + b     <span class="cm"># (3,2) @ (2,) -> (3,) : ALL 3 predictions, one line, no loop</span>
+<span class="kw">for</span> i, p <span class="kw">in</span> <span class="bi">enumerate</span>(predictions):
+    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: <span class="bi">{p:.4f}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>If you were writing your own file</strong> (say, <code>metrics.py</code>) full of functions, another file could use them with <code>from metrics import compute_accuracy</code>. This is how real ML projects are structured: one file per concern (data loading, model, metrics, training loop), stitched together with imports.</div></div>
+  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>This one line — <code>X @ w + b</code> — IS linear regression's prediction step.</strong> Whether it's 3 samples or 3 million, it's the same operation. This is why NumPy (and by extension PyTorch/TensorFlow) is fast: the loop happens in optimized low-level code, not in slow Python.</div></div>
+
+  <!-- 8.7 -->
+  <div class="lesson-h2">8.7 — Transpose and the Identity Matrix</div>
+  <p class="lesson-p">The <strong>transpose</strong> (<code>.T</code>) flips a matrix's rows and columns — needed constantly to make shapes line up for multiplication. The <strong>identity matrix</strong> (<code>np.eye(n)</code>) is the matrix equivalent of the number 1 — multiplying by it changes nothing.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Transpose and identity</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>],[<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># shape (2, 3)</span>
+<span class="bi">print</span>(<span class="st">f'Original shape: <span class="bi">{X.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Transposed shape: <span class="bi">{X.T.shape}</span>'</span>)     <span class="cm"># (3, 2) — rows and columns swapped</span>
+
+I = np.eye(<span class="nm">3</span>)      <span class="cm"># 3x3 identity matrix</span>
+<span class="bi">print</span>(I)
+v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>])
+<span class="bi">print</span>(<span class="st">f'v @ I: <span class="bi">{list(v @ I)}</span>'</span>)   <span class="cm"># [7, 8, 9] — unchanged, like multiplying by 1</span></div>
+  </div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 3 Summary</div>
+  <div class="lesson-h2">Chapter 8 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>def name(params): ... return value</strong> — functions package logic once so you can reuse it everywhere. <code>return</code> hands a value back; <code>print</code> just displays it.</div></li>
-    <li data-n="2"><div><strong>Default parameters</strong> (<code>decimals=4</code>) make functions flexible without forcing every caller to specify everything.</div></li>
-    <li data-n="3"><div><strong>*args</strong> collects extra positional arguments into a tuple. <strong>**kwargs</strong> collects extra keyword arguments into a dict.</div></li>
-    <li data-n="4"><div><strong>lambda</strong> writes a tiny function inline — most often as the <code>key</code> for <code>sorted()</code>.</div></li>
-    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable — but prefer <code>return</code>ing values instead when you can.</div></li>
-    <li data-n="6"><div><strong>Modules:</strong> <code>import math</code>, <code>from math import sqrt</code> — every ML library (NumPy, Pandas, sklearn) is used exactly this way.</div></li>
+    <li data-n="1"><div><strong>Data is vectors and matrices.</strong> One sample = a vector. A dataset = a matrix, shape (samples, features).</div></li>
+    <li data-n="2"><div><strong>NumPy arrays do math elementwise</strong> — completely different from Python lists with the same operators.</div></li>
+    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum = the core of a neuron / linear model prediction.</div></li>
+    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN.</div></li>
+    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation.</div></li>
+    <li data-n="6"><div><strong>Transpose</strong> (<code>.T</code>) swaps rows/columns to make shapes compatible; <strong>identity</strong> (<code>np.eye</code>) is the matrix "1".</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -489,7 +482,7 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Given data is fixed so your printed output can be checked precisely — write functions around it, don't change the given values.</p>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Always format printed numbers explicitly (e.g. <code>{value:.4f}</code>) — this keeps output consistent no matter tiny floating-point differences.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -497,25 +490,27 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Write compute_accuracy()</div>
-        <div class="ex-desc">Turn Chapter 2's accuracy loop into a real, reusable function that returns a value.</div>
+        <div class="ex-title">Dot Product By Hand</div>
+        <div class="ex-desc">Compute a dot product manually with elementwise multiply + sum, before using np.dot.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
-(already given — do not change them)
+import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+(already given)
 
-Write a function compute_accuracy(predictions, targets) that RETURNS
-(not prints) the accuracy as a float between 0 and 1.
+Compute the dot product using elementwise multiplication then .sum()
+(don't use np.dot for this one — do it manually).
 
-Then call it and print exactly: f'Accuracy: {accuracy:.2%}'
-(The correct answer is Accuracy: 70.00%)</div>
+Print exactly: f'Dot product: {dot}'
+(The correct answer is Dot product: 32)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
 
-# def compute_accuracy(predictions, targets): ...
+# dot = (v1 * v2).sum()
 
 </textarea>
       <div class="ex-btn-row">
@@ -534,21 +529,28 @@ targets     = [1,0,0,0,1,0,0,1,1,1]
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">format_metric() With a Default</div>
-        <div class="ex-desc">Write a formatting function with a default parameter, then call it once using the default and once overriding it.</div>
+        <div class="ex-title">A Single Neuron's Prediction</div>
+        <div class="ex-desc">Use np.dot to compute a weighted sum plus bias — exactly what one neuron computes.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write format_metric(name, value, decimals=4) that RETURNS the string
-f'{name}: {value:.{decimals}f}'   (use this exact f-string pattern)
+import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+(already given)
 
-Then print:
-  format_metric('loss', 0.123456)              -> uses the default (4 decimals)
-  format_metric('accuracy', 0.9423, decimals=2) -> overrides to 2 decimals
+Compute prediction = np.dot(weights, features) + bias
 
-(Correct output lines: "loss: 0.1235" and "accuracy: 0.94")</div>
+Print exactly: f'Prediction: {prediction:.4f}'
+(The correct answer is Prediction: 1.0000)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code"># def format_metric(name, value, decimals=4): ...
+      <textarea class="ex-editor" id="ex2-code">import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+
+# prediction = np.dot(weights, features) + bias
 
 </textarea>
       <div class="ex-btn-row">
@@ -567,18 +569,29 @@ Then print:
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">average_loss(*losses) With *args</div>
-        <div class="ex-desc">Write a function that can average ANY number of loss values, using *args.</div>
+        <div class="ex-title">Norms and Distance</div>
+        <div class="ex-desc">Compute L2 norm, L1 norm, and the Euclidean distance between two points.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write average_loss(*losses) that RETURNS the average of however many
-values it's given.
+import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+(already given)
 
-Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
-(The correct answer is Average: 0.3500)</div>
+Compute and print exactly:
+  f'L2 norm: {l2:.4f}'         (using np.linalg.norm(v))
+  f'L1 norm: {l1:.4f}'         (using np.abs(v).sum())
+  f'Distance: {distance:.4f}'  (using np.linalg.norm(a - b))
+(Correct: L2 norm: 5.0000 / L1 norm: 7.0000 / Distance: 5.0000)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code"># def average_loss(*losses): ...
+      <textarea class="ex-editor" id="ex3-code">import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+
+# l2 = ... ; l1 = ... ; distance = ...
 
 </textarea>
       <div class="ex-btn-row">
@@ -597,23 +610,26 @@ Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Rank Results With lambda</div>
-        <div class="ex-desc">Sort a leaderboard of model results by score using sorted() and a lambda key.</div>
+        <div class="ex-title">Matrix Shape and Indexing</div>
+        <div class="ex-desc">Read a matrix's shape, a row, a column, and a row sum.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
-(already given — do not change it)
+import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+(already given — 4 samples, 3 features)
 
-Using sorted() with a lambda key, sort scores by the score (2nd item)
-from HIGHEST to lowest.
-
-Print exactly: f'Top performer: {sorted_scores[0][0]}'
-(The correct answer is Top performer: bob)</div>
+Print exactly, in this order:
+  f'Shape: {X.shape}'
+  f'Row 1: {list(X[1])}'
+  f'Column 2: {list(X[:,2])}'
+  f'Row 0 sum: {X[0].sum()}'
+(Correct: Shape: (4, 3) / Row 1: [4, 5, 6] / Column 2: [3, 6, 9, 12] / Row 0 sum: 6)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
+      <textarea class="ex-editor" id="ex4-code">import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
 
-# sorted_scores = sorted(scores, key=..., reverse=...)
+# print shape, row 1, column 2, row 0 sum
 
 </textarea>
       <div class="ex-btn-row">
@@ -632,23 +648,29 @@ Print exactly: f'Top performer: {sorted_scores[0][0]}'
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Running Total With global</div>
-        <div class="ex-desc">Practice global scope by tracking a running total of samples processed across multiple function calls.</div>
+        <div class="ex-title">Batch Predictions With Matrix Multiplication</div>
+        <div class="ex-desc">Compute predictions for 3 samples at once using X @ w + b — no loop over samples needed for the math itself.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-total_processed = 0   (already given as a global variable)
+import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
+(already given)
 
-Write process_batch(batch_size) that uses "global total_processed"
-and adds batch_size to it (no return needed).
-
-Call it three times: process_batch(32), process_batch(16), process_batch(8)
-Then print exactly: f'Total processed: {total_processed}'
-(The correct answer is Total processed: 56)</div>
+Compute predictions = X @ w + b
+Then loop with enumerate(predictions) and print each:
+  f'Sample {i}: {p:.4f}'
+(Correct: Sample 0: -1.3000 / Sample 1: -2.3000 / Sample 2: -3.3000)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">total_processed = 0
+      <textarea class="ex-editor" id="ex5-code">import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
 
-# def process_batch(batch_size): ...
+# predictions = X @ w + b
+# for i, p in enumerate(predictions): print(...)
 
 </textarea>
       <div class="ex-btn-row">
@@ -669,63 +691,60 @@ Then print exactly: f'Total processed: {total_processed}'
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Metrics Toolkit</span></h2>
-    <p>Build the small function library that sits at the heart of every classification project: accuracy, precision, recall, and F1 — then a report() function that ties them together. This is a simplified version of what sklearn.metrics does internally.</p>
+    <h2>🏗️ Mini Project: <span>Vectorized Batch Predictor</span></h2>
+    <p>Back in Chapter 1 you computed MSE by hand for 3 samples with individually named variables. Now do it properly: one matrix multiplication computes every prediction, one NumPy expression computes the error metrics — no loops required for the math.</p>
     <div class="project-tags">
-      <span class="ptag">def</span>
-      <span class="ptag">return</span>
-      <span class="ptag">default params</span>
-      <span class="ptag">reuse</span>
+      <span class="ptag">X @ w + b</span>
+      <span class="ptag">vectorized MSE</span>
+      <span class="ptag">NumPy</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>accuracy(preds, targets) — fraction of predictions that match the target</li>
-      <li>precision(preds, targets) — of everything you predicted positive (1), what fraction was actually positive</li>
-      <li>recall(preds, targets) — of everything that was actually positive, what fraction did you correctly predict</li>
-      <li>f1(preds, targets) — the harmonic mean of precision and recall: 2·P·R / (P+R)</li>
-      <li>report(preds, targets, model_name='Model') — calls all four functions above and prints a formatted report</li>
+      <li>Compute predictions for all 5 samples at once: predictions = X @ w + b</li>
+      <li>Compute errors = predictions - y (elementwise, all 5 at once)</li>
+      <li>Compute MSE = (errors ** 2).mean() and RMSE = MSE ** 0.5</li>
+      <li>Print each sample's prediction vs actual target</li>
+      <li>Print the final MSE and RMSE</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Metrics Toolkit — Your Solution</div>
+      <div class="pe-title">🏗️ Vectorized Batch Predictor — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Metrics Toolkit
-# Use ONLY Chapter 1-3 concepts — build the functions, then use them
+# Mini Project: Vectorized Batch Predictor
+# Use ONLY Chapter 8 concepts — no manual per-sample loops for the math
 # ══════════════════════════════════════════
+import numpy as np
 
-preds   = [1,0,1,1,0,1,0,0,1,1]
-targets = [1,0,0,1,0,1,0,1,1,1]
+X = np.array([
+    [1, 2, 1],
+    [2, 1, 3],
+    [3, 3, 2],
+    [1, 1, 1],
+    [4, 2, 2],
+])
+w = np.array([0.3, 0.5, -0.2])
+b = 0.5
+y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 
-def accuracy(preds, targets):
-    # TODO: fraction of preds that match targets
-    pass
+# === TODO 1: predictions for ALL samples in one line ===
+# predictions = X @ w + b
 
-def precision(preds, targets):
-    # TODO: TP / (TP + FP)  — of predicted positives, how many were correct
-    pass
+# === TODO 2: print each sample's prediction vs target ===
+# for i in range(len(y)): print(f'Sample {i}: predicted={predictions[i]:.4f} actual={y[i]:.4f}')
 
-def recall(preds, targets):
-    # TODO: TP / (TP + FN)  — of actual positives, how many did you catch
-    pass
-
-def f1(preds, targets):
-    # TODO: 2 * precision * recall / (precision + recall)
-    pass
-
-def report(preds, targets, model_name='Model'):
-    # TODO: print a formatted report using all four functions above.
-    # Must include the words "accuracy", "precision", "recall", "f1"
-    # each followed by a percentage, e.g. "Accuracy: 80.00%"
-    pass
-
-report(preds, targets, model_name='CandidateScorer-v1')
+# === TODO 3: compute and print MSE and RMSE ===
+# errors = predictions - y
+# mse = (errors ** 2).mean()
+# rmse = mse ** 0.5
+# print(f'MSE: {mse:.6f}')
+# print(f'RMSE: {rmse:.6f}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -733,11 +752,10 @@ report(preds, targets, model_name='CandidateScorer-v1')
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>Accuracy: 80.00%</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Precision: 83.33%</div>
-    <div class="check-item"><span class="check-icon">🔁</span>Recall: 83.33%</div>
-    <div class="check-item"><span class="check-icon">⚖️</span>F1: 83.33%</div>
-    <div class="check-item"><span class="check-icon">🏗️</span>All four values computed by calling your four separate functions — not hardcoded numbers</div>
+    <div class="check-item"><span class="check-icon">📋</span>All 5 sample predictions vs their actual targets</div>
+    <div class="check-item"><span class="check-icon">🎯</span>MSE: 0.146000</div>
+    <div class="check-item"><span class="check-icon">📊</span>RMSE: 0.382099</div>
+    <div class="check-item"><span class="check-icon">⚡</span>Predictions computed with X @ w + b — not a manual per-sample formula</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -747,65 +765,60 @@ report(preds, targets, model_name='CandidateScorer-v1')
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 3 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 4. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 8 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 9. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">What's the real difference between <code>return</code> and <code>print</code> inside a function?</div>
+    <div class="q-text">A dataset has 100 samples and 5 features. What shape would its feature matrix X have, following ML convention?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> No difference — both just display output</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> return sends a value back to the caller to store or reuse; print only displays text and gives back None</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> print is faster so it should always be preferred</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> return can only be used once in an entire program</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> (5, 100) — features first, samples second</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> (100, 5) — one row per sample, one column per feature</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> (100, 100) — always square</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Shape doesn't matter for ML data</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">Given <code>def greet(name, greeting='Hello'):</code>, what happens if you call <code>greet('Bilal')</code>?</div>
+    <div class="q-text">What does the dot product of two vectors compute?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> TypeError — greeting is required and missing</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> greeting automatically uses its default value, 'Hello'</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Both name and greeting become 'Bilal'</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> SyntaxError, because defaults require keyword calls</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Elementwise multiplication only, giving back a vector</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The sum of elementwise products — a single number, computed with np.dot() or @</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The two vectors joined end to end</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The largest value shared by both vectors</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does <code>**kwargs</code> let a function accept?</div>
+    <div class="q-text">Matrix A has shape (3, 4) and matrix B has shape (4, 2). What is the shape of A @ B?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Any number of positional arguments, collected as a tuple</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Any number of keyword arguments, collected as a dict</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only exactly two extra arguments</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> A way to return multiple values from a function</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> (3, 2) — outer dimensions, since the inner 4s match</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> (4, 4)</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> (3, 4)</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — the shapes are incompatible</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write a lambda assigned to a variable called <code>square</code> that takes a number <code>x</code> and returns <code>x</code> squared.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="square = lambda x: ..." rows="3"></textarea>
+    <div class="q-text">Write the NumPy expression for the L2 norm (Euclidean length) of a vector <code>v</code>, assigned to a variable called <code>length</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="length = ..." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">What does this code print?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">counter = 0
-def increment():
-    counter = 1
-    return counter
-print(increment())
-print(counter)</pre></div>
+    <div class="q-text">X has shape (10, 3) and w has shape (3,). What shape is <code>X @ w</code>?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> 1 then 1</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> 0 then 0</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> 1 then 0 — the local counter inside the function never touches the global one</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> UnboundLocalError</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> (10,) — one prediction per sample</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (3,)</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> (10, 3) — unchanged</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> An error — shapes are incompatible</button>
     </div>
   </div>
 
@@ -816,10 +829,10 @@ print(counter)</pre></div>
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
     <div class="ncc-icon">🔀</div>
     <div class="ncc-info">
-      <h3>Chapter 4: Data Structures</h3>
-      <p>Lists, tuples, dicts, and sets in depth — slicing, nesting, sorting with keys, and the JSON-shaped data every real dataset arrives in.</p>
+      <h3>Chapter 9: Probability &amp; Statistics</h3>
+      <p>Mean, variance, distributions, correlation, and Bayes' theorem — the language every model evaluation report speaks.</p>
     </div>
-    <a class="ncc-btn" href="ch04-data-structures.html">Start Chapter 4 →</a>
+    <a class="ncc-btn" href="ch09-probability-statistics.html">Start Chapter 9 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -846,7 +859,7 @@ print(counter)</pre></div>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch03';
+const CH_ID='ch08';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -877,7 +890,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch02'];
+  const prev=store.chapters && store.chapters['ch07'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -897,7 +910,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# This console is yours — experiment freely','info');
+    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -970,58 +983,58 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['accuracy: 70.00%'],
-    hint:"def compute_accuracy(predictions, targets): correct=0; for p,t in zip(predictions,targets): if p==t: correct+=1; return correct/len(targets)",
-    solution:`predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
-
-def compute_accuracy(predictions, targets):
-    correct = 0
-    for p, t in zip(predictions, targets):
-        if p == t:
-            correct += 1
-    return correct / len(targets)
-
-accuracy = compute_accuracy(predictions, targets)
-print(f'Accuracy: {accuracy:.2%}')`
+    checks:['dot product: 32'],
+    hint:"dot = (v1 * v2).sum()",
+    solution:`import numpy as np
+v1 = np.array([1, 2, 3])
+v2 = np.array([4, 5, 6])
+dot = (v1 * v2).sum()
+print(f'Dot product: {dot}')`
   },
   2:{
-    checks:['loss: 0.1235','accuracy: 0.94'],
-    hint:"def format_metric(name, value, decimals=4): return f'{name}: {value:.{decimals}f}'",
-    solution:`def format_metric(name, value, decimals=4):
-    return f'{name}: {value:.{decimals}f}'
-
-print(format_metric('loss', 0.123456))
-print(format_metric('accuracy', 0.9423, decimals=2))`
+    checks:['prediction: 1.0000'],
+    hint:"prediction = np.dot(weights, features) + bias",
+    solution:`import numpy as np
+weights  = np.array([0.5, -0.2, 0.1])
+features = np.array([2.0, 3.0, 5.0])
+bias = 0.1
+prediction = np.dot(weights, features) + bias
+print(f'Prediction: {prediction:.4f}')`
   },
   3:{
-    checks:['average: 0.3500'],
-    hint:"def average_loss(*losses): return sum(losses)/len(losses)",
-    solution:`def average_loss(*losses):
-    return sum(losses) / len(losses)
-
-print(f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}')`
+    checks:['l2 norm: 5.0000','l1 norm: 7.0000','distance: 5.0000'],
+    hint:"l2 = np.linalg.norm(v); l1 = np.abs(v).sum(); distance = np.linalg.norm(a - b)",
+    solution:`import numpy as np
+v = np.array([3, 4])
+a = np.array([1, 2])
+b = np.array([4, 6])
+l2 = np.linalg.norm(v)
+l1 = np.abs(v).sum()
+distance = np.linalg.norm(a - b)
+print(f'L2 norm: {l2:.4f}')
+print(f'L1 norm: {l1:.4f}')
+print(f'Distance: {distance:.4f}')`
   },
   4:{
-    checks:['top performer: bob'],
-    hint:"sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)",
-    solution:`scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
-sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
-print(f'Top performer: {sorted_scores[0][0]}')`
+    checks:['shape: (4, 3)','row 1: [4, 5, 6]','column 2: [3, 6, 9, 12]','row 0 sum: 6'],
+    hint:"X.shape; list(X[1]); list(X[:,2]); X[0].sum()",
+    solution:`import numpy as np
+X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+print(f'Shape: {X.shape}')
+print(f'Row 1: {list(X[1])}')
+print(f'Column 2: {list(X[:,2])}')
+print(f'Row 0 sum: {X[0].sum()}')`
   },
   5:{
-    checks:['total processed: 56'],
-    hint:"def process_batch(batch_size): global total_processed; total_processed += batch_size",
-    solution:`total_processed = 0
-
-def process_batch(batch_size):
-    global total_processed
-    total_processed += batch_size
-
-process_batch(32)
-process_batch(16)
-process_batch(8)
-print(f'Total processed: {total_processed}')`
+    checks:['sample 0: -1.3000','sample 1: -2.3000','sample 2: -3.3000'],
+    hint:"predictions = X @ w + b; for i, p in enumerate(predictions): print(f'Sample {i}: {p:.4f}')",
+    solution:`import numpy as np
+X = np.array([[1,2],[3,4],[5,6]])
+w = np.array([0.5, -1.0])
+b = 0.2
+predictions = X @ w + b
+for i, p in enumerate(predictions):
+    print(f'Sample {i}: {p:.4f}')`
   }
 };
 
@@ -1079,7 +1092,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['accuracy: 80.00%','precision: 83.33%','recall: 83.33%','f1: 83.33%'];
+  const checks=['mse: 0.146000','rmse: 0.382099'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1088,11 +1101,11 @@ window.runProject=async function(){
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Missing some required values — check the checklist above (need all four metrics at the exact percentages)';
+    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099)';
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'B',5:'C'};
+const CORRECT={1:'B',2:'B',3:'A',5:'A'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1106,15 +1119,12 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const hasLambda=val.includes('lambda');
-  const hasX=val.includes('x');
-  const hasSquare=val.includes('x**2')||val.includes('x ** 2')||val.includes('x*x');
-  const passed=hasLambda&&hasX&&hasSquare;
+  const passed=val.includes('np.linalg.norm')&&val.includes('(v)');
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! square = lambda x: x**2'
-    :'❌ Not quite. You need: square = lambda x: x**2 (or x*x)';
+    ?'✅ Correct! length = np.linalg.norm(v)'
+    :'❌ Not quite. You need: length = np.linalg.norm(v)';
 };
 
 function revealNextChapter(){
@@ -1144,7 +1154,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Functions and modules are yours now — def, return, defaults, *args/**kwargs, lambda, scope, and import. You can now build reusable tools instead of copy-pasting logic.</div>`;
+      <div class="qrb-sub">Vectors, dot products, norms, and matrix multiplication are yours now. Every model prediction you'll ever compute is built from exactly these operations.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();

@@ -3,12 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 9: NumPy Deep Dive</title>
+<title>AI/ML: Zero to Hero — Chapter 6: Professional Python</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
-  extra seconds while the NumPy package itself downloads; after that it's instant.
+  (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
   Your progress on this chapter is saved to this browser's localStorage automatically.
+  NOTE: venv/pip are OS-level tools that can't literally run inside a browser sandbox — 6.1's
+  terminal blocks are reference material (no Run button); everything else in this chapter is
+  real, executable Python.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
@@ -77,6 +79,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
 .lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
 
 .lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
@@ -98,7 +101,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
 .cb-run:hover{background:var(--violet-light)}
 .cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
-.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
 
 .lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
 .lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
@@ -166,7 +169,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:320px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -275,7 +278,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 9: NumPy Deep Dive</div>
+  <div id="mob-title">Ch 6: Professional Python</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -284,26 +287,24 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 3 · Chapter 9 of 30</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 6 of 32</div>
   </a>
-  <a class="sb-back" href="../math/ch08-calculus-optimization.html">← Ch 8: Calculus &amp; Optimization</a>
+  <a class="sb-back" href="ch05-oop-files-errors.html">← Ch 5: OOP, Files &amp; Errors</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 9</div>
+  <div class="sb-section">Chapter 6</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 3</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 10: Pandas Fundamentals</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 11: Data Cleaning &amp; Wrangling</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 12: Data Visualization</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 7: Python for DevOps &amp; APIs (Capstone)</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 9</div>
-    <div class="tb-title">NumPy Deep Dive</div>
+    <div class="tb-chapter">Chapter 6</div>
+    <div class="tb-title">Professional Python</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -319,145 +320,194 @@ textarea#project-editor:focus{outline:none}
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 8 quiz in this browser yet. Welcome to Module 3 — this chapter assumes Chapter 6's NumPy basics.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 5 quiz in this browser yet. This chapter assumes you're comfortable with classes, try/except, and file I/O.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 9:<br/><span>NumPy Deep Dive</span></h1>
-    <p>Welcome to Module 3 — Data Tools. Chapter 6 introduced vectors, matrices, and the dot product. This chapter turns NumPy from "new syntax" into a reflex: broadcasting, boolean masking, and axis-based aggregation are the three techniques that let you replace almost every for-loop over data with a single fast expression.</p>
+    <h1>Chapter 6:<br/><span>Professional Python</span></h1>
+    <p>Chapters 1-5 taught you the language. This chapter teaches you how real codebases actually use it — the difference between a script that works on your machine and code a team can run, test, and trust. Virtual environments, custom exceptions, context managers, decorators, generators, logging, and automated tests: the everyday toolkit of professional Python, whether you end up doing ML engineering or DevOps.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~65 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 9.1 -->
-  <div class="lesson-h2">9.1 — Why Vectorized Code Beats Loops</div>
-  <p class="lesson-p">A Python <code>for</code> loop processes one element at a time, with real overhead per iteration. NumPy's vectorized operations push the loop down into pre-compiled, low-level code — the same math, done all at once. The rule from here on: <strong>if you're writing a Python loop over a NumPy array to do math, there is almost always a vectorized way to avoid it.</strong></p>
+  <!-- 6.1 -->
+  <div class="lesson-h2">6.1 — Virtual Environments &amp; pip: Isolating Dependencies</div>
+  <p class="lesson-p">Every Python project depends on specific versions of specific packages. Install everything globally on your machine and eventually two projects will need <em>different, incompatible</em> versions of the same package — this is "dependency hell." A <strong>virtual environment</strong> is a private, isolated copy of Python + installed packages, scoped to one project. This is the single most important habit that separates a script kiddie's machine from a professional setup.</p>
 
-  <!-- 9.2 -->
-  <div class="lesson-h2">9.2 — Array Creation Shortcuts</div>
-  <p class="lesson-p">Beyond <code>np.array()</code> from a list, NumPy has generators for common patterns: ranges, evenly-spaced points, and pre-filled arrays.</p>
+  <div class="info-box note"><div class="ib-icon">💻</div><div class="ib-body"><strong>These commands run in a real terminal, not this browser</strong><br/>Pyodide (the in-browser Python powering this course) is a sandboxed WebAssembly runtime — it has no real filesystem-level "processes" to isolate. The blocks below are reference material: read them, understand what each line does, and try them for real next time you're in a terminal with Python installed.</div></div>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Creating arrays without writing out every value</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Terminal — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="cm"># create an isolated environment named .venv, scoped to this project folder</span>
+python -m venv .venv
 
-<span class="bi">print</span>(<span class="bi">list</span>(np.arange(<span class="nm">0</span>, <span class="nm">10</span>, <span class="nm">2</span>)))     <span class="cm"># [0, 2, 4, 6, 8] — like range(), but returns an array</span>
-<span class="bi">print</span>(<span class="bi">list</span>(np.linspace(<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">5</span>)))    <span class="cm"># [0.0, 0.25, 0.5, 0.75, 1.0] — 5 evenly spaced points from 0 to 1</span>
-<span class="bi">print</span>(np.zeros((<span class="nm">2</span>, <span class="nm">3</span>)).shape)     <span class="cm"># (2, 3) — a 2x3 grid of zeros, useful as a starting point</span>
-<span class="bi">print</span>(np.ones(<span class="nm">4</span>))              <span class="cm"># [1. 1. 1. 1.]</span></div>
+<span class="cm"># activate it — your shell prompt changes to show you're "inside" it</span>
+source .venv/bin/activate      <span class="cm"># macOS / Linux</span>
+.venv\Scripts\activate         <span class="cm"># Windows</span>
+
+<span class="cm"># now pip install/uninstall only affects THIS environment</span>
+pip install pandas numpy scikit-learn
+
+<span class="cm"># snapshot the exact versions you have — this file goes into git</span>
+pip freeze > requirements.txt
+
+<span class="cm"># anyone (or any server) can recreate your exact environment with:</span>
+pip install -r requirements.txt
+
+<span class="cm"># leave the environment</span>
+deactivate</div>
   </div>
 
-  <!-- 9.3 -->
-  <div class="lesson-h2">9.3 — Broadcasting: Operating on Different Shapes</div>
-  <p class="lesson-p"><strong>Broadcasting</strong> lets NumPy apply an operation between arrays of different (but compatible) shapes, by stretching the smaller one conceptually. You already used the simplest form in Chapter 6 (array + scalar). Here's the powerful version: matrix ± a single row.</p>
+  <p class="lesson-p">The habit that matters most: <strong>never install packages globally.</strong> Every project gets its own <code>.venv</code>, and every project ships a <code>requirements.txt</code> so its exact dependencies are reproducible on any machine — yours, a teammate's, or a production server. This is also exactly what a Dockerfile does at a higher level (Module 7), and what a <code>Colab</code> notebook's first cell (<code>!pip install ...</code>) is doing when later chapters use it.</p>
+
+  <table class="lesson-table">
+    <tr><th>Command</th><th>What it does</th></tr>
+    <tr><td>python -m venv .venv</td><td class="highlight">Create a new isolated environment</td></tr>
+    <tr><td>pip install X</td><td>Install package X into the ACTIVE environment</td></tr>
+    <tr><td>pip freeze</td><td>List installed packages with exact versions</td></tr>
+    <tr><td>pip install -r requirements.txt</td><td class="highlight">Reproduce someone else's exact environment</td></tr>
+  </table>
+
+  <!-- 6.2 -->
+  <div class="lesson-h2">6.2 — Custom Exceptions: Errors That Mean Something</div>
+  <p class="lesson-p">Chapter 5 caught built-in errors like <code>ValueError</code>. In real code you also want to raise errors that describe YOUR problem domain — "this candidate's score is out of range" is far more useful to whoever reads the traceback than a generic <code>ValueError</code>. Define a custom exception by subclassing <code>Exception</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Mean-centering a matrix column-wise — no loop over columns</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A domain-specific exception</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">InsufficientScoreError</span>(<span class="bi">Exception</span>):
+    <span class="kw">pass</span>
 
-matrix = np.array([[<span class="nm">1</span>,<span class="nm">2</span>],[<span class="nm">3</span>,<span class="nm">4</span>],[<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># shape (3, 2)</span>
-col_means = matrix.mean(axis=<span class="nm">0</span>)                      <span class="cm"># shape (2,) — one mean per column</span>
-<span class="bi">print</span>(<span class="st">f'Column means: <span class="bi">{list(col_means)}</span>'</span>)         <span class="cm"># [3.0, 4.0]</span>
+<span class="kw">def</span> <span class="fn">check_score</span>(score):
+    <span class="kw">if</span> score < <span class="nm">0.8</span>:
+        <span class="kw">raise</span> InsufficientScoreError(<span class="st">f"score {score} below threshold"</span>)
+    <span class="kw">return</span> <span class="st">"qualified"</span>
 
-centered = matrix - col_means    <span class="cm"># (3,2) - (2,)  -> broadcasts: subtracted from EVERY row</span>
-<span class="bi">print</span>(<span class="st">f'Centered:'</span>)
-<span class="bi">print</span>(centered)</div>
+<span class="kw">try</span>:
+    check_score(<span class="nm">0.6</span>)
+<span class="kw">except</span> InsufficientScoreError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f'Caught: <span class="bi">{e}</span>'</span>)
+
+<span class="bi">print</span>(check_score(<span class="nm">0.9</span>))</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The broadcasting rule in one sentence:</strong> shapes are compatible if, comparing from the right, each dimension either matches or one of them is 1 (or missing). <code>(3,2)</code> and <code>(2,)</code> match because 2=2, and the missing dimension is treated as "stretch to fit."</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>A custom exception is just a class</strong> — usually with just <code>pass</code> in its body. Its NAME is the whole point: <code>except InsufficientScoreError</code> lets calling code react to exactly this failure without accidentally swallowing unrelated bugs (which a bare <code>except:</code> or overly broad <code>except Exception:</code> would do).</div></div>
 
-  <!-- 9.4 -->
-  <div class="lesson-h2">9.4 — Boolean Masking: Filtering Without a Loop</div>
-  <p class="lesson-p">Comparing an array to a value gives you an array of True/False. Using THAT as an index filters the array — no loop, no <code>if</code> statement per element. Combine conditions with <code>&amp;</code> (and) / <code>|</code> (or) — NOT Python's <code>and</code>/<code>or</code>, which don't work elementwise. Always wrap each condition in parentheses.</p>
+  <!-- 6.3 -->
+  <div class="lesson-h2">6.3 — Context Managers: Guaranteed Cleanup</div>
+  <p class="lesson-p">Chapter 5's <code>with open(...) as f:</code> automatically closes the file even if an error happens inside the block. That's a <strong>context manager</strong>. You can write your own with <code>@contextmanager</code> from the <code>contextlib</code> module: the code before <code>yield</code> runs on entry, the code after (inside <code>finally</code>) runs on exit — no matter what.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Filtering with combined conditions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A custom context manager</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> contextlib <span class="kw">import</span> contextmanager
 
-scores = np.array([<span class="nm">45</span>, <span class="nm">62</span>, <span class="nm">78</span>, <span class="nm">55</span>, <span class="nm">90</span>, <span class="nm">33</span>, <span class="nm">71</span>, <span class="nm">88</span>])
+<span class="op">@contextmanager</span>
+<span class="kw">def</span> <span class="fn">stage</span>(name):
+    <span class="bi">print</span>(<span class="st">f'START <span class="bi">{name}</span>'</span>)
+    <span class="kw">try</span>:
+        <span class="kw">yield</span>
+    <span class="kw">finally</span>:
+        <span class="bi">print</span>(<span class="st">f'END <span class="bi">{name}</span>'</span>)
 
-mask = scores >= <span class="nm">60</span>
-<span class="bi">print</span>(<span class="st">f'Mask: <span class="bi">{list(mask)}</span>'</span>)          <span class="cm"># [False, True, True, False, True, False, True, True]</span>
-<span class="bi">print</span>(<span class="st">f'Passing: <span class="bi">{list(scores[mask])}</span>'</span>)  <span class="cm"># [62, 78, 90, 71, 88] — only the True positions</span>
-
-<span class="cm"># Combine conditions: passing, but not top-tier</span>
-combined = scores[(scores >= <span class="nm">60</span>) & (scores <= <span class="nm">85</span>)]
-<span class="bi">print</span>(<span class="st">f'Mid-range: <span class="bi">{list(combined)}</span>'</span>)</div>
+<span class="kw">with</span> stage(<span class="st">'validation'</span>):
+    <span class="bi">print</span>(<span class="st">'checking data'</span>)</div>
   </div>
+  <p class="lesson-p">Why this matters for DevOps and ML alike: any resource that needs guaranteed cleanup — a database connection, a temp file, a GPU memory allocation, a timer around a training step — belongs in a context manager, not in ad-hoc code you might forget to run on the error path.</p>
 
-  <!-- 9.5 -->
-  <div class="lesson-h2">9.5 — Aggregating Along an Axis</div>
-  <p class="lesson-p">For a 2D array, <code>axis=0</code> aggregates DOWN each column (collapsing rows); <code>axis=1</code> aggregates ACROSS each row (collapsing columns). This trips up almost everyone at first — the axis you name is the one that DISAPPEARS from the result.</p>
+  <!-- 6.4 -->
+  <div class="lesson-h2">6.4 — Decorators: Wrapping Behavior Around a Function</div>
+  <p class="lesson-p">A <strong>decorator</strong> is a function that takes a function and returns a new function that wraps it — adding behavior before/after the original runs, without touching the original's code. The <code>@decorator_name</code> syntax above a function definition is shorthand for <code>func = decorator_name(func)</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Row sums vs column means — a grade book</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A logging decorator</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">log_call</span>(func):
+    <span class="kw">def</span> <span class="fn">wrapper</span>(*args, **kwargs):
+        <span class="bi">print</span>(<span class="st">f'Calling <span class="bi">{func.__name__}</span> with <span class="bi">{args}</span>'</span>)
+        result = func(*args, **kwargs)
+        <span class="bi">print</span>(<span class="st">f'Result: <span class="bi">{result}</span>'</span>)
+        <span class="kw">return</span> result
+    <span class="kw">return</span> wrapper
 
-<span class="cm"># 3 students (rows) x 3 subjects (columns)</span>
-grades = np.array([
-    [<span class="nm">80</span>, <span class="nm">90</span>, <span class="nm">70</span>],
-    [<span class="nm">60</span>, <span class="nm">85</span>, <span class="nm">95</span>],
-    [<span class="nm">75</span>, <span class="nm">65</span>, <span class="nm">88</span>],
-])
+<span class="op">@log_call</span>
+<span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="kw">return</span> a + b
 
-row_sums = grades.sum(axis=<span class="nm">1</span>)     <span class="cm"># collapse columns -> total per STUDENT</span>
-col_means = grades.mean(axis=<span class="nm">0</span>)   <span class="cm"># collapse rows -> average per SUBJECT</span>
-
-<span class="bi">print</span>(<span class="st">f'Total per student: <span class="bi">{list(row_sums)}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Average per subject: <span class="bi">{[round(float(v),2) for v in col_means]}</span>'</span>)</div>
+add(<span class="nm">3</span>, <span class="nm">5</span>)</div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>*args, **kwargs let a decorator wrap ANY function</strong> — one with 0 arguments, one with 5, one with keyword arguments — the wrapper doesn't need to know the original's exact signature. You'll see this exact pattern in Flask/FastAPI route decorators and PyTorch's <code>@torch.no_grad()</code>.</div></div>
 
-  <!-- 9.6 -->
-  <div class="lesson-h2">9.6 — Reshaping Arrays</div>
-  <p class="lesson-p"><code>.reshape()</code> changes an array's shape without changing its data or order — useful whenever a library expects a specific shape (like a flat list of pixels reshaped into an image grid).</p>
+  <!-- 6.5 -->
+  <div class="lesson-h2">6.5 — Generators: Lazy Sequences With yield</div>
+  <p class="lesson-p">A normal function that builds a list computes and holds EVERY value in memory at once. A <strong>generator function</strong> — one that uses <code>yield</code> instead of <code>return</code> — produces values one at a time, on demand. For a 10-million-row dataset, the difference is "crashes with MemoryError" vs. "runs fine."</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Reshape and flatten</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A generator that filters lazily</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">high_scores</span>(scores):
+    <span class="kw">for</span> s <span class="kw">in</span> scores:
+        <span class="kw">if</span> s >= <span class="nm">80</span>:
+            <span class="kw">yield</span> s
 
-flat = np.arange(<span class="nm">12</span>)                  <span class="cm"># [0, 1, 2, ..., 11] — shape (12,)</span>
-grid = flat.reshape(<span class="nm">3</span>, <span class="nm">4</span>)          <span class="cm"># reinterpret as 3 rows x 4 columns</span>
-<span class="bi">print</span>(<span class="st">f'Original shape: <span class="bi">{flat.shape}</span>, reshaped: <span class="bi">{grid.shape}</span>'</span>)
-<span class="bi">print</span>(grid)
-
-back_to_flat = grid.flatten()   <span class="cm"># undo it — back to shape (12,)</span>
-<span class="bi">print</span>(<span class="st">f'Flattened again: <span class="bi">{list(back_to_flat)}</span>'</span>)</div>
+scores = [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>, <span class="nm">88</span>]
+result = <span class="bi">list</span>(high_scores(scores))   <span class="cm"># list() pulls every value out of the generator</span>
+<span class="bi">print</span>(<span class="st">f'Qualified: <span class="bi">{result}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Count: <span class="bi">{len(result)}</span>'</span>)</div>
   </div>
+  <p class="lesson-p">Calling <code>high_scores(scores)</code> does NOT run the function body yet — it returns a generator object. Only iterating it (with a <code>for</code> loop, <code>list()</code>, or <code>next()</code>) actually executes code, one <code>yield</code> at a time. A generator EXPRESSION — <code>(s for s in scores if s >= 80)</code> — does the same thing as a one-liner, the lazy counterpart to a list comprehension.</p>
 
-  <!-- 9.7 -->
-  <div class="lesson-h2">9.7 — Putting It Together: Vectorized Standardization</div>
-  <p class="lesson-p">Chapter 7 computed a z-score for a single vector. Now do it for an ENTIRE feature matrix at once — every column standardized in one broadcasting expression, no loop over features.</p>
+  <!-- 6.6 -->
+  <div class="lesson-h2">6.6 — Logging: print() That Scales</div>
+  <p class="lesson-p"><code>print()</code> is fine for a 20-line script. Real programs need <strong>levels</strong> (DEBUG/INFO/WARNING/ERROR), the ability to turn noisy output off without deleting code, and timestamps — that's the <code>logging</code> module.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Standardizing every column of a dataset, in one line each</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Logging levels</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> logging
 
-X = np.array([
-    [<span class="nm">10</span>, <span class="nm">1</span>],
-    [<span class="nm">20</span>, <span class="nm">2</span>],
-    [<span class="nm">30</span>, <span class="nm">3</span>],
-    [<span class="nm">40</span>, <span class="nm">4</span>],
-], dtype=<span class="bi">float</span>)
+<span class="cm"># force=True resets handlers each call — needed because this console reuses</span>
+<span class="cm"># the same Python session, so re-running this cell wouldn't stack duplicate handlers</span>
+logging.basicConfig(level=logging.INFO, <span class="kw">format</span>=<span class="st">'%(levelname)s: %(message)s'</span>, force=<span class="kw">True</span>)
+logger = logging.getLogger(<span class="st">'app'</span>)
 
-mean = X.mean(axis=<span class="nm">0</span>)    <span class="cm"># one mean PER COLUMN — shape (2,)</span>
-std  = X.std(axis=<span class="nm">0</span>)     <span class="cm"># one std PER COLUMN — shape (2,)</span>
-
-standardized = (X - mean) / std   <span class="cm"># broadcasts across every row — the whole dataset, one line</span>
-<span class="bi">print</span>(standardized)</div>
+logger.info(<span class="st">'starting validation'</span>)
+logger.warning(<span class="st">'score close to threshold'</span>)
+<span class="cm"># logger.debug(...) would NOT print — level=INFO filters out DEBUG</span></div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This is exactly what StandardScaler does in scikit-learn</strong> (Module 4). Every feature gets rescaled to mean 0, std 1 — so a model doesn't accidentally treat "salary in dollars" as more important than "years of experience" just because its raw numbers are bigger.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Always pass force=True when re-configuring logging in this console</strong> — without it, calling <code>basicConfig()</code> a second time in the same session is a no-op (Python only lets you configure the root logger once by default), and old handlers silently keep pointing at stale output streams.</div></div>
+
+  <!-- 6.7 -->
+  <div class="lesson-h2">6.7 — Testing: Trusting Your Own Code</div>
+  <p class="lesson-p">A function you never test is a function you're hoping works. <code>unittest</code> (built into Python, no install needed) lets you write assertions that run automatically and report exactly what broke. <code>assertEqual(a, b)</code> fails loudly with a diff if <code>a != b</code>, instead of silently passing wrong output downstream.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real unittest.TestCase</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> unittest
+
+<span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="kw">return</span> a + b
+
+<span class="kw">class</span> <span class="cls">TestAdd</span>(unittest.TestCase):
+    <span class="kw">def</span> <span class="fn">test_add_positive</span>(self):
+        self.assertEqual(add(<span class="nm">2</span>, <span class="nm">3</span>), <span class="nm">5</span>)
+    <span class="kw">def</span> <span class="fn">test_add_negative</span>(self):
+        self.assertEqual(add(-<span class="nm">1</span>, <span class="nm">1</span>), <span class="nm">0</span>)
+
+<span class="cm"># TextTestRunner instead of unittest.main() — main() calls sys.exit(), which</span>
+<span class="cm"># would kill this console session</span>
+runner = unittest.TextTestRunner(verbosity=<span class="nm">0</span>)
+result = runner.run(unittest.TestLoader().loadTestsFromTestCase(TestAdd))
+<span class="bi">print</span>(<span class="st">f'Tests run: <span class="bi">{result.testsRun}</span>, Failures: <span class="bi">{len(result.failures)}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Never call unittest.main() in this console</strong> — it calls <code>sys.exit()</code> when done, which raises <code>SystemExit</code> and looks like a crash here. Use <code>TextTestRunner().run(...)</code> instead, exactly as shown above — this is what you'd also do to run tests programmatically from another script.</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 9 Summary</div>
+  <div class="lesson-h2">Chapter 6 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>Vectorized operations replace loops</strong> — faster, and usually more readable once you're fluent in the pattern.</div></li>
-    <li data-n="2"><div><strong>np.arange, np.linspace, np.zeros/ones</strong> generate arrays without writing every value.</div></li>
-    <li data-n="3"><div><strong>Broadcasting</strong> lets a smaller array (like a row of column-means) apply across a whole matrix.</div></li>
-    <li data-n="4"><div><strong>Boolean masking</strong> (<code>arr[arr > x]</code>) filters without a loop. Combine conditions with <code>&amp;</code> / <code>|</code>, each side in parentheses.</div></li>
-    <li data-n="5"><div><strong>axis=0</strong> collapses rows (down each column); <strong>axis=1</strong> collapses columns (across each row).</div></li>
-    <li data-n="6"><div><strong>.reshape() / .flatten()</strong> change an array's shape without touching its data.</div></li>
+    <li data-n="1"><div><strong>Virtual environments + requirements.txt</strong> make your project's dependencies reproducible on any machine.</div></li>
+    <li data-n="2"><div><strong>Custom exceptions</strong> (subclass <code>Exception</code>) give errors names that mean something in your domain.</div></li>
+    <li data-n="3"><div><strong>Context managers</strong> (<code>@contextmanager</code> + <code>try/finally</code>) guarantee cleanup code runs, even on failure.</div></li>
+    <li data-n="4"><div><strong>Decorators</strong> wrap a function with extra behavior using <code>@name</code>, without changing its source.</div></li>
+    <li data-n="5"><div><strong>Generators</strong> (<code>yield</code>) produce values lazily — essential for large datasets.</div></li>
+    <li data-n="6"><div><strong>logging</strong> replaces <code>print()</code> with levels or professional code. <strong>unittest</strong> replaces "I ran it once and it looked fine" with real, repeatable tests.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -476,33 +526,24 @@ standardized = (X - mean) / std   <span class="cm"># broadcasts across every row
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Array Creation</div>
-        <div class="ex-desc">Use arange, linspace, and zeros to generate arrays without writing out every value.</div>
+        <div class="ex-title">Recall: Reproducing an Environment</div>
+        <div class="ex-desc">Write the exact pip command that recreates an environment from a requirements.txt file.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-
-Create:
-  arr1 = np.arange(0, 10, 2)
-  arr2 = np.linspace(0, 1, 5)
-  zeros = np.zeros((2, 3))
+Assign the correct pip command (as a string) that installs every
+package listed in requirements.txt, to a variable named cmd.
 
 Print exactly:
-  f'arr1: {list(arr1)}'
-  f'arr2: {list(arr2)}'
-  f'zeros shape: {zeros.shape}'
-(Correct: arr1: [0, 2, 4, 6, 8] / arr2: [0.0, 0.25, 0.5, 0.75, 1.0] / zeros shape: (2, 3))</div>
+  f'Command: {cmd}'
+(Correct: Command: pip install -r requirements.txt)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">import numpy as np
+      <textarea class="ex-editor" id="ex1-code">cmd = "???"
 
-# arr1 = np.arange(0, 10, 2)
-# arr2 = np.linspace(0, 1, 5)
-# zeros = np.zeros((2, 3))
-
+# print(f'Command: {cmd}')
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
@@ -516,28 +557,43 @@ Print exactly:
     <div class="ex-header">
       <div class="ex-num">2</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Broadcasting: Mean-Center a Matrix</div>
-        <div class="ex-desc">Subtract each column's mean from every row, using broadcasting — no loop over columns.</div>
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">A Custom Exception</div>
+        <div class="ex-desc">Define and raise a domain-specific exception, then catch it.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])   (already given)
+Define class InsufficientScoreError(Exception): pass
 
-Compute centered = matrix - matrix.mean(axis=0)
+Define check_score(score):
+  if score < 0.8: raise InsufficientScoreError(f"score {score} below threshold")
+  else: return "qualified"
 
-Print exactly: f'Centered: {centered.tolist()}'
-(The correct answer is Centered: [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]])</div>
+Call check_score(0.6) inside a try/except InsufficientScoreError as e,
+printing f'Caught: {e}' in the except block.
+Then call check_score(0.9) and print() its return value.
+
+(Correct output, in order:
+Caught: score 0.6 below threshold
+qualified)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])
+      <textarea class="ex-editor" id="ex2-code">class InsufficientScoreError(Exception):
+    pass
 
-# centered = matrix - matrix.mean(axis=0)
+def check_score(score):
+    if score < 0.8:
+        raise InsufficientScoreError(f"score {score} below threshold")
+    return "qualified"
 
+# try:
+#     check_score(0.6)
+# except InsufficientScoreError as e:
+#     print(f'Caught: {e}')
+#
+# print(check_score(0.9))
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
@@ -552,29 +608,43 @@ matrix = np.array([[1,2],[3,4],[5,6]])
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Boolean Masking With Combined Conditions</div>
-        <div class="ex-desc">Filter an array using two conditions combined with &.</div>
+        <div class="ex-title">A Context Manager That Always Cleans Up</div>
+        <div class="ex-desc">Build a @contextmanager that prints START/END around a block.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-scores = np.array([45, 62, 78, 55, 90, 33, 71, 88])   (already given)
+from contextlib import contextmanager
 
-Filter scores that are >= 60 AND <= 85 into "filtered".
+Define, with @contextmanager:
+  def stage(name):
+      print(f'START {name}')
+      try:
+          yield
+      finally:
+          print(f'END {name}')
 
-Print exactly:
-  f'Filtered: {list(filtered)}'
-  f'Count: {len(filtered)}'
-(Correct: Filtered: [62, 78, 71] / Count: 3)</div>
+Use: with stage('validation'): print('checking data')
+
+Print exactly, in order:
+  START validation
+  checking data
+  END validation</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">import numpy as np
-scores = np.array([45, 62, 78, 55, 90, 33, 71, 88])
+      <textarea class="ex-editor" id="ex3-code">from contextlib import contextmanager
 
-# filtered = scores[(scores >= 60) & (scores <= 85)]
-
+# @contextmanager
+# def stage(name):
+#     print(f'START {name}')
+#     try:
+#         yield
+#     finally:
+#         print(f'END {name}')
+#
+# with stage('validation'):
+#     print('checking data')
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
@@ -589,29 +659,40 @@ scores = np.array([45, 62, 78, 55, 90, 33, 71, 88])
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Row Sums vs Column Means</div>
-        <div class="ex-desc">Aggregate the same matrix two different ways using axis=0 and axis=1.</div>
+        <div class="ex-title">Write a Logging Decorator</div>
+        <div class="ex-desc">Wrap a function so every call prints its arguments and result.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-grades = np.array([[80,90,70],[60,85,95],[75,65,88]])   (already given)
+Define log_call(func) returning a wrapper(*args, **kwargs) that:
+  1. prints f'Calling {func.__name__} with {args}'
+  2. calls func(*args, **kwargs), storing the result
+  3. prints f'Result: {result}'
+  4. returns result
 
-Print exactly:
-  f'Row sums: {list(grades.sum(axis=1))}'
-  f'Col0 mean: {grades.mean(axis=0)[0]:.4f}'
-  f'Col1 mean: {grades.mean(axis=0)[1]:.4f}'
-  f'Col2 mean: {grades.mean(axis=0)[2]:.4f}'
-(Correct: Row sums: [240, 240, 228] / Col0 mean: 71.6667 / Col1 mean: 80.0000 / Col2 mean: 84.3333)</div>
+Apply @log_call to: def add(a, b): return a + b
+Call add(3, 5).
+
+(Correct output, in order:
+Calling add with (3, 5)
+Result: 8)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">import numpy as np
-grades = np.array([[80,90,70],[60,85,95],[75,65,88]])
-
-# print row sums (axis=1) and column means (axis=0)
-
+      <textarea class="ex-editor" id="ex4-code"># def log_call(func):
+#     def wrapper(*args, **kwargs):
+#         print(f'Calling {func.__name__} with {args}')
+#         result = func(*args, **kwargs)
+#         print(f'Result: {result}')
+#         return result
+#     return wrapper
+#
+# @log_call
+# def add(a, b):
+#     return a + b
+#
+# add(3, 5)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
@@ -626,30 +707,35 @@ grades = np.array([[80,90,70],[60,85,95],[75,65,88]])
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">Standardize a Full Matrix</div>
-        <div class="ex-desc">Column-wise z-score standardization of a small matrix, in one broadcasting expression.</div>
+        <div class="ex-title">A Lazy Filtering Generator</div>
+        <div class="ex-desc">Write a generator function that yields only qualifying values.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-data = np.array([[10,1],[20,2],[30,3],[40,4]], dtype=float)   (already given)
+scores = [92, 75, 81, 60, 88]
+(already given)
 
-Compute standardized = (data - data.mean(axis=0)) / data.std(axis=0)
+Define a generator function high_scores(scores) that yields
+each score >= 80, one at a time (using yield, not a list).
 
-Then print one line per row, formatted:
-  for row in standardized: print(f'{row[0]:.4f}, {row[1]:.4f}')
+result = list(high_scores(scores))
 
-(Correct 4 lines: -1.3416, -1.3416 / -0.4472, -0.4472 / 0.4472, 0.4472 / 1.3416, 1.3416)</div>
+Print exactly:
+  f'Qualified: {result}'
+  f'Count: {len(result)}'
+(Correct: Qualified: [92, 81, 88] / Count: 3)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">import numpy as np
-data = np.array([[10,1],[20,2],[30,3],[40,4]], dtype=float)
+      <textarea class="ex-editor" id="ex5-code">scores = [92, 75, 81, 60, 88]
 
-# standardized = (data - data.mean(axis=0)) / data.std(axis=0)
-# for row in standardized: print(f'{row[0]:.4f}, {row[1]:.4f}')
-
+# def high_scores(scores):
+#     for s in scores:
+#         if s >= 80:
+#             yield s
+#
+# result = list(high_scores(scores))
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
@@ -666,52 +752,73 @@ data = np.array([[10,1],[20,2],[30,3],[40,4]], dtype=float)
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Feature Scaler</span></h2>
-    <p>Build two of the most common preprocessing tools in ML — a standard (z-score) scaler and a min-max scaler — applied column-wise to a whole feature matrix at once, with no loop over features. Both are one-liners once you trust broadcasting.</p>
+    <h2>🏗️ Mini Project: <span>Candidate Validator</span></h2>
+    <p>Bring together everything from this chapter: a custom exception for bad data, a decorator that logs every validation call, and a generator that lazily yields only the valid candidates — skipping (and reporting) the bad ones instead of crashing.</p>
     <div class="project-tags">
-      <span class="ptag">broadcasting</span>
-      <span class="ptag">axis=0</span>
-      <span class="ptag">preprocessing</span>
+      <span class="ptag">custom exception</span>
+      <span class="ptag">decorator</span>
+      <span class="ptag">generator</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Compute standardized = (X - X.mean(axis=0)) / X.std(axis=0)</li>
-      <li>Compute minmax = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))</li>
-      <li>Print each row of both scaled versions, clearly labeled</li>
+      <li>Define InvalidCandidateError(Exception) for out-of-range scores (not between 0 and 1)</li>
+      <li>Define a log_validation decorator that prints f'Validating {candidate["name"]}...' before calling the wrapped function</li>
+      <li>Decorate a validate(candidate) function with it; validate() raises InvalidCandidateError for bad scores, otherwise returns the candidate</li>
+      <li>Write a generator valid_candidates(raw) that yields validate(c) for each c, catching InvalidCandidateError and printing f'Skipped: {e}' instead of crashing</li>
+      <li>Print the names and count of everyone who made it through</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Feature Scaler — Your Solution</div>
+      <div class="pe-title">🏗️ Candidate Validator — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Feature Scaler
-# Use ONLY Chapter 9 concepts — broadcasting, no loops over features
+# Mini Project: Candidate Validator
+# Use ONLY Chapter 6 concepts
 # ══════════════════════════════════════════
-import numpy as np
+candidates = [
+    {'name': 'Alice', 'score': 0.92},
+    {'name': 'Bob',   'score': 0.75},
+    {'name': 'Carol', 'score': 1.4},   # invalid — out of range
+    {'name': 'Dave',  'score': 0.60},
+    {'name': 'Eve',   'score': -0.1},  # invalid — out of range
+]
 
-X = np.array([
-    [1, 200],
-    [2, 150],
-    [3, 300],
-    [4, 250],
-    [5, 100],
-], dtype=float)
+# === TODO 1: custom exception ===
+# class InvalidCandidateError(Exception):
+#     pass
 
-# === TODO 1: standard (z-score) scaling ===
-# standardized = (X - X.mean(axis=0)) / X.std(axis=0)
-# for row in standardized:
-#     print(f'Standardized: {row[0]:.4f}, {row[1]:.4f}')
+# === TODO 2: logging decorator ===
+# def log_validation(func):
+#     def wrapper(candidate):
+#         print(f'Validating {candidate["name"]}...')
+#         return func(candidate)
+#     return wrapper
 
-# === TODO 2: min-max scaling ===
-# minmax = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
-# for row in minmax:
-#     print(f'MinMax: {row[0]:.4f}, {row[1]:.4f}')
+# === TODO 3: decorated validator ===
+# @log_validation
+# def validate(candidate):
+#     if candidate['score'] < 0 or candidate['score'] > 1:
+#         raise InvalidCandidateError(f'{candidate["name"]} has an out-of-range score')
+#     return candidate
+
+# === TODO 4: lazy-filtering generator ===
+# def valid_candidates(raw):
+#     for c in raw:
+#         try:
+#             yield validate(c)
+#         except InvalidCandidateError as e:
+#             print(f'Skipped: {e}')
+
+# === TODO 5: run it ===
+# result = list(valid_candidates(candidates))
+# print(f'Valid: {[c["name"] for c in result]}')
+# print(f'Valid count: {len(result)}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -719,10 +826,11 @@ X = np.array([
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📏</span>Standardized: -1.4142, 0.0000 (first row)</div>
-    <div class="check-item"><span class="check-icon">📏</span>Standardized: 1.4142, -1.4142 (last row)</div>
-    <div class="check-item"><span class="check-icon">📐</span>MinMax: 0.0000, 0.5000 (first row)</div>
-    <div class="check-item"><span class="check-icon">📐</span>MinMax: 1.0000, 0.0000 (last row)</div>
+    <div class="check-item"><span class="check-icon">📋</span>Validating Alice... / Validating Bob... / Validating Carol... / Validating Dave... / Validating Eve...</div>
+    <div class="check-item"><span class="check-icon">🚫</span>Skipped: Carol has an out-of-range score</div>
+    <div class="check-item"><span class="check-icon">🚫</span>Skipped: Eve has an out-of-range score</div>
+    <div class="check-item"><span class="check-icon">✅</span>Valid: ['Alice', 'Bob', 'Dave']</div>
+    <div class="check-item"><span class="check-icon">🔢</span>Valid count: 3</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -732,60 +840,60 @@ X = np.array([
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 9 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 10. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 6 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 7. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">A matrix has shape (4, 3). What does <code>matrix.mean(axis=0)</code> return?</div>
+    <div class="q-text">Why use a virtual environment instead of installing packages globally?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> A single number — the mean of everything</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Shape (3,) — one mean per column, collapsing the rows</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Shape (4,) — one mean per row</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Shape (4, 3) — unchanged</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It makes Python run faster</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> It isolates each project's dependencies so different projects can use different, even conflicting, package versions</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> It's required to use the print() function</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It automatically writes your unit tests</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">Why does <code>arr[(arr &gt; 5) &amp; (arr &lt; 10)]</code> use <code>&amp;</code> instead of Python's <code>and</code>?</div>
+    <div class="q-text">In a <code>@contextmanager</code> function, what does putting <code>yield</code> inside a <code>try/finally</code> guarantee?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> and is faster but & is required by convention only</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> and only works on single True/False values, not element-by-element on whole arrays; & works elementwise</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> There's no real difference between them</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> & only works with integers</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Nothing — try/finally has no effect around yield</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The cleanup code in finally runs even if the with-block raises an exception</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The function runs twice</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It prevents the with-block from ever raising an exception</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">A (5, 2) array and a (2,) array are combined with subtraction: <code>arr - row</code>. What happens?</div>
+    <div class="q-text">What is the primary purpose of a decorator?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> An error — shapes must match exactly</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Broadcasting: the (2,) row is subtracted from every one of the 5 rows</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only the first row of arr gets the subtraction applied</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> NumPy pads row with zeros to make shape (5, 2), losing meaning</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> To wrap a function with extra behavior (before/after it runs) without changing its source code</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> To make a function run faster automatically</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> To convert a function into a class</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> To delete a function after it's called once</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write the NumPy expression that reshapes a flat array <code>flat</code> of 12 elements into a 3-row, 4-column 2D array, assigned to <code>grid</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="grid = ..." rows="3"></textarea>
+    <div class="q-text">Write the two lines that apply a decorator named <code>log_call</code> to a function named <code>process</code> (the decorator line, then the def line).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="@...&#10;def process(...):" rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">Why is a vectorized NumPy operation typically faster than the equivalent Python for-loop over the same data?</div>
+    <div class="q-text">What's the key difference between a generator function (using <code>yield</code>) and a normal function that builds and returns a list?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It isn't actually faster, just shorter to write</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The loop runs in pre-compiled, low-level code instead of Python's per-iteration overhead</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> NumPy skips some of the data to save time</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Python for-loops are actually faster for numeric work</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> There is no difference — yield is just alternate syntax for return</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> A generator produces values lazily, one at a time, without holding the whole sequence in memory at once</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> A generator can only be used once per Python program, ever</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> A generator runs on a separate CPU core automatically</button>
     </div>
   </div>
 
@@ -794,12 +902,12 @@ X = np.array([
   <div class="quiz-result-banner" id="quiz-result"></div>
 
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
-    <div class="ncc-icon">🔀</div>
+    <div class="ncc-icon">🎓</div>
     <div class="ncc-info">
-      <h3>Chapter 10: Pandas Fundamentals</h3>
-      <p>Series and DataFrame, reading CSVs, .loc/.iloc indexing, filtering, and aggregation — the tool you'll use to load and explore every real dataset from here on.</p>
+      <h3>Chapter 7: Python for DevOps &amp; APIs (Module 1 Capstone)</h3>
+      <p>CLI tools with argparse, JSON, environment-based config, and async — the final Python chapter, then straight into the math that powers ML.</p>
     </div>
-    <a class="ncc-btn" href="ch10-pandas-fundamentals.html">Start Chapter 10 →</a>
+    <a class="ncc-btn" href="ch07-python-devops-apis.html">Start Chapter 7 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -826,7 +934,7 @@ X = np.array([
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch09';
+const CH_ID='ch06';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -857,7 +965,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch08'];
+  const prev=store.chapters && store.chapters['ch05'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -877,7 +985,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    clog('# logging.basicConfig(..., force=True) avoids duplicate handlers across runs','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -950,51 +1058,75 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['arr1: [0, 2, 4, 6, 8]','arr2: [0.0, 0.25, 0.5, 0.75, 1.0]','zeros shape: (2, 3)'],
-    hint:"arr1 = np.arange(0, 10, 2); arr2 = np.linspace(0, 1, 5); zeros = np.zeros((2, 3))",
-    solution:`import numpy as np
-arr1 = np.arange(0, 10, 2)
-arr2 = np.linspace(0, 1, 5)
-zeros = np.zeros((2, 3))
-print(f'arr1: {list(arr1)}')
-print(f'arr2: {list(arr2)}')
-print(f'zeros shape: {zeros.shape}')`
+    checks:['command: pip install -r requirements.txt'],
+    hint:"cmd = 'pip install -r requirements.txt'",
+    solution:`cmd = "pip install -r requirements.txt"
+print(f'Command: {cmd}')`
   },
   2:{
-    checks:['centered: [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]]'],
-    hint:"centered = matrix - matrix.mean(axis=0); print(f'Centered: {centered.tolist()}')",
-    solution:`import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])
-centered = matrix - matrix.mean(axis=0)
-print(f'Centered: {centered.tolist()}')`
+    checks:['caught: score 0.6 below threshold','qualified'],
+    hint:"raise InsufficientScoreError(f'score {score} below threshold'); except InsufficientScoreError as e: print(f'Caught: {e}')",
+    solution:`class InsufficientScoreError(Exception):
+    pass
+
+def check_score(score):
+    if score < 0.8:
+        raise InsufficientScoreError(f"score {score} below threshold")
+    return "qualified"
+
+try:
+    check_score(0.6)
+except InsufficientScoreError as e:
+    print(f'Caught: {e}')
+
+print(check_score(0.9))`
   },
   3:{
-    checks:['filtered: [62, 78, 71]','count: 3'],
-    hint:"filtered = scores[(scores >= 60) & (scores <= 85)]",
-    solution:`import numpy as np
-scores = np.array([45, 62, 78, 55, 90, 33, 71, 88])
-filtered = scores[(scores >= 60) & (scores <= 85)]
-print(f'Filtered: {list(filtered)}')
-print(f'Count: {len(filtered)}')`
+    checks:['start validation','checking data','end validation'],
+    hint:"@contextmanager def stage(name): print(f'START {name}'); try: yield; finally: print(f'END {name}')",
+    solution:`from contextlib import contextmanager
+
+@contextmanager
+def stage(name):
+    print(f'START {name}')
+    try:
+        yield
+    finally:
+        print(f'END {name}')
+
+with stage('validation'):
+    print('checking data')`
   },
   4:{
-    checks:['row sums: [240, 240, 228]','col0 mean: 71.6667','col1 mean: 80.0000','col2 mean: 84.3333'],
-    hint:"grades.sum(axis=1) for row sums; grades.mean(axis=0) for column means",
-    solution:`import numpy as np
-grades = np.array([[80,90,70],[60,85,95],[75,65,88]])
-print(f'Row sums: {list(grades.sum(axis=1))}')
-print(f'Col0 mean: {grades.mean(axis=0)[0]:.4f}')
-print(f'Col1 mean: {grades.mean(axis=0)[1]:.4f}')
-print(f'Col2 mean: {grades.mean(axis=0)[2]:.4f}')`
+    checks:['calling add with (3, 5)','result: 8'],
+    hint:"def log_call(func): def wrapper(*args, **kwargs): print(...); result=func(*args,**kwargs); print(...); return result; return wrapper",
+    solution:`def log_call(func):
+    def wrapper(*args, **kwargs):
+        print(f'Calling {func.__name__} with {args}')
+        result = func(*args, **kwargs)
+        print(f'Result: {result}')
+        return result
+    return wrapper
+
+@log_call
+def add(a, b):
+    return a + b
+
+add(3, 5)`
   },
   5:{
-    checks:['-1.3416, -1.3416','-0.4472, -0.4472','0.4472, 0.4472','1.3416, 1.3416'],
-    hint:"standardized = (data - data.mean(axis=0)) / data.std(axis=0); loop rows, print f'{row[0]:.4f}, {row[1]:.4f}'",
-    solution:`import numpy as np
-data = np.array([[10,1],[20,2],[30,3],[40,4]], dtype=float)
-standardized = (data - data.mean(axis=0)) / data.std(axis=0)
-for row in standardized:
-    print(f'{row[0]:.4f}, {row[1]:.4f}')`
+    checks:['qualified: [92, 81, 88]','count: 3'],
+    hint:"def high_scores(scores): for s in scores: if s >= 80: yield s",
+    solution:`scores = [92, 75, 81, 60, 88]
+
+def high_scores(scores):
+    for s in scores:
+        if s >= 80:
+            yield s
+
+result = list(high_scores(scores))
+print(f'Qualified: {result}')
+print(f'Count: {len(result)}')`
   }
 };
 
@@ -1052,7 +1184,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['standardized: -1.4142, 0.0000','standardized: 1.4142, -1.4142','minmax: 0.0000, 0.5000','minmax: 1.0000, 0.0000'];
+  const checks=['validating alice...','validating bob...','validating carol...','validating dave...','validating eve...','skipped: carol has an out-of-range score','skipped: eve has an out-of-range score',"valid: ['alice', 'bob', 'dave']",'valid count: 3'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1065,7 +1197,7 @@ window.runProject=async function(){
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+const CORRECT={1:'B',2:'B',3:'A',5:'B'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1079,12 +1211,12 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const passed=val.includes('flat.reshape(3, 4)')||val.includes('flat.reshape(3,4)');
+  const passed=val.includes('@log_call')&&val.includes('def process');
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! grid = flat.reshape(3, 4)'
-    :'❌ Not quite. You need: grid = flat.reshape(3, 4)';
+    ?'✅ Correct! @log_call\ndef process(...):'
+    :'❌ Not quite. You need:\n@log_call\ndef process(...):';
 };
 
 function revealNextChapter(){
@@ -1114,7 +1246,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Broadcasting, boolean masking, and axis-based aggregation are yours now. You can process a whole dataset without writing a single loop over its rows or columns.</div>`;
+      <div class="qrb-sub">Virtual environments, custom exceptions, context managers, decorators, generators, logging, and testing — the professional Python toolkit is yours.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();

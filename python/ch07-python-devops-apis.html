@@ -3,11 +3,15 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 3: Functions &amp; Modules</title>
+<title>AI/ML: Zero to Hero — Chapter 7: Python for DevOps &amp; APIs</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
   (real CPython compiled to WebAssembly, ~10s first load, then instant for the rest of the chapter).
   Your progress on this chapter is saved to this browser's localStorage automatically.
+  NOTE: 7.3 (requests) and 7.4 (subprocess) are reference-only blocks — real outbound HTTP calls
+  and OS process spawning aren't meaningful inside a browser sandbox, so those sections show
+  production code to read, while every RUN-able exercise uses argparse/json/os.environ/asyncio,
+  which all work exactly like real Python because they are real Python.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
@@ -76,6 +80,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
 .lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
 
 .lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
@@ -97,7 +102,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
 .cb-run:hover{background:var(--violet-light)}
 .cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
-.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
 
 .lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
 .lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
@@ -165,7 +170,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -274,7 +279,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 3: Functions &amp; Modules</div>
+  <div id="mob-title">Ch 7: Python for DevOps &amp; APIs</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -283,25 +288,25 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 1 · Chapter 3 of 32</div>
+    <div class="sb-logo-sub">Module 1 · Chapter 7 of 32</div>
   </a>
-  <a class="sb-back" href="ch02-control-flow.html">← Ch 2: Control Flow</a>
+  <a class="sb-back" href="ch06-professional-python.html">← Ch 6: Professional Python</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 3</div>
+  <div class="sb-section">Chapter 7 · Capstone</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 1</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 4: Data Structures</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 5: OOP, Files &amp; Errors</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 8: Linear Algebra for ML</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 9: Probability &amp; Statistics</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 3</div>
-    <div class="tb-title">Functions &amp; Modules</div>
+    <div class="tb-chapter">Chapter 7 · Module 1 Capstone</div>
+    <div class="tb-title">Python for DevOps &amp; APIs</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -312,173 +317,157 @@ textarea#project-editor:focus{outline:none}
     <div class="section-tabs">
       <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
       <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
-      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
       <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 2 quiz in this browser yet. This chapter assumes you're comfortable with loops and conditionals.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 6 quiz in this browser yet.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 3:<br/><span>Functions &amp; Modules</span></h1>
-    <p>Every ML library you'll ever use — <code>sklearn.metrics.accuracy_score()</code>, <code>torch.nn.functional.relu()</code> — is just a function someone wrote once and packaged so everyone could reuse it. This chapter teaches you to write your own: reusable, well-named blocks of logic that turn "code you wrote once" into "a tool you use forever."</p>
+    <h1>Chapter 7:<br/><span>Python for DevOps &amp; APIs</span></h1>
+    <p>This is the Module 1 capstone. Every script that automates something real — a deployment, a data pull, a health check, a CI job — is glued together with the same handful of tools: command-line arguments so it's configurable, JSON so it can talk to other systems, environment variables so secrets and config stay out of your code, and async so it doesn't sit idle waiting on slow network calls. By the end, you'll build a Health-Check CLI that ties all of it together — then Chapters 8+ turn to the math underneath every model.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~50 min read</span>
+      <span class="badge">🕐 ~65 min read</span>
       <span class="badge">💻 5 exercises</span>
-      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge capstone">🏗️ Module 1 Capstone Project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 3.1 -->
-  <div class="lesson-h2">3.1 — Why Functions? From Copy-Paste to Reusable Tools</div>
-  <p class="lesson-p">Without functions, computing accuracy for three different models means writing the same loop three times. If you find a bug in that logic, you now have to fix it in three places — and you will forget one. A <strong>function</strong> packages logic once, under a name, so you write it once and call it forever.</p>
-  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This is exactly what a library is.</strong> When you call <code>accuracy_score(y_true, y_pred)</code> from scikit-learn, you're calling a function someone else wrote. By the end of this chapter you'll understand precisely what's happening inside that call.</div></div>
-
-  <!-- 3.2 -->
-  <div class="lesson-h2">3.2 — def, Parameters, and return vs print</div>
-  <p class="lesson-p">Define a function with <code>def name(parameters):</code>. Inside, <code>return</code> sends a value back to whoever called the function, so it can be stored or reused. This is completely different from <code>print()</code>, which only displays text on screen and gives nothing back.</p>
+  <!-- 7.1 -->
+  <div class="lesson-h2">7.1 — Command-Line Arguments With argparse</div>
+  <p class="lesson-p">A script that hard-codes its inputs only ever does one thing. <code>argparse</code> turns a script into a configurable tool: <code>python score.py --name Alice --score 0.92</code>. Instead of reading <code>sys.argv</code> by hand, you declare what arguments exist and argparse parses, type-converts, and validates them for you.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">return vs print — the most important distinction in this chapter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">compute_accuracy</span>(predictions, targets):
-    correct = <span class="nm">0</span>
-    <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
-        <span class="kw">if</span> p == t:
-            correct += <span class="nm">1</span>
-    <span class="kw">return</span> correct / <span class="bi">len</span>(targets)   <span class="cm"># hands the value back to the caller</span>
+    <div class="cb-header"><span class="cb-label">A parser with a required flag, a typed flag, and a boolean flag</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> argparse
 
-preds   = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>]
-targets = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>]
+parser = argparse.ArgumentParser(description=<span class="st">'Score a candidate'</span>)
+parser.add_argument(<span class="st">'--name'</span>, required=<span class="kw">True</span>)
+parser.add_argument(<span class="st">'--score'</span>, type=<span class="bi">float</span>, required=<span class="kw">True</span>)
+parser.add_argument(<span class="st">'--verbose'</span>, action=<span class="st">'store_true'</span>)
 
-acc = <span class="fn">compute_accuracy</span>(preds, targets)   <span class="cm"># the returned value is now stored in acc</span>
-<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{acc:.2%}</span>'</span>)         <span class="cm"># we can use acc anywhere now — format it, compare it, save it</span>
-
-<span class="cm"># Contrast: a function that only prints, returns nothing useful</span>
-<span class="kw">def</span> <span class="fn">show_accuracy</span>(predictions, targets):
-    <span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{compute_accuracy(predictions, targets):.2%}</span>'</span>)
-    <span class="cm"># no return statement — this function's result is None</span>
-
-result = <span class="fn">show_accuracy</span>(preds, targets)
-<span class="bi">print</span>(<span class="st">f'What show_accuracy() gave back: <span class="bi">{result}</span>'</span>)  <span class="cm"># None — it never returned anything</span></div>
+<span class="cm"># parse_args() with NO argument reads real sys.argv (the actual command line).</span>
+<span class="cm"># Passing an explicit list — as below — is also how you unit-test a CLI tool.</span>
+args = parser.parse_args([<span class="st">'--name'</span>, <span class="st">'Alice'</span>, <span class="st">'--score'</span>, <span class="st">'0.92'</span>, <span class="st">'--verbose'</span>])
+<span class="bi">print</span>(<span class="st">f'Name: <span class="bi">{args.name}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Score: <span class="bi">{args.score}</span>'</span>)     <span class="cm"># already a float, not a string</span>
+<span class="bi">print</span>(<span class="st">f'Verbose: <span class="bi">{args.verbose}</span>'</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> A function with no <code>return</code> statement doesn't fail — it silently returns <code>None</code>. If you ever see <code>None</code> where you expected a number, check whether the function you called actually has a <code>return</code>.</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Passing an explicit list to parse_args() is the key trick for THIS console</strong> — a browser has no real command line, so every argparse exercise here builds the argument list as a Python list instead of typing it at a terminal. The behavior is identical either way.</div></div>
 
-  <!-- 3.3 -->
-  <div class="lesson-h2">3.3 — Default Parameters and Keyword Arguments</div>
-  <p class="lesson-p">A parameter can have a default value, used only when the caller doesn't supply one. This lets a function have sensible behavior out of the box, while still being configurable.</p>
+  <!-- 7.2 -->
+  <div class="lesson-h2">7.2 — JSON: The Universal Data Format</div>
+  <p class="lesson-p">Almost every API, config file, and log line you'll touch uses <strong>JSON</strong> (JavaScript Object Notation) — a text format that maps directly onto Python dicts and lists. <code>json.dumps()</code> converts a Python object TO a JSON string; <code>json.loads()</code> parses a JSON string INTO Python objects.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Defaults make a function flexible without being complicated</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(name, value, decimals=<span class="nm">4</span>):
-    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
+    <div class="cb-header"><span class="cb-label">Round-tripping a dict through JSON</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
 
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'loss'</span>, <span class="nm">0.123456</span>))               <span class="cm"># uses the default: 4 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'accuracy'</span>, <span class="nm">0.9423</span>, decimals=<span class="nm">2</span>))  <span class="cm"># overrides the default: 2 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(name=<span class="st">'f1'</span>, value=<span class="nm">0.88</span>, decimals=<span class="nm">1</span>))  <span class="cm"># keyword arguments — order no longer matters</span></div>
+candidate = {<span class="st">'name'</span>: <span class="st">'Bob'</span>, <span class="st">'score'</span>: <span class="nm">0.75</span>, <span class="st">'skills'</span>: [<span class="st">'python'</span>, <span class="st">'sql'</span>]}
+payload = json.dumps(candidate)     <span class="cm"># Python dict -> JSON string (what you'd SEND to an API)</span>
+<span class="bi">print</span>(<span class="st">f'Payload: <span class="bi">{payload}</span>'</span>)
+
+parsed = json.loads(payload)        <span class="cm"># JSON string -> Python dict (what you'd RECEIVE)</span>
+<span class="bi">print</span>(<span class="st">f'Name back: <span class="bi">{parsed["name"]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Type: <span class="bi">{type(parsed)}</span>'</span>)</div>
   </div>
 
-  <!-- 3.4 -->
-  <div class="lesson-h2">3.4 — *args and **kwargs</div>
-  <p class="lesson-p">Sometimes you don't know in advance how many arguments a function will receive. <code>*args</code> collects any number of extra positional arguments into a tuple. <code>**kwargs</code> collects any number of extra keyword arguments into a dict.</p>
+  <!-- 7.3 -->
+  <div class="lesson-h2">7.3 — Calling APIs With requests</div>
+  <p class="lesson-p">In real production code, you fetch data from other services over HTTP with the <code>requests</code> library — a real outbound network call. This can't run inside this browser sandbox reliably (blocked by CORS, and no notion of "the internet" the way a real script has), so treat the block below as reference: this is EXACTLY the pattern you'll use outside this course, and it's what returns the kind of JSON string the runnable exercise below parses.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">*args — accept any number of values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">average_loss</span>(*losses):
-    <span class="bi">print</span>(<span class="st">'Received:'</span>, losses, <span class="cm">'— a tuple, no matter how many arguments'</span>)
-    <span class="kw">return</span> <span class="bi">sum</span>(losses) / <span class="bi">len</span>(losses)
+    <div class="cb-header"><span class="cb-label">Terminal / real script — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="kw">import</span> requests
 
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.5, 0.3, 0.4, 0.2):.4f}</span>'</span>)   <span class="cm"># 4 values</span>
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.9, 0.1):.4f}</span>'</span>)             <span class="cm"># 2 values — same function</span>
-
-<span class="cm"># **kwargs — accept any number of named settings</span>
-<span class="kw">def</span> <span class="fn">train_model</span>(name, **settings):
-    <span class="bi">print</span>(<span class="st">f'Training <span class="bi">{name}</span> with settings:'</span>, settings)
-
-<span class="fn">train_model</span>(<span class="st">'ResNet50'</span>, epochs=<span class="nm">50</span>, lr=<span class="nm">0.001</span>, batch_size=<span class="nm">32</span>)</div>
+response = requests.get(<span class="st">'https://api.example.com/candidates'</span>, timeout=<span class="nm">5</span>)
+response.raise_for_status()          <span class="cm"># raises if status is 4xx/5xx instead of failing silently</span>
+data = response.json()               <span class="cm"># .json() == json.loads(response.text), done for you</span>
+<span class="bi">print</span>([c[<span class="st">'name'</span>] <span class="kw">for</span> c <span class="kw">in</span> data[<span class="st">'results'</span>]])</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>You'll see this constantly in real ML code:</strong> <code>model.fit(X, y, epochs=10, batch_size=32, **kwargs)</code> is exactly this pattern — accept the required arguments, then forward whatever extra settings the caller wants.</div></div>
-
-  <!-- 3.5 -->
-  <div class="lesson-h2">3.5 — Lambda: Small, Throwaway Functions</div>
-  <p class="lesson-p">A <code>lambda</code> is a function written in one line, with no name, usually passed directly into another function. The most common use in ML code is as the <code>key</code> for sorting.</p>
+  <p class="lesson-p">Notice the shape: <code>response.json()</code> gives you back exactly the nested dict/list structure <code>json.loads()</code> would. That's why the exercise below is realistic practice even without a live network call — it hands you the JSON text an API would have returned, and you parse it the same way.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">lambda + sorted() — ranking model results</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [(<span class="st">'alice'</span>, <span class="nm">0.72</span>), (<span class="st">'bob'</span>, <span class="nm">0.95</span>), (<span class="st">'carol'</span>, <span class="nm">0.81</span>), (<span class="st">'dave'</span>, <span class="nm">0.60</span>)]
+    <div class="cb-header"><span class="cb-label">Parsing "as if" this came from response.json()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
 
-<span class="cm"># Sort by the SECOND item in each tuple (the score), highest first</span>
-ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</span> x: x[<span class="nm">1</span>], reverse=<span class="kw">True</span>)
-<span class="bi">print</span>(ranked)
-<span class="bi">print</span>(<span class="st">f'Top performer: <span class="bi">{ranked[0][0]}</span>'</span>)
-
-<span class="cm"># A named function does the same thing, just with more words:</span>
-<span class="kw">def</span> <span class="fn">get_score</span>(item):
-    <span class="kw">return</span> item[<span class="nm">1</span>]
-<span class="bi">print</span>(<span class="bi">sorted</span>(scores, key=get_score, reverse=<span class="kw">True</span>))</div>
+api_response_text = <span class="st">'{"results": [{"name": "Alice", "score": 0.92}, {"name": "Dave", "score": 0.60}]}'</span>
+data = json.loads(api_response_text)
+names = [r[<span class="st">'name'</span>] <span class="kw">for</span> r <span class="kw">in</span> data[<span class="st">'results'</span>]]
+<span class="bi">print</span>(<span class="st">f'Names: <span class="bi">{names}</span>'</span>)</div>
   </div>
 
-  <!-- 3.6 -->
-  <div class="lesson-h2">3.6 — Scope: Local vs Global Variables</div>
-  <p class="lesson-p">A variable created <em>inside</em> a function only exists inside that function — this is <strong>local scope</strong>. It disappears the moment the function returns, and it never affects a variable of the same name outside the function, unless you explicitly say <code>global</code>.</p>
+  <!-- 7.4 -->
+  <div class="lesson-h2">7.4 — subprocess: Running Other Programs From Python</div>
+  <p class="lesson-p">DevOps scripts frequently need to run a shell command and use its output — deploying with <code>docker</code>, checking <code>git status</code>, running a linter. The <code>subprocess</code> module spawns a real OS process, which (like <code>requests</code>) needs a real operating system that this sandboxed browser environment doesn't provide — reference only.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">The classic scope surprise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">total_processed = <span class="nm">0</span>   <span class="cm"># global variable</span>
+    <div class="cb-header"><span class="cb-label">Terminal / real script — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="kw">import</span> subprocess
 
-<span class="kw">def</span> <span class="fn">process_batch_wrong</span>(batch_size):
-    total_processed = total_processed + batch_size  <span class="cm"># this LOOKS right...</span>
-    <span class="bi">print</span>(total_processed)
-
-<span class="cm"># process_batch_wrong(32)   # <-- would raise UnboundLocalError! Python sees the assignment</span>
-<span class="cm"># and assumes total_processed is a NEW local variable for the whole function body —</span>
-<span class="cm"># so reading it on the right-hand side before it's assigned fails.</span>
-
-<span class="kw">def</span> <span class="fn">process_batch</span>(batch_size):
-    <span class="kw">global</span> total_processed     <span class="cm"># explicitly say: use the outer variable, don't make a local one</span>
-    total_processed += batch_size
-    <span class="bi">print</span>(<span class="st">f'Running total: <span class="bi">{total_processed}</span>'</span>)
-
-<span class="fn">process_batch</span>(<span class="nm">32</span>)
-<span class="fn">process_batch</span>(<span class="nm">16</span>)
-<span class="fn">process_batch</span>(<span class="nm">8</span>)
-<span class="bi">print</span>(<span class="st">f'Total processed: <span class="bi">{total_processed}</span>'</span>)</div>
+result = subprocess.run(
+    [<span class="st">'git'</span>, <span class="st">'status'</span>, <span class="st">'--short'</span>],
+    capture_output=<span class="kw">True</span>, text=<span class="kw">True</span>, check=<span class="kw">True</span>
+)
+<span class="bi">print</span>(result.stdout)   <span class="cm"># captured stdout from the git process, as a normal Python string</span></div>
   </div>
-  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Best practice: avoid <code>global</code> when you can.</strong> It's shown here because you WILL encounter it, but the cleaner pattern is almost always to <code>return</code> the new value and let the caller decide what to do with it. Fewer hidden side effects, easier to test.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Always pass a list, never a raw shell string, unless you fully trust the input</strong> — <code>subprocess.run(user_input, shell=True)</code> is a classic command-injection vulnerability. <code>['git', 'status', arg]</code> passes each piece as a separate, un-interpreted argument.</div></div>
 
-  <!-- 3.7 -->
-  <div class="lesson-h2">3.7 — Modules: import and Organizing Code Across Files</div>
-  <p class="lesson-p">A <strong>module</strong> is just a <code>.py</code> file. <code>import</code> lets you use functions defined in another file — this is exactly how <code>import numpy as np</code> or <code>from sklearn.metrics import accuracy_score</code> work. Python also ships a large standard library of built-in modules you can import for free.</p>
+  <!-- 7.5 -->
+  <div class="lesson-h2">7.5 — Environment Variables: Config Without Hard-Coding Secrets</div>
+  <p class="lesson-p">An API key or database URL should never be hard-coded into a script (and definitely never committed to git). The standard fix: read it from an <strong>environment variable</strong> via <code>os.environ</code>, with a sane default for local development.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Using Python's built-in modules</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> math
+    <div class="cb-header"><span class="cb-label">Reading config from the environment, with a fallback</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os
 
-<span class="bi">print</span>(math.sqrt(<span class="nm">16</span>))         <span class="cm"># 4.0 — same idea as **0.5, but more explicit</span>
-<span class="bi">print</span>(math.pi)              <span class="cm"># 3.14159...</span>
-<span class="bi">print</span>(math.ceil(<span class="nm">4.1</span>))       <span class="cm"># 5 — round up</span>
-<span class="bi">print</span>(math.floor(<span class="nm">4.9</span>))      <span class="cm"># 4 — round down</span>
+os.environ[<span class="st">'APP_ENV'</span>] = <span class="st">'production'</span>   <span class="cm"># normally set OUTSIDE Python (by your shell, Docker, CI)</span>
 
-<span class="cm"># Importing just one function, so you don't need the "math." prefix:</span>
-<span class="kw">from</span> math <span class="kw">import</span> sqrt
-<span class="bi">print</span>(sqrt(<span class="nm">25</span>))            <span class="cm"># 5.0</span>
+env = os.environ.get(<span class="st">'APP_ENV'</span>, <span class="st">'development'</span>)
+<span class="bi">print</span>(<span class="st">f'Environment: <span class="bi">{env}</span>'</span>)
 
-<span class="cm"># This is exactly the pattern you'll use for every ML library:</span>
-<span class="cm"># import numpy as np</span>
-<span class="cm"># from sklearn.metrics import accuracy_score</span>
-<span class="cm"># import pandas as pd</span></div>
+missing = os.environ.get(<span class="st">'MISSING_VAR'</span>, <span class="st">'default-value'</span>)   <span class="cm"># not set -> uses the fallback</span>
+<span class="bi">print</span>(<span class="st">f'Missing var falls back to: <span class="bi">{missing}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>If you were writing your own file</strong> (say, <code>metrics.py</code>) full of functions, another file could use them with <code>from metrics import compute_accuracy</code>. This is how real ML projects are structured: one file per concern (data loading, model, metrics, training loop), stitched together with imports.</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>os.environ.get(key, default) never raises</strong> — unlike <code>os.environ[key]</code>, which throws <code>KeyError</code> if the variable isn't set. Always use <code>.get()</code> with an explicit default for optional config.</div></div>
+
+  <!-- 7.6 -->
+  <div class="lesson-h2">7.6 — Async Basics: Not Waiting Around</div>
+  <p class="lesson-p">If a script calls 5 slow APIs one after another, it waits for each to finish before starting the next — even though it's just sitting idle during the network wait. <code>async</code>/<code>await</code> lets I/O-bound calls run <strong>concurrently</strong>: start all 5, then wait for all of them together with <code>asyncio.gather()</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Three "slow" calls running concurrently</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> asyncio
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">fetch_candidate</span>(name, delay):
+    <span class="kw">await</span> asyncio.sleep(delay)   <span class="cm"># stands in for a slow network call</span>
+    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span> fetched'</span>
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">main</span>():
+    <span class="cm"># all three sleeps happen AT THE SAME TIME, not one after another</span>
+    results = <span class="kw">await</span> asyncio.gather(
+        fetch_candidate(<span class="st">'Alice'</span>, <span class="nm">0.01</span>),
+        fetch_candidate(<span class="st">'Bob'</span>, <span class="nm">0.01</span>),
+        fetch_candidate(<span class="st">'Carol'</span>, <span class="nm">0.01</span>),
+    )
+    <span class="kw">for</span> r <span class="kw">in</span> results:
+        <span class="bi">print</span>(r)
+
+<span class="kw">await</span> main()   <span class="cm"># this console already runs inside an event loop, so 'await' works at top level</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>asyncio.gather() preserves order in its RETURN VALUE</strong> regardless of which finishes first — <code>results[0]</code> is always Alice's result, <code>results[1]</code> is always Bob's — even though the three sleeps happen concurrently under the hood.</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 3 Summary</div>
+  <div class="lesson-h2">Chapter 7 Summary — Module 1 Complete</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>def name(params): ... return value</strong> — functions package logic once so you can reuse it everywhere. <code>return</code> hands a value back; <code>print</code> just displays it.</div></li>
-    <li data-n="2"><div><strong>Default parameters</strong> (<code>decimals=4</code>) make functions flexible without forcing every caller to specify everything.</div></li>
-    <li data-n="3"><div><strong>*args</strong> collects extra positional arguments into a tuple. <strong>**kwargs</strong> collects extra keyword arguments into a dict.</div></li>
-    <li data-n="4"><div><strong>lambda</strong> writes a tiny function inline — most often as the <code>key</code> for <code>sorted()</code>.</div></li>
-    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable — but prefer <code>return</code>ing values instead when you can.</div></li>
-    <li data-n="6"><div><strong>Modules:</strong> <code>import math</code>, <code>from math import sqrt</code> — every ML library (NumPy, Pandas, sklearn) is used exactly this way.</div></li>
+    <li data-n="1"><div><strong>argparse</strong> turns a script into a configurable CLI tool.</div></li>
+    <li data-n="2"><div><strong>JSON</strong> (<code>json.dumps</code> / <code>json.loads</code>) is how programs exchange structured data over APIs.</div></li>
+    <li data-n="3"><div><strong>requests</strong> makes real HTTP calls; <strong>subprocess</strong> runs real shell commands — both are one-liners once you know the shape.</div></li>
+    <li data-n="4"><div><strong>os.environ.get(key, default)</strong> keeps config and secrets out of your source code.</div></li>
+    <li data-n="5"><div><strong>asyncio.gather()</strong> runs I/O-bound work concurrently instead of one call at a time.</div></li>
+    <li data-n="6"><div>That's Module 1 — you can write real, professional, automatable Python. Next: the math every model is built from.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -489,7 +478,7 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Given data is fixed so your printed output can be checked precisely — write functions around it, don't change the given values.</p>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -497,29 +486,34 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Write compute_accuracy()</div>
-        <div class="ex-desc">Turn Chapter 2's accuracy loop into a real, reusable function that returns a value.</div>
+        <div class="ex-title">A Parser With a Default</div>
+        <div class="ex-desc">Build a parser with one required flag and one optional flag with a default.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
-(already given — do not change them)
+import argparse
 
-Write a function compute_accuracy(predictions, targets) that RETURNS
-(not prints) the accuracy as a float between 0 and 1.
+Build a parser with:
+  --city (required, string)
+  --threshold (float, default=0.8)
 
-Then call it and print exactly: f'Accuracy: {accuracy:.2%}'
-(The correct answer is Accuracy: 70.00%)</div>
+Parse: args2 = parser.parse_args(['--city', 'Pune'])
+(threshold is NOT passed, so it should fall back to its default)
+
+Print exactly:
+  f'City: {args2.city}'
+  f'Threshold: {args2.threshold}'
+(Correct: City: Pune / Threshold: 0.8)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
+      <textarea class="ex-editor" id="ex1-code">import argparse
 
-# def compute_accuracy(predictions, targets): ...
-
+# parser = argparse.ArgumentParser()
+# parser.add_argument('--city', required=True)
+# parser.add_argument('--threshold', type=float, default=0.8)
+# args2 = parser.parse_args(['--city', 'Pune'])
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
@@ -534,25 +528,30 @@ targets     = [1,0,0,0,1,0,0,1,1,1]
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">format_metric() With a Default</div>
-        <div class="ex-desc">Write a formatting function with a default parameter, then call it once using the default and once overriding it.</div>
+        <div class="ex-title">Parsing a JSON Response</div>
+        <div class="ex-desc">Parse a JSON string and format one of its fields as a percentage.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write format_metric(name, value, decimals=4) that RETURNS the string
-f'{name}: {value:.{decimals}f}'   (use this exact f-string pattern)
+import json
+response_text = '{"name": "Carol", "score": 0.81, "city": "Mumbai"}'
+(already given)
 
-Then print:
-  format_metric('loss', 0.123456)              -> uses the default (4 decimals)
-  format_metric('accuracy', 0.9423, decimals=2) -> overrides to 2 decimals
+Parse response_text into data with json.loads().
 
-(Correct output lines: "loss: 0.1235" and "accuracy: 0.94")</div>
+Print exactly:
+  f'Name: {data["name"]}'
+  f'City: {data["city"]}'
+  f'Score pct: {data["score"]:.0%}'
+(Correct: Name: Carol / City: Mumbai / Score pct: 81%)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code"># def format_metric(name, value, decimals=4): ...
+      <textarea class="ex-editor" id="ex2-code">import json
+response_text = '{"name": "Carol", "score": 0.81, "city": "Mumbai"}'
 
+# data = json.loads(response_text)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
@@ -567,22 +566,31 @@ Then print:
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">average_loss(*losses) With *args</div>
-        <div class="ex-desc">Write a function that can average ANY number of loss values, using *args.</div>
+        <div class="ex-title">Nested JSON: Find the Best Candidate</div>
+        <div class="ex-desc">Parse a nested JSON payload and find the highest-scoring entry.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write average_loss(*losses) that RETURNS the average of however many
-values it's given.
+import json
+raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
+(already given)
 
-Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
-(The correct answer is Average: 0.3500)</div>
+Parse raw into d. Find the candidate with the highest score using
+max(d['candidates'], key=lambda c: c['score']), store as top.
+
+Print exactly:
+  f'Top candidate: {top["name"]}'
+  f'Count field: {d["count"]}'
+(Correct: Top candidate: Eve / Count field: 2)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code"># def average_loss(*losses): ...
+      <textarea class="ex-editor" id="ex3-code">import json
+raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
 
+# d = json.loads(raw)
+# top = max(d['candidates'], key=lambda c: c['score'])
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
@@ -597,27 +605,31 @@ Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Rank Results With lambda</div>
-        <div class="ex-desc">Sort a leaderboard of model results by score using sorted() and a lambda key.</div>
+        <div class="ex-title">Config From Environment Variables</div>
+        <div class="ex-desc">Read two config values from os.environ, one set and one falling back to a default.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
-(already given — do not change it)
+import os
+os.environ['MAX_RETRIES'] = '5'
+(already given — TIMEOUT_SECONDS is NOT set)
 
-Using sorted() with a lambda key, sort scores by the score (2nd item)
-from HIGHEST to lowest.
+retries = int of os.environ.get('MAX_RETRIES', '3')
+timeout = int of os.environ.get('TIMEOUT_SECONDS', '30')
 
-Print exactly: f'Top performer: {sorted_scores[0][0]}'
-(The correct answer is Top performer: bob)</div>
+Print exactly:
+  f'Retries: {retries}'
+  f'Timeout: {timeout}'
+(Correct: Retries: 5 / Timeout: 30)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
+      <textarea class="ex-editor" id="ex4-code">import os
+os.environ['MAX_RETRIES'] = '5'
 
-# sorted_scores = sorted(scores, key=..., reverse=...)
-
+# retries = int(os.environ.get('MAX_RETRIES', '3'))
+# timeout = int(os.environ.get('TIMEOUT_SECONDS', '30'))
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
@@ -631,28 +643,50 @@ Print exactly: f'Top performer: {sorted_scores[0][0]}'
     <div class="ex-header">
       <div class="ex-num">5</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Running Total With global</div>
-        <div class="ex-desc">Practice global scope by tracking a running total of samples processed across multiple function calls.</div>
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Concurrent Health Checks</div>
+        <div class="ex-desc">Run two async health checks concurrently with asyncio.gather.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-total_processed = 0   (already given as a global variable)
+import asyncio
 
-Write process_batch(batch_size) that uses "global total_processed"
-and adds batch_size to it (no return needed).
+Define: async def check_health(service, delay):
+  await asyncio.sleep(delay); return f'{service}: OK'
 
-Call it three times: process_batch(32), process_batch(16), process_batch(8)
-Then print exactly: f'Total processed: {total_processed}'
-(The correct answer is Total processed: 56)</div>
+Define: async def main2():
+  return await asyncio.gather(
+      check_health('auth-service', 0.01),
+      check_health('db-service', 0.01),
+  )
+
+results = await main2()   (this console runs inside an event loop already)
+Print each result in results, then:
+  f'Checked {len(results)} services'
+
+(Correct output, in order:
+auth-service: OK
+db-service: OK
+Checked 2 services)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">total_processed = 0
+      <textarea class="ex-editor" id="ex5-code">import asyncio
 
-# def process_batch(batch_size): ...
-
+# async def check_health(service, delay):
+#     await asyncio.sleep(delay)
+#     return f'{service}: OK'
+#
+# async def main2():
+#     return await asyncio.gather(
+#         check_health('auth-service', 0.01),
+#         check_health('db-service', 0.01),
+#     )
+#
+# results = await main2()
+# for r in results:
+#     print(r)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
@@ -663,81 +697,88 @@ Then print exactly: f'Total processed: {total_processed}'
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
-    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone Project →</button>
   </div>
 </div><!-- end practice -->
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Metrics Toolkit</span></h2>
-    <p>Build the small function library that sits at the heart of every classification project: accuracy, precision, recall, and F1 — then a report() function that ties them together. This is a simplified version of what sklearn.metrics does internally.</p>
+    <h2>🏗️ Module 1 Capstone: <span>Candidate Notification Service</span></h2>
+    <p>A small but realistic DevOps-flavored service: read a threshold from an environment variable, parse a JSON payload of candidates (as if it came from an API), filter the qualified ones, then notify all of them concurrently with asyncio — no candidate waits on the one before them.</p>
     <div class="project-tags">
-      <span class="ptag">def</span>
-      <span class="ptag">return</span>
-      <span class="ptag">default params</span>
-      <span class="ptag">reuse</span>
+      <span class="ptag">json</span>
+      <span class="ptag">os.environ</span>
+      <span class="ptag">asyncio.gather</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>accuracy(preds, targets) — fraction of predictions that match the target</li>
-      <li>precision(preds, targets) — of everything you predicted positive (1), what fraction was actually positive</li>
-      <li>recall(preds, targets) — of everything that was actually positive, what fraction did you correctly predict</li>
-      <li>f1(preds, targets) — the harmonic mean of precision and recall: 2·P·R / (P+R)</li>
-      <li>report(preds, targets, model_name='Model') — calls all four functions above and prints a formatted report</li>
+      <li>Read threshold = float(os.environ.get('SCORE_THRESHOLD', '0.5')) — SCORE_THRESHOLD is set to '0.8' below</li>
+      <li>Parse raw_response (given) with json.loads() into data</li>
+      <li>Filter data['candidates'] to only those with score >= threshold, into qualified</li>
+      <li>Print f'Threshold: {threshold}' and f'Qualified: {[c["name"] for c in qualified]}'</li>
+      <li>Define async def notify(name): await asyncio.sleep(0.01); return f'Notified {name}'</li>
+      <li>Use asyncio.gather to notify every qualified candidate CONCURRENTLY, print each result, then f'Total notified: {len(notifications)}'</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Metrics Toolkit — Your Solution</div>
+      <div class="pe-title">🏗️ Candidate Notification Service — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Metrics Toolkit
-# Use ONLY Chapter 1-3 concepts — build the functions, then use them
+# Module 1 Capstone: Candidate Notification Service
+# Use ONLY Chapter 7 concepts
 # ══════════════════════════════════════════
+import json, os, asyncio
 
-preds   = [1,0,1,1,0,1,0,0,1,1]
-targets = [1,0,0,1,0,1,0,1,1,1]
+os.environ['SCORE_THRESHOLD'] = '0.8'
 
-def accuracy(preds, targets):
-    # TODO: fraction of preds that match targets
-    pass
+raw_response = '''
+{"candidates": [
+  {"name": "Alice", "score": 0.92, "city": "Hubli"},
+  {"name": "Bob", "score": 0.75, "city": "Pune"},
+  {"name": "Carol", "score": 0.81, "city": "Mumbai"},
+  {"name": "Dave", "score": 0.60, "city": "Delhi"}
+]}
+'''
 
-def precision(preds, targets):
-    # TODO: TP / (TP + FP)  — of predicted positives, how many were correct
-    pass
+# === TODO 1: threshold from env ===
+# threshold = float(os.environ.get('SCORE_THRESHOLD', '0.5'))
 
-def recall(preds, targets):
-    # TODO: TP / (TP + FN)  — of actual positives, how many did you catch
-    pass
+# === TODO 2: parse + filter ===
+# data = json.loads(raw_response)
+# qualified = [c for c in data['candidates'] if c['score'] >= threshold]
+# print(f'Threshold: {threshold}')
+# print(f'Qualified: {[c["name"] for c in qualified]}')
 
-def f1(preds, targets):
-    # TODO: 2 * precision * recall / (precision + recall)
-    pass
-
-def report(preds, targets, model_name='Model'):
-    # TODO: print a formatted report using all four functions above.
-    # Must include the words "accuracy", "precision", "recall", "f1"
-    # each followed by a percentage, e.g. "Accuracy: 80.00%"
-    pass
-
-report(preds, targets, model_name='CandidateScorer-v1')
+# === TODO 3: concurrent notification ===
+# async def notify(name):
+#     await asyncio.sleep(0.01)
+#     return f'Notified {name}'
+#
+# async def notify_all(names):
+#     return await asyncio.gather(*[notify(n) for n in names])
+#
+# notifications = await notify_all([c['name'] for c in qualified])
+# for n in notifications:
+#     print(n)
+# print(f'Total notified: {len(notifications)}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
   </div>
 
   <div class="checklist">
-    <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>Accuracy: 80.00%</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Precision: 83.33%</div>
-    <div class="check-item"><span class="check-icon">🔁</span>Recall: 83.33%</div>
-    <div class="check-item"><span class="check-icon">⚖️</span>F1: 83.33%</div>
-    <div class="check-item"><span class="check-icon">🏗️</span>All four values computed by calling your four separate functions — not hardcoded numbers</div>
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">⚙️</span>Threshold: 0.8</div>
+    <div class="check-item"><span class="check-icon">📋</span>Qualified: ['Alice', 'Carol']</div>
+    <div class="check-item"><span class="check-icon">📨</span>Notified Alice</div>
+    <div class="check-item"><span class="check-icon">📨</span>Notified Carol</div>
+    <div class="check-item"><span class="check-icon">🔢</span>Total notified: 2</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -747,65 +788,60 @@ report(preds, targets, model_name='CandidateScorer-v1')
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 3 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 4. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 7 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Module 2. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">What's the real difference between <code>return</code> and <code>print</code> inside a function?</div>
+    <div class="q-text">What does <code>parser.parse_args(['--name', 'Alice'])</code> let you do that only reading <code>sys.argv</code> directly doesn't?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> No difference — both just display output</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> return sends a value back to the caller to store or reuse; print only displays text and gives back None</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> print is faster so it should always be preferred</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> return can only be used once in an entire program</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Nothing — they're exactly the same</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Pass a specific list of arguments programmatically (e.g. for testing), instead of only reading the real command line</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Automatically install missing packages</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Make the script run without Python installed</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">Given <code>def greet(name, greeting='Hello'):</code>, what happens if you call <code>greet('Bilal')</code>?</div>
+    <div class="q-text">What is JSON primarily used for?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> TypeError — greeting is required and missing</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> greeting automatically uses its default value, 'Hello'</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Both name and greeting become 'Bilal'</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> SyntaxError, because defaults require keyword calls</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> A text-based format for exchanging structured data between programs, mapping directly onto Python dicts/lists</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A Python-only binary file format</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> A replacement for virtual environments</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> A testing framework</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does <code>**kwargs</code> let a function accept?</div>
+    <div class="q-text">Why does production code typically use the <code>requests</code> library instead of building raw HTTP calls by hand?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Any number of positional arguments, collected as a tuple</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Any number of keyword arguments, collected as a dict</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only exactly two extra arguments</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> A way to return multiple values from a function</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> requests is required by Python's syntax</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> It handles the low-level HTTP details (headers, encoding, connections, JSON parsing) so you can focus on the request/response data</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Raw HTTP calls are impossible in Python</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> requests makes your code run without internet access</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write a lambda assigned to a variable called <code>square</code> that takes a number <code>x</code> and returns <code>x</code> squared.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="square = lambda x: ..." rows="3"></textarea>
+    <div class="q-text">Write the line that reads an environment variable named <code>API_KEY</code>, falling back to the string <code>'unset'</code> if it isn't set.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="... = os.environ...." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">What does this code print?<br/><pre style="background:var(--card2);padding:10px;border-radius:6px;font-family:var(--mono);font-size:13px;margin-top:8px">counter = 0
-def increment():
-    counter = 1
-    return counter
-print(increment())
-print(counter)</pre></div>
+    <div class="q-text">What does <code>await asyncio.gather(coro1, coro2, coro3)</code> do compared to awaiting each coroutine one at a time?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> 1 then 1</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> 0 then 0</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> 1 then 0 — the local counter inside the function never touches the global one</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> UnboundLocalError</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It runs them one after another, identically to sequential awaits, just with different syntax</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It runs all three concurrently and waits for all of them to finish, rather than running them one after another</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It runs only the first one and ignores the rest</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It requires a GPU to execute</button>
     </div>
   </div>
 
@@ -816,10 +852,10 @@ print(counter)</pre></div>
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
     <div class="ncc-icon">🔀</div>
     <div class="ncc-info">
-      <h3>Chapter 4: Data Structures</h3>
-      <p>Lists, tuples, dicts, and sets in depth — slicing, nesting, sorting with keys, and the JSON-shaped data every real dataset arrives in.</p>
+      <h3>Module 2: Math &amp; Stats for ML — Chapter 8: Linear Algebra</h3>
+      <p>Module 1 complete! Vectors and matrices as data, dot products, and NumPy from line one — the math underneath every model you'll ever train.</p>
     </div>
-    <a class="ncc-btn" href="ch04-data-structures.html">Start Chapter 4 →</a>
+    <a class="ncc-btn" href="../math/ch08-linear-algebra.html">Start Chapter 8 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -846,7 +882,7 @@ print(counter)</pre></div>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch03';
+const CH_ID='ch07';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -877,7 +913,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch02'];
+  const prev=store.chapters && store.chapters['ch06'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -897,7 +933,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# This console is yours — experiment freely','info');
+    clog('# async exercises use top-level "await" (no asyncio.run) — this console already runs an event loop','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -970,58 +1006,65 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['accuracy: 70.00%'],
-    hint:"def compute_accuracy(predictions, targets): correct=0; for p,t in zip(predictions,targets): if p==t: correct+=1; return correct/len(targets)",
-    solution:`predictions = [1,0,1,0,1,1,0,1,0,1]
-targets     = [1,0,0,0,1,0,0,1,1,1]
-
-def compute_accuracy(predictions, targets):
-    correct = 0
-    for p, t in zip(predictions, targets):
-        if p == t:
-            correct += 1
-    return correct / len(targets)
-
-accuracy = compute_accuracy(predictions, targets)
-print(f'Accuracy: {accuracy:.2%}')`
+    checks:['city: pune','threshold: 0.8'],
+    hint:"parser.add_argument('--threshold', type=float, default=0.8); args2 = parser.parse_args(['--city','Pune'])",
+    solution:`import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument('--city', required=True)
+parser.add_argument('--threshold', type=float, default=0.8)
+args2 = parser.parse_args(['--city', 'Pune'])
+print(f'City: {args2.city}')
+print(f'Threshold: {args2.threshold}')`
   },
   2:{
-    checks:['loss: 0.1235','accuracy: 0.94'],
-    hint:"def format_metric(name, value, decimals=4): return f'{name}: {value:.{decimals}f}'",
-    solution:`def format_metric(name, value, decimals=4):
-    return f'{name}: {value:.{decimals}f}'
-
-print(format_metric('loss', 0.123456))
-print(format_metric('accuracy', 0.9423, decimals=2))`
+    checks:['name: carol','city: mumbai','score pct: 81%'],
+    hint:"data = json.loads(response_text); use data['name'], data['city'], data['score']:.0%",
+    solution:`import json
+response_text = '{"name": "Carol", "score": 0.81, "city": "Mumbai"}'
+data = json.loads(response_text)
+print(f'Name: {data["name"]}')
+print(f'City: {data["city"]}')
+print(f'Score pct: {data["score"]:.0%}')`
   },
   3:{
-    checks:['average: 0.3500'],
-    hint:"def average_loss(*losses): return sum(losses)/len(losses)",
-    solution:`def average_loss(*losses):
-    return sum(losses) / len(losses)
-
-print(f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}')`
+    checks:['top candidate: eve','count field: 2'],
+    hint:"top = max(d['candidates'], key=lambda c: c['score'])",
+    solution:`import json
+raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
+d = json.loads(raw)
+top = max(d['candidates'], key=lambda c: c['score'])
+print(f'Top candidate: {top["name"]}')
+print(f'Count field: {d["count"]}')`
   },
   4:{
-    checks:['top performer: bob'],
-    hint:"sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)",
-    solution:`scores = [('alice', 0.72), ('bob', 0.95), ('carol', 0.81), ('dave', 0.60)]
-sorted_scores = sorted(scores, key=lambda x: x[1], reverse=True)
-print(f'Top performer: {sorted_scores[0][0]}')`
+    checks:['retries: 5','timeout: 30'],
+    hint:"int(os.environ.get('MAX_RETRIES', '3')); int(os.environ.get('TIMEOUT_SECONDS', '30'))",
+    solution:`import os
+os.environ['MAX_RETRIES'] = '5'
+retries = int(os.environ.get('MAX_RETRIES', '3'))
+timeout = int(os.environ.get('TIMEOUT_SECONDS', '30'))
+print(f'Retries: {retries}')
+print(f'Timeout: {timeout}')`
   },
   5:{
-    checks:['total processed: 56'],
-    hint:"def process_batch(batch_size): global total_processed; total_processed += batch_size",
-    solution:`total_processed = 0
+    checks:['auth-service: ok','db-service: ok','checked 2 services'],
+    hint:"results = await main2()  — no asyncio.run(), this console already runs an event loop",
+    solution:`import asyncio
 
-def process_batch(batch_size):
-    global total_processed
-    total_processed += batch_size
+async def check_health(service, delay):
+    await asyncio.sleep(delay)
+    return f'{service}: OK'
 
-process_batch(32)
-process_batch(16)
-process_batch(8)
-print(f'Total processed: {total_processed}')`
+async def main2():
+    return await asyncio.gather(
+        check_health('auth-service', 0.01),
+        check_health('db-service', 0.01),
+    )
+
+results = await main2()
+for r in results:
+    print(r)
+print(f'Checked {len(results)} services')`
   }
 };
 
@@ -1079,20 +1122,20 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['accuracy: 80.00%','precision: 83.33%','recall: 83.33%','f1: 83.33%'];
+  const checks=['threshold: 0.8',"qualified: ['alice', 'carol']",'notified alice','notified carol','total notified: 2'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
-    res.textContent='✅ Project complete! All required elements present. +150 XP';
-    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+    res.textContent='✅ Capstone complete! Module 1 finished. +250 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=250;updateUI();spark();persistChapter();}
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Missing some required values — check the checklist above (need all four metrics at the exact percentages)';
+    res.textContent='❌ Missing some required values — check the checklist above';
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'B',5:'C'};
+const CORRECT={1:'B',2:'A',3:'B',5:'B'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1106,15 +1149,13 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const hasLambda=val.includes('lambda');
-  const hasX=val.includes('x');
-  const hasSquare=val.includes('x**2')||val.includes('x ** 2')||val.includes('x*x');
-  const passed=hasLambda&&hasX&&hasSquare;
-  quizAnswers[4]=passed?'PASS':'FAIL';
-  fb.className='q-feedback show '+(passed?'correct':'wrong');
-  fb.textContent=passed
-    ?'✅ Correct! square = lambda x: x**2'
-    :'❌ Not quite. You need: square = lambda x: x**2 (or x*x)';
+  const passed=val.includes("os.environ.get('api_key'")||val.includes('os.environ.get("api_key"');
+  const passedFinal=passed&&val.includes('unset');
+  quizAnswers[4]=passedFinal?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passedFinal?'correct':'wrong');
+  fb.textContent=passedFinal
+    ?"✅ Correct! key = os.environ.get('API_KEY', 'unset')"
+    :"❌ Not quite. You need: key = os.environ.get('API_KEY', 'unset')";
 };
 
 function revealNextChapter(){
@@ -1144,7 +1185,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Functions and modules are yours now — def, return, defaults, *args/**kwargs, lambda, scope, and import. You can now build reusable tools instead of copy-pasting logic.</div>`;
+      <div class="qrb-sub">argparse, JSON, requests/subprocess patterns, environment config, and asyncio — Module 1 is complete. You can write real, professional, automatable Python.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
@@ -1223,3 +1264,4 @@ document.querySelectorAll('.sb-item').forEach(el=>{
 
 </body>
 </html>
+
