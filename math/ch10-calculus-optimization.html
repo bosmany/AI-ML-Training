@@ -270,6 +270,19 @@ textarea#project-editor:focus{outline:none}
 
 .spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
 @keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:600px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
 </style>
 </head>
 <body>
@@ -295,6 +308,7 @@ textarea#project-editor:focus{outline:none}
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
   <div class="sb-section" style="margin-top:12px">Coming Next — Module 3</div>
   <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 11: NumPy Deep Dive</span></div>
   <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 12: Pandas Fundamentals</span></div>
@@ -316,6 +330,7 @@ textarea#project-editor:focus{outline:none}
       <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
       <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
       <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
@@ -782,6 +797,77 @@ iterations = 2000
   </div>
 </div><!-- end quiz -->
 
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Math for ML Interview Prep</h2>
+    <p>12 questions commonly asked in ML/data science interviews, covering the linear algebra, probability/statistics, and calculus from Chapters 8-10. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does the dot product of two vectors actually measure?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Geometrically, the dot product relates to how much two vectors point in the same direction — <code>a·b = |a||b|cos(θ)</code>. A large positive dot product means the vectors are well-aligned; near zero means they're roughly perpendicular (unrelated); negative means they point in somewhat opposite directions. This is why cosine similarity (dot product normalized by magnitudes) is the standard way to compare embeddings/vectors in ML.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why do matrix dimensions need to "match" for multiplication, and what determines the output shape?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">For <code>A @ B</code>, A's number of COLUMNS must equal B's number of ROWS, because each output entry is a dot product between one of A's rows and one of B's columns — those vectors must be the same length to combine. The result's shape is (A's rows, B's columns): <code>(m,n) @ (n,p) → (m,p)</code>. This is exactly why a neural network layer's weight matrix shape is (input_features, output_features).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Explain the bias-variance tradeoff.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Bias</strong> is error from a model being too simple to capture the true pattern (underfitting) — high bias means the model is systematically wrong even on training data. <strong>Variance</strong> is error from a model being too sensitive to the specific training data it saw (overfitting) — high variance means the model changes drastically with small changes in training data, and generalizes poorly. Total error is roughly bias² + variance + irreducible noise; reducing one often increases the other, which is why model complexity is a tuning knob, not "more is always better."</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is gradient descent, in one sentence, and why do we subtract the gradient (not add it)?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Gradient descent repeatedly nudges parameters in the direction that decreases a loss function, using <code>param -= learning_rate * gradient</code>. The gradient points in the direction of STEEPEST INCREASE of the function — so to minimize loss, you move in the OPPOSITE direction, which is why it's subtracted, not added (adding it would be "gradient ascent," used for maximizing something instead).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What happens if the learning rate is too high? Too low?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Too high: updates overshoot the minimum, and the loss can oscillate wildly or diverge (blow up) instead of decreasing. Too low: the model converges, but so slowly that training takes far longer than necessary, and it can get stuck in a shallow local minimum or plateau. In practice, learning rate is one of the most impactful hyperparameters to tune, often with a schedule that decreases it over training.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">State Bayes' Theorem and explain what each term means in plain language.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><code>P(A|B) = P(B|A) * P(A) / P(B)</code>. In words: the probability of A given that B happened, equals (how likely B is if A is true) times (how likely A was to begin with), divided by (how likely B is overall). It's the formal way to UPDATE a belief (P(A), the "prior") after seeing new evidence (B), producing an updated belief P(A|B) (the "posterior") — the mathematical basis of a spam filter, a medical test interpretation, or a Naive Bayes classifier.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does a positive test result for a rare disease often still mean you probably don't have it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">This is the classic Bayes' Theorem "base rate" trap: even a 99%-accurate test produces a lot of false positives in absolute terms if the disease is rare (say 1 in 10,000), because the test is run on far more healthy people than sick people. The tiny false-positive rate, applied to a huge healthy population, can produce MORE false positives than true positives from the tiny sick population — the prior probability (base rate) matters as much as the test's accuracy.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between correlation and causation?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Correlation means two variables move together statistically; causation means one variable's change directly PRODUCES a change in the other. Two variables can be correlated because A causes B, B causes A, both are caused by a hidden third variable (confounder), or purely by coincidence. Correlation alone never proves the causal direction — that typically needs a controlled experiment (A/B test) or careful causal-inference methods.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a z-score and what does it tell you?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A z-score, <code>z = (x - mean) / std</code>, converts a raw value into "how many standard deviations away from the mean" it is — a unit-independent way to spot outliers or compare values from different distributions/scales. A |z| > 2 or 3 is a common (if arbitrary) threshold for flagging an unusual value; this exact idea is what Chapter 32's production drift detector is built on.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does L2 regularization (Ridge) shrink weights toward zero but rarely to exactly zero, while L1 (Lasso) can zero them out completely?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">L2 penalizes the SQUARE of each weight, so its gradient shrinks proportionally to the weight's current size — as a weight approaches zero, the pull toward zero also weakens, so it rarely reaches exactly zero. L1 penalizes the ABSOLUTE VALUE of each weight, whose gradient is a constant regardless of the weight's size — that constant pull can push a small weight all the way to exactly zero, which is why L1 naturally produces sparse models (effectively doing feature selection).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is the Central Limit Theorem, and why does it matter in practice?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It states that the distribution of the SAMPLE MEAN of many independent random samples approaches a normal distribution as sample size grows, regardless of the underlying population's distribution. This is why normal-distribution-based statistics (confidence intervals, many hypothesis tests) are broadly applicable even when the raw data itself isn't normally distributed — it's the mean of many samples that becomes normal, not necessarily the individual data points.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the practical difference between variance and standard deviation, and why do we usually report standard deviation?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Variance is the average of the SQUARED deviations from the mean, so its units are squared (e.g. dollars²), which isn't intuitive. Standard deviation is the square root of variance, bringing the units back to the original scale (dollars) — that's why std, not variance, is the number typically reported and plotted alongside a mean.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
   </div><!-- main-content -->
 </div><!-- content -->
 
@@ -918,7 +1004,7 @@ window.runToConsole=function(btn){
 };
 
 function showSection(name){
-  ['lesson','practice','project','quiz'].forEach(s=>{
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
     document.getElementById('sec-'+s).classList.toggle('show',s===name);
     document.getElementById('tab-'+s).classList.toggle('active',s===name);
     document.getElementById('sb-'+s).classList.toggle('active',s===name);

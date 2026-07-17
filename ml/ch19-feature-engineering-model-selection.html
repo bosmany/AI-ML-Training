@@ -1,0 +1,1328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Chapter 19: Feature Engineering &amp; Model Selection</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy + Pandas + scikit-learn compiled to WebAssembly). Your progress on this
+  chapter is saved to this browser's localStorage automatically.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Ch 19: Feature Engineering &amp; Model Selection</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 4 · Chapter 19 of 32</div>
+  </a>
+  <a class="sb-back" href="ch18-clustering-dimensionality-reduction.html">← Ch 18: Clustering &amp; Dimensionality Reduction</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Chapter 19</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 4</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 20: Classical ML Capstone</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Chapter 19</div>
+    <div class="tb-title">Feature Engineering &amp; Model Selection</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 18 quiz in this browser yet.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Chapter 19:<br/><span>Feature Engineering &amp; Model Selection</span></h1>
+    <p>One train/test split (Chapter 15) tells you how a model does on ONE particular random slice of held-out data — which could get lucky or unlucky. This chapter covers the tools that make model evaluation and tuning rigorous instead of a one-shot guess: <code>Pipeline</code> chains preprocessing and modeling into a single object, <code>cross_val_score</code> and <code>KFold</code> average performance across MULTIPLE splits, and <code>GridSearchCV</code> automatically searches for the best hyperparameters using that same cross-validation. This is the machinery every serious ML workflow runs on before a model ever ships.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <!-- 19.1 -->
+  <div class="lesson-h2">19.1 — Why Scale Features: StandardScaler</div>
+  <p class="lesson-p">Models that compute distances or dot products (logistic regression, K-Means, PCA — anything NOT a tree) are sensitive to feature scale: a feature ranging 0-100000 will dominate one ranging 0-1 purely because of its units. <code>StandardScaler</code> transforms every feature to have mean 0 and standard deviation 1, putting all features on equal footing before the model ever sees them.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Every feature ends up mean=0, std=1</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+<span class="bi">print</span>(<span class="st">f'Mean before: <span class="bi">{[round(m,4) for m in X.mean(axis=0)]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Mean after:  <span class="bi">{[round(m,4) for m in X_scaled.mean(axis=0)]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Std after:   <span class="bi">{[round(s,4) for s in X_scaled.std(axis=0)]}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Always fit the scaler on TRAINING data only</strong>, then use that same fitted scaler to transform the test set (<code>.transform()</code>, not <code>.fit_transform()</code> again) — fitting on the test set would leak its statistics into your preprocessing, the same test-set-leakage problem from Chapter 15.</div></div>
+
+  <!-- 19.2 -->
+  <div class="lesson-h2">19.2 — Pipeline: Chaining Preprocessing and Model</div>
+  <p class="lesson-p">Manually scaling then fitting then remembering to scale the test set the same way is error-prone. <code>Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])</code> bundles both steps into ONE object with the familiar <code>.fit()</code> / <code>.predict()</code> interface — calling <code>.fit(X, y)</code> fits the scaler AND the model in the right order, and <code>.predict(X_new)</code> automatically applies the same fitted scaling before predicting.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Scaler + classifier as a single object</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+pipe = Pipeline([
+    (<span class="st">'scaler'</span>, StandardScaler()),
+    (<span class="st">'clf'</span>, LogisticRegression()),
+])
+pipe.fit(X, y)   <span class="cm"># fits BOTH steps, in order</span>
+preds = pipe.predict(X)   <span class="cm"># applies the fitted scaler, THEN predicts</span>
+
+<span class="bi">print</span>(<span class="st">f'Train accuracy: <span class="bi">{accuracy_score(y, preds):.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- 19.3 -->
+  <div class="lesson-h2">19.3 — KFold: Splitting Data Multiple Ways</div>
+  <p class="lesson-p">A single train/test split wastes data (the test portion never contributes to training) and its result depends on which rows happened to land in the test set. <code>KFold(n_splits=k)</code> instead divides the data into <code>k</code> equal folds and generates <code>k</code> different train/test splits — each fold takes a turn being the test set while the rest are training data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">5-fold split — every row is in the test set exactly once</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> KFold
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+
+kf = KFold(n_splits=<span class="nm">5</span>, shuffle=<span class="kw">True</span>, random_state=<span class="nm">42</span>)
+<span class="kw">for</span> i, (train_idx, test_idx) <span class="kw">in</span> <span class="bi">enumerate</span>(kf.split(X)):
+    <span class="bi">print</span>(<span class="st">f'Fold <span class="bi">{i}</span>: train_size=<span class="bi">{len(train_idx)}</span> test_size=<span class="bi">{len(test_idx)}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>5 folds of 20 rows means each test fold has 4 rows, each training fold has 16</strong> — and across all 5 folds, every single row gets used as test data exactly once. This is strictly more information than one 80/20 split.</div></div>
+
+  <!-- 19.4 -->
+  <div class="lesson-h2">19.4 — cross_val_score: One-Line Cross-Validation</div>
+  <p class="lesson-p"><code>cross_val_score(model, X, y, cv=5)</code> does the entire KFold loop for you: it trains and scores the model on each of the 5 folds and returns an array of 5 scores. The MEAN of that array is a far more trustworthy estimate of real-world performance than any single train/test split, and the SPREAD tells you how much performance varies depending on which data the model happens to see.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">5-fold cross-validation on the Pipeline from 19.2</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> cross_val_score
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+pipe = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression())])
+scores = cross_val_score(pipe, X, y, cv=<span class="nm">5</span>)
+
+<span class="bi">print</span>(<span class="st">f'Scores: <span class="bi">{[round(s,4) for s in scores]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Mean: <span class="bi">{scores.mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Std: <span class="bi">{scores.std():.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>One fold scored only 0.75 while the other four scored 1.0000</strong> — a single train/test split could have unluckily landed you on that weaker fold and made you think the model was worse than it usually is (or luckily landed on a perfect fold and oversold it). The 0.9500 MEAN across all 5 folds is the trustworthy number.</div></div>
+
+  <!-- 19.5 -->
+  <div class="lesson-h2">19.5 — Why Cross-Validation Beats a Single Split</div>
+  <p class="lesson-p">Side by side: one lucky-or-unlucky 80/20 split versus the 5-fold mean from 19.4, on the exact same data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Single split vs. 5-fold CV, same data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split, cross_val_score
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.2</span>, random_state=<span class="nm">1</span>)
+pipe = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression())])
+pipe.fit(X_train, y_train)
+single_acc = accuracy_score(y_test, pipe.predict(X_test))
+<span class="bi">print</span>(<span class="st">f'Single split test accuracy: <span class="bi">{single_acc:.4f}</span>'</span>)
+
+pipe2 = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression())])
+cv_scores = cross_val_score(pipe2, X, y, cv=<span class="nm">5</span>)
+<span class="bi">print</span>(<span class="st">f'5-fold CV mean accuracy: <span class="bi">{cv_scores.mean():.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>The single split (0.7500) makes this model look noticeably worse than the 5-fold CV mean (0.9500)</strong> — with <code>random_state=1</code>, that particular 20% test slice happened to be an unusually hard one. Whichever number you'd reported to a stakeholder depends entirely on which evaluation method you used. Cross-validation is how you avoid being fooled by one unlucky (or lucky) split.</div></div>
+
+  <!-- 19.6 -->
+  <div class="lesson-h2">19.6 — GridSearchCV: Automated Hyperparameter Tuning</div>
+  <p class="lesson-p">Every model has hyperparameters you must choose (tree <code>max_depth</code>, logistic regression's <code>C</code>, forest <code>n_estimators</code>). <code>GridSearchCV(model, param_grid, cv=5)</code> tries EVERY combination in <code>param_grid</code>, cross-validates each one, and reports <code>.best_params_</code> and <code>.best_score_</code> — the automated, honest way to tune settings instead of guessing.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Searching over 4 values of max_depth</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+param_grid = {<span class="st">'max_depth'</span>: [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="kw">None</span>]}
+grid = GridSearchCV(DecisionTreeClassifier(random_state=<span class="nm">42</span>), param_grid, cv=<span class="nm">5</span>)
+grid.fit(X, y)
+
+<span class="bi">print</span>(<span class="st">f'Best params: <span class="bi">{grid.best_params_}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Best score: <span class="bi">{grid.best_score_:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>Under the hood, GridSearchCV ran 5-fold cross-validation FOUR times</strong> — once per value of <code>max_depth</code> — and picked the setting with the best mean CV score. That's 20 total model fits from one <code>.fit()</code> call. This scales the same way with more hyperparameters, just with more combinations to try.</div></div>
+
+  <!-- 19.7 -->
+  <div class="lesson-h2">19.7 — Putting It Together: Pipeline + GridSearchCV</div>
+  <p class="lesson-p">Pipelines and grid search combine directly — you can tune a hyperparameter INSIDE a pipeline step using the <code>stepname__paramname</code> naming convention (double underscore). This is the real, production-shape pattern: one object that scales, fits, and has already been tuned by cross-validation.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Tuning LogisticRegression's C inside a Pipeline</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> GridSearchCV
+
+X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
+              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>],
+              [<span class="nm">58</span>,<span class="nm">1</span>],[<span class="nm">80</span>,<span class="nm">2</span>],[<span class="nm">65</span>,<span class="nm">3</span>],[<span class="nm">90</span>,<span class="nm">5</span>],[<span class="nm">72</span>,<span class="nm">2</span>],
+              [<span class="nm">60</span>,<span class="nm">1</span>],[<span class="nm">93</span>,<span class="nm">6</span>],[<span class="nm">67</span>,<span class="nm">2</span>],[<span class="nm">86</span>,<span class="nm">4</span>],[<span class="nm">77</span>,<span class="nm">3</span>]])
+y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+
+pipe = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression())])
+param_grid = {<span class="st">'clf__C'</span>: [<span class="nm">0.01</span>, <span class="nm">0.1</span>, <span class="nm">1</span>, <span class="nm">10</span>]}   <span class="cm"># 'clf__C' -> tune C on the step named 'clf'</span>
+
+grid = GridSearchCV(pipe, param_grid, cv=<span class="nm">5</span>)
+grid.fit(X, y)
+
+<span class="bi">print</span>(<span class="st">f'Best params: <span class="bi">{grid.best_params_}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Best score: <span class="bi">{grid.best_score_:.4f}</span>'</span>)</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter 19 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>StandardScaler</strong> centers every feature to mean 0, std 1 — required before distance-based models, fit on training data only.</div></li>
+    <li data-n="2"><div><strong>Pipeline([...])</strong> chains preprocessing and modeling into one object with a single <code>.fit()</code>/<code>.predict()</code> interface.</div></li>
+    <li data-n="3"><div><strong>KFold</strong> generates multiple train/test splits so every row is tested exactly once.</div></li>
+    <li data-n="4"><div><strong>cross_val_score(model, X, y, cv=k)</strong> automates that loop — its mean is far more trustworthy than any single split's score.</div></li>
+    <li data-n="5"><div><strong>GridSearchCV</strong> cross-validates every combination in a hyperparameter grid and reports <code>.best_params_</code> / <code>.best_score_</code>.</div></li>
+    <li data-n="6"><div><strong>stepname__paramname</strong> lets GridSearchCV tune a hyperparameter that lives inside a Pipeline step.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Scale Features</div>
+        <div class="ex-desc">Fit a StandardScaler on fixed data and confirm the resulting mean/std.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+X1 = np.array([[10,200],[20,220],[15,210],[30,250],[25,240],[12,205],[28,245],[18,215]])
+(already given)
+
+scaler1 = StandardScaler()
+X1_scaled = scaler1.fit_transform(X1)
+
+Print exactly:
+  f'Mean after scaling: {[round(m,4) for m in X1_scaled.mean(axis=0)]}'
+  f'Std after scaling: {[round(s,4) for s in X1_scaled.std(axis=0)]}'
+(Correct: Mean after scaling: [0.0, 0.0] / Std after scaling: [1.0, 1.0])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+from sklearn.preprocessing import StandardScaler
+X1 = np.array([[10,200],[20,220],[15,210],[30,250],[25,240],[12,205],[28,245],[18,215]])
+
+# scaler1 = StandardScaler()
+# X1_scaled = scaler1.fit_transform(X1)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Build a Pipeline</div>
+        <div class="ex-desc">Chain a StandardScaler and LogisticRegression, then fit and predict.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+X2 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2]])
+y2 = np.array([0,0,0,0,1,1,1,1,1,1,0,1])
+(already given)
+
+pipe2 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+pipe2.fit(X2, y2)
+preds2 = pipe2.predict(X2)
+
+Print exactly:
+  f'Predictions: {preds2.tolist()}'
+  f'Train accuracy: {accuracy_score(y2, preds2):.4f}'
+(Correct: Predictions: [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1] / Train accuracy: 0.9167)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+X2 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2]])
+y2 = np.array([0,0,0,0,1,1,1,1,1,1,0,1])
+
+# pipe2 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+# pipe2.fit(X2, y2)
+# preds2 = pipe2.predict(X2)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">KFold Sizes</div>
+        <div class="ex-desc">Split 15 rows into 3 folds and report each fold's train/test size.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.model_selection import KFold
+X3 = np.arange(15).reshape(-1,1)
+(already given)
+
+kf3 = KFold(n_splits=3, shuffle=True, random_state=7)
+For each (train_idx, test_idx) from kf3.split(X3), enumerated as i, print:
+  f'Fold {i}: train_size={len(train_idx)} test_size={len(test_idx)}'
+(Correct: Fold 0: train_size=10 test_size=5 / Fold 1: train_size=10 test_size=5 / Fold 2: train_size=10 test_size=5)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import numpy as np
+from sklearn.model_selection import KFold
+X3 = np.arange(15).reshape(-1,1)
+
+# kf3 = KFold(n_splits=3, shuffle=True, random_state=7)
+# for i, (train_idx, test_idx) in enumerate(kf3.split(X3)):
+#     print(f'Fold {i}: train_size={len(train_idx)} test_size={len(test_idx)}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Cross-Validate a Pipeline</div>
+        <div class="ex-desc">Run 5-fold cross_val_score on a fixed 15-row dataset.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+(already given)
+
+pipe4 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+scores4 = cross_val_score(pipe4, X4, y4, cv=5)
+
+Print exactly:
+  f'Scores: {[round(s,4) for s in scores4]}'
+  f'Mean: {scores4.mean():.4f}'
+(Correct: Scores: [1.0, 0.6667, 1.0, 1.0, 0.6667] / Mean: 0.8667)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+
+# pipe4 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+# scores4 = cross_val_score(pipe4, X4, y4, cv=5)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Tune max_depth With GridSearchCV</div>
+        <div class="ex-desc">Search over 3 depth values and report the winner.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+(already given)
+
+param_grid5 = {'max_depth': [1, 2, None]}
+grid5 = GridSearchCV(DecisionTreeClassifier(random_state=42), param_grid5, cv=5)
+grid5.fit(X4, y4)
+
+Print exactly:
+  f'Best params: {grid5.best_params_}'
+  f'Best score: {grid5.best_score_:.4f}'
+(Correct: Best params: {'max_depth': 1} / Best score: 1.0000)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+
+# param_grid5 = {'max_depth': [1, 2, None]}
+# grid5 = GridSearchCV(DecisionTreeClassifier(random_state=42), param_grid5, cv=5)
+# grid5.fit(X4, y4)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>Tuned Pipeline, Properly Evaluated</span></h2>
+    <p>Build the full production-shape pattern: a Pipeline that scales and classifies, cross-validated for an honest performance estimate, then tuned with GridSearchCV to find the best regularization strength.</p>
+    <div class="project-tags">
+      <span class="ptag">Pipeline</span>
+      <span class="ptag">cross_val_score</span>
+      <span class="ptag">GridSearchCV</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Build a Pipeline of StandardScaler + LogisticRegression</li>
+      <li>Run 5-fold cross_val_score on Xp, yp and print the scores and mean</li>
+      <li>Run GridSearchCV over clf__C in [0.01, 0.1, 1, 10], cv=5</li>
+      <li>Print the best params and best score</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Tuned Pipeline, Properly Evaluated — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Mini Project: Tuned Pipeline, Properly Evaluated
+# Use ONLY Chapter 19 concepts
+# ══════════════════════════════════════════
+import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score, GridSearchCV
+
+Xp = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2],[60,1],[93,6],[67,2],[86,4],[77,3]])
+yp = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0,0,1,0,1,1])
+
+# === TODO 1: cross-validate the base pipeline ===
+# pipe_p = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+# scores_p = cross_val_score(pipe_p, Xp, yp, cv=5)
+# print(f'CV scores: {[round(s,4) for s in scores_p]}')
+# print(f'CV mean: {scores_p.mean():.4f}')
+
+# === TODO 2: grid search over clf__C ===
+# param_grid_p = {'clf__C': [0.01, 0.1, 1, 10]}
+# grid_p = GridSearchCV(pipe_p, param_grid_p, cv=5)
+# grid_p.fit(Xp, yp)
+# print(f'Best params: {grid_p.best_params_}')
+# print(f'Best score: {grid_p.best_score_:.4f}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📊</span>CV scores: [1.0, 0.75, 1.0, 1.0, 1.0]</div>
+    <div class="check-item"><span class="check-icon">📐</span>CV mean: 0.9500</div>
+    <div class="check-item"><span class="check-icon">🏆</span>Best params: {'clf__C': 0.1}</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Best score: 0.9500</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Chapter 19 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 20. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why should you fit a StandardScaler on training data only, then just <code>.transform()</code> the test set?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It's faster to only fit once</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Fitting on the test set would leak its statistics (mean, std) into your preprocessing, the same test-set-leakage problem as peeking at test labels</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> StandardScaler cannot be fit more than once</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It makes no difference either way</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What does a <code>Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])</code> give you?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Two separate objects you still have to call individually</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A single object with .fit()/.predict() that fits both steps in order, and automatically applies the fitted scaler before predicting</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> A way to train two unrelated models simultaneously</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> A visualization tool, not a model</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Why is the MEAN of cross_val_score's 5 fold scores more trustworthy than one train/test split's accuracy?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> It averages performance across 5 different held-out slices of the data, so it isn't distorted by one particularly easy or hard split</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> It always produces a higher number</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> cross_val_score trains on the test set directly</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> There's no real difference between the two</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that runs 5-fold cross-validation of <code>model</code> on <code>X</code>, <code>y</code>, storing the result in <code>scores</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="scores = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">In a GridSearchCV param_grid, what does the key <code>'clf__C'</code> mean when searching over a Pipeline?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It's a typo and has no special meaning</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The double underscore tells GridSearchCV to tune the C parameter on the Pipeline step named 'clf'</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It searches over two separate models named clf and C</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It only works with StandardScaler, never with a classifier</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎓</div>
+    <div class="ncc-info">
+      <h3>Chapter 20: Classical ML Capstone</h3>
+      <p>The Module 4 capstone — combine everything from Chapters 15-19 into one end-to-end project: load, split, scale, tune, train, evaluate, and compare models.</p>
+    </div>
+    <a class="ncc-btn" href="ch20-classical-ml-capstone.html">Start Chapter 20 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='ch19';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['ch18'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# import sklearn — first use auto-fetches it, may take a few extra seconds','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['mean after scaling: [0.0, 0.0]','std after scaling: [1.0, 1.0]'],
+    hint:"scaler1 = StandardScaler(); X1_scaled = scaler1.fit_transform(X1); use X1_scaled.mean(axis=0) and .std(axis=0)",
+    solution:`import numpy as np
+from sklearn.preprocessing import StandardScaler
+X1 = np.array([[10,200],[20,220],[15,210],[30,250],[25,240],[12,205],[28,245],[18,215]])
+scaler1 = StandardScaler()
+X1_scaled = scaler1.fit_transform(X1)
+print(f'Mean after scaling: {[round(m,4) for m in X1_scaled.mean(axis=0)]}')
+print(f'Std after scaling: {[round(s,4) for s in X1_scaled.std(axis=0)]}')`
+  },
+  2:{
+    checks:['predictions: [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1]','train accuracy: 0.9167'],
+    hint:"pipe2 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())]); pipe2.fit(X2, y2); preds2 = pipe2.predict(X2)",
+    solution:`import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+X2 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2]])
+y2 = np.array([0,0,0,0,1,1,1,1,1,1,0,1])
+pipe2 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+pipe2.fit(X2, y2)
+preds2 = pipe2.predict(X2)
+print(f'Predictions: {preds2.tolist()}')
+print(f'Train accuracy: {accuracy_score(y2, preds2):.4f}')`
+  },
+  3:{
+    checks:['fold 0: train_size=10 test_size=5','fold 1: train_size=10 test_size=5','fold 2: train_size=10 test_size=5'],
+    hint:"kf3 = KFold(n_splits=3, shuffle=True, random_state=7); for i, (train_idx, test_idx) in enumerate(kf3.split(X3)): print(...)",
+    solution:`import numpy as np
+from sklearn.model_selection import KFold
+X3 = np.arange(15).reshape(-1,1)
+kf3 = KFold(n_splits=3, shuffle=True, random_state=7)
+for i, (train_idx, test_idx) in enumerate(kf3.split(X3)):
+    print(f'Fold {i}: train_size={len(train_idx)} test_size={len(test_idx)}')`
+  },
+  4:{
+    checks:['scores: [1.0, 0.6667, 1.0, 1.0, 0.6667]','mean: 0.8667'],
+    hint:"pipe4 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())]); scores4 = cross_val_score(pipe4, X4, y4, cv=5)",
+    solution:`import numpy as np
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_val_score
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+pipe4 = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+scores4 = cross_val_score(pipe4, X4, y4, cv=5)
+print(f'Scores: {[round(s,4) for s in scores4]}')
+print(f'Mean: {scores4.mean():.4f}')`
+  },
+  5:{
+    checks:["best params: {'max_depth': 1}",'best score: 1.0000'],
+    hint:"param_grid5 = {'max_depth': [1, 2, None]}; grid5 = GridSearchCV(DecisionTreeClassifier(random_state=42), param_grid5, cv=5); grid5.fit(X4, y4)",
+    solution:`import numpy as np
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+X4 = np.array([[62,1],[68,2],[70,1],[75,3],[78,4],[82,3],[85,5],[88,6],[91,4],[95,7],
+               [58,1],[80,2],[65,3],[90,5],[72,2]])
+y4 = np.array([0,0,0,0,1,1,1,1,1,1,0,1,0,1,0])
+param_grid5 = {'max_depth': [1, 2, None]}
+grid5 = GridSearchCV(DecisionTreeClassifier(random_state=42), param_grid5, cv=5)
+grid5.fit(X4, y4)
+print(f'Best params: {grid5.best_params_}')
+print(f'Best score: {grid5.best_score_:.4f}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done. +50 XP';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['cv scores: [1.0, 0.75, 1.0, 1.0, 1.0]','cv mean: 0.9500',"best params: {'clf__c': 0.1}",'best score: 0.9500'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present. +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'A',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('cross_val_score')&&val.includes('cv=5');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! scores = cross_val_score(model, X, y, cv=5)"
+    :"❌ Not quite. You need: scores = cross_val_score(model, X, y, cv=5)";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">StandardScaler, Pipeline, KFold, cross_val_score, and GridSearchCV — you now have the tools to evaluate and tune a model honestly instead of trusting one lucky split. One chapter left: the Module 4 capstone.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

@@ -3,17 +3,14 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 14: Data Visualization</title>
+<title>AI/ML: Zero to Hero — Chapter 32: MLOps Fundamentals (Capstone)</title>
 <!-- USAGE:
-  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy + Pandas + Matplotlib + Seaborn compiled to WebAssembly). First run that
-  imports matplotlib/seaborn takes longer while those packages download (~15-20s), then instant.
-  Your progress on this chapter is saved to this browser's localStorage automatically.
-  NEW IN THIS CHAPTER: the console/exercise output areas can now render an actual chart image
-  (captured server-side... well, browser-side: matplotlib's Agg backend renders to an in-memory
-  PNG, which is base64-encoded and displayed as an <img> below the text output). Every exercise
-  ALSO prints plain text facts about the chart, so it's still autograded the same reliable way as
-  every other chapter — the image is a bonus for you to actually see what you built.
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide.
+  Experiment-tracking tools (MLflow) and CI/CD (GitHub Actions) are reference-only, same pattern
+  as Chapter 31 — the drift-detection math and the capstone pipeline simulation are real,
+  runnable NumPy/Python. This is the final chapter of the core 32-chapter curriculum — it also
+  adds an Interview Prep tab with real MLOps interview questions, since the whole point of this
+  course is to make you hireable, not just quizzed.
 -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
@@ -151,7 +148,6 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .ex-result.show{display:flex}
 .ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
 .ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
-.chart-img{display:block;max-width:100%;margin-top:12px;border-radius:8px;background:#fff;padding:8px}
 
 .project-section{display:none}.project-section.show{display:block}
 .project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
@@ -173,7 +169,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:400px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:380px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -236,7 +232,6 @@ textarea#project-editor:focus{outline:none}
 .cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
 .cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
 .cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
-.cl-img{max-width:100%;border-radius:6px;background:#fff;padding:6px;margin:6px 0;display:block}
 .cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
 .cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
 #cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
@@ -296,7 +291,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 14: Data Visualization</div>
+  <div id="mob-title">Ch 32: MLOps Fundamentals</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -305,26 +300,25 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 3 · Chapter 14 of 32</div>
+    <div class="sb-logo-sub">Module 7 · Chapter 32 of 32</div>
   </a>
-  <a class="sb-back" href="ch13-data-cleaning-wrangling.html">← Ch 13: Data Cleaning &amp; Wrangling</a>
+  <a class="sb-back" href="ch31-model-deployment.html">← Ch 31: Model Deployment</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 14 · Capstone</div>
+  <div class="sb-section">Chapter 32 · Capstone</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 4</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 15: ML Foundations &amp; Workflow</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 16: Linear &amp; Logistic Regression</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Module 8: Production Projects</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 14 · Module 3 Capstone</div>
-    <div class="tb-title">Data Visualization</div>
+    <div class="tb-chapter">Chapter 32 · Module 7 Capstone</div>
+    <div class="tb-title">MLOps Fundamentals</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -341,145 +335,93 @@ textarea#project-editor:focus{outline:none}
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 13 quiz in this browser yet.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 31 quiz in this browser yet.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 14:<br/><span>Data Visualization</span></h1>
-    <p>This is the Module 3 capstone. Every chart you build actually renders in this browser — real Matplotlib and Seaborn, running on real (if simulated) data. A table of numbers hides patterns; a chart reveals them instantly. By the end, you'll produce a 4-panel "EDA story" from the candidate dataset — the same kind of first-look analysis that opens every real data science project.</p>
+    <h1>Chapter 32:<br/><span>MLOps Fundamentals</span></h1>
+    <p>This is the Module 7 — and core curriculum — capstone. A model that's deployed once and never touched again silently rots: the world changes, the data changes, and accuracy quietly degrades. MLOps is the discipline of treating a model like a living system — tracked experiments so you know what you actually trained, drift detection so you know when reality has moved on, and CI/CD so retraining and redeploying is a routine, not an emergency.</p>
     <div class="badge-row">
       <span class="badge">🕐 ~60 min read</span>
       <span class="badge">💻 5 exercises</span>
-      <span class="badge capstone">🏗️ Module 3 Capstone Project</span>
+      <span class="badge capstone">🏗️ Core Curriculum Capstone</span>
       <span class="badge">🧪 Quiz to complete</span>
+      <span class="badge">💼 Interview Prep included</span>
     </div>
   </div>
 
-  <!-- 14.1 -->
-  <div class="lesson-h2">14.1 — Why Visualize? Numbers Hide, Charts Reveal</div>
-  <p class="lesson-p">Four datasets can share the exact same mean, variance, and correlation — and look completely different when plotted (this is a real, famous example called <strong>Anscombe's Quartet</strong>). Summary statistics compress data; visualization shows you what got compressed away. This chapter's exercises all print text facts too (so they're checkable exactly like every other chapter), but the whole point is the chart below each one — look at it.</p>
-
-  <div class="info-box note"><div class="ib-icon">🖼️</div><div class="ib-body"><strong>How chart rendering works in this console</strong><br/>Every chart-producing cell should start with <code>import matplotlib; matplotlib.use('Agg')</code> then <code>import matplotlib.pyplot as plt</code>. After your code finishes, this console automatically captures whatever figure you built and displays it as an image below your text output — no extra code needed from you beyond building the chart.</div></div>
-
-  <!-- 14.2 -->
-  <div class="lesson-h2">14.2 — Bar Charts: Comparing Categories</div>
-  <p class="lesson-p">A <strong>bar chart</strong> compares a numeric value across discrete categories. <code>plt.bar(categories, values)</code> is the whole API — add <code>plt.xlabel()</code>, <code>plt.ylabel()</code>, and <code>plt.title()</code> so the chart is self-explanatory without you standing next to it.</p>
+  <!-- 32.1 -->
+  <div class="lesson-h2">32.1 — Experiment Tracking</div>
+  <p class="lesson-p">Training a model 20 different ways (different features, hyperparameters, random seeds) without recording what you tried is how "which run was the good one?" becomes unanswerable a week later. <strong>MLflow</strong> is the standard tool: log parameters, metrics, and the model artifact itself for every run, then compare runs in a UI.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Candidate scores as a bar chart</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> matplotlib
-matplotlib.use(<span class="st">'Agg'</span>)
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+    <div class="cb-header"><span class="cb-label">Terminal / real project — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="kw">import</span> mlflow
 
-names = [<span class="st">'Alice'</span>, <span class="st">'Bob'</span>, <span class="st">'Carol'</span>, <span class="st">'Dave'</span>]
-scores = [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>]
+<span class="kw">with</span> mlflow.start_run():
+    mlflow.log_param(<span class="st">'n_estimators'</span>, <span class="nm">100</span>)
+    mlflow.log_param(<span class="st">'max_depth'</span>, <span class="nm">5</span>)
+    <span class="cm"># ... train the model ...</span>
+    mlflow.log_metric(<span class="st">'accuracy'</span>, <span class="nm">0.87</span>)
+    mlflow.sklearn.log_model(model, <span class="st">'model'</span>)
 
-plt.figure()
-plt.bar(names, scores)
-plt.xlabel(<span class="st">'Name'</span>); plt.ylabel(<span class="st">'Score'</span>); plt.title(<span class="st">'Candidate Scores'</span>)
-
-<span class="bi">print</span>(<span class="st">f'Categories: <span class="bi">{len(names)}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Highest: <span class="bi">{names[scores.index(max(scores))]}</span>'</span>)</div>
+<span class="cm"># mlflow ui   -- opens a local dashboard comparing every run you've logged</span></div>
   </div>
 
-  <!-- 14.3 -->
-  <div class="lesson-h2">14.3 — Histograms: Seeing a Distribution's Shape</div>
-  <p class="lesson-p">A <strong>histogram</strong> buckets continuous numeric data into ranges ("bins") and counts how many values fall in each — this is how you SEE whether data is roughly normal, skewed, or bimodal, instead of just knowing its mean. <code>plt.hist(data, bins=N)</code> plots it; <code>np.histogram(data, bins=N)</code> gives you the same bucketing as numbers you can print and check.</p>
+  <!-- 32.2 -->
+  <div class="lesson-h2">32.2 — Model Versioning &amp; Registries</div>
+  <p class="lesson-p">A <strong>model registry</strong> tracks which exact model artifact is in <em>Staging</em>, which is in <em>Production</em>, and every version that came before — so "roll back to last week's model" is a one-line operation, not a scramble to find an old pickle file on someone's laptop.</p>
+
+  <!-- 32.3 -->
+  <div class="lesson-h2">32.3 — Drift Detection: Has the World Changed?</div>
+  <p class="lesson-p">A model trained on last year's data can quietly become wrong as user behavior, prices, or populations shift — <strong>data drift</strong>. A simple, real detector: compare the production data's mean to the training data's mean, in units of the training data's own standard deviation. A shift of many standard deviations is a strong signal something changed.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Histogram of raw scores</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> matplotlib
-matplotlib.use(<span class="st">'Agg'</span>)
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
-<span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A simple mean-shift drift detector</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
 
-values = [<span class="nm">23</span>,<span class="nm">45</span>,<span class="nm">12</span>,<span class="nm">67</span>,<span class="nm">34</span>,<span class="nm">89</span>,<span class="nm">21</span>,<span class="nm">56</span>,<span class="nm">43</span>,<span class="nm">78</span>,<span class="nm">29</span>,<span class="nm">61</span>]
+training_scores = np.array([<span class="nm">0.72</span>, <span class="nm">0.75</span>, <span class="nm">0.68</span>, <span class="nm">0.80</span>, <span class="nm">0.77</span>, <span class="nm">0.74</span>, <span class="nm">0.71</span>, <span class="nm">0.79</span>])
+production_scores = np.array([<span class="nm">0.55</span>, <span class="nm">0.60</span>, <span class="nm">0.58</span>, <span class="nm">0.62</span>, <span class="nm">0.57</span>, <span class="nm">0.61</span>, <span class="nm">0.59</span>, <span class="nm">0.56</span>])
 
-plt.figure()
-counts, edges = np.histogram(values, bins=<span class="nm">4</span>)   <span class="cm"># same bucketing plt.hist() will draw, as plain numbers</span>
-plt.hist(values, bins=<span class="nm">4</span>)
-plt.xlabel(<span class="st">'Score'</span>); plt.ylabel(<span class="st">'Frequency'</span>); plt.title(<span class="st">'Score Distribution'</span>)
+train_mean, train_std = training_scores.mean(), training_scores.std()
+prod_mean = production_scores.mean()
 
-<span class="bi">print</span>(<span class="st">f'Bin counts: <span class="bi">{counts.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Range: <span class="bi">{min(values)}</span> to <span class="bi">{max(values)}</span>'</span>)</div>
+mean_shift = <span class="bi">abs</span>(prod_mean - train_mean) / train_std   <span class="cm"># shift, in training std-devs</span>
+<span class="bi">print</span>(<span class="st">f'Mean shift (in training std devs): <span class="bi">{mean_shift:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Drift detected: <span class="bi">{mean_shift > 1.0}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>.tolist() on any NumPy array before printing</strong> converts it to plain Python numbers — a good habit any time you print an array's contents directly (rather than a single scalar like <code>.mean()</code>), so the printed text is always exactly predictable.</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>This is the same z-score idea from Chapter 9</strong>, applied to a whole distribution's mean instead of a single value. Real production systems use more rigorous statistical tests (Kolmogorov-Smirnov, population stability index) — but the core idea is identical: is this new data more than a few standard deviations from what the model was trained on?</div></div>
 
-  <!-- 14.4 -->
-  <div class="lesson-h2">14.4 — Scatter Plots: Do Two Things Move Together?</div>
-  <p class="lesson-p">A <strong>scatter plot</strong> puts one variable on each axis and plots every (x, y) pair as a point — the visual companion to Chapter 9's correlation coefficient. A tight diagonal line of points means high correlation; a shapeless cloud means little to none.</p>
+  <!-- 32.4 -->
+  <div class="lesson-h2">32.4 — CI/CD for ML: Automated Retraining</div>
+  <p class="lesson-p">Traditional CI/CD runs tests and deploys code on every push. ML CI/CD adds a step: on a schedule (or when drift crosses a threshold), automatically retrain on fresh data, re-evaluate against a held-out set, and only promote the new model to production if it beats the current one.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Study hours vs. grade</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> matplotlib
-matplotlib.use(<span class="st">'Agg'</span>)
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
-<span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Terminal / real project — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="cm"># .github/workflows/retrain.yml</span>
+name: Weekly Retrain
+on:
+  schedule:
+    - cron: <span class="st">'0 0 * * 0'</span>   <span class="cm"># every Sunday at midnight</span>
 
-x = [<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>,<span class="nm">7</span>,<span class="nm">8</span>]
-y = [<span class="nm">2</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">7</span>,<span class="nm">8</span>,<span class="nm">9</span>]
-
-plt.figure()
-plt.scatter(x, y)
-plt.xlabel(<span class="st">'x'</span>); plt.ylabel(<span class="st">'y'</span>); plt.title(<span class="st">'Scatter'</span>)
-
-corr = np.corrcoef(x, y)[<span class="nm">0</span>,<span class="nm">1</span>]
-<span class="bi">print</span>(<span class="st">f'Correlation: <span class="bi">{corr:.4f}</span>'</span>)</div>
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -r requirements.txt
+      - run: python train.py
+      - run: python evaluate.py --gate-on-accuracy 0.85   <span class="cm"># fails the job if the new model is worse</span>
+      - run: python promote_to_registry.py</div>
   </div>
-
-  <!-- 14.5 -->
-  <div class="lesson-h2">14.5 — Seaborn: Statistical Plots, Less Code</div>
-  <p class="lesson-p"><strong>Seaborn</strong> is built on top of Matplotlib and works directly with DataFrames — <code>sns.barplot(data=df, x='col1', y='col2')</code> automatically groups and aggregates for you. <code>sns.boxplot()</code> shows the median, quartiles, and outliers of each group in one shape, more informative than a bar chart of just the mean.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Seaborn barplot straight from a DataFrame</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> matplotlib
-matplotlib.use(<span class="st">'Agg'</span>)
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
-<span class="kw">import</span> seaborn <span class="kw">as</span> sns
-<span class="kw">import</span> pandas <span class="kw">as</span> pd
-
-df = pd.DataFrame({<span class="st">'dept'</span>: [<span class="st">'Sales'</span>,<span class="st">'Sales'</span>,<span class="st">'Eng'</span>,<span class="st">'Eng'</span>], <span class="st">'score'</span>: [<span class="nm">85</span>,<span class="nm">91</span>,<span class="nm">72</span>,<span class="nm">68</span>]})
-
-plt.figure()
-sns.barplot(data=df, x=<span class="st">'dept'</span>, y=<span class="st">'score'</span>)   <span class="cm"># seaborn averages 'score' PER 'dept' automatically</span>
-plt.title(<span class="st">'Average Score by Department'</span>)
-
-avg = df.groupby(<span class="st">'dept'</span>)[<span class="st">'score'</span>].mean()
-<span class="bi">print</span>(<span class="st">f'Sales avg: <span class="bi">{avg["Sales"]:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Eng avg: <span class="bi">{avg["Eng"]:.4f}</span>'</span>)</div>
-  </div>
-
-  <!-- 14.6 -->
-  <div class="lesson-h2">14.6 — Subplots: Multiple Charts, One Figure</div>
-  <p class="lesson-p"><code>plt.subplots(rows, cols)</code> creates a GRID of charts in one figure — an "EDA story" is almost always several small charts side by side, not one giant chart. It returns a figure and an array of axes; call chart methods on each <code>axes[i]</code> instead of on <code>plt</code> directly.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A 1x2 panel: bar chart + histogram</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> matplotlib
-matplotlib.use(<span class="st">'Agg'</span>)
-<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
-
-names = [<span class="st">'Alice'</span>, <span class="st">'Bob'</span>, <span class="st">'Carol'</span>, <span class="st">'Dave'</span>]
-scores = [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>]
-values = [<span class="nm">23</span>,<span class="nm">45</span>,<span class="nm">12</span>,<span class="nm">67</span>,<span class="nm">34</span>,<span class="nm">89</span>,<span class="nm">21</span>,<span class="nm">56</span>]
-
-fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">10</span>,<span class="nm">4</span>))
-axes[<span class="nm">0</span>].bar(names, scores)
-axes[<span class="nm">0</span>].set_title(<span class="st">'Scores'</span>)
-axes[<span class="nm">1</span>].hist(values, bins=<span class="nm">4</span>)
-axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>)
-
-<span class="bi">print</span>(<span class="st">f'Number of panels: <span class="bi">{len(axes)}</span>'</span>)</div>
-  </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Only one chart is captured per Run — the LAST figure created</strong>. If you call <code>plt.figure()</code> or <code>plt.subplots()</code> more than once in the same cell, only the final one gets displayed. Build one figure per cell (with as many subplots inside it as you need).</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 14 Summary — Module 3 Complete</div>
+  <div class="lesson-h2">Chapter 32 Summary — Core Curriculum Complete</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>plt.bar()</strong> compares categories. <strong>plt.hist()</strong> shows a distribution's shape. <strong>plt.scatter()</strong> shows the relationship between two variables.</div></li>
-    <li data-n="2"><div><strong>Seaborn</strong> (<code>sns.barplot</code>, <code>sns.boxplot</code>) works directly on DataFrames and aggregates automatically.</div></li>
-    <li data-n="3"><div><strong>plt.subplots(rows, cols)</strong> builds a grid of charts in one figure — the standard shape of a real EDA report.</div></li>
-    <li data-n="4"><div>That's Module 3 — you can load, clean, and visualize any tabular dataset. Next: Module 4, where you build models that learn from it.</div></li>
+    <li data-n="1"><div><strong>Experiment tracking</strong> (MLflow) records every training run's params/metrics/artifacts so nothing is a guess later.</div></li>
+    <li data-n="2"><div><strong>Model registries</strong> make "what's in production, and how do I roll back" a solved problem.</div></li>
+    <li data-n="3"><div><strong>Drift detection</strong> catches when production data has quietly diverged from training data.</div></li>
+    <li data-n="4"><div><strong>CI/CD for ML</strong> automates retraining and gates deployment on the new model actually being better.</div></li>
+    <li data-n="5"><div>That's the full 32-chapter core curriculum: Python → Math → Data Tools → Classical ML → Deep Learning → NLP/LLMs → MLOps. Module 8's production projects put all of it together.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -490,7 +432,7 @@ axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Each one builds a real chart AND prints text facts that get checked — look at the chart image below your output, that's the point of this chapter.</p>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -498,33 +440,34 @@ axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Bar Chart: Revenue by Department</div>
-        <div class="ex-desc">Build a bar chart and report the total and the top department.</div>
+        <div class="ex-title">Detect Drift on a Second Dataset</div>
+        <div class="ex-desc">Apply the mean-shift drift detector to a new pair of training/production arrays.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
+import numpy as np
+train2 = np.array([100, 105, 98, 102, 99, 101, 103, 97])
+prod2 = np.array([101, 99, 104, 100, 102, 98, 103, 100])
 (already given)
 
-Build: plt.figure(); plt.bar(depts, revenue); add xlabel/ylabel/title
+Compute tm, ts = train2.mean(), train2.std()
+Compute pm = prod2.mean()
+Compute shift2 = abs(pm - tm) / ts
 
 Print exactly:
-  f'Departments: {len(depts)}'
-  f'Total revenue: {sum(revenue)}'
-  f'Top department: {depts[revenue.index(max(revenue))]}'
-(Correct: Departments: 4 / Total revenue: 1170 / Top department: Sales)</div>
+  f'Training mean: {tm:.4f}'
+  f'Production mean: {pm:.4f}'
+  f'Shift: {shift2:.4f}'
+  f'Drift detected: {shift2 > 1.0}'
+(Correct: Training mean: 100.6250 / Production mean: 100.8750 / Shift: 0.1001 / Drift detected: False)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+train2 = np.array([100, 105, 98, 102, 99, 101, 103, 97])
+prod2 = np.array([101, 99, 104, 100, 102, 98, 103, 100])
 
-# plt.figure()
-# plt.bar(depts, revenue)
-# plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
+# tm, ts = train2.mean(), train2.std()
+# pm = prod2.mean()
+# shift2 = abs(pm - tm) / ts
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
@@ -541,34 +484,47 @@ revenue = [420, 310, 260, 180]
     <div class="ex-header">
       <div class="ex-num">2</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Histogram: Age Distribution</div>
-        <div class="ex-desc">Bucket a list of ages into 5 bins and report the bin counts.</div>
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Log a Simulated Experiment</div>
+        <div class="ex-desc">Build an experiment-log dict the way MLflow would track it.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
+np.random.seed(2)
+train_metric = np.array([0.85, 0.83, 0.87, 0.84, 0.86, 0.82, 0.88, 0.85])
+prod_metric = np.array([0.79, 0.81, 0.78, 0.80, 0.77, 0.82, 0.79, 0.80])
 (already given)
 
-Build: plt.figure(); plt.hist(ages, bins=5)
-Compute: counts, edges = np.histogram(ages, bins=5)
+tm2, ts2 = train_metric.mean(), train_metric.std()
+pm2 = prod_metric.mean()
+drift_score = abs(pm2 - tm2) / ts2
 
-Print exactly:
-  f'Data points: {len(ages)}'
-  f'Bin counts: {counts.tolist()}'
-(Correct: Data points: 15 / Bin counts: [4, 5, 2, 2, 2])</div>
+experiment_log = {
+    'run_id': 'run_001',
+    'train_accuracy': round(float(tm2), 4),
+    'prod_accuracy': round(float(pm2), 4),
+    'drift_score': round(float(drift_score), 4),
+}
+
+Print exactly: f'Experiment: {experiment_log}'
+(Correct: Experiment: {'run_id': 'run_001', 'train_accuracy': 0.85, 'prod_accuracy': 0.795, 'drift_score': 2.9399})</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
+      <textarea class="ex-editor" id="ex2-code">import numpy as np
+np.random.seed(2)
+train_metric = np.array([0.85, 0.83, 0.87, 0.84, 0.86, 0.82, 0.88, 0.85])
+prod_metric = np.array([0.79, 0.81, 0.78, 0.80, 0.77, 0.82, 0.79, 0.80])
 
-# plt.figure()
-# counts, edges = np.histogram(ages, bins=5)
-# plt.hist(ages, bins=5)
+# tm2, ts2 = train_metric.mean(), train_metric.std()
+# pm2 = prod_metric.mean()
+# drift_score = abs(pm2 - tm2) / ts2
+#
+# experiment_log = {
+#     'run_id': 'run_001',
+#     'train_accuracy': round(float(tm2), 4),
+#     'prod_accuracy': round(float(pm2), 4),
+#     'drift_score': round(float(drift_score), 4),
+# }
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
@@ -586,33 +542,24 @@ ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Scatter Plot: Study Hours vs Grade</div>
-        <div class="ex-desc">Build a scatter plot and compute the correlation between the two variables.</div>
+        <div class="ex-title">Deployment Gate Decision</div>
+        <div class="ex-desc">Turn a drift score into a RETRAIN/OK decision using a fixed threshold.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
+drift_score = 2.9399
+DRIFT_THRESHOLD = 1.0
 (already given)
 
-Build: plt.figure(); plt.scatter(hours, grade)
-Compute: corr = np.corrcoef(hours, grade)[0,1]
+decision = 'RETRAIN' if drift_score > DRIFT_THRESHOLD else 'OK'
 
-Print exactly: f'Correlation: {corr:.4f}'
-(Correct: Correlation: 0.9963)</div>
+Print exactly: f'Decision: {decision}'
+(Correct: Decision: RETRAIN)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
+      <textarea class="ex-editor" id="ex3-code">drift_score = 2.9399
+DRIFT_THRESHOLD = 1.0
 
-# plt.figure()
-# plt.scatter(hours, grade)
-# corr = np.corrcoef(hours, grade)[0,1]
+# decision = 'RETRAIN' if drift_score > DRIFT_THRESHOLD else 'OK'
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
@@ -629,43 +576,28 @@ grade = [52,55,61,64,68,70,75,80,85,90]
     <div class="ex-header">
       <div class="ex-num">4</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Seaborn Boxplot by City</div>
-        <div class="ex-desc">Build a seaborn boxplot grouped by city and report each city's average score.</div>
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Compare Two Model Versions</div>
+        <div class="ex-desc">Given two experiment logs, pick the better model by accuracy, with drift as a tiebreaker note.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
-})
+model_a = {'name': 'v1', 'accuracy': 0.84, 'drift_score': 0.5}
+model_b = {'name': 'v2', 'accuracy': 0.88, 'drift_score': 1.8}
 (already given)
 
-Build: plt.figure(); sns.boxplot(data=df2, x='city', y='score')
-Compute: avg2 = df2.groupby('city')['score'].mean()
+best = model_a if model_a['accuracy'] > model_b['accuracy'] else model_b
 
 Print exactly:
-  f'Hubli avg: {avg2["Hubli"]:.4f}'
-  f'Pune avg: {avg2["Pune"]:.4f}'
-  f'Mumbai avg: {avg2["Mumbai"]:.4f}'
-(Correct: Hubli avg: 90.0000 / Pune avg: 72.5000 / Mumbai avg: 83.0000)</div>
+  f'Best model: {best["name"]}'
+  f'Best accuracy: {best["accuracy"]}'
+  f'Best model has high drift: {best["drift_score"] > 1.0}'
+(Correct: Best model: v2 / Best accuracy: 0.88 / Best model has high drift: True)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
-})
+      <textarea class="ex-editor" id="ex4-code">model_a = {'name': 'v1', 'accuracy': 0.84, 'drift_score': 0.5}
+model_b = {'name': 'v2', 'accuracy': 0.88, 'drift_score': 1.8}
 
-# plt.figure()
-# sns.boxplot(data=df2, x='city', y='score')
-# avg2 = df2.groupby('city')['score'].mean()
+# best = model_a if model_a['accuracy'] > model_b['accuracy'] else model_b
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
@@ -683,35 +615,22 @@ df2 = pd.DataFrame({
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">A 2-Panel Figure</div>
-        <div class="ex-desc">Build one figure with a bar chart and a pie chart side by side.</div>
+        <div class="ex-title">A Retraining Trigger Function</div>
+        <div class="ex-desc">Write a function that checks 3 conditions and decides whether to trigger retraining.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
-(already given)
+Define should_retrain(drift_score, days_since_last_train, min_accuracy, current_accuracy):
+  return (drift_score > 1.0) or (days_since_last_train > 30) or (current_accuracy < min_accuracy)
 
-Build: fig, axes = plt.subplots(1, 2, figsize=(10,4))
-  axes[0].bar(cities, counts_c)
-  axes[1].pie(counts_c, labels=cities)
-
-Print exactly:
-  f'Panels: {len(axes)}'
-  f'Total candidates: {sum(counts_c)}'
-  f'Most represented city: {cities[counts_c.index(max(counts_c))]}'
-(Correct: Panels: 2 / Total candidates: 41 / Most represented city: Mumbai)</div>
+Call and print exactly:
+  f'Case 1 (high drift): {should_retrain(2.5, 5, 0.8, 0.9)}'
+  f'Case 2 (stale model): {should_retrain(0.2, 45, 0.8, 0.9)}'
+  f'Case 3 (all fine): {should_retrain(0.3, 10, 0.8, 0.9)}'
+(Correct: Case 1 (high drift): True / Case 2 (stale model): True / Case 3 (all fine): False)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
-
-# fig, axes = plt.subplots(1, 2, figsize=(10,4))
-# axes[0].bar(cities, counts_c)
-# axes[1].pie(counts_c, labels=cities)
+      <textarea class="ex-editor" id="ex5-code"># def should_retrain(drift_score, days_since_last_train, min_accuracy, current_accuracy):
+#     return (drift_score > 1.0) or (days_since_last_train > 30) or (current_accuracy < min_accuracy)
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
@@ -731,84 +650,70 @@ counts_c = [12, 8, 15, 6]
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Module 3 Capstone: <span>Candidate Dataset EDA Story</span></h2>
-    <p>The full exploratory data analysis a data scientist runs before touching a model: a 2x2 grid of charts covering the recurring candidate dataset from four angles — per-candidate scores, the score distribution, city averages, and a raw scatter — plus a short written summary of what the data shows.</p>
+    <h2>🏗️ Core Curriculum Capstone: <span>A Mini MLOps Pipeline</span></h2>
+    <p>Simulate the full MLOps loop end to end: log an "experiment," detect drift between training and production data, and make an automated retrain-or-ship decision — the same shape as a real retraining pipeline's decision logic, condensed into one script.</p>
     <div class="project-tags">
-      <span class="ptag">subplots 2x2</span>
-      <span class="ptag">bar + hist + scatter</span>
-      <span class="ptag">groupby</span>
+      <span class="ptag">drift detection</span>
+      <span class="ptag">experiment logging</span>
+      <span class="ptag">deployment gate</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>A 2x2 figure: fig, axes = plt.subplots(2, 2, figsize=(10,8))</li>
-      <li>Top-left: bar chart of score by candidate name</li>
-      <li>Top-right: histogram of the score column (bins=4)</li>
-      <li>Bottom-left: bar chart of average score by city (use groupby)</li>
-      <li>Bottom-right: scatter plot of score by row index</li>
-      <li>Print: total candidates, qualified names (score &gt;= 0.8), the best city by average score, and the overall average score</li>
+      <li>Compute train/production mean accuracy and a drift score (mean shift in training std-devs)</li>
+      <li>Build an experiment_log dict with run_id, train_accuracy, prod_accuracy, drift_score</li>
+      <li>Apply a DRIFT_THRESHOLD of 1.0 to decide RETRAIN vs OK</li>
+      <li>Print the experiment log, the drift score, and the final decision</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Candidate Dataset EDA Story — Your Solution</div>
+      <div class="pe-title">🏗️ Mini MLOps Pipeline — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Module 3 Capstone: Candidate Dataset EDA Story
-# Use ONLY Chapter 14 concepts (plus groupby from Ch 12-13)
+# Core Curriculum Capstone: A Mini MLOps Pipeline
+# Use ONLY Chapter 32 concepts
 # ══════════════════════════════════════════
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import pandas as pd
+import numpy as np
 
-candidates = pd.DataFrame({
-    'name':  ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
-    'city':  ['Hubli', 'Pune', 'Mumbai', 'Delhi', 'Hubli'],
-    'score': [0.92, 0.75, 0.81, 0.60, 0.88],
-})
+train_metric = np.array([0.85, 0.83, 0.87, 0.84, 0.86, 0.82, 0.88, 0.85])
+prod_metric = np.array([0.79, 0.81, 0.78, 0.80, 0.77, 0.82, 0.79, 0.80])
+DRIFT_THRESHOLD = 1.0
 
-# === TODO 1: 2x2 figure ===
-# fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+# === TODO 1: compute drift ===
+# tm2, ts2 = train_metric.mean(), train_metric.std()
+# pm2 = prod_metric.mean()
+# drift_score = abs(pm2 - tm2) / ts2
 
-# === TODO 2: top-left — score by candidate ===
-# axes[0,0].bar(candidates['name'], candidates['score'])
-# axes[0,0].set_title('Score by Candidate')
+# === TODO 2: log the experiment ===
+# experiment_log = {
+#     'run_id': 'run_001',
+#     'train_accuracy': round(float(tm2), 4),
+#     'prod_accuracy': round(float(pm2), 4),
+#     'drift_score': round(float(drift_score), 4),
+# }
 
-# === TODO 3: top-right — score distribution ===
-# axes[0,1].hist(candidates['score'], bins=4)
-# axes[0,1].set_title('Score Distribution')
+# === TODO 3: gate decision ===
+# decision = 'RETRAIN' if drift_score > DRIFT_THRESHOLD else 'OK'
 
-# === TODO 4: bottom-left — avg score by city ===
-# city_avg = candidates.groupby('city')['score'].mean()
-# axes[1,0].bar(city_avg.index, city_avg.values)
-# axes[1,0].set_title('Avg Score by City')
-
-# === TODO 5: bottom-right — scatter by index ===
-# axes[1,1].scatter(range(len(candidates)), candidates['score'])
-# axes[1,1].set_title('Score by Index')
-
-# === TODO 6: report ===
-# qualified = candidates[candidates['score'] >= 0.8]
-# print(f'Total candidates: {len(candidates)}')
-# print(f'Qualified (>=0.8): {list(qualified["name"])}')
-# print(f'Best city by avg score: {city_avg.idxmax()}')
-# print(f'Overall average: {candidates["score"].mean():.4f}')
+# === TODO 4: report ===
+# print(f'Experiment: {experiment_log}')
+# print(f'Drift score: {drift_score:.4f}')
+# print(f'Decision: {decision}')
 </textarea>
-    <div class="pe-output" id="project-output">Your output (and chart) will appear here when you click Run...</div>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
   </div>
 
   <div class="checklist">
     <h3>✅ Capstone Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">🔢</span>Total candidates: 5</div>
-    <div class="check-item"><span class="check-icon">✅</span>Qualified (>=0.8): ['Alice', 'Carol', 'Eve']</div>
-    <div class="check-item"><span class="check-icon">🏙️</span>Best city by avg score: Hubli</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Overall average: 0.7920</div>
-    <div class="check-item"><span class="check-icon">🖼️</span>A 2x2 chart grid rendered below your output</div>
+    <div class="check-item"><span class="check-icon">📋</span>Experiment: {'run_id': 'run_001', 'train_accuracy': 0.85, 'prod_accuracy': 0.795, 'drift_score': 2.9399}</div>
+    <div class="check-item"><span class="check-icon">📉</span>Drift score: 2.9399</div>
+    <div class="check-item"><span class="check-icon">🚦</span>Decision: RETRAIN</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -818,60 +723,60 @@ candidates = pd.DataFrame({
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 14 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Module 4. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 32 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. This is the final quiz of the core 32-chapter curriculum. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">When should you reach for a bar chart vs. a histogram?</div>
+    <div class="q-text">Why is experiment tracking (e.g. MLflow) important?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> They're interchangeable, pick either one</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Bar chart: comparing a value ACROSS discrete categories. Histogram: showing the SHAPE of one continuous variable's distribution</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Bar charts only work with two categories</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Histograms require Seaborn, bar charts don't</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It automatically improves model accuracy</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> It records every training run's parameters, metrics, and artifacts, so you can compare runs and reproduce results later instead of relying on memory</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> It replaces the need for a training script</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It's only useful for deep learning, not classical ML</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">What does a tight diagonal line of points in a scatter plot suggest, compared to a shapeless cloud of points?</div>
+    <div class="q-text">What does a model registry solve?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Nothing — scatter plots can't show relationships between variables</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A strong correlation between the two variables (vs. little to no correlation for a shapeless cloud)</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> That the data has too many outliers to plot</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> That a histogram would be a better choice</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Nothing practical, it's optional bookkeeping</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> It tracks which model version is in staging/production and every version before it, making rollback a one-line operation instead of a scramble</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> It trains models automatically</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It's the same thing as a Docker registry</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does <code>sns.barplot(data=df, x='dept', y='score')</code> do that a plain <code>plt.bar()</code> on raw lists doesn't do automatically?</div>
+    <div class="q-text">In the mean-shift drift detector from this chapter, what does dividing by the TRAINING data's standard deviation accomplish?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Groups the DataFrame by 'dept' and aggregates 'score' (mean, by default) per group, directly from the DataFrame</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Nothing, they are identical in every way</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It removes the need to import matplotlib entirely</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It only works with numeric column names</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> It expresses the shift in a scale-independent way — "how many training std-devs away" instead of raw units, which is comparable across different metrics</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> It has no real purpose, just convention</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It converts the result into a percentage automatically</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It's required to avoid division by zero</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write the line that creates a 1-row, 3-column grid of subplots, assigned to <code>fig</code> and <code>axes</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="fig, axes = ..." rows="3"></textarea>
+    <div class="q-text">Write the line that computes a mean_shift given prod_mean, train_mean, and train_std (matching this chapter's formula).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="mean_shift = ..." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">If you call <code>plt.figure()</code> twice in the same cell before this console captures a chart, which one gets displayed?</div>
+    <div class="q-text">What does an ML CI/CD pipeline add on top of a traditional software CI/CD pipeline?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Both, side by side automatically</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Only the LAST figure created — build one figure per cell, with subplots inside it if you need multiple charts</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Neither — calling plt.figure() twice raises an error</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Only the first one</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Nothing, they are identical</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> An automated retrain-and-evaluate step, gated on the new model actually outperforming the current one before it's promoted to production</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It removes the need for any testing</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It only runs once, at the very start of a project</button>
     </div>
   </div>
 
@@ -880,79 +785,79 @@ candidates = pd.DataFrame({
   <div class="quiz-result-banner" id="quiz-result"></div>
 
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
-    <div class="ncc-icon">🔀</div>
+    <div class="ncc-icon">🎉</div>
     <div class="ncc-info">
-      <h3>Module 4: Classical Machine Learning — Chapter 15</h3>
-      <p>Module 3 complete! Train/test splits, bias-variance, and the metrics that decide whether a model is actually any good — the workflow underneath every ML project.</p>
+      <h3>Core Curriculum Complete — Module 8: Production Projects</h3>
+      <p>All 32 core chapters done. Module 8 is where it all comes together — real, portfolio-worthy end-to-end builds.</p>
     </div>
-    <a class="ncc-btn" href="../ml/ch15-ml-foundations-workflow.html">Start Chapter 15 →</a>
+    <a class="ncc-btn" href="../projects/ch33-production-ml-pipeline.html">Start Module 8 →</a>
   </div>
 </div><!-- end quiz -->
 
 <div class="interview-section" id="sec-interview">
   <div class="interview-intro">
-    <h2>💼 Data Tools Interview Prep</h2>
-    <p>12 questions commonly asked in data scientist / data analyst interviews, covering NumPy, Pandas, cleaning, and visualization from Chapters 11-14. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
+    <h2>💼 MLOps &amp; Production ML Interview Prep</h2>
+    <p>12 questions commonly asked in ML engineer / MLOps interviews, covering everything in this chapter plus the deployment concepts from Chapter 31. Click a question to reveal the answer. This section isn't graded — it's here so you walk into an interview room prepared, not just quizzed.</p>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">Why is a vectorized NumPy operation faster than a Python for-loop over the same data?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">A Python for-loop interprets and dispatches a new bytecode instruction for every single element, with all the overhead of the Python interpreter. A vectorized NumPy operation calls into pre-compiled C code once, which loops over the underlying contiguous memory buffer directly — no per-element Python interpreter overhead, and it can use CPU-level optimizations (SIMD) the interpreter can't.</div></div>
+    <div class="iq-q">What is MLOps, and how is it different from regular DevOps?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">MLOps applies DevOps practices (CI/CD, automation, monitoring) to the ML lifecycle, but adds concerns DevOps doesn't have: the model's behavior depends on DATA as well as code, so you also need to version datasets, track experiments, detect data/concept drift, and periodically retrain — a correctly-deployed model can still silently become wrong as the world changes, which isn't true of ordinary deployed code.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What is broadcasting in NumPy, and what's the rule for when two arrays can broadcast together?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">Broadcasting lets NumPy apply an operation between arrays of different shapes by virtually "stretching" the smaller one, without actually copying data. Two dimensions are compatible if they're equal, or one of them is 1 (which gets stretched to match). Comparing shapes from the trailing dimension backward, if every dimension pair is compatible (or one array simply has fewer dimensions), the operation broadcasts.</div></div>
+    <div class="iq-q">What's the difference between data drift and concept drift?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Data drift</strong>: the distribution of INPUT features changes (e.g. average customer age shifts), but the relationship between inputs and the correct output stays the same. <strong>Concept drift</strong>: the relationship itself changes (e.g. what used to predict "fraud" no longer does, because fraud patterns evolved) — the same input now warrants a different output. Concept drift is generally harder to detect and more damaging.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What's the difference between <code>.loc</code> and <code>.iloc</code> in Pandas?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner"><code>.iloc</code> selects by integer POSITION (like a Python list index — 0, 1, 2...), regardless of what the actual index labels are. <code>.loc</code> selects by LABEL (the actual index value, or column name) — for a DataFrame with a default 0,1,2... index these look the same, but they diverge the moment the index is anything else (dates, strings, or a re-sorted/filtered DataFrame where row labels no longer match position).</div></div>
+    <div class="iq-q">Why track experiments instead of just remembering your best model?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because "remembering" doesn't scale past a handful of runs, isn't reproducible by a teammate, and gives you no audit trail when a stakeholder asks "why did we pick this model." Tools like MLflow or Weights &amp; Biases log every run's hyperparameters, metrics, code version, and the resulting artifact, so any run can be compared or exactly reproduced later.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What's the difference between an inner join, left join, and outer join?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner"><strong>Inner</strong>: keep only keys present in BOTH tables. <strong>Left</strong>: keep every row from the left table, filling unmatched right-side columns with NaN. <strong>Outer</strong>: keep every key from EITHER table, filling gaps on whichever side is missing with NaN. Choosing wrong silently drops or duplicates data — always check row counts after a merge.</div></div>
+    <div class="iq-q">What is a feature store and why would a team adopt one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A feature store is a centralized system for computing, storing, and serving features consistently to both training and serving pipelines. Without one, teams often compute features slightly differently in training (batch, offline) vs. serving (real-time, online) — causing "training-serving skew," where a model behaves differently in production than its offline evaluation predicted.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">How do you decide between dropping rows with missing values vs. imputing (filling) them?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">Dropping loses every OTHER column's data for that row too, and can meaningfully shrink a small dataset or introduce bias if missingness isn't random (e.g. high-income respondents skip the income question more often). Imputing (mean/median/mode, or a model-based estimate) keeps the row but risks injecting an artificial value that understates true variance. There's no universal answer — it depends on how much data is missing, whether it's missing at random, and how sensitive downstream analysis is to bias vs. reduced sample size.</div></div>
+    <div class="iq-q">What is training-serving skew, and how do you prevent it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It's the gap between a model's offline evaluation performance and its real production performance, usually caused by inconsistencies between how features were computed during training vs. how they're computed live at inference time (different code paths, different data freshness, different preprocessing). Prevented by sharing the exact same feature-computation code/logic (or a feature store) between training and serving, and by monitoring production performance against the offline baseline continuously.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What does <code>df.groupby('col')</code> actually do under the hood?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">It follows a "split-apply-combine" pattern: SPLIT the DataFrame into groups sharing the same value in <code>'col'</code>, APPLY an aggregation function (mean, sum, count...) to each group independently, then COMBINE the per-group results back into a single result (indexed by the group values). <code>groupby()</code> alone is lazy — it doesn't compute anything until you call an aggregation like <code>.mean()</code> on it.</div></div>
+    <div class="iq-q">Explain canary deployment and blue-green deployment for ML models.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Canary</strong>: route a small percentage of production traffic (e.g. 5%) to the new model, monitor its metrics against the old model, and gradually increase traffic if it performs well — limits the blast radius of a bad model. <strong>Blue-green</strong>: run the new model ("green") fully in parallel with the current one ("blue"), then switch all traffic over at once, keeping "blue" ready for an instant rollback if something's wrong.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">Why might summing a numeric-looking column silently give a wrong answer?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">If the column was loaded/parsed as text (object dtype) rather than a real numeric dtype, <code>+</code> on strings concatenates them instead of adding — <code>'92' + '75'</code> gives <code>'9275'</code>, not 167 — and pandas won't raise an error. Always check <code>df.dtypes</code> before trusting arithmetic on a column, and use <code>.astype(int)</code>/<code>.astype(float)</code> to convert text-that-looks-numeric before computing on it.</div></div>
+    <div class="iq-q">What metrics would you monitor for a model already in production?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Two categories: (1) <strong>system health</strong> — request volume, latency, error rate, uptime (same as any deployed service); (2) <strong>model health</strong> — prediction distribution shifts, input feature drift, and — when ground-truth labels eventually arrive (e.g. did the customer actually churn) — the real-world accuracy/precision/recall, compared against the offline evaluation numbers.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">When would you choose a bar chart vs. a histogram vs. a scatter plot?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner"><strong>Bar chart</strong>: comparing a value across discrete CATEGORIES (sales by region). <strong>Histogram</strong>: showing the SHAPE of one continuous variable's distribution (is it normal, skewed, bimodal?). <strong>Scatter plot</strong>: showing the RELATIONSHIP between two continuous variables (does one increase as the other does?). Picking the wrong one is a common way to obscure the exact pattern you're trying to show.</div></div>
+    <div class="iq-q">What is A/B testing for ML models, and how does it differ from a typical product A/B test?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Same core idea — split traffic between model A and model B, measure a business metric (not just offline accuracy) for each, and pick the winner with statistical confidence. The ML-specific wrinkle: you often need to watch BOTH the business metric AND model-specific metrics (drift, latency, confidence calibration) simultaneously, since a model can win on the business metric short-term while degrading in ways that only show up over more time or more data.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What is Anscombe's Quartet, and why is it a famous illustration in data visualization?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">It's four small datasets that share nearly identical summary statistics (mean, variance, correlation, and even the same linear regression line) but look COMPLETELY different when actually plotted — one is a clean linear relationship, one is a clear curve, one has a single outlier driving the "correlation," and one is mostly a vertical line with one outlier. It's the classic argument for always visualizing data, not just trusting summary statistics.</div></div>
+    <div class="iq-q">How would you design a CI/CD pipeline for a retraining ML model?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">On a schedule or drift-triggered event: pull fresh data → run the training script → evaluate against a fixed, held-out validation set → GATE the pipeline on the new model beating the current production model on the key metric (fail the job otherwise) → if it passes, register the new model version and promote it (often via canary rollout, not an instant full swap) → keep monitoring afterward.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What's a common cause of a merge unexpectedly multiplying your row count ("fan-out")?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">If the merge key has duplicate values on either side (e.g. a "customer_id" that appears multiple times in the right-hand table because it has one row per order), the merge produces a cross-product of matches for that key — every matching row on the left gets paired with every matching row on the right, multiplying the row count. Always confirm whether a merge key is expected to be unique before merging on it.</div></div>
+    <div class="iq-q">How do you handle rolling back a bad model deployment?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">This is exactly what a model registry and versioned deployments are for: keep the previous production model readily available (not deleted), route traffic back to it (a config change, not a retrain), and only then investigate what went wrong with the new version. Rollback should be measured in minutes, not "let's retrain and redeploy," which is why blue-green/canary patterns matter.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">What's the difference between <code>pd.merge()</code> and <code>pd.concat()</code>?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner"><code>merge()</code> joins two tables SIDEWAYS by matching a shared key column (SQL-style join). <code>concat()</code> stacks tables with the SAME columns on top of each other (or side by side), with no key-matching logic at all — the classic use case being "combine this week's data export with last week's."</div></div>
+    <div class="iq-q">Why can't you just retrain a model constantly instead of monitoring for drift first?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retraining costs compute, time, and carries its own risk (a new model can regress in ways the old one didn't, especially if recent data is noisy or has quality issues). Monitoring for drift and gating retraining on it (or on a schedule with an evaluation gate) targets retraining at when it's actually needed, and forces every new model to prove it's better before replacing a working one.</div></div>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
-    <div class="iq-q">How would you detect and handle outliers in a numeric column?<span class="iq-arrow">▶</span></div>
-    <div class="iq-a"><div class="iq-a-inner">Common detection methods: a z-score threshold (flag |z| > 2 or 3), the IQR method (flag values beyond 1.5× the interquartile range past Q1/Q3), or simply visualizing with a boxplot/histogram. Handling depends on WHY the outlier exists: a data-entry error should probably be corrected or dropped; a genuine extreme value (a legitimate high-value transaction) might need to stay, or be handled with a robust statistic (median instead of mean) rather than removed outright.</div></div>
+    <div class="iq-q">What's the difference between online (real-time) and batch inference, and when would you use each?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Online inference</strong>: a live request comes in (e.g. a user loads a page) and the model predicts in real time within the response — needs low latency, usually served behind an API. <strong>Batch inference</strong>: predictions are computed for many inputs at once on a schedule (e.g. nightly), stored, and looked up later — no latency pressure, much more compute-efficient per-prediction. Use online when the input isn't known until request time (fraud check on this specific transaction); use batch when you can precompute (tomorrow's recommended products for every user).</div></div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:24px">
@@ -983,7 +888,7 @@ candidates = pd.DataFrame({
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch14';
+const CH_ID='ch32';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -1014,7 +919,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch13'];
+  const prev=store.chapters && store.chapters['ch31'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -1034,7 +939,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import matplotlib; matplotlib.use(\'Agg\') first — charts render below your output automatically','info');
+    clog('# NOTE: MLflow/GitHub Actions sections are reference-only — not installed/runnable here','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -1051,23 +956,6 @@ function cleanPyError(msg){
   }
   return lines[lines.length-1]||'Error';
 }
-
-const IMG_CAPTURE_CODE = `
-import base64 as __b64, io as __io
-try:
-    import matplotlib.pyplot as __plt
-    if __plt.get_fignums():
-        __buf = __io.BytesIO()
-        __plt.savefig(__buf, format='png', bbox_inches='tight', dpi=100, facecolor='white')
-        __buf.seek(0)
-        __img_capture = __b64.b64encode(__buf.read()).decode('ascii')
-        __plt.close('all')
-    else:
-        __img_capture = None
-except ImportError:
-    __img_capture = None
-`;
-
 async function runPy(code){
   if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
   let out='';
@@ -1076,13 +964,7 @@ async function runPy(code){
   try{
     await pyodide.loadPackagesFromImports(code);
     await pyodide.runPythonAsync(code);
-    let img=null;
-    try{
-      await pyodide.runPythonAsync(IMG_CAPTURE_CODE);
-      const cap=pyodide.globals.get('__img_capture');
-      img=(cap===undefined||cap===null)?null:cap;
-    }catch(capErr){ img=null; }
-    return{ok:true,out,img};
+    return{ok:true,out};
   }catch(e){
     return{ok:false,out,err:cleanPyError(e.message||e.toString())};
   }finally{
@@ -1099,14 +981,6 @@ function clog(text,type='out'){
   el.appendChild(d);
   el.scrollTop=el.scrollHeight;
 }
-function clogImg(base64){
-  const el=document.getElementById('cd-out');
-  const img=document.createElement('img');
-  img.className='cl-img';
-  img.src='data:image/png;base64,'+base64;
-  el.appendChild(img);
-  el.scrollTop=el.scrollHeight;
-}
 window.clearConsole=()=>{
   document.getElementById('cd-out').innerHTML='';
   clog('# Cleared','info');
@@ -1116,10 +990,9 @@ window.runConsole=async()=>{
   if(!code)return;
   if(!pyReady){clog('Python not loaded yet','info');return;}
   clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
-  const{ok,out,err,img}=await runPy(code);
+  const{ok,out,err}=await runPy(code);
   if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
   if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
-  if(ok&&img)clogImg(img);
 };
 window.runToConsole=function(btn){
   const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
@@ -1130,8 +1003,10 @@ window.runToConsole=function(btn){
 function showSection(name){
   ['lesson','practice','project','quiz','interview'].forEach(s=>{
     document.getElementById('sec-'+s).classList.toggle('show',s===name);
-    document.getElementById('tab-'+s).classList.toggle('active',s===name);
-    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
   });
   window.scrollTo(0,0);
   document.getElementById('main-content').scrollTop=0;
@@ -1139,81 +1014,64 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['departments: 4','total revenue: 1170','top department: sales'],
-    hint:"plt.bar(depts, revenue); sum(revenue); depts[revenue.index(max(revenue))]",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
-plt.figure()
-plt.bar(depts, revenue)
-plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
-print(f'Departments: {len(depts)}')
-print(f'Total revenue: {sum(revenue)}')
-print(f'Top department: {depts[revenue.index(max(revenue))]}')`
+    checks:['training mean: 100.6250','production mean: 100.8750','shift: 0.1001','drift detected: false'],
+    hint:"tm, ts = train2.mean(), train2.std(); pm = prod2.mean(); shift2 = abs(pm-tm)/ts",
+    solution:`import numpy as np
+train2 = np.array([100, 105, 98, 102, 99, 101, 103, 97])
+prod2 = np.array([101, 99, 104, 100, 102, 98, 103, 100])
+tm, ts = train2.mean(), train2.std()
+pm = prod2.mean()
+shift2 = abs(pm - tm) / ts
+print(f'Training mean: {tm:.4f}')
+print(f'Production mean: {pm:.4f}')
+print(f'Shift: {shift2:.4f}')
+print(f'Drift detected: {shift2 > 1.0}')`
   },
   2:{
-    checks:['data points: 15','bin counts: [4, 5, 2, 2, 2]'],
-    hint:"counts, edges = np.histogram(ages, bins=5); plt.hist(ages, bins=5); print counts.tolist()",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
-plt.figure()
-counts, edges = np.histogram(ages, bins=5)
-plt.hist(ages, bins=5)
-plt.xlabel('Age'); plt.ylabel('Frequency'); plt.title('Age Distribution')
-print(f'Data points: {len(ages)}')
-print(f'Bin counts: {counts.tolist()}')`
+    checks:["experiment: {'run_id': 'run_001', 'train_accuracy': 0.85, 'prod_accuracy': 0.795, 'drift_score': 2.9399}"],
+    hint:"round(float(x), 4) for each logged metric",
+    solution:`import numpy as np
+np.random.seed(2)
+train_metric = np.array([0.85, 0.83, 0.87, 0.84, 0.86, 0.82, 0.88, 0.85])
+prod_metric = np.array([0.79, 0.81, 0.78, 0.80, 0.77, 0.82, 0.79, 0.80])
+tm2, ts2 = train_metric.mean(), train_metric.std()
+pm2 = prod_metric.mean()
+drift_score = abs(pm2 - tm2) / ts2
+experiment_log = {
+    'run_id': 'run_001',
+    'train_accuracy': round(float(tm2), 4),
+    'prod_accuracy': round(float(pm2), 4),
+    'drift_score': round(float(drift_score), 4),
+}
+print(f'Experiment: {experiment_log}')`
   },
   3:{
-    checks:['correlation: 0.9963'],
-    hint:"corr = np.corrcoef(hours, grade)[0,1]",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
-plt.figure()
-plt.scatter(hours, grade)
-plt.xlabel('Hours'); plt.ylabel('Grade'); plt.title('Study Hours vs Grade')
-corr = np.corrcoef(hours, grade)[0,1]
-print(f'Correlation: {corr:.4f}')`
+    checks:['decision: retrain'],
+    hint:"decision = 'RETRAIN' if drift_score > DRIFT_THRESHOLD else 'OK'",
+    solution:`drift_score = 2.9399
+DRIFT_THRESHOLD = 1.0
+decision = 'RETRAIN' if drift_score > DRIFT_THRESHOLD else 'OK'
+print(f'Decision: {decision}')`
   },
   4:{
-    checks:['hubli avg: 90.0000','pune avg: 72.5000','mumbai avg: 83.0000'],
-    hint:"sns.boxplot(data=df2, x='city', y='score'); avg2 = df2.groupby('city')['score'].mean()",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
-import pandas as pd
-df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
-})
-plt.figure()
-sns.boxplot(data=df2, x='city', y='score')
-plt.title('Score by City')
-avg2 = df2.groupby('city')['score'].mean()
-print(f'Hubli avg: {avg2["Hubli"]:.4f}')
-print(f'Pune avg: {avg2["Pune"]:.4f}')
-print(f'Mumbai avg: {avg2["Mumbai"]:.4f}')`
+    checks:['best model: v2','best accuracy: 0.88','best model has high drift: true'],
+    hint:"best = model_a if model_a['accuracy'] > model_b['accuracy'] else model_b",
+    solution:`model_a = {'name': 'v1', 'accuracy': 0.84, 'drift_score': 0.5}
+model_b = {'name': 'v2', 'accuracy': 0.88, 'drift_score': 1.8}
+best = model_a if model_a['accuracy'] > model_b['accuracy'] else model_b
+print(f'Best model: {best["name"]}')
+print(f'Best accuracy: {best["accuracy"]}')
+print(f'Best model has high drift: {best["drift_score"] > 1.0}')`
   },
   5:{
-    checks:['panels: 2','total candidates: 41','most represented city: mumbai'],
-    hint:"fig, axes = plt.subplots(1, 2, figsize=(10,4)); axes[0].bar(...); axes[1].pie(...)",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
-fig, axes = plt.subplots(1, 2, figsize=(10,4))
-axes[0].bar(cities, counts_c)
-axes[0].set_title('Candidates by City')
-axes[1].pie(counts_c, labels=cities)
-axes[1].set_title('Share by City')
-print(f'Panels: {len(axes)}')
-print(f'Total candidates: {sum(counts_c)}')
-print(f'Most represented city: {cities[counts_c.index(max(counts_c))]}')`
+    checks:['case 1 (high drift): true','case 2 (stale model): true','case 3 (all fine): false'],
+    hint:"return (drift_score > 1.0) or (days_since_last_train > 30) or (current_accuracy < min_accuracy)",
+    solution:`def should_retrain(drift_score, days_since_last_train, min_accuracy, current_accuracy):
+    return (drift_score > 1.0) or (days_since_last_train > 30) or (current_accuracy < min_accuracy)
+
+print(f'Case 1 (high drift): {should_retrain(2.5, 5, 0.8, 0.9)}')
+print(f'Case 2 (stale model): {should_retrain(0.2, 45, 0.8, 0.9)}')
+print(f'Case 3 (all fine): {should_retrain(0.3, 10, 0.8, 0.9)}')`
   }
 };
 
@@ -1224,16 +1082,10 @@ window.runExercise=async function(n){
   const resEl=document.getElementById(`ex${n}-result`);
   outEl.textContent='Running...';outEl.className='ex-output show';
   resEl.className='ex-result';resEl.style.display='none';
-  const{ok,out,err,img}=await runPy(code);
+  const{ok,out,err}=await runPy(code);
   const full=(out||'')+((!ok&&err)?'\n'+err:'');
   outEl.textContent=full||(ok?'(no output)':'Error');
   outEl.className='ex-output show '+(ok?'ok':'err');
-  if(ok&&img){
-    const imgEl=document.createElement('img');
-    imgEl.className='chart-img';
-    imgEl.src='data:image/png;base64,'+img;
-    outEl.appendChild(imgEl);
-  }
 
   const ex=EXERCISES[n];
   let passed=ok;
@@ -1272,22 +1124,16 @@ window.runProject=async function(){
   const res=document.getElementById('project-result');
   out.textContent='Running...';out.className='pe-output';
   res.style.display='none';
-  const{ok,out:o,err,img}=await runPy(code);
+  const{ok,out:o,err}=await runPy(code);
   const full=(o||'')+((!ok&&err)?'\n'+err:'');
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
-  if(ok&&img){
-    const imgEl=document.createElement('img');
-    imgEl.className='chart-img';
-    imgEl.src='data:image/png;base64,'+img;
-    out.appendChild(imgEl);
-  }
 
-  const checks=['total candidates: 5',"qualified (>=0.8): ['alice', 'carol', 'eve']",'best city by avg score: hubli','overall average: 0.7920'];
+  const checks=["experiment: {'run_id': 'run_001', 'train_accuracy': 0.85, 'prod_accuracy': 0.795, 'drift_score': 2.9399}",'drift score: 2.9399','decision: retrain'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
-    res.textContent='✅ Capstone complete! Module 3 finished. +250 XP';
+    res.textContent='✅ Capstone complete! Core curriculum finished. +250 XP';
     if(!completedItems.has('project')){completedItems.add('project');xp+=250;updateUI();spark();persistChapter();}
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
@@ -1308,15 +1154,14 @@ window.selectOpt=function(q,opt){
 };
 
 window.checkQ4=function(){
-  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
   const fb=document.getElementById('q4-feedback');
-  const noSpaces=val.replace(/\s/g,'');
-  const passed=noSpaces.includes('fig,axes=plt.subplots(1,3)') || (noSpaces.includes('plt.subplots(1,3)') && noSpaces.includes('fig') && noSpaces.includes('axes'));
+  const passed=val.includes('mean_shift=abs(prod_mean-train_mean)/train_std');
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! fig, axes = plt.subplots(1, 3)'
-    :'❌ Not quite. You need: fig, axes = plt.subplots(1, 3)';
+    ?'✅ Correct! mean_shift = abs(prod_mean - train_mean) / train_std'
+    :'❌ Not quite. You need: mean_shift = abs(prod_mean - train_mean) / train_std';
 };
 
 function revealNextChapter(){
@@ -1345,8 +1190,8 @@ window.submitQuiz=function(){
   document.getElementById('quiz-score').textContent=score;
   if(passed){
     banner.innerHTML=`
-      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Bar charts, histograms, scatter plots, Seaborn, and multi-panel figures — Module 3 is complete. You can load, clean, and visualize any tabular dataset end to end.</div>`;
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct — Core Curriculum Complete!</div>
+      <div class="qrb-sub">Experiment tracking, model registries, drift detection, and CI/CD for ML — you understand what keeps a model alive and trustworthy in production, not just how to train one. Check out the Interview Prep tab, then head to Module 8.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
@@ -1371,7 +1216,7 @@ window.retakeQuiz=function(){
 
 function updateUI(){
   document.getElementById('xp-count').textContent=xp;
-  const total=7; // 5 exercises + project + quiz
+  const total=7; // 5 exercises + project + quiz (interview prep is supplementary, not counted)
   document.getElementById('done-count').textContent=completedItems.size;
   const pct=Math.round(completedItems.size/total*100);
   document.getElementById('sb-progress').style.width=pct+'%';
@@ -1425,4 +1270,5 @@ document.querySelectorAll('.sb-item').forEach(el=>{
 
 </body>
 </html>
+
 
