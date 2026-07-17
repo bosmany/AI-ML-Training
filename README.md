@@ -4,50 +4,58 @@ An interactive, self-contained, browser-based course that takes someone from zer
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
 
-## Status: ~30 of 32 core chapters written, verification/integration pass still needed (Modules 1-7 drafted)
+## Status: all 32 core chapters complete, verified, committed & pushed. Module 8 (bonus) in progress.
 
 The course was expanded from 30 to 32 chapters partway through Module 1 (see renumbering note
-below), and then expanded AGAIN mid-build with two more asks: **Interview Prep** tabs on every
-module capstone, and a bonus **Module 8: Production Projects** appended after Ch 32 (no
-renumbering — Module 8 lives in a new `projects/` folder, chapters 33+).
+below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
+module capstone (Ch 7, 10, 14, 20, 26, 30, 32), and a bonus **Module 8: Production Projects**
+appended after Ch 32 (no renumbering — Module 8 lives in a new `projects/` folder, chapters 33+,
+explicitly including a dedicated **Agentic AI** project).
 
-| # | Chapter | File | Status |
-|---|---------|------|--------|
-| 1 | Python Basics | `python/ch01-python-basics.html` | ✅ Done, committed |
-| 2 | Control Flow | `python/ch02-control-flow.html` | ✅ Done, committed |
-| 3 | Functions & Modules | `python/ch03-functions-modules.html` | ✅ Done, committed |
-| 4 | Data Structures | `python/ch04-data-structures.html` | ✅ Done, committed |
-| 5 | OOP, Files & Errors | `python/ch05-oop-files-errors.html` | ✅ Done, committed |
-| 6 | Professional Python | `python/ch06-professional-python.html` | ✅ Done, committed |
-| 7 | Python for DevOps & APIs *(Module 1 capstone + Interview Prep)* | `python/ch07-python-devops-apis.html` | ✅ Done, **uncommitted local edit** (Interview Prep tab added) |
-| 8 | Linear Algebra for ML | `math/ch08-linear-algebra.html` | ✅ Done, committed |
-| 9 | Probability & Statistics | `math/ch09-probability-statistics.html` | ✅ Done, committed |
-| 10 | Calculus & Optimization *(Module 2 capstone + Interview Prep)* | `math/ch10-calculus-optimization.html` | ✅ Done, **uncommitted local edit** (Interview Prep tab added) |
-| 11 | NumPy Deep Dive | `data/ch11-numpy-deep-dive.html` | ✅ Done, committed |
-| 12 | Pandas Fundamentals | `data/ch12-pandas-fundamentals.html` | ✅ Done, committed |
-| 13 | Data Cleaning & Wrangling | `data/ch13-data-cleaning-wrangling.html` | ✅ Done, committed |
-| 14 | Data Visualization *(Module 3 capstone + Interview Prep)* | `data/ch14-data-visualization.html` | ✅ Done, **uncommitted local edit** (Interview Prep tab added) |
-| 15 | ML Foundations & Workflow | `ml/ch15-ml-foundations-workflow.html` | ✅ Done, committed |
-| 16 | Linear & Logistic Regression | `ml/ch16-linear-logistic-regression.html` | ✅ Done, committed |
-| 17 | Trees, Forests & Ensembles | `ml/ch17-trees-forests-ensembles.html` | ✅ Done, committed |
-| 18 | Clustering & Dimensionality Reduction | `ml/ch18-clustering-dimensionality-reduction.html` | ✅ Done, committed |
-| 19 | Feature Engineering & Model Selection | `ml/ch19-feature-engineering-model-selection.html` | ✅ Done, **NOT YET committed** |
-| 20 | Classical ML Capstone *(Module 4 capstone + Interview Prep)* | `ml/ch20-classical-ml-capstone.html` | ✅ Done, **NOT YET committed** |
-| 21 | Neural Network Fundamentals (in-browser NumPy backprop) | `dl/ch21-neural-network-fundamentals.html` | ✅ Done, committed |
-| 22 | Intro to PyTorch *(Colab chapter)* | `dl/ch22-intro-to-pytorch.html` | ✅ Done, committed |
-| 23 | Convolutional Neural Networks *(Colab chapter)* | `dl/ch23-convolutional-neural-networks.html` | ✅ Done, committed |
-| 24 | RNNs & LSTMs *(Colab chapter)* | `dl/ch24-rnns-lstms.html` | ✅ Done, **NOT YET committed** |
-| 25 | Transformers Explained (in-browser attention from scratch) | `dl/ch25-transformers-explained.html` | ✅ Done, committed |
-| 26 | Deep Learning Capstone *(Colab chapter, Module 5 capstone)* | `dl/ch26-deep-learning-capstone.html` | ✅ Done, **NOT YET committed** |
-| 27 | NLP Fundamentals | `nlp/ch27-nlp-fundamentals.html` | ✅ Done, **NOT YET committed** |
-| 28 | Modern NLP with Transformers *(Colab chapter)* | `nlp/ch28-modern-nlp-transformers.html` | ✅ Done, **NOT YET committed** |
-| 29 | How LLMs Actually Work (in-browser) | `nlp/ch29-how-llms-work.html` | ✅ Done, **NOT YET committed** — **NOT YET reviewed by the orchestrating session either**, was written by a background agent right before this checkpoint |
-| 30 | Building with LLM APIs *(Module 6 capstone, hybrid Colab/runnable + Interview Prep)* | `nlp/ch30-building-with-llm-apis-capstone.html` | ⬜ **NOT YET BUILT** — a background agent was actively working on this when this checkpoint was written |
-| 31 | Model Deployment | `mlops/ch31-model-deployment.html` | ✅ Done, **NOT YET committed** |
-| 32 | MLOps Fundamentals *(core-curriculum capstone + Interview Prep)* | `mlops/ch32-mlops-fundamentals-capstone.html` | ✅ Done, **NOT YET committed** |
-| 33+ | Module 8: Production Projects (2-3 end-to-end builds, e.g. deployed ML API, RAG/LLM app) | `projects/` | ⬜ **NOT YET BUILT** |
+**Verification done on the full 32-chapter set**: every `.html` file passes a syntax + div-balance
++ textarea-balance check; the entire `sb-back`/`prereq`/`next-chapter-card` link chain from Ch 1
+through Ch 32 was walked programmatically and confirmed consistent (no gaps, no mismatches); a
+factual error (a chapter cross-reference off by one) and an outdated model-name string were found
+and fixed during a content spot-check of Ch 29/30. `index.html`'s `MODULES` object now lists all
+32 chapters across 7 modules plus a placeholder Module 8.
 
-Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`) — **NOTE: `index.html`'s `MODULES` object and this README's status table both still reflect the OLD 14-chapter state as of the last commit; they have not been updated for Ch 15-32 yet.** That update, plus a final full-repo verification sweep, is the very next thing to do — see "Resuming this project" at the bottom.
+| # | Chapter | File |
+|---|---------|------|
+| 1 | Python Basics | `python/ch01-python-basics.html` |
+| 2 | Control Flow | `python/ch02-control-flow.html` |
+| 3 | Functions & Modules | `python/ch03-functions-modules.html` |
+| 4 | Data Structures | `python/ch04-data-structures.html` |
+| 5 | OOP, Files & Errors | `python/ch05-oop-files-errors.html` |
+| 6 | Professional Python | `python/ch06-professional-python.html` |
+| 7 | Python for DevOps & APIs *(Module 1 capstone 💼)* | `python/ch07-python-devops-apis.html` |
+| 8 | Linear Algebra for ML | `math/ch08-linear-algebra.html` |
+| 9 | Probability & Statistics | `math/ch09-probability-statistics.html` |
+| 10 | Calculus & Optimization *(Module 2 capstone 💼)* | `math/ch10-calculus-optimization.html` |
+| 11 | NumPy Deep Dive | `data/ch11-numpy-deep-dive.html` |
+| 12 | Pandas Fundamentals | `data/ch12-pandas-fundamentals.html` |
+| 13 | Data Cleaning & Wrangling | `data/ch13-data-cleaning-wrangling.html` |
+| 14 | Data Visualization *(Module 3 capstone 💼)* | `data/ch14-data-visualization.html` |
+| 15 | ML Foundations & Workflow | `ml/ch15-ml-foundations-workflow.html` |
+| 16 | Linear & Logistic Regression | `ml/ch16-linear-logistic-regression.html` |
+| 17 | Trees, Forests & Ensembles | `ml/ch17-trees-forests-ensembles.html` |
+| 18 | Clustering & Dimensionality Reduction | `ml/ch18-clustering-dimensionality-reduction.html` |
+| 19 | Feature Engineering & Model Selection | `ml/ch19-feature-engineering-model-selection.html` |
+| 20 | Classical ML Capstone *(Module 4 capstone 💼)* | `ml/ch20-classical-ml-capstone.html` |
+| 21 | Neural Network Fundamentals (in-browser NumPy backprop) | `dl/ch21-neural-network-fundamentals.html` |
+| 22 | Intro to PyTorch *(🎬 Colab chapter)* | `dl/ch22-intro-to-pytorch.html` |
+| 23 | Convolutional Neural Networks *(🎬 Colab chapter)* | `dl/ch23-convolutional-neural-networks.html` |
+| 24 | RNNs & LSTMs *(🎬 Colab chapter)* | `dl/ch24-rnns-lstms.html` |
+| 25 | Transformers Explained (in-browser attention from scratch) | `dl/ch25-transformers-explained.html` |
+| 26 | Deep Learning Capstone *(🎬 Colab, Module 5 capstone 💼)* | `dl/ch26-deep-learning-capstone.html` |
+| 27 | NLP Fundamentals | `nlp/ch27-nlp-fundamentals.html` |
+| 28 | Modern NLP with Transformers *(🎬 Colab chapter)* | `nlp/ch28-modern-nlp-transformers.html` |
+| 29 | How LLMs Actually Work (in-browser char-level LM) | `nlp/ch29-how-llms-work.html` |
+| 30 | Building with LLM APIs *(Module 6 capstone 💼, hybrid Colab-reference/runnable)* | `nlp/ch30-building-with-llm-apis-capstone.html` |
+| 31 | Model Deployment | `mlops/ch31-model-deployment.html` |
+| 32 | MLOps Fundamentals *(core-curriculum capstone 💼)* | `mlops/ch32-mlops-fundamentals-capstone.html` |
+| 33+ | **Module 8: Production Projects** — end-to-end ML pipeline, **Agentic AI system**, deployed RAG chatbot | `projects/` | ⬜ In progress |
+
+Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
 ### Renumbering note (read this before touching Ch 8+ files)
 
@@ -170,92 +178,43 @@ Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
   happened once, in `data/ch14-data-visualization.html`, and was caught and fixed via the
   div-balance check — always re-run that check after adding an Interview Prep section.)
 
-## Resuming this project — READ THIS FIRST, do these in order
+## Resuming this project
 
-This checkpoint was written in a hurry (approaching a context/token limit) with several
-background agents mid-flight, so the state is messier than usual. In order:
+**The core 32-chapter curriculum is done, verified, and pushed.** What's left is entirely additive:
 
-1. **Check on the two things that may still be running or may have failed**: at checkpoint time,
-   a background agent was actively writing `nlp/ch30-building-with-llm-apis-capstone.html` (the
-   Module 6 capstone, which also needs an Interview Prep tab per the pattern above), and
-   `nlp/ch29-how-llms-work.html` had just been written but **not yet content-reviewed** by the
-   orchestrating session. Read ch29 in full before trusting it — confirm its bigram
-   character-level language model example actually produces the exact deterministic output its
-   checkers claim (re-run the solution code through `py -3`, see verification note below), and
-   confirm ch30 exists, is complete (not mid-write/truncated), and has the Interview Prep tab.
-2. **Run the full-repo verification sweep** (all `.html` files, not just the new ones):
-   ```bash
-   node -e "
-   const fs=require('fs');
-   const path=require('path');
-   function walk(dir){
-     let out=[];
-     for(const f of fs.readdirSync(dir)){
-       const p=path.join(dir,f);
-       if(fs.statSync(p).isDirectory()) out=out.concat(walk(p));
-       else if(f.endsWith('.html')) out.push(p);
-     }
-     return out;
-   }
-   const files=walk('.');
-   let anyFail=false;
-   files.forEach(f=>{
-     const html=fs.readFileSync(f,'utf8');
-     const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]);
-     let jsOk=true;
-     scripts.forEach((s)=>{ try{ new Function(s); } catch(e){ jsOk=false; console.log(f,'SYNTAX ERROR:', e.message); } });
-     const openDiv=(html.match(/<div/g)||[]).length, closeDiv=(html.match(/<\/div>/g)||[]).length;
-     const openTa=(html.match(/<textarea/g)||[]).length, closeTa=(html.match(/<\/textarea>/g)||[]).length;
-     if(!jsOk || openDiv!==closeDiv || openTa!==closeTa){ anyFail=true; console.log(f,'div',openDiv,closeDiv,'textarea',openTa,closeTa); }
-   });
-   console.log(anyFail?'SOME FILES HAVE ISSUES':'ALL '+files.length+' FILES OK');
-   "
-   ```
-   Fix anything that fails before proceeding.
-3. **Re-verify the full cross-chapter link chain** (this passed cleanly once already, at the point
-   Ch 1-27 existed — re-run after Ch 28-32 are confirmed, to make sure nothing regressed):
-   ```bash
-   node -e "
-   const fs=require('fs'); const path=require('path');
-   function walk(dir){ let out=[]; for(const f of fs.readdirSync(dir)){ const p=path.join(dir,f); if(fs.statSync(p).isDirectory()) out=out.concat(walk(p)); else if(f.endsWith('.html')&&f!=='index.html') out.push(p); } return out; }
-   walk('.').sort().forEach(f=>{
-     const html=fs.readFileSync(f,'utf8');
-     const chId=(html.match(/CH_ID='(ch\d+)'/)||[])[1];
-     const sbBack=(html.match(/class=\"sb-back\" href=\"([^\"]+)\"/)||[])[1];
-     const prereq=(html.match(/store\.chapters\['(ch\d+)'\]/)||[])[1];
-     const nccHref=(html.match(/class=\"ncc-btn\" href=\"([^\"]+)\"/)||[])[1];
-     console.log(f.padEnd(55),'ID='+chId,'back='+sbBack,'prereq='+prereq,'next='+nccHref);
-   });
-   "
-   ```
-   Every row's `back`/`prereq` should point to the PREVIOUS chapter, and its `next` to the NEXT —
-   read down the list and confirm the chain has no gaps or mismatches.
-4. **Spot-check content quality**, not just structure, on anything you didn't personally write —
-   read at least the lesson-intro + one exercise of each background-agent-produced chapter
-   (`ml/ch15-20`, `dl/ch23`, `dl/ch24`, `dl/ch26`, and all of `nlp/`) before trusting it. This was
-   done for `ml/ch17` and found genuinely good (clear pedagogy, verified numbers, honest framing
-   of a noisy-features example) — but that was only ONE spot-check across ~15 agent-written files.
-5. **Numeric verification**: every checker in every chapter should have been verified by actually
-   running its exact solution code through `py -3` (works via the Anaconda Python on this machine
-   with a DLL PATH fix — see the exact `export PATH=...` line used throughout this build, findable
-   by searching this repo's git history / prior session transcripts for
-   `Library/bin:.../Library/mingw-w64/bin`). If you find a checker whose value looks hand-waved
-   rather than run, re-verify it before trusting it — this project has a documented history of
-   exactly that mistake shipping broken.
-6. **Update `index.html`'s `MODULES` object** to add `mod4`-`mod8` (mirroring the existing
-   `mod1`-`mod3` pattern) with every chapter 15-32+ and `avail:true` once verified, and flip the
-   overall chapter count / lede text from "32" to whatever the final count is once Module 8 exists.
-7. **Update this README's status table** (above) to remove all the "uncommitted"/"NOT YET"
-   caveats once everything is committed and verified.
-8. **Build Module 8: Production Projects** (`projects/ch33-...html` onward) — 2-3 substantial,
-   portfolio-worthy end-to-end builds (e.g. a deployed ML API end-to-end, a RAG/LLM application).
-   Not yet started. No renumbering of Ch 1-32 needed — this is purely additive.
-9. **Author the missing Colab `.ipynb` notebooks** for Ch 22-24, 26, 28 (and whatever Module 8
-   projects need one) — every Colab-chapter HTML page already links to a specific GitHub path;
-   those files need to actually exist and be pushed for the Colab badges to work.
-10. **Commit and push everything**, in reasonably-sized logical chunks (e.g. "Module 6 NLP
-    complete", "Module 7 MLOps complete", "Interview Prep sections added to all capstones",
-    "index.html + README final update") rather than one giant commit — easier to review and to
-    bisect later if something's wrong.
+1. **Module 8: Production Projects** (`projects/ch33-...html` onward, folder not yet created) — the
+   current plan (see `index.html`'s `mod8` array) is three portfolio-worthy end-to-end builds:
+   - **Ch 33 — End-to-End ML Pipeline**: data → train → evaluate → deploy, tying Modules 3-4-7
+     together into one real project (not a toy dataset).
+   - **Ch 34 — Agentic AI System**: this is the big one the user explicitly asked for. Go beyond
+     Ch 30's single-step simulated tool-calling toward a genuine multi-step agent LOOP: a planning
+     step, tool selection, tool execution, observing the result, and deciding whether to continue
+     or respond (the "ReAct" pattern — Reason+Act — is the standard reference point; ground the
+     lesson in it explicitly). Same constraint as Ch 30: no real LLM call available in-browser, so
+     simulate the "reasoning" step deterministically (e.g. keyword/state-machine-driven decisions)
+     while being explicit in the lesson about where a real LLM call (`client.messages.create(...)`)
+     would plug into each step. This chapter is the difference between "job-ready" and "portfolio
+     standout" for agentic AI roles — don't shortcut it.
+   - **Ch 35 — RAG Chatbot, Deployed**: combine Ch 30's RAG pattern with Ch 31's deployment
+     patterns (FastAPI-shaped request handling, health checks) into one deployable service.
+   - Each should probably ALSO get real, runnable `.ipynb` Colab notebooks (see next item) since
+     "production project" implies actually running it somewhere real, more than the Colab-chapter
+     pattern's usual "read the reference code" treatment.
+   - No renumbering of Ch 1-32 needed — this is purely additive. Follow the same per-chapter
+     process as everywhere else in this README (copy a template, verify every number via `py -3`,
+     run the syntax/div/textarea checks, wire up `sb-back`/prereq/`next-chapter-card`, update
+     `index.html`'s `mod8` array `avail:true` and this README's status table as each one ships).
+2. **Author the Colab `.ipynb` notebooks** — every Colab-chapter HTML page (Ch 22-24, 26, 28, and
+   whichever Module 8 projects need one) already links to a specific GitHub path
+   (`https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/<folder>/<slug>.ipynb`)
+   but none of those notebook files exist in the repo yet — the badges currently 404. This is real,
+   deliberately-deferred work, not an oversight.
+3. **Re-run the full-repo verification sweep** (syntax/div/textarea-balance) and the cross-chapter
+   link-chain check after adding Module 8 — both scripts are in "Quick verification commands used
+   throughout" above; both passed cleanly across the full Ch 1-32 set as of this writing.
+4. Numeric verification discipline continues to apply: every checker's expected value must come
+   from actually running the exact solution code (this machine's Anaconda Python works via
+   `py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's own text/history
+   for `Library/bin` if the exact command is needed again), never hand-calculated.
 
-Tell whoever picks this up: **"Continue the AI/ML Zero to Hero course by following the 10 steps at the top of 'Resuming this project' in README.md, in order — start with checking on Ch 29-30's status since a background agent was mid-write on those when the last session ended."**
+Tell whoever picks this up: **"Continue the AI/ML Zero to Hero course — the 32-chapter core curriculum is done and pushed; build Module 8: Production Projects next, per the plan in README.md's 'Resuming this project' section, prioritizing the Agentic AI chapter."**
