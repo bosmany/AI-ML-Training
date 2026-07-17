@@ -4,7 +4,7 @@ An interactive, self-contained, browser-based course that takes someone from zer
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
 
-## Status: all 35 chapters complete, verified, committed & pushed. The course is done.
+## Status: all 35 chapters complete, verified, committed & pushed. Plus a bonus Interview Mastery page.
 
 The course was expanded from 30 to 32 chapters partway through Module 1 (see renumbering note
 below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
@@ -58,6 +58,7 @@ object lists all 35 chapters across 8 modules, all `avail:true`.
 | 33 | Production Project: End-to-End ML Pipeline | `projects/ch33-production-ml-pipeline.html` |
 | 34 | Production Project: **Agentic AI System** *(centerpiece project 💼)* | `projects/ch34-agentic-ai-system.html` |
 | 35 | Production Project: RAG Chatbot, Deployed *(course finale 🎉)* | `projects/ch35-rag-chatbot-deployed.html` |
+| Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 35)* | `bonus/interview-mastery.html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
