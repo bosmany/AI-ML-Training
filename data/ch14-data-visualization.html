@@ -3,14 +3,19 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 8: Linear Algebra for ML</title>
+<title>AI/ML: Zero to Hero — Chapter 14: Data Visualization</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
-  extra seconds while the NumPy package itself downloads; after that it's instant.
+  (real CPython + NumPy + Pandas + Matplotlib + Seaborn compiled to WebAssembly). First run that
+  imports matplotlib/seaborn takes longer while those packages download (~15-20s), then instant.
   Your progress on this chapter is saved to this browser's localStorage automatically.
+  NEW IN THIS CHAPTER: the console/exercise output areas can now render an actual chart image
+  (captured server-side... well, browser-side: matplotlib's Agg backend renders to an in-memory
+  PNG, which is base64-encoded and displayed as an <img> below the text output). Every exercise
+  ALSO prints plain text facts about the chart, so it's still autograded the same reliable way as
+  every other chapter — the image is a bonus for you to actually see what you built.
 -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
@@ -77,6 +82,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
 .lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
 
 .lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
@@ -145,6 +151,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .ex-result.show{display:flex}
 .ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
 .ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+.chart-img{display:block;max-width:100%;margin-top:12px;border-radius:8px;background:#fff;padding:8px}
 
 .project-section{display:none}.project-section.show{display:block}
 .project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
@@ -166,7 +173,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:400px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -229,6 +236,7 @@ textarea#project-editor:focus{outline:none}
 .cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
 .cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
 .cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cl-img{max-width:100%;border-radius:6px;background:#fff;padding:6px;margin:6px 0;display:block}
 .cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
 .cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
 #cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
@@ -275,7 +283,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 8: Linear Algebra</div>
+  <div id="mob-title">Ch 14: Data Visualization</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -284,25 +292,25 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 2 · Chapter 8 of 32</div>
+    <div class="sb-logo-sub">Module 3 · Chapter 14 of 32</div>
   </a>
-  <a class="sb-back" href="../python/ch07-python-devops-apis.html">← Ch 7: Python for DevOps &amp; APIs</a>
+  <a class="sb-back" href="ch13-data-cleaning-wrangling.html">← Ch 13: Data Cleaning &amp; Wrangling</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 8</div>
+  <div class="sb-section">Chapter 14 · Capstone</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 9: Probability &amp; Statistics</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 10: Calculus &amp; Optimization</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 4</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 15: ML Foundations &amp; Workflow</span></div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 16: Linear &amp; Logistic Regression</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 8</div>
-    <div class="tb-title">Linear Algebra for ML</div>
+    <div class="tb-chapter">Chapter 14 · Module 3 Capstone</div>
+    <div class="tb-title">Data Visualization</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -313,165 +321,150 @@ textarea#project-editor:focus{outline:none}
     <div class="section-tabs">
       <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
       <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
-      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
       <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 7 quiz in this browser yet. This chapter assumes Module 1 (Python Foundations) is solid.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 13 quiz in this browser yet.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 8:<br/><span>Linear Algebra for ML</span></h1>
-    <p>Welcome to Module 2 — and to NumPy, the library every single ML tool is built on top of. Every dataset you'll ever load is a matrix. Every prediction a model makes is a dot product or a matrix multiplication. This chapter builds that vocabulary from scratch, in code, so the math in every later chapter reads as something you've already touched.</p>
+    <h1>Chapter 14:<br/><span>Data Visualization</span></h1>
+    <p>This is the Module 3 capstone. Every chart you build actually renders in this browser — real Matplotlib and Seaborn, running on real (if simulated) data. A table of numbers hides patterns; a chart reveals them instantly. By the end, you'll produce a 4-panel "EDA story" from the candidate dataset — the same kind of first-look analysis that opens every real data science project.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~60 min read</span>
       <span class="badge">💻 5 exercises</span>
-      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge capstone">🏗️ Module 3 Capstone Project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 8.1 -->
-  <div class="lesson-h2">8.1 — Why Linear Algebra? Data IS Vectors and Matrices</div>
-  <p class="lesson-p">A single data sample — one candidate, one image, one sentence turned into numbers — is a list of features. In linear algebra, that's called a <strong>vector</strong>. A whole dataset — many samples, each with the same features — is a <strong>matrix</strong>: one row per sample, one column per feature. This isn't an analogy; it's literally how <code>X</code> and <code>y</code> are represented in every ML library you'll use.</p>
-  <p class="lesson-p">We'll use <strong>NumPy</strong> from here on — the library that makes vectors and matrices fast and convenient. The convention, in every piece of ML code you will ever read, is <code>import numpy as np</code>.</p>
+  <!-- 14.1 -->
+  <div class="lesson-h2">14.1 — Why Visualize? Numbers Hide, Charts Reveal</div>
+  <p class="lesson-p">Four datasets can share the exact same mean, variance, and correlation — and look completely different when plotted (this is a real, famous example called <strong>Anscombe's Quartet</strong>). Summary statistics compress data; visualization shows you what got compressed away. This chapter's exercises all print text facts too (so they're checkable exactly like every other chapter), but the whole point is the chart below each one — look at it.</p>
 
-  <!-- 8.2 -->
-  <div class="lesson-h2">8.2 — Vectors: NumPy Arrays vs Python Lists</div>
-  <p class="lesson-p">A NumPy array looks like a list but behaves completely differently for math: operators act <strong>elementwise</strong>, not like list concatenation or repetition.</p>
+  <div class="info-box note"><div class="ib-icon">🖼️</div><div class="ib-body"><strong>How chart rendering works in this console</strong><br/>Every chart-producing cell should start with <code>import matplotlib; matplotlib.use('Agg')</code> then <code>import matplotlib.pyplot as plt</code>. After your code finishes, this console automatically captures whatever figure you built and displays it as an image below your text output — no extra code needed from you beyond building the chart.</div></div>
 
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Lists vs arrays — the exact same operator, different meaning</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-
-<span class="cm"># Plain Python lists:</span>
-list_a = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]
-<span class="bi">print</span>(list_a + [<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>])   <span class="cm"># [1, 2, 3, 4, 5, 6] — concatenation!</span>
-<span class="bi">print</span>(list_a * <span class="nm">2</span>)          <span class="cm"># [1, 2, 3, 1, 2, 3] — repetition!</span>
-
-<span class="cm"># NumPy arrays:</span>
-v1 = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])
-v2 = np.array([<span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>])
-<span class="bi">print</span>(<span class="bi">list</span>(v1 + v2))    <span class="cm"># [5, 7, 9] — ADDED elementwise!</span>
-<span class="bi">print</span>(<span class="bi">list</span>(v1 * <span class="nm">2</span>))    <span class="cm"># [2, 4, 6] — every element scaled!</span>
-<span class="bi">print</span>(<span class="bi">list</span>(v1 * v2))   <span class="cm"># [4, 10, 18] — MULTIPLIED elementwise!</span></div>
-  </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>We'll wrap NumPy results in <code>list(...)</code> when printing throughout this chapter.</strong> It's not required — NumPy prints arrays fine on its own — but it keeps the output format simple and 100% predictable while you're still learning.</div></div>
-
-  <!-- 8.3 -->
-  <div class="lesson-h2">8.3 — The Dot Product: The Single Most Important Operation in ML</div>
-  <p class="lesson-p">The <strong>dot product</strong> of two vectors multiplies them elementwise, then sums the result into a single number. It is, quite literally, what a neuron computes: multiply each input by its weight, and add them all up.</p>
+  <!-- 14.2 -->
+  <div class="lesson-h2">14.2 — Bar Charts: Comparing Categories</div>
+  <p class="lesson-p">A <strong>bar chart</strong> compares a numeric value across discrete categories. <code>plt.bar(categories, values)</code> is the whole API — add <code>plt.xlabel()</code>, <code>plt.ylabel()</code>, and <code>plt.title()</code> so the chart is self-explanatory without you standing next to it.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Dot product = weighted sum</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Candidate scores as a bar chart</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
 
-weights  = np.array([<span class="nm">0.5</span>, -<span class="nm">0.2</span>, <span class="nm">0.1</span>])
-features = np.array([<span class="nm">2.0</span>,  <span class="nm">3.0</span>, <span class="nm">5.0</span>])
+names = [<span class="st">'Alice'</span>, <span class="st">'Bob'</span>, <span class="st">'Carol'</span>, <span class="st">'Dave'</span>]
+scores = [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>]
 
-<span class="cm"># The manual way — elementwise multiply, then sum:</span>
-manual = (weights * features).sum()
-<span class="bi">print</span>(<span class="st">f'Manual: <span class="bi">{manual:.4f}</span>'</span>)
+plt.figure()
+plt.bar(names, scores)
+plt.xlabel(<span class="st">'Name'</span>); plt.ylabel(<span class="st">'Score'</span>); plt.title(<span class="st">'Candidate Scores'</span>)
 
-<span class="cm"># The NumPy way — exactly the same thing, one call:</span>
-dot = np.dot(weights, features)      <span class="cm"># or: weights @ features</span>
-<span class="bi">print</span>(<span class="st">f'np.dot: <span class="bi">{dot:.4f}</span>'</span>)
-
-<span class="cm"># A "neuron" is just: dot product + bias</span>
-bias = <span class="nm">0.1</span>
-prediction = np.dot(weights, features) + bias
-<span class="bi">print</span>(<span class="st">f'Prediction: <span class="bi">{prediction:.4f}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Categories: <span class="bi">{len(names)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Highest: <span class="bi">{names[scores.index(max(scores))]}</span>'</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This IS linear regression, and it IS one neuron of a neural network.</strong> Both compute <code>dot(weights, inputs) + bias</code>. The entire field of deep learning stacks millions of this one operation together.</div></div>
 
-  <!-- 8.4 -->
-  <div class="lesson-h2">8.4 — Vector Norms: Measuring Length and Distance</div>
-  <p class="lesson-p">The <strong>L2 norm</strong> (Euclidean length) of a vector is <code>sqrt(sum(v**2))</code> — the straight-line distance from the origin. The <strong>L1 norm</strong> is <code>sum(abs(v))</code>. The distance BETWEEN two points is just the norm of their difference — this is exactly how algorithms like K-Nearest-Neighbors decide who's "close."</p>
+  <!-- 14.3 -->
+  <div class="lesson-h2">14.3 — Histograms: Seeing a Distribution's Shape</div>
+  <p class="lesson-p">A <strong>histogram</strong> buckets continuous numeric data into ranges ("bins") and counts how many values fall in each — this is how you SEE whether data is roughly normal, skewed, or bimodal, instead of just knowing its mean. <code>plt.hist(data, bins=N)</code> plots it; <code>np.histogram(data, bins=N)</code> gives you the same bucketing as numbers you can print and check.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Norms and distance</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Histogram of raw scores</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
 
-v = np.array([<span class="nm">3</span>, <span class="nm">4</span>])   <span class="cm"># the classic 3-4-5 triangle</span>
+values = [<span class="nm">23</span>,<span class="nm">45</span>,<span class="nm">12</span>,<span class="nm">67</span>,<span class="nm">34</span>,<span class="nm">89</span>,<span class="nm">21</span>,<span class="nm">56</span>,<span class="nm">43</span>,<span class="nm">78</span>,<span class="nm">29</span>,<span class="nm">61</span>]
 
-l2 = np.linalg.norm(v)          <span class="cm"># sqrt(3**2 + 4**2) = sqrt(25) = 5</span>
-l1 = np.<span class="bi">abs</span>(v).<span class="bi">sum</span>()          <span class="cm"># |3| + |4| = 7</span>
-<span class="bi">print</span>(<span class="st">f'L2 norm: <span class="bi">{l2:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'L1 norm: <span class="bi">{l1:.4f}</span>'</span>)
+plt.figure()
+counts, edges = np.histogram(values, bins=<span class="nm">4</span>)   <span class="cm"># same bucketing plt.hist() will draw, as plain numbers</span>
+plt.hist(values, bins=<span class="nm">4</span>)
+plt.xlabel(<span class="st">'Score'</span>); plt.ylabel(<span class="st">'Frequency'</span>); plt.title(<span class="st">'Score Distribution'</span>)
 
-<span class="cm"># Distance between two points = norm of their difference</span>
-a = np.array([<span class="nm">1</span>, <span class="nm">2</span>])
-b = np.array([<span class="nm">4</span>, <span class="nm">6</span>])
-distance = np.linalg.norm(a - b)
-<span class="bi">print</span>(<span class="st">f'Distance: <span class="bi">{distance:.4f}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Bin counts: <span class="bi">{counts.tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Range: <span class="bi">{min(values)}</span> to <span class="bi">{max(values)}</span>'</span>)</div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>.tolist() on any NumPy array before printing</strong> converts it to plain Python numbers — a good habit any time you print an array's contents directly (rather than a single scalar like <code>.mean()</code>), so the printed text is always exactly predictable.</div></div>
 
-  <!-- 8.5 -->
-  <div class="lesson-h2">8.5 — Matrices: Shape and Indexing</div>
-  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column.</p>
+  <!-- 14.4 -->
+  <div class="lesson-h2">14.4 — Scatter Plots: Do Two Things Move Together?</div>
+  <p class="lesson-p">A <strong>scatter plot</strong> puts one variable on each axis and plots every (x, y) pair as a point — the visual companion to Chapter 9's correlation coefficient. A tight diagonal line of points means high correlation; a shapeless cloud means little to none.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A dataset as a matrix — 4 samples, 3 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Study hours vs. grade</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
 
-X = np.array([
-    [<span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">3</span>],
-    [<span class="nm">4</span>,  <span class="nm">5</span>,  <span class="nm">6</span>],
-    [<span class="nm">7</span>,  <span class="nm">8</span>,  <span class="nm">9</span>],
-    [<span class="nm">10</span>, <span class="nm">11</span>, <span class="nm">12</span>],
-])
+x = [<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>,<span class="nm">7</span>,<span class="nm">8</span>]
+y = [<span class="nm">2</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">7</span>,<span class="nm">8</span>,<span class="nm">9</span>]
 
-<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)             <span class="cm"># (4, 3) — 4 samples, 3 features</span>
-<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{list(X[1])}</span>'</span>)          <span class="cm"># [4, 5, 6] — sample at index 1</span>
-<span class="bi">print</span>(<span class="st">f'Column 2: <span class="bi">{list(X[:,2])}</span>'</span>)     <span class="cm"># [3, 6, 9, 12] — feature at index 2, ALL samples</span>
-<span class="bi">print</span>(<span class="st">f'Row 0 sum: <span class="bi">{X[0].sum()}</span>'</span>)</div>
+plt.figure()
+plt.scatter(x, y)
+plt.xlabel(<span class="st">'x'</span>); plt.ylabel(<span class="st">'y'</span>); plt.title(<span class="st">'Scatter'</span>)
+
+corr = np.corrcoef(x, y)[<span class="nm">0</span>,<span class="nm">1</span>]
+<span class="bi">print</span>(<span class="st">f'Correlation: <span class="bi">{corr:.4f}</span>'</span>)</div>
   </div>
 
-  <!-- 8.6 -->
-  <div class="lesson-h2">8.6 — Matrix Multiplication: Computing an Entire Batch at Once</div>
-  <p class="lesson-p">Matrix multiplication (<code>@</code>) is what lets you run the dot-product "neuron" from 8.3 across EVERY sample in a dataset in one operation, instead of writing a loop. For <code>A @ B</code> to work, A's number of columns must equal B's number of rows: <code>(m, n) @ (n, p) → (m, p)</code>.</p>
+  <!-- 14.5 -->
+  <div class="lesson-h2">14.5 — Seaborn: Statistical Plots, Less Code</div>
+  <p class="lesson-p"><strong>Seaborn</strong> is built on top of Matplotlib and works directly with DataFrames — <code>sns.barplot(data=df, x='col1', y='col2')</code> automatically groups and aggregates for you. <code>sns.boxplot()</code> shows the median, quartiles, and outliers of each group in one shape, more informative than a bar chart of just the mean.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">One matrix multiplication = predictions for a whole batch</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Seaborn barplot straight from a DataFrame</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>],[<span class="nm">3</span>,<span class="nm">4</span>],[<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># 3 samples, 2 features — shape (3, 2)</span>
-w = np.array([<span class="nm">0.5</span>, -<span class="nm">1.0</span>])                     <span class="cm"># 2 weights, one per feature — shape (2,)</span>
-b = <span class="nm">0.2</span>
+df = pd.DataFrame({<span class="st">'dept'</span>: [<span class="st">'Sales'</span>,<span class="st">'Sales'</span>,<span class="st">'Eng'</span>,<span class="st">'Eng'</span>], <span class="st">'score'</span>: [<span class="nm">85</span>,<span class="nm">91</span>,<span class="nm">72</span>,<span class="nm">68</span>]})
 
-predictions = X @ w + b     <span class="cm"># (3,2) @ (2,) -> (3,) : ALL 3 predictions, one line, no loop</span>
-<span class="kw">for</span> i, p <span class="kw">in</span> <span class="bi">enumerate</span>(predictions):
-    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: <span class="bi">{p:.4f}</span>'</span>)</div>
+plt.figure()
+sns.barplot(data=df, x=<span class="st">'dept'</span>, y=<span class="st">'score'</span>)   <span class="cm"># seaborn averages 'score' PER 'dept' automatically</span>
+plt.title(<span class="st">'Average Score by Department'</span>)
+
+avg = df.groupby(<span class="st">'dept'</span>)[<span class="st">'score'</span>].mean()
+<span class="bi">print</span>(<span class="st">f'Sales avg: <span class="bi">{avg["Sales"]:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Eng avg: <span class="bi">{avg["Eng"]:.4f}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>This one line — <code>X @ w + b</code> — IS linear regression's prediction step.</strong> Whether it's 3 samples or 3 million, it's the same operation. This is why NumPy (and by extension PyTorch/TensorFlow) is fast: the loop happens in optimized low-level code, not in slow Python.</div></div>
 
-  <!-- 8.7 -->
-  <div class="lesson-h2">8.7 — Transpose and the Identity Matrix</div>
-  <p class="lesson-p">The <strong>transpose</strong> (<code>.T</code>) flips a matrix's rows and columns — needed constantly to make shapes line up for multiplication. The <strong>identity matrix</strong> (<code>np.eye(n)</code>) is the matrix equivalent of the number 1 — multiplying by it changes nothing.</p>
+  <!-- 14.6 -->
+  <div class="lesson-h2">14.6 — Subplots: Multiple Charts, One Figure</div>
+  <p class="lesson-p"><code>plt.subplots(rows, cols)</code> creates a GRID of charts in one figure — an "EDA story" is almost always several small charts side by side, not one giant chart. It returns a figure and an array of axes; call chart methods on each <code>axes[i]</code> instead of on <code>plt</code> directly.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Transpose and identity</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A 1x2 panel: bar chart + histogram</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
 
-X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>],[<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># shape (2, 3)</span>
-<span class="bi">print</span>(<span class="st">f'Original shape: <span class="bi">{X.shape}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Transposed shape: <span class="bi">{X.T.shape}</span>'</span>)     <span class="cm"># (3, 2) — rows and columns swapped</span>
+names = [<span class="st">'Alice'</span>, <span class="st">'Bob'</span>, <span class="st">'Carol'</span>, <span class="st">'Dave'</span>]
+scores = [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>]
+values = [<span class="nm">23</span>,<span class="nm">45</span>,<span class="nm">12</span>,<span class="nm">67</span>,<span class="nm">34</span>,<span class="nm">89</span>,<span class="nm">21</span>,<span class="nm">56</span>]
 
-I = np.eye(<span class="nm">3</span>)      <span class="cm"># 3x3 identity matrix</span>
-<span class="bi">print</span>(I)
-v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>])
-<span class="bi">print</span>(<span class="st">f'v @ I: <span class="bi">{list(v @ I)}</span>'</span>)   <span class="cm"># [7, 8, 9] — unchanged, like multiplying by 1</span></div>
+fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">10</span>,<span class="nm">4</span>))
+axes[<span class="nm">0</span>].bar(names, scores)
+axes[<span class="nm">0</span>].set_title(<span class="st">'Scores'</span>)
+axes[<span class="nm">1</span>].hist(values, bins=<span class="nm">4</span>)
+axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>)
+
+<span class="bi">print</span>(<span class="st">f'Number of panels: <span class="bi">{len(axes)}</span>'</span>)</div>
   </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Only one chart is captured per Run — the LAST figure created</strong>. If you call <code>plt.figure()</code> or <code>plt.subplots()</code> more than once in the same cell, only the final one gets displayed. Build one figure per cell (with as many subplots inside it as you need).</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 8 Summary</div>
+  <div class="lesson-h2">Chapter 14 Summary — Module 3 Complete</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>Data is vectors and matrices.</strong> One sample = a vector. A dataset = a matrix, shape (samples, features).</div></li>
-    <li data-n="2"><div><strong>NumPy arrays do math elementwise</strong> — completely different from Python lists with the same operators.</div></li>
-    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum = the core of a neuron / linear model prediction.</div></li>
-    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN.</div></li>
-    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation.</div></li>
-    <li data-n="6"><div><strong>Transpose</strong> (<code>.T</code>) swaps rows/columns to make shapes compatible; <strong>identity</strong> (<code>np.eye</code>) is the matrix "1".</div></li>
+    <li data-n="1"><div><strong>plt.bar()</strong> compares categories. <strong>plt.hist()</strong> shows a distribution's shape. <strong>plt.scatter()</strong> shows the relationship between two variables.</div></li>
+    <li data-n="2"><div><strong>Seaborn</strong> (<code>sns.barplot</code>, <code>sns.boxplot</code>) works directly on DataFrames and aggregates automatically.</div></li>
+    <li data-n="3"><div><strong>plt.subplots(rows, cols)</strong> builds a grid of charts in one figure — the standard shape of a real EDA report.</div></li>
+    <li data-n="4"><div>That's Module 3 — you can load, clean, and visualize any tabular dataset. Next: Module 4, where you build models that learn from it.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -482,7 +475,7 @@ v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class=
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Always format printed numbers explicitly (e.g. <code>{value:.4f}</code>) — this keeps output consistent no matter tiny floating-point differences.</p>
+    <p>5 exercises. Each one builds a real chart AND prints text facts that get checked — look at the chart image below your output, that's the point of this chapter.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -490,31 +483,36 @@ v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class=
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Dot Product By Hand</div>
-        <div class="ex-desc">Compute a dot product manually with elementwise multiply + sum, before using np.dot.</div>
+        <div class="ex-title">Bar Chart: Revenue by Department</div>
+        <div class="ex-desc">Build a bar chart and report the total and the top department.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+depts = ['Sales','Eng','Marketing','Support']
+revenue = [420, 310, 260, 180]
 (already given)
 
-Compute the dot product using elementwise multiplication then .sum()
-(don't use np.dot for this one — do it manually).
+Build: plt.figure(); plt.bar(depts, revenue); add xlabel/ylabel/title
 
-Print exactly: f'Dot product: {dot}'
-(The correct answer is Dot product: 32)</div>
+Print exactly:
+  f'Departments: {len(depts)}'
+  f'Total revenue: {sum(revenue)}'
+  f'Top department: {depts[revenue.index(max(revenue))]}'
+(Correct: Departments: 4 / Total revenue: 1170 / Top department: Sales)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
+      <textarea class="ex-editor" id="ex1-code">import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+depts = ['Sales','Eng','Marketing','Support']
+revenue = [420, 310, 260, 180]
 
-# dot = (v1 * v2).sum()
-
+# plt.figure()
+# plt.bar(depts, revenue)
+# plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
@@ -529,32 +527,36 @@ v2 = np.array([4, 5, 6])
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">A Single Neuron's Prediction</div>
-        <div class="ex-desc">Use np.dot to compute a weighted sum plus bias — exactly what one neuron computes.</div>
+        <div class="ex-title">Histogram: Age Distribution</div>
+        <div class="ex-desc">Bucket a list of ages into 5 bins and report the bin counts.</div>
       </div>
     </div>
     <div class="ex-task">Task:
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
+ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
 (already given)
 
-Compute prediction = np.dot(weights, features) + bias
+Build: plt.figure(); plt.hist(ages, bins=5)
+Compute: counts, edges = np.histogram(ages, bins=5)
 
-Print exactly: f'Prediction: {prediction:.4f}'
-(The correct answer is Prediction: 1.0000)</div>
+Print exactly:
+  f'Data points: {len(ages)}'
+  f'Bin counts: {counts.tolist()}'
+(Correct: Data points: 15 / Bin counts: [4, 5, 2, 2, 2])</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
+      <textarea class="ex-editor" id="ex2-code">import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
 
-# prediction = np.dot(weights, features) + bias
-
+# plt.figure()
+# counts, edges = np.histogram(ages, bins=5)
+# plt.hist(ages, bins=5)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
@@ -569,33 +571,36 @@ bias = 0.1
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Norms and Distance</div>
-        <div class="ex-desc">Compute L2 norm, L1 norm, and the Euclidean distance between two points.</div>
+        <div class="ex-title">Scatter Plot: Study Hours vs Grade</div>
+        <div class="ex-desc">Build a scatter plot and compute the correlation between the two variables.</div>
       </div>
     </div>
     <div class="ex-task">Task:
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
+hours = [1,2,3,4,5,6,7,8,9,10]
+grade = [52,55,61,64,68,70,75,80,85,90]
 (already given)
 
-Compute and print exactly:
-  f'L2 norm: {l2:.4f}'         (using np.linalg.norm(v))
-  f'L1 norm: {l1:.4f}'         (using np.abs(v).sum())
-  f'Distance: {distance:.4f}'  (using np.linalg.norm(a - b))
-(Correct: L2 norm: 5.0000 / L1 norm: 7.0000 / Distance: 5.0000)</div>
+Build: plt.figure(); plt.scatter(hours, grade)
+Compute: corr = np.corrcoef(hours, grade)[0,1]
+
+Print exactly: f'Correlation: {corr:.4f}'
+(Correct: Correlation: 0.9963)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
+      <textarea class="ex-editor" id="ex3-code">import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+hours = [1,2,3,4,5,6,7,8,9,10]
+grade = [52,55,61,64,68,70,75,80,85,90]
 
-# l2 = ... ; l1 = ... ; distance = ...
-
+# plt.figure()
+# plt.scatter(hours, grade)
+# corr = np.corrcoef(hours, grade)[0,1]
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
@@ -610,30 +615,45 @@ b = np.array([4, 6])
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Matrix Shape and Indexing</div>
-        <div class="ex-desc">Read a matrix's shape, a row, a column, and a row sum.</div>
+        <div class="ex-title">Seaborn Boxplot by City</div>
+        <div class="ex-desc">Build a seaborn boxplot grouped by city and report each city's average score.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-(already given — 4 samples, 3 features)
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+df2 = pd.DataFrame({
+    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
+    'score': [92, 88, 75, 70, 81, 85],
+})
+(already given)
 
-Print exactly, in this order:
-  f'Shape: {X.shape}'
-  f'Row 1: {X[1].tolist()}'
-  f'Column 2: {X[:,2].tolist()}'
-  f'Row 0 sum: {X[0].sum()}'
-(Correct: Shape: (4, 3) / Row 1: [4, 5, 6] / Column 2: [3, 6, 9, 12] / Row 0 sum: 6)</div>
+Build: plt.figure(); sns.boxplot(data=df2, x='city', y='score')
+Compute: avg2 = df2.groupby('city')['score'].mean()
+
+Print exactly:
+  f'Hubli avg: {avg2["Hubli"]:.4f}'
+  f'Pune avg: {avg2["Pune"]:.4f}'
+  f'Mumbai avg: {avg2["Mumbai"]:.4f}'
+(Correct: Hubli avg: 90.0000 / Pune avg: 72.5000 / Mumbai avg: 83.0000)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+      <textarea class="ex-editor" id="ex4-code">import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+df2 = pd.DataFrame({
+    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
+    'score': [92, 88, 75, 70, 81, 85],
+})
 
-# print shape, row 1, column 2, row 0 sum
-
+# plt.figure()
+# sns.boxplot(data=df2, x='city', y='score')
+# avg2 = df2.groupby('city')['score'].mean()
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
@@ -647,34 +667,39 @@ X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
     <div class="ex-header">
       <div class="ex-num">5</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Batch Predictions With Matrix Multiplication</div>
-        <div class="ex-desc">Compute predictions for 3 samples at once using X @ w + b — no loop over samples needed for the math itself.</div>
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">A 2-Panel Figure</div>
+        <div class="ex-desc">Build one figure with a bar chart and a pie chart side by side.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+cities = ['Hubli','Pune','Mumbai','Delhi']
+counts_c = [12, 8, 15, 6]
 (already given)
 
-Compute predictions = X @ w + b
-Then loop with enumerate(predictions) and print each:
-  f'Sample {i}: {p:.4f}'
-(Correct: Sample 0: -1.3000 / Sample 1: -2.3000 / Sample 2: -3.3000)</div>
+Build: fig, axes = plt.subplots(1, 2, figsize=(10,4))
+  axes[0].bar(cities, counts_c)
+  axes[1].pie(counts_c, labels=cities)
+
+Print exactly:
+  f'Panels: {len(axes)}'
+  f'Total candidates: {sum(counts_c)}'
+  f'Most represented city: {cities[counts_c.index(max(counts_c))]}'
+(Correct: Panels: 2 / Total candidates: 41 / Most represented city: Mumbai)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
+      <textarea class="ex-editor" id="ex5-code">import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+cities = ['Hubli','Pune','Mumbai','Delhi']
+counts_c = [12, 8, 15, 6]
 
-# predictions = X @ w + b
-# for i, p in enumerate(predictions): print(...)
-
+# fig, axes = plt.subplots(1, 2, figsize=(10,4))
+# axes[0].bar(cities, counts_c)
+# axes[1].pie(counts_c, labels=cities)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
@@ -685,77 +710,90 @@ b = 0.2
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
-    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone Project →</button>
   </div>
 </div><!-- end practice -->
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Vectorized Batch Predictor</span></h2>
-    <p>Back in Chapter 1 you computed MSE by hand for 3 samples with individually named variables. Now do it properly: one matrix multiplication computes every prediction, one NumPy expression computes the error metrics — no loops required for the math.</p>
+    <h2>🏗️ Module 3 Capstone: <span>Candidate Dataset EDA Story</span></h2>
+    <p>The full exploratory data analysis a data scientist runs before touching a model: a 2x2 grid of charts covering the recurring candidate dataset from four angles — per-candidate scores, the score distribution, city averages, and a raw scatter — plus a short written summary of what the data shows.</p>
     <div class="project-tags">
-      <span class="ptag">X @ w + b</span>
-      <span class="ptag">vectorized MSE</span>
-      <span class="ptag">NumPy</span>
+      <span class="ptag">subplots 2x2</span>
+      <span class="ptag">bar + hist + scatter</span>
+      <span class="ptag">groupby</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Compute predictions for all 5 samples at once: predictions = X @ w + b</li>
-      <li>Compute errors = predictions - y (elementwise, all 5 at once)</li>
-      <li>Compute MSE = (errors ** 2).mean() and RMSE = MSE ** 0.5</li>
-      <li>Print each sample's prediction vs actual target</li>
-      <li>Print the final MSE and RMSE</li>
+      <li>A 2x2 figure: fig, axes = plt.subplots(2, 2, figsize=(10,8))</li>
+      <li>Top-left: bar chart of score by candidate name</li>
+      <li>Top-right: histogram of the score column (bins=4)</li>
+      <li>Bottom-left: bar chart of average score by city (use groupby)</li>
+      <li>Bottom-right: scatter plot of score by row index</li>
+      <li>Print: total candidates, qualified names (score &gt;= 0.8), the best city by average score, and the overall average score</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Vectorized Batch Predictor — Your Solution</div>
+      <div class="pe-title">🏗️ Candidate Dataset EDA Story — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Vectorized Batch Predictor
-# Use ONLY Chapter 8 concepts — no manual per-sample loops for the math
+# Module 3 Capstone: Candidate Dataset EDA Story
+# Use ONLY Chapter 14 concepts (plus groupby from Ch 12-13)
 # ══════════════════════════════════════════
-import numpy as np
+import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import pandas as pd
 
-X = np.array([
-    [1, 2, 1],
-    [2, 1, 3],
-    [3, 3, 2],
-    [1, 1, 1],
-    [4, 2, 2],
-])
-w = np.array([0.3, 0.5, -0.2])
-b = 0.5
-y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
+candidates = pd.DataFrame({
+    'name':  ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
+    'city':  ['Hubli', 'Pune', 'Mumbai', 'Delhi', 'Hubli'],
+    'score': [0.92, 0.75, 0.81, 0.60, 0.88],
+})
 
-# === TODO 1: predictions for ALL samples in one line ===
-# predictions = X @ w + b
+# === TODO 1: 2x2 figure ===
+# fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 
-# === TODO 2: print each sample's prediction vs target ===
-# for i in range(len(y)): print(f'Sample {i}: predicted={predictions[i]:.4f} actual={y[i]:.4f}')
+# === TODO 2: top-left — score by candidate ===
+# axes[0,0].bar(candidates['name'], candidates['score'])
+# axes[0,0].set_title('Score by Candidate')
 
-# === TODO 3: compute and print MSE and RMSE ===
-# errors = predictions - y
-# mse = (errors ** 2).mean()
-# rmse = mse ** 0.5
-# print(f'MSE: {mse:.6f}')
-# print(f'RMSE: {rmse:.6f}')
+# === TODO 3: top-right — score distribution ===
+# axes[0,1].hist(candidates['score'], bins=4)
+# axes[0,1].set_title('Score Distribution')
+
+# === TODO 4: bottom-left — avg score by city ===
+# city_avg = candidates.groupby('city')['score'].mean()
+# axes[1,0].bar(city_avg.index, city_avg.values)
+# axes[1,0].set_title('Avg Score by City')
+
+# === TODO 5: bottom-right — scatter by index ===
+# axes[1,1].scatter(range(len(candidates)), candidates['score'])
+# axes[1,1].set_title('Score by Index')
+
+# === TODO 6: report ===
+# qualified = candidates[candidates['score'] >= 0.8]
+# print(f'Total candidates: {len(candidates)}')
+# print(f'Qualified (>=0.8): {list(qualified["name"])}')
+# print(f'Best city by avg score: {city_avg.idxmax()}')
+# print(f'Overall average: {candidates["score"].mean():.4f}')
 </textarea>
-    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-output" id="project-output">Your output (and chart) will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
   </div>
 
   <div class="checklist">
-    <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>All 5 sample predictions vs their actual targets</div>
-    <div class="check-item"><span class="check-icon">🎯</span>MSE: 0.146000</div>
-    <div class="check-item"><span class="check-icon">📊</span>RMSE: 0.382099</div>
-    <div class="check-item"><span class="check-icon">⚡</span>Predictions computed with X @ w + b — not a manual per-sample formula</div>
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🔢</span>Total candidates: 5</div>
+    <div class="check-item"><span class="check-icon">✅</span>Qualified (>=0.8): ['Alice', 'Carol', 'Eve']</div>
+    <div class="check-item"><span class="check-icon">🏙️</span>Best city by avg score: Hubli</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Overall average: 0.7920</div>
+    <div class="check-item"><span class="check-icon">🖼️</span>A 2x2 chart grid rendered below your output</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -765,60 +803,60 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 8 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 9. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 14 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Module 4. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">A dataset has 100 samples and 5 features. What shape would its feature matrix X have, following ML convention?</div>
+    <div class="q-text">When should you reach for a bar chart vs. a histogram?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> (5, 100) — features first, samples second</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> (100, 5) — one row per sample, one column per feature</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> (100, 100) — always square</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Shape doesn't matter for ML data</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> They're interchangeable, pick either one</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Bar chart: comparing a value ACROSS discrete categories. Histogram: showing the SHAPE of one continuous variable's distribution</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Bar charts only work with two categories</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Histograms require Seaborn, bar charts don't</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">What does the dot product of two vectors compute?</div>
+    <div class="q-text">What does a tight diagonal line of points in a scatter plot suggest, compared to a shapeless cloud of points?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Elementwise multiplication only, giving back a vector</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The sum of elementwise products — a single number, computed with np.dot() or @</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The two vectors joined end to end</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The largest value shared by both vectors</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Nothing — scatter plots can't show relationships between variables</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> A strong correlation between the two variables (vs. little to no correlation for a shapeless cloud)</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> That the data has too many outliers to plot</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> That a histogram would be a better choice</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">Matrix A has shape (3, 4) and matrix B has shape (4, 2). What is the shape of A @ B?</div>
+    <div class="q-text">What does <code>sns.barplot(data=df, x='dept', y='score')</code> do that a plain <code>plt.bar()</code> on raw lists doesn't do automatically?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> (3, 2) — outer dimensions, since the inner 4s match</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> (4, 4)</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> (3, 4)</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — the shapes are incompatible</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Groups the DataFrame by 'dept' and aggregates 'score' (mean, by default) per group, directly from the DataFrame</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Nothing, they are identical in every way</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It removes the need to import matplotlib entirely</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It only works with numeric column names</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write the NumPy expression for the L2 norm (Euclidean length) of a vector <code>v</code>, assigned to a variable called <code>length</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="length = ..." rows="3"></textarea>
+    <div class="q-text">Write the line that creates a 1-row, 3-column grid of subplots, assigned to <code>fig</code> and <code>axes</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="fig, axes = ..." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">X has shape (10, 3) and w has shape (3,). What shape is <code>X @ w</code>?</div>
+    <div class="q-text">If you call <code>plt.figure()</code> twice in the same cell before this console captures a chart, which one gets displayed?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> (10,) — one prediction per sample</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (3,)</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> (10, 3) — unchanged</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> An error — shapes are incompatible</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Both, side by side automatically</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Only the LAST figure created — build one figure per cell, with subplots inside it if you need multiple charts</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Neither — calling plt.figure() twice raises an error</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Only the first one</button>
     </div>
   </div>
 
@@ -829,10 +867,10 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
     <div class="ncc-icon">🔀</div>
     <div class="ncc-info">
-      <h3>Chapter 9: Probability &amp; Statistics</h3>
-      <p>Mean, variance, distributions, correlation, and Bayes' theorem — the language every model evaluation report speaks.</p>
+      <h3>Module 4: Classical Machine Learning — Chapter 15</h3>
+      <p>Module 3 complete! Train/test splits, bias-variance, and the metrics that decide whether a model is actually any good — the workflow underneath every ML project.</p>
     </div>
-    <a class="ncc-btn" href="ch09-probability-statistics.html">Start Chapter 9 →</a>
+    <a class="ncc-btn" href="../ml/ch15-ml-foundations-workflow.html">Start Chapter 15 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -859,7 +897,7 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch08';
+const CH_ID='ch14';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -890,7 +928,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch07'];
+  const prev=store.chapters && store.chapters['ch13'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -910,7 +948,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    clog('# import matplotlib; matplotlib.use(\'Agg\') first — charts render below your output automatically','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -927,6 +965,23 @@ function cleanPyError(msg){
   }
   return lines[lines.length-1]||'Error';
 }
+
+const IMG_CAPTURE_CODE = `
+import base64 as __b64, io as __io
+try:
+    import matplotlib.pyplot as __plt
+    if __plt.get_fignums():
+        __buf = __io.BytesIO()
+        __plt.savefig(__buf, format='png', bbox_inches='tight', dpi=100, facecolor='white')
+        __buf.seek(0)
+        __img_capture = __b64.b64encode(__buf.read()).decode('ascii')
+        __plt.close('all')
+    else:
+        __img_capture = None
+except ImportError:
+    __img_capture = None
+`;
+
 async function runPy(code){
   if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
   let out='';
@@ -935,7 +990,13 @@ async function runPy(code){
   try{
     await pyodide.loadPackagesFromImports(code);
     await pyodide.runPythonAsync(code);
-    return{ok:true,out};
+    let img=null;
+    try{
+      await pyodide.runPythonAsync(IMG_CAPTURE_CODE);
+      const cap=pyodide.globals.get('__img_capture');
+      img=(cap===undefined||cap===null)?null:cap;
+    }catch(capErr){ img=null; }
+    return{ok:true,out,img};
   }catch(e){
     return{ok:false,out,err:cleanPyError(e.message||e.toString())};
   }finally{
@@ -952,6 +1013,14 @@ function clog(text,type='out'){
   el.appendChild(d);
   el.scrollTop=el.scrollHeight;
 }
+function clogImg(base64){
+  const el=document.getElementById('cd-out');
+  const img=document.createElement('img');
+  img.className='cl-img';
+  img.src='data:image/png;base64,'+base64;
+  el.appendChild(img);
+  el.scrollTop=el.scrollHeight;
+}
 window.clearConsole=()=>{
   document.getElementById('cd-out').innerHTML='';
   clog('# Cleared','info');
@@ -961,9 +1030,10 @@ window.runConsole=async()=>{
   if(!code)return;
   if(!pyReady){clog('Python not loaded yet','info');return;}
   clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
-  const{ok,out,err}=await runPy(code);
+  const{ok,out,err,img}=await runPy(code);
   if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
   if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+  if(ok&&img)clogImg(img);
 };
 window.runToConsole=function(btn){
   const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
@@ -983,58 +1053,81 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['dot product: 32'],
-    hint:"dot = (v1 * v2).sum()",
-    solution:`import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
-dot = (v1 * v2).sum()
-print(f'Dot product: {dot}')`
+    checks:['departments: 4','total revenue: 1170','top department: sales'],
+    hint:"plt.bar(depts, revenue); sum(revenue); depts[revenue.index(max(revenue))]",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+depts = ['Sales','Eng','Marketing','Support']
+revenue = [420, 310, 260, 180]
+plt.figure()
+plt.bar(depts, revenue)
+plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
+print(f'Departments: {len(depts)}')
+print(f'Total revenue: {sum(revenue)}')
+print(f'Top department: {depts[revenue.index(max(revenue))]}')`
   },
   2:{
-    checks:['prediction: 1.0000'],
-    hint:"prediction = np.dot(weights, features) + bias",
-    solution:`import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
-prediction = np.dot(weights, features) + bias
-print(f'Prediction: {prediction:.4f}')`
+    checks:['data points: 15','bin counts: [4, 5, 2, 2, 2]'],
+    hint:"counts, edges = np.histogram(ages, bins=5); plt.hist(ages, bins=5); print counts.tolist()",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
+plt.figure()
+counts, edges = np.histogram(ages, bins=5)
+plt.hist(ages, bins=5)
+plt.xlabel('Age'); plt.ylabel('Frequency'); plt.title('Age Distribution')
+print(f'Data points: {len(ages)}')
+print(f'Bin counts: {counts.tolist()}')`
   },
   3:{
-    checks:['l2 norm: 5.0000','l1 norm: 7.0000','distance: 5.0000'],
-    hint:"l2 = np.linalg.norm(v); l1 = np.abs(v).sum(); distance = np.linalg.norm(a - b)",
-    solution:`import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
-l2 = np.linalg.norm(v)
-l1 = np.abs(v).sum()
-distance = np.linalg.norm(a - b)
-print(f'L2 norm: {l2:.4f}')
-print(f'L1 norm: {l1:.4f}')
-print(f'Distance: {distance:.4f}')`
+    checks:['correlation: 0.9963'],
+    hint:"corr = np.corrcoef(hours, grade)[0,1]",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import numpy as np
+hours = [1,2,3,4,5,6,7,8,9,10]
+grade = [52,55,61,64,68,70,75,80,85,90]
+plt.figure()
+plt.scatter(hours, grade)
+plt.xlabel('Hours'); plt.ylabel('Grade'); plt.title('Study Hours vs Grade')
+corr = np.corrcoef(hours, grade)[0,1]
+print(f'Correlation: {corr:.4f}')`
   },
   4:{
-    checks:['shape: (4, 3)','row 1: [4, 5, 6]','column 2: [3, 6, 9, 12]','row 0 sum: 6'],
-    hint:"X.shape; X[1].tolist(); X[:,2].tolist(); X[0].sum()",
-    solution:`import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-print(f'Shape: {X.shape}')
-print(f'Row 1: {X[1].tolist()}')
-print(f'Column 2: {X[:,2].tolist()}')
-print(f'Row 0 sum: {X[0].sum()}')`
+    checks:['hubli avg: 90.0000','pune avg: 72.5000','mumbai avg: 83.0000'],
+    hint:"sns.boxplot(data=df2, x='city', y='score'); avg2 = df2.groupby('city')['score'].mean()",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+df2 = pd.DataFrame({
+    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
+    'score': [92, 88, 75, 70, 81, 85],
+})
+plt.figure()
+sns.boxplot(data=df2, x='city', y='score')
+plt.title('Score by City')
+avg2 = df2.groupby('city')['score'].mean()
+print(f'Hubli avg: {avg2["Hubli"]:.4f}')
+print(f'Pune avg: {avg2["Pune"]:.4f}')
+print(f'Mumbai avg: {avg2["Mumbai"]:.4f}')`
   },
   5:{
-    checks:['sample 0: -1.3000','sample 1: -2.3000','sample 2: -3.3000'],
-    hint:"predictions = X @ w + b; for i, p in enumerate(predictions): print(f'Sample {i}: {p:.4f}')",
-    solution:`import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
-predictions = X @ w + b
-for i, p in enumerate(predictions):
-    print(f'Sample {i}: {p:.4f}')`
+    checks:['panels: 2','total candidates: 41','most represented city: mumbai'],
+    hint:"fig, axes = plt.subplots(1, 2, figsize=(10,4)); axes[0].bar(...); axes[1].pie(...)",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+cities = ['Hubli','Pune','Mumbai','Delhi']
+counts_c = [12, 8, 15, 6]
+fig, axes = plt.subplots(1, 2, figsize=(10,4))
+axes[0].bar(cities, counts_c)
+axes[0].set_title('Candidates by City')
+axes[1].pie(counts_c, labels=cities)
+axes[1].set_title('Share by City')
+print(f'Panels: {len(axes)}')
+print(f'Total candidates: {sum(counts_c)}')
+print(f'Most represented city: {cities[counts_c.index(max(counts_c))]}')`
   }
 };
 
@@ -1045,10 +1138,16 @@ window.runExercise=async function(n){
   const resEl=document.getElementById(`ex${n}-result`);
   outEl.textContent='Running...';outEl.className='ex-output show';
   resEl.className='ex-result';resEl.style.display='none';
-  const{ok,out,err}=await runPy(code);
+  const{ok,out,err,img}=await runPy(code);
   const full=(out||'')+((!ok&&err)?'\n'+err:'');
   outEl.textContent=full||(ok?'(no output)':'Error');
   outEl.className='ex-output show '+(ok?'ok':'err');
+  if(ok&&img){
+    const imgEl=document.createElement('img');
+    imgEl.className='chart-img';
+    imgEl.src='data:image/png;base64,'+img;
+    outEl.appendChild(imgEl);
+  }
 
   const ex=EXERCISES[n];
   let passed=ok;
@@ -1087,25 +1186,31 @@ window.runProject=async function(){
   const res=document.getElementById('project-result');
   out.textContent='Running...';out.className='pe-output';
   res.style.display='none';
-  const{ok,out:o,err}=await runPy(code);
+  const{ok,out:o,err,img}=await runPy(code);
   const full=(o||'')+((!ok&&err)?'\n'+err:'');
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
+  if(ok&&img){
+    const imgEl=document.createElement('img');
+    imgEl.className='chart-img';
+    imgEl.src='data:image/png;base64,'+img;
+    out.appendChild(imgEl);
+  }
 
-  const checks=['mse: 0.146000','rmse: 0.382099'];
+  const checks=['total candidates: 5',"qualified (>=0.8): ['alice', 'carol', 'eve']",'best city by avg score: hubli','overall average: 0.7920'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
-    res.textContent='✅ Project complete! All required elements present. +150 XP';
-    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+    res.textContent='✅ Capstone complete! Module 3 finished. +250 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=250;updateUI();spark();persistChapter();}
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099)';
+    res.textContent='❌ Missing some required values — check the checklist above';
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'A',5:'A'};
+const CORRECT={1:'B',2:'B',3:'A',5:'B'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1119,12 +1224,13 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const passed=val.includes('np.linalg.norm')&&val.includes('(v)');
+  const noSpaces=val.replace(/\s/g,'');
+  const passed=noSpaces.includes('fig,axes=plt.subplots(1,3)') || (noSpaces.includes('plt.subplots(1,3)') && noSpaces.includes('fig') && noSpaces.includes('axes'));
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! length = np.linalg.norm(v)'
-    :'❌ Not quite. You need: length = np.linalg.norm(v)';
+    ?'✅ Correct! fig, axes = plt.subplots(1, 3)'
+    :'❌ Not quite. You need: fig, axes = plt.subplots(1, 3)';
 };
 
 function revealNextChapter(){
@@ -1154,7 +1260,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Vectors, dot products, norms, and matrix multiplication are yours now. Every model prediction you'll ever compute is built from exactly these operations.</div>`;
+      <div class="qrb-sub">Bar charts, histograms, scatter plots, Seaborn, and multi-panel figures — Module 3 is complete. You can load, clean, and visualize any tabular dataset end to end.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
@@ -1233,3 +1339,4 @@ document.querySelectorAll('.sb-item').forEach(el=>{
 
 </body>
 </html>
+

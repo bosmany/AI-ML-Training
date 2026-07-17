@@ -4,7 +4,7 @@ An interactive, self-contained, browser-based course that takes someone from zer
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
 
-## Status: 12 of 32 chapters complete (Modules 1–2, and 2/4 of Module 3)
+## Status: 14 of 32 chapters complete (Modules 1–3)
 
 The course was expanded from 30 to 32 chapters partway through Module 1: the original Ch 1-5
 (Python basics through OOP/files/errors) covers the *language*, but not the professional/DevOps
@@ -27,8 +27,8 @@ inserted — Ch 6 and Ch 7 — and everything from the old Ch 6 onward shifted b
 | 10 | Calculus & Optimization *(Module 2 capstone)* | `math/ch10-calculus-optimization.html` | ✅ Done |
 | 11 | NumPy Deep Dive | `data/ch11-numpy-deep-dive.html` | ✅ Done |
 | 12 | Pandas Fundamentals | `data/ch12-pandas-fundamentals.html` | ✅ Done |
-| 13 | Data Cleaning & Wrangling | `data/ch13-data-cleaning-wrangling.html` | ⬜ Not started |
-| 14 | Data Visualization *(Module 3 capstone)* | `data/ch14-data-visualization.html` | ⬜ Not started |
+| 13 | Data Cleaning & Wrangling | `data/ch13-data-cleaning-wrangling.html` | ✅ Done |
+| 14 | Data Visualization *(Module 3 capstone)* | `data/ch14-data-visualization.html` | ✅ Done |
 | 15–20 | Module 4: Classical ML (sklearn) | `ml/` | ⬜ Not started |
 | 21–26 | Module 5: Deep Learning | `dl/` | ⬜ Not started |
 | 27–30 | Module 6: NLP, LLMs & GenAI | `nlp/` | ⬜ Not started |
@@ -114,6 +114,11 @@ async exercises use bare top-level `await` (Pyodide's `runPythonAsync` supports 
 the same mechanism as IPython's autoawait) — never `asyncio.run(...)`, which would raise
 `RuntimeError` since Pyodide's own event loop is already running.
 
+### Two more things learned while building Ch 13-14
+
+- **Never print `list(numpy_array_or_series)` in a graded checker.** NumPy 2.0 changed scalar `repr()` to `np.int64(5)` instead of `5`, which breaks any autograder check written as `'[0, 2, 4]'` if Pyodide's NumPy is 2.x — `list.__repr__` calls `repr()` on each element. `f'{scalar}'` and `.4f`-formatted values are unaffected (they use `__format__`/`str()`, not `repr()`); only bracket-printed lists/arrays of numeric NumPy scalars are at risk. **Always use `.tolist()`** (on a NumPy array) or build a plain Python list via a comprehension before printing/checking — this was retrofitted into Ch 8 and Ch 11's exercises after the fact, so check those two files' `EXERCISES` objects as the reference pattern.
+- **Ch 14 (Data Visualization) added chart-image rendering**, the first chapter to need it. `runPy()` now does a second, hidden `runPythonAsync` call after the user's code succeeds, which checks `plt.get_fignums()`, saves the current figure to a base64 PNG (`facecolor='white'`, since charts render on a transparent/white background that needs a white card behind it on this dark theme), and calls `plt.close('all')` so figures don't accumulate across re-runs in the same Pyodide session. The result is rendered as an `<img class="chart-img">` under exercise/project output and `<img class="cl-img">` in the console log. Every graded exercise still ALSO prints plain text facts checked the normal way — the image is for the student to see, not for the autograder to parse. If a future chapter needs charts again, copy this mechanism from `data/ch14-data-visualization.html` rather than re-deriving it.
+
 ## Resuming this project
 
-Tell whoever picks this up: **"Continue the AI/ML Zero to Hero course from Chapter 13 (Data Cleaning & Wrangling), following the same process documented in README.md."** That's enough context to keep going without re-deriving the design decisions above.
+Tell whoever picks this up: **"Continue the AI/ML Zero to Hero course from Chapter 15 (ML Foundations & Workflow, Module 4), following the same process documented in README.md."** That's enough context to keep going without re-deriving the design decisions above.

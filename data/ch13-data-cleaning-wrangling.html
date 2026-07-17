@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 8: Linear Algebra for ML</title>
+<title>AI/ML: Zero to Hero — Chapter 13: Data Cleaning &amp; Wrangling</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy compiled to WebAssembly). First run of a NumPy example may take a few
-  extra seconds while the NumPy package itself downloads; after that it's instant.
-  Your progress on this chapter is saved to this browser's localStorage automatically.
+  (real CPython + NumPy + Pandas compiled to WebAssembly). Your progress on this chapter is
+  saved to this browser's localStorage automatically.
 -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
 :root{
   --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
@@ -166,7 +165,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:300px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -275,7 +274,7 @@ textarea#project-editor:focus{outline:none}
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 8: Linear Algebra</div>
+  <div id="mob-title">Ch 13: Data Cleaning &amp; Wrangling</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -284,25 +283,24 @@ textarea#project-editor:focus{outline:none}
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 2 · Chapter 8 of 32</div>
+    <div class="sb-logo-sub">Module 3 · Chapter 13 of 32</div>
   </a>
-  <a class="sb-back" href="../python/ch07-python-devops-apis.html">← Ch 7: Python for DevOps &amp; APIs</a>
+  <a class="sb-back" href="ch12-pandas-fundamentals.html">← Ch 12: Pandas Fundamentals</a>
   <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
   <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 8</div>
+  <div class="sb-section">Chapter 13</div>
   <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
   <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <div class="sb-section" style="margin-top:12px">Coming Next — Module 2</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 9: Probability &amp; Statistics</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 10: Calculus &amp; Optimization</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 3</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 14: Data Visualization (Capstone)</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 8</div>
-    <div class="tb-title">Linear Algebra for ML</div>
+    <div class="tb-chapter">Chapter 13</div>
+    <div class="tb-title">Data Cleaning &amp; Wrangling</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -318,160 +316,148 @@ textarea#project-editor:focus{outline:none}
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 7 quiz in this browser yet. This chapter assumes Module 1 (Python Foundations) is solid.</span></div>
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 12 quiz in this browser yet.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 8:<br/><span>Linear Algebra for ML</span></h1>
-    <p>Welcome to Module 2 — and to NumPy, the library every single ML tool is built on top of. Every dataset you'll ever load is a matrix. Every prediction a model makes is a dot product or a matrix multiplication. This chapter builds that vocabulary from scratch, in code, so the math in every later chapter reads as something you've already touched.</p>
+    <h1>Chapter 13:<br/><span>Data Cleaning &amp; Wrangling</span></h1>
+    <p>Real datasets are never clean. Missing values, exact and near-duplicate rows, data spread across multiple files that need joining, and inconsistent text formatting — cleaning this up isn't a chore before "the real work," it IS most of the real work. Industry surveys consistently put data cleaning at 60-80% of a data scientist's time. This chapter is that 60-80%.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~60 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 8.1 -->
-  <div class="lesson-h2">8.1 — Why Linear Algebra? Data IS Vectors and Matrices</div>
-  <p class="lesson-p">A single data sample — one candidate, one image, one sentence turned into numbers — is a list of features. In linear algebra, that's called a <strong>vector</strong>. A whole dataset — many samples, each with the same features — is a <strong>matrix</strong>: one row per sample, one column per feature. This isn't an analogy; it's literally how <code>X</code> and <code>y</code> are represented in every ML library you'll use.</p>
-  <p class="lesson-p">We'll use <strong>NumPy</strong> from here on — the library that makes vectors and matrices fast and convenient. The convention, in every piece of ML code you will ever read, is <code>import numpy as np</code>.</p>
-
-  <!-- 8.2 -->
-  <div class="lesson-h2">8.2 — Vectors: NumPy Arrays vs Python Lists</div>
-  <p class="lesson-p">A NumPy array looks like a list but behaves completely differently for math: operators act <strong>elementwise</strong>, not like list concatenation or repetition.</p>
+  <!-- 13.1 -->
+  <div class="lesson-h2">13.1 — Missing Values: Find Them, Then Decide</div>
+  <p class="lesson-p">Missing data shows up as <code>NaN</code> (Not a Number) in pandas. <code>.isna()</code> flags every missing cell; <code>.dropna()</code> removes rows with any missing value; <code>.fillna(value)</code> replaces missing values — often with the column's mean, median, or a sentinel like <code>0</code> or <code>'unknown'</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Lists vs arrays — the exact same operator, different meaning</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Detecting and handling missing values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="cm"># Plain Python lists:</span>
-list_a = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]
-<span class="bi">print</span>(list_a + [<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>])   <span class="cm"># [1, 2, 3, 4, 5, 6] — concatenation!</span>
-<span class="bi">print</span>(list_a * <span class="nm">2</span>)          <span class="cm"># [1, 2, 3, 1, 2, 3] — repetition!</span>
+df = pd.DataFrame({
+    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Dave'</span>,<span class="st">'Eve'</span>],
+    <span class="st">'score'</span>: [<span class="nm">92</span>, np.nan, <span class="nm">81</span>, <span class="nm">60</span>, np.nan],
+    <span class="st">'city'</span>: [<span class="st">'Hubli'</span>, <span class="st">'Pune'</span>, <span class="kw">None</span>, <span class="st">'Delhi'</span>, <span class="st">'Hubli'</span>],
+})
 
-<span class="cm"># NumPy arrays:</span>
-v1 = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])
-v2 = np.array([<span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>])
-<span class="bi">print</span>(<span class="bi">list</span>(v1 + v2))    <span class="cm"># [5, 7, 9] — ADDED elementwise!</span>
-<span class="bi">print</span>(<span class="bi">list</span>(v1 * <span class="nm">2</span>))    <span class="cm"># [2, 4, 6] — every element scaled!</span>
-<span class="bi">print</span>(<span class="bi">list</span>(v1 * v2))   <span class="cm"># [4, 10, 18] — MULTIPLIED elementwise!</span></div>
+<span class="bi">print</span>(df.isna().sum())                          <span class="cm"># missing count PER COLUMN</span>
+<span class="bi">print</span>(<span class="st">f'Rows with any missing: <span class="bi">{df.isna().any(axis=1).sum()}</span>'</span>)
+
+filled = df.copy()
+filled[<span class="st">'score'</span>] = filled[<span class="st">'score'</span>].fillna(filled[<span class="st">'score'</span>].mean())
+<span class="bi">print</span>(<span class="st">f'Filled mean score: <span class="bi">{filled["score"].iloc[1]:.4f}</span>'</span>)   <span class="cm"># Bob's NaN -> column mean</span>
+
+dropped = df.dropna()
+<span class="bi">print</span>(<span class="st">f'Rows after dropna: <span class="bi">{len(dropped)}</span>'</span>)              <span class="cm"># rows with ANY NaN are gone</span></div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>We'll wrap NumPy results in <code>list(...)</code> when printing throughout this chapter.</strong> It's not required — NumPy prints arrays fine on its own — but it keeps the output format simple and 100% predictable while you're still learning.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>dropna() vs fillna() is a real decision, not a default</strong> — dropping rows throws away every OTHER column's data too, just because one field was missing. Filling with the mean is safer for numeric columns you plan to keep using in bulk, but can quietly bias small datasets. There's no universally "correct" choice — know why you picked one.</div></div>
 
-  <!-- 8.3 -->
-  <div class="lesson-h2">8.3 — The Dot Product: The Single Most Important Operation in ML</div>
-  <p class="lesson-p">The <strong>dot product</strong> of two vectors multiplies them elementwise, then sums the result into a single number. It is, quite literally, what a neuron computes: multiply each input by its weight, and add them all up.</p>
+  <!-- 13.2 -->
+  <div class="lesson-h2">13.2 — Duplicates: Exact Repeats</div>
+  <p class="lesson-p"><code>.duplicated()</code> flags rows that are exact repeats of an earlier row (keeping the first occurrence as "not a duplicate"). <code>.drop_duplicates()</code> removes them.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Dot product = weighted sum</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Finding and removing duplicate rows</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-weights  = np.array([<span class="nm">0.5</span>, -<span class="nm">0.2</span>, <span class="nm">0.1</span>])
-features = np.array([<span class="nm">2.0</span>,  <span class="nm">3.0</span>, <span class="nm">5.0</span>])
+df = pd.DataFrame({
+    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Alice'</span>,<span class="st">'Carol'</span>,<span class="st">'Bob'</span>],
+    <span class="st">'score'</span>: [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">92</span>, <span class="nm">81</span>, <span class="nm">75</span>],
+})
 
-<span class="cm"># The manual way — elementwise multiply, then sum:</span>
-manual = (weights * features).sum()
-<span class="bi">print</span>(<span class="st">f'Manual: <span class="bi">{manual:.4f}</span>'</span>)
-
-<span class="cm"># The NumPy way — exactly the same thing, one call:</span>
-dot = np.dot(weights, features)      <span class="cm"># or: weights @ features</span>
-<span class="bi">print</span>(<span class="st">f'np.dot: <span class="bi">{dot:.4f}</span>'</span>)
-
-<span class="cm"># A "neuron" is just: dot product + bias</span>
-bias = <span class="nm">0.1</span>
-prediction = np.dot(weights, features) + bias
-<span class="bi">print</span>(<span class="st">f'Prediction: <span class="bi">{prediction:.4f}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Duplicate rows: <span class="bi">{df.duplicated().sum()}</span>'</span>)
+deduped = df.drop_duplicates()
+<span class="bi">print</span>(<span class="st">f'Rows after drop_duplicates: <span class="bi">{len(deduped)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Unique names: <span class="bi">{list(deduped["name"])}</span>'</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This IS linear regression, and it IS one neuron of a neural network.</strong> Both compute <code>dot(weights, inputs) + bias</code>. The entire field of deep learning stacks millions of this one operation together.</div></div>
 
-  <!-- 8.4 -->
-  <div class="lesson-h2">8.4 — Vector Norms: Measuring Length and Distance</div>
-  <p class="lesson-p">The <strong>L2 norm</strong> (Euclidean length) of a vector is <code>sqrt(sum(v**2))</code> — the straight-line distance from the origin. The <strong>L1 norm</strong> is <code>sum(abs(v))</code>. The distance BETWEEN two points is just the norm of their difference — this is exactly how algorithms like K-Nearest-Neighbors decide who's "close."</p>
+  <!-- 13.3 -->
+  <div class="lesson-h2">13.3 — Merging: Combining Data Sideways</div>
+  <p class="lesson-p">Real data lives in multiple tables that share a key column (like <code>name</code> or <code>user_id</code>). <code>pd.merge(left, right, on='key', how=...)</code> joins them, SQL-style. <code>how='inner'</code> keeps only keys present in BOTH tables; <code>how='left'</code> keeps every row from the left table, filling missing matches with <code>NaN</code>.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Norms and distance</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Inner vs left join</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-v = np.array([<span class="nm">3</span>, <span class="nm">4</span>])   <span class="cm"># the classic 3-4-5 triangle</span>
+candidates = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>], <span class="st">'score'</span>: [<span class="nm">92</span>,<span class="nm">75</span>,<span class="nm">81</span>]})
+cities     = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Dave'</span>],  <span class="st">'city'</span>:  [<span class="st">'Hubli'</span>,<span class="st">'Pune'</span>,<span class="st">'Delhi'</span>]})
 
-l2 = np.linalg.norm(v)          <span class="cm"># sqrt(3**2 + 4**2) = sqrt(25) = 5</span>
-l1 = np.<span class="bi">abs</span>(v).<span class="bi">sum</span>()          <span class="cm"># |3| + |4| = 7</span>
-<span class="bi">print</span>(<span class="st">f'L2 norm: <span class="bi">{l2:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'L1 norm: <span class="bi">{l1:.4f}</span>'</span>)
+inner = pd.merge(candidates, cities, on=<span class="st">'name'</span>, how=<span class="st">'inner'</span>)   <span class="cm"># Carol and Dave both dropped — no match in the other table</span>
+left  = pd.merge(candidates, cities, on=<span class="st">'name'</span>, how=<span class="st">'left'</span>)    <span class="cm"># Carol kept, city becomes NaN</span>
 
-<span class="cm"># Distance between two points = norm of their difference</span>
-a = np.array([<span class="nm">1</span>, <span class="nm">2</span>])
-b = np.array([<span class="nm">4</span>, <span class="nm">6</span>])
-distance = np.linalg.norm(a - b)
-<span class="bi">print</span>(<span class="st">f'Distance: <span class="bi">{distance:.4f}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Inner join names: <span class="bi">{list(inner["name"])}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Left join rows: <span class="bi">{len(left)}</span>'</span>)</div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Always check row counts after a merge</strong> — a merge key with duplicate values on either side silently multiplies rows (a "fan-out"), which is one of the most common real-world data bugs. If your merged table has more rows than you expected, that's almost always why.</div></div>
 
-  <!-- 8.5 -->
-  <div class="lesson-h2">8.5 — Matrices: Shape and Indexing</div>
-  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column.</p>
+  <!-- 13.4 -->
+  <div class="lesson-h2">13.4 — Concatenating: Stacking Data Vertically</div>
+  <p class="lesson-p">Merging combines tables SIDEWAYS (matching columns by a key). <code>pd.concat([df1, df2])</code> stacks tables ON TOP of each other — the classic "combine this week's export with last week's" operation. <code>ignore_index=True</code> renumbers the index so it doesn't repeat 0,1,2 twice.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A dataset as a matrix — 4 samples, 3 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Stacking two batches of data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-X = np.array([
-    [<span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">3</span>],
-    [<span class="nm">4</span>,  <span class="nm">5</span>,  <span class="nm">6</span>],
-    [<span class="nm">7</span>,  <span class="nm">8</span>,  <span class="nm">9</span>],
-    [<span class="nm">10</span>, <span class="nm">11</span>, <span class="nm">12</span>],
-])
+batch1 = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>], <span class="st">'score'</span>: [<span class="nm">92</span>,<span class="nm">75</span>]})
+batch2 = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Carol'</span>,<span class="st">'Dave'</span>], <span class="st">'score'</span>: [<span class="nm">81</span>,<span class="nm">60</span>]})
 
-<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)             <span class="cm"># (4, 3) — 4 samples, 3 features</span>
-<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{list(X[1])}</span>'</span>)          <span class="cm"># [4, 5, 6] — sample at index 1</span>
-<span class="bi">print</span>(<span class="st">f'Column 2: <span class="bi">{list(X[:,2])}</span>'</span>)     <span class="cm"># [3, 6, 9, 12] — feature at index 2, ALL samples</span>
-<span class="bi">print</span>(<span class="st">f'Row 0 sum: <span class="bi">{X[0].sum()}</span>'</span>)</div>
+combined = pd.concat([batch1, batch2], ignore_index=<span class="kw">True</span>)
+<span class="bi">print</span>(<span class="st">f'Combined rows: <span class="bi">{len(combined)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Combined names: <span class="bi">{list(combined["name"])}</span>'</span>)</div>
   </div>
 
-  <!-- 8.6 -->
-  <div class="lesson-h2">8.6 — Matrix Multiplication: Computing an Entire Batch at Once</div>
-  <p class="lesson-p">Matrix multiplication (<code>@</code>) is what lets you run the dot-product "neuron" from 8.3 across EVERY sample in a dataset in one operation, instead of writing a loop. For <code>A @ B</code> to work, A's number of columns must equal B's number of rows: <code>(m, n) @ (n, p) → (m, p)</code>.</p>
+  <!-- 13.5 -->
+  <div class="lesson-h2">13.5 — Pivot Tables: Reshaping for Analysis</div>
+  <p class="lesson-p">A <strong>pivot table</strong> reshapes long, row-per-observation data into a wide summary grid — one row per category, one column per another category, values aggregated at each intersection. This is the same mental model as an Excel pivot table.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">One matrix multiplication = predictions for a whole batch</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Sales by rep, by quarter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>],[<span class="nm">3</span>,<span class="nm">4</span>],[<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># 3 samples, 2 features — shape (3, 2)</span>
-w = np.array([<span class="nm">0.5</span>, -<span class="nm">1.0</span>])                     <span class="cm"># 2 weights, one per feature — shape (2,)</span>
-b = <span class="nm">0.2</span>
+sales = pd.DataFrame({
+    <span class="st">'rep'</span>:     [<span class="st">'Alice'</span>,<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Carol'</span>],
+    <span class="st">'quarter'</span>: [<span class="st">'Q1'</span>,<span class="st">'Q2'</span>,<span class="st">'Q1'</span>,<span class="st">'Q2'</span>,<span class="st">'Q1'</span>,<span class="st">'Q2'</span>],
+    <span class="st">'amount'</span>:  [<span class="nm">100</span>, <span class="nm">120</span>, <span class="nm">90</span>, <span class="nm">95</span>, <span class="nm">150</span>, <span class="nm">140</span>],
+})
 
-predictions = X @ w + b     <span class="cm"># (3,2) @ (2,) -> (3,) : ALL 3 predictions, one line, no loop</span>
-<span class="kw">for</span> i, p <span class="kw">in</span> <span class="bi">enumerate</span>(predictions):
-    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: <span class="bi">{p:.4f}</span>'</span>)</div>
+pivot = sales.pivot_table(values=<span class="st">'amount'</span>, index=<span class="st">'rep'</span>, columns=<span class="st">'quarter'</span>, aggfunc=<span class="st">'sum'</span>)
+<span class="bi">print</span>(pivot)
+<span class="bi">print</span>(<span class="st">f'Alice Q2: <span class="bi">{pivot.loc["Alice","Q2"]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Bob total: <span class="bi">{pivot.loc["Bob"].sum()}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>This one line — <code>X @ w + b</code> — IS linear regression's prediction step.</strong> Whether it's 3 samples or 3 million, it's the same operation. This is why NumPy (and by extension PyTorch/TensorFlow) is fast: the loop happens in optimized low-level code, not in slow Python.</div></div>
 
-  <!-- 8.7 -->
-  <div class="lesson-h2">8.7 — Transpose and the Identity Matrix</div>
-  <p class="lesson-p">The <strong>transpose</strong> (<code>.T</code>) flips a matrix's rows and columns — needed constantly to make shapes line up for multiplication. The <strong>identity matrix</strong> (<code>np.eye(n)</code>) is the matrix equivalent of the number 1 — multiplying by it changes nothing.</p>
+  <!-- 13.6 -->
+  <div class="lesson-h2">13.6 — Cleaning Text and Fixing Types</div>
+  <p class="lesson-p">Real text data has stray whitespace and inconsistent casing (<code>' Alice '</code>, <code>'BOB'</code>, <code>'carol'</code>). The <code>.str</code> accessor runs string methods across a whole column at once. And a column that LOOKS numeric but was loaded as text needs <code>.astype()</code> before any math will work correctly on it.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Transpose and identity</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">.str accessor + astype()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-X = np.array([[<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>],[<span class="nm">4</span>,<span class="nm">5</span>,<span class="nm">6</span>]])   <span class="cm"># shape (2, 3)</span>
-<span class="bi">print</span>(<span class="st">f'Original shape: <span class="bi">{X.shape}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Transposed shape: <span class="bi">{X.T.shape}</span>'</span>)     <span class="cm"># (3, 2) — rows and columns swapped</span>
+messy = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">' Alice '</span>, <span class="st">'BOB'</span>, <span class="st">'carol'</span>], <span class="st">'score_text'</span>: [<span class="st">'92'</span>, <span class="st">'75'</span>, <span class="st">'81'</span>]})
 
-I = np.eye(<span class="nm">3</span>)      <span class="cm"># 3x3 identity matrix</span>
-<span class="bi">print</span>(I)
-v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>])
-<span class="bi">print</span>(<span class="st">f'v @ I: <span class="bi">{list(v @ I)}</span>'</span>)   <span class="cm"># [7, 8, 9] — unchanged, like multiplying by 1</span></div>
+cleaned = messy.copy()
+cleaned[<span class="st">'name'</span>] = cleaned[<span class="st">'name'</span>].str.strip().str.title()   <span class="cm"># trim whitespace, then 'Title Case'</span>
+cleaned[<span class="st">'score'</span>] = cleaned[<span class="st">'score_text'</span>].astype(<span class="bi">int</span>)          <span class="cm"># text '92' -> real integer 92</span>
+
+<span class="bi">print</span>(<span class="bi">list</span>(cleaned[<span class="st">'name'</span>]))
+<span class="bi">print</span>(<span class="st">f'Total score: <span class="bi">{cleaned["score"].sum()}</span>'</span>)   <span class="cm"># only works because score is now numeric, not text</span></div>
   </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Summing a text column silently does string concatenation, not addition</strong> — <code>'92' + '75'</code> gives <code>'9275'</code>, not <code>167</code>, and pandas won't warn you. Always confirm a column's dtype (<code>df.dtypes</code>) before trusting arithmetic on it.</div></div>
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 8 Summary</div>
+  <div class="lesson-h2">Chapter 13 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>Data is vectors and matrices.</strong> One sample = a vector. A dataset = a matrix, shape (samples, features).</div></li>
-    <li data-n="2"><div><strong>NumPy arrays do math elementwise</strong> — completely different from Python lists with the same operators.</div></li>
-    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum = the core of a neuron / linear model prediction.</div></li>
-    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN.</div></li>
-    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation.</div></li>
-    <li data-n="6"><div><strong>Transpose</strong> (<code>.T</code>) swaps rows/columns to make shapes compatible; <strong>identity</strong> (<code>np.eye</code>) is the matrix "1".</div></li>
+    <li data-n="1"><div><strong>.isna() / .dropna() / .fillna()</strong> find and handle missing values — dropping loses other columns' data, filling can bias the data. Choose deliberately.</div></li>
+    <li data-n="2"><div><strong>.duplicated() / .drop_duplicates()</strong> find and remove exact repeat rows.</div></li>
+    <li data-n="3"><div><strong>pd.merge(..., on=key, how=...)</strong> joins tables sideways by a shared key — check row counts for accidental fan-out.</div></li>
+    <li data-n="4"><div><strong>pd.concat([...])</strong> stacks tables of the same shape vertically.</div></li>
+    <li data-n="5"><div><strong>.pivot_table()</strong> reshapes long data into a wide summary grid.</div></li>
+    <li data-n="6"><div><strong>.str accessor + .astype()</strong> clean inconsistent text and fix wrong column types before doing any math.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -482,7 +468,7 @@ v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class=
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Always format printed numbers explicitly (e.g. <code>{value:.4f}</code>) — this keeps output consistent no matter tiny floating-point differences.</p>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
   </div>
 
   <div class="exercise" id="ex1">
@@ -490,31 +476,34 @@ v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class=
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Dot Product By Hand</div>
-        <div class="ex-desc">Compute a dot product manually with elementwise multiply + sum, before using np.dot.</div>
+        <div class="ex-title">Count and Fill Missing Values</div>
+        <div class="ex-desc">Find how many scores are missing, then fill them with the column mean.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
+import pandas as pd, numpy as np
+df1 = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, np.nan, 91, np.nan]})
 (already given)
 
-Compute the dot product using elementwise multiplication then .sum()
-(don't use np.dot for this one — do it manually).
+missing_count = df1['score'].isna().sum()
+avg = df1['score'].mean()
+filled1 = df1['score'].fillna(avg)
 
-Print exactly: f'Dot product: {dot}'
-(The correct answer is Dot product: 32)</div>
+Print exactly:
+  f'Missing count: {missing_count}'
+  f'Average: {avg:.4f}'
+  f'Filled: {filled1.tolist()}'
+(Correct: Missing count: 2 / Average: 88.0000 / Filled: [85.0, 88.0, 91.0, 88.0])</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
+      <textarea class="ex-editor" id="ex1-code">import pandas as pd, numpy as np
+df1 = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, np.nan, 91, np.nan]})
 
-# dot = (v1 * v2).sum()
-
+# missing_count = df1['score'].isna().sum()
+# avg = df1['score'].mean()
+# filled1 = df1['score'].fillna(avg)
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(1)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
@@ -529,32 +518,38 @@ v2 = np.array([4, 5, 6])
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">A Single Neuron's Prediction</div>
-        <div class="ex-desc">Use np.dot to compute a weighted sum plus bias — exactly what one neuron computes.</div>
+        <div class="ex-title">Find and Drop Duplicates</div>
+        <div class="ex-desc">Count duplicate rows, then remove them.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
+import pandas as pd
+df3 = pd.DataFrame({
+    'name': ['Alice','Bob','Alice','Dave','Bob','Eve'],
+    'city': ['Hubli','Pune','Hubli','Delhi','Pune','Mumbai'],
+})
 (already given)
 
-Compute prediction = np.dot(weights, features) + bias
+dup_count = df3.duplicated().sum()
+deduped3 = df3.drop_duplicates()
 
-Print exactly: f'Prediction: {prediction:.4f}'
-(The correct answer is Prediction: 1.0000)</div>
+Print exactly:
+  f'Duplicate count: {dup_count}'
+  f'Remaining rows: {len(deduped3)}'
+  f'Names: {list(deduped3["name"])}'
+(Correct: Duplicate count: 2 / Remaining rows: 4 / Names: ['Alice', 'Bob', 'Dave', 'Eve'])</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
+      <textarea class="ex-editor" id="ex2-code">import pandas as pd
+df3 = pd.DataFrame({
+    'name': ['Alice','Bob','Alice','Dave','Bob','Eve'],
+    'city': ['Hubli','Pune','Hubli','Delhi','Pune','Mumbai'],
+})
 
-# prediction = np.dot(weights, features) + bias
-
+# dup_count = df3.duplicated().sum()
+# deduped3 = df3.drop_duplicates()
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(2)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
@@ -569,33 +564,31 @@ bias = 0.1
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Norms and Distance</div>
-        <div class="ex-desc">Compute L2 norm, L1 norm, and the Euclidean distance between two points.</div>
+        <div class="ex-title">Inner Join Two Tables</div>
+        <div class="ex-desc">Merge two DataFrames on a shared key, keeping only matches.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
+import pandas as pd
+scores_df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [92,75,81,60]})
+depts_df  = pd.DataFrame({'name': ['Alice','Bob','Eve'], 'dept': ['Sales','Eng','Sales']})
 (already given)
 
-Compute and print exactly:
-  f'L2 norm: {l2:.4f}'         (using np.linalg.norm(v))
-  f'L1 norm: {l1:.4f}'         (using np.abs(v).sum())
-  f'Distance: {distance:.4f}'  (using np.linalg.norm(a - b))
-(Correct: L2 norm: 5.0000 / L1 norm: 7.0000 / Distance: 5.0000)</div>
+merged = pd.merge(scores_df, depts_df, on='name', how='inner')
+
+Print exactly:
+  f'Merged names: {list(merged["name"])}'
+  f'Merged rows: {len(merged)}'
+(Correct: Merged names: ['Alice', 'Bob'] / Merged rows: 2)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
+      <textarea class="ex-editor" id="ex3-code">import pandas as pd
+scores_df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [92,75,81,60]})
+depts_df  = pd.DataFrame({'name': ['Alice','Bob','Eve'], 'dept': ['Sales','Eng','Sales']})
 
-# l2 = ... ; l1 = ... ; distance = ...
-
+# merged = pd.merge(scores_df, depts_df, on='name', how='inner')
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
@@ -610,30 +603,33 @@ b = np.array([4, 6])
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Matrix Shape and Indexing</div>
-        <div class="ex-desc">Read a matrix's shape, a row, a column, and a row sum.</div>
+        <div class="ex-title">Concatenate Two Batches</div>
+        <div class="ex-desc">Stack two DataFrames and sum a column across the combined result.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-(already given — 4 samples, 3 features)
+import pandas as pd
+q1 = pd.DataFrame({'name': ['Alice','Bob'], 'sales': [100,150]})
+q2 = pd.DataFrame({'name': ['Carol'], 'sales': [200]})
+(already given)
 
-Print exactly, in this order:
-  f'Shape: {X.shape}'
-  f'Row 1: {X[1].tolist()}'
-  f'Column 2: {X[:,2].tolist()}'
-  f'Row 0 sum: {X[0].sum()}'
-(Correct: Shape: (4, 3) / Row 1: [4, 5, 6] / Column 2: [3, 6, 9, 12] / Row 0 sum: 6)</div>
+all_q = pd.concat([q1, q2], ignore_index=True)
+total_sales = all_q['sales'].sum()
+
+Print exactly:
+  f'Total rows: {len(all_q)}'
+  f'Total sales: {total_sales}'
+(Correct: Total rows: 3 / Total sales: 450)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
+      <textarea class="ex-editor" id="ex4-code">import pandas as pd
+q1 = pd.DataFrame({'name': ['Alice','Bob'], 'sales': [100,150]})
+q2 = pd.DataFrame({'name': ['Carol'], 'sales': [200]})
 
-# print shape, row 1, column 2, row 0 sum
-
+# all_q = pd.concat([q1, q2], ignore_index=True)
+# total_sales = all_q['sales'].sum()
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(4)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
@@ -647,34 +643,38 @@ X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
     <div class="ex-header">
       <div class="ex-num">5</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Batch Predictions With Matrix Multiplication</div>
-        <div class="ex-desc">Compute predictions for 3 samples at once using X @ w + b — no loop over samples needed for the math itself.</div>
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Pivot Revenue by Department and Quarter</div>
+        <div class="ex-desc">Build a pivot table and read specific cells out of it.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
+import pandas as pd
+data5 = pd.DataFrame({
+    'dept':    ['Sales','Sales','Eng','Eng','Sales','Eng'],
+    'quarter': ['Q1','Q2','Q1','Q2','Q1','Q1'],
+    'revenue': [500, 600, 300, 350, 450, 320],
+})
 (already given)
 
-Compute predictions = X @ w + b
-Then loop with enumerate(predictions) and print each:
-  f'Sample {i}: {p:.4f}'
-(Correct: Sample 0: -1.3000 / Sample 1: -2.3000 / Sample 2: -3.3000)</div>
+pivot5 = data5.pivot_table(values='revenue', index='dept', columns='quarter', aggfunc='sum')
+
+Print exactly:
+  f'Sales Q1: {pivot5.loc["Sales","Q1"]}'
+  f'Eng Q1: {pivot5.loc["Eng","Q1"]}'
+(Correct: Sales Q1: 950 / Eng Q1: 620)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
+      <textarea class="ex-editor" id="ex5-code">import pandas as pd
+data5 = pd.DataFrame({
+    'dept':    ['Sales','Sales','Eng','Eng','Sales','Eng'],
+    'quarter': ['Q1','Q2','Q1','Q2','Q1','Q1'],
+    'revenue': [500, 600, 300, 350, 450, 320],
+})
 
-# predictions = X @ w + b
-# for i, p in enumerate(predictions): print(...)
-
+# pivot5 = data5.pivot_table(values='revenue', index='dept', columns='quarter', aggfunc='sum')
 </textarea>
       <div class="ex-btn-row">
-        <button class="ex-run" onclick="runExercise(5)">▶ Run & Check</button>
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
         <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
         <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
         <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
@@ -691,60 +691,63 @@ b = 0.2
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Vectorized Batch Predictor</span></h2>
-    <p>Back in Chapter 1 you computed MSE by hand for 3 samples with individually named variables. Now do it properly: one matrix multiplication computes every prediction, one NumPy expression computes the error metrics — no loops required for the math.</p>
+    <h2>🏗️ Mini Project: <span>Full Cleaning Pipeline</span></h2>
+    <p>The candidate dataset arrives messy: names with stray whitespace, an exact duplicate row, and a missing score. Build a three-step pipeline — clean the text, drop the duplicate, fill the missing value — the same sequence you'd run on any real dataset before analysis.</p>
     <div class="project-tags">
-      <span class="ptag">X @ w + b</span>
-      <span class="ptag">vectorized MSE</span>
-      <span class="ptag">NumPy</span>
+      <span class="ptag">.str.strip()</span>
+      <span class="ptag">drop_duplicates</span>
+      <span class="ptag">fillna</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Compute predictions for all 5 samples at once: predictions = X @ w + b</li>
-      <li>Compute errors = predictions - y (elementwise, all 5 at once)</li>
-      <li>Compute MSE = (errors ** 2).mean() and RMSE = MSE ** 0.5</li>
-      <li>Print each sample's prediction vs actual target</li>
-      <li>Print the final MSE and RMSE</li>
+      <li>Strip whitespace from the name column (step1)</li>
+      <li>Count duplicate rows in step1, then drop them into step2</li>
+      <li>Count missing scores in step2, then fill them with step2's score mean</li>
+      <li>Print the duplicate count, missing count, final row count, and final names</li>
+      <li>Print Carol's filled-in score, formatted to 4 decimal places</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Vectorized Batch Predictor — Your Solution</div>
+      <div class="pe-title">🏗️ Full Cleaning Pipeline — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Vectorized Batch Predictor
-# Use ONLY Chapter 8 concepts — no manual per-sample loops for the math
+# Mini Project: Full Cleaning Pipeline
+# Use ONLY Chapter 13 concepts
 # ══════════════════════════════════════════
+import pandas as pd
 import numpy as np
 
-X = np.array([
-    [1, 2, 1],
-    [2, 1, 3],
-    [3, 3, 2],
-    [1, 1, 1],
-    [4, 2, 2],
-])
-w = np.array([0.3, 0.5, -0.2])
-b = 0.5
-y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
+raw = pd.DataFrame({
+    'name':  [' Alice ', 'Bob', 'Alice ', 'Carol', 'Dave', 'Bob'],
+    'score': [92, 75, 92, np.nan, 60, 75],
+    'city':  ['Hubli', 'Pune', 'Hubli', 'Mumbai', None, 'Pune'],
+})
 
-# === TODO 1: predictions for ALL samples in one line ===
-# predictions = X @ w + b
+# === TODO 1: clean whitespace ===
+# step1 = raw.copy()
+# step1['name'] = step1['name'].str.strip()
 
-# === TODO 2: print each sample's prediction vs target ===
-# for i in range(len(y)): print(f'Sample {i}: predicted={predictions[i]:.4f} actual={y[i]:.4f}')
+# === TODO 2: drop duplicates ===
+# dup_count = step1.duplicated().sum()
+# step2 = step1.drop_duplicates()
 
-# === TODO 3: compute and print MSE and RMSE ===
-# errors = predictions - y
-# mse = (errors ** 2).mean()
-# rmse = mse ** 0.5
-# print(f'MSE: {mse:.6f}')
-# print(f'RMSE: {rmse:.6f}')
+# === TODO 3: fill missing scores ===
+# missing_count = step2['score'].isna().sum()
+# step2 = step2.copy()
+# step2['score'] = step2['score'].fillna(step2['score'].mean())
+
+# === TODO 4: report ===
+# print(f'Duplicates removed: {dup_count}')
+# print(f'Missing scores filled: {missing_count}')
+# print(f'Final row count: {len(step2)}')
+# print(f'Names: {list(step2["name"])}')
+# print(f'Carol filled score: {step2[step2["name"]=="Carol"]["score"].iloc[0]:.4f}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -752,10 +755,11 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>All 5 sample predictions vs their actual targets</div>
-    <div class="check-item"><span class="check-icon">🎯</span>MSE: 0.146000</div>
-    <div class="check-item"><span class="check-icon">📊</span>RMSE: 0.382099</div>
-    <div class="check-item"><span class="check-icon">⚡</span>Predictions computed with X @ w + b — not a manual per-sample formula</div>
+    <div class="check-item"><span class="check-icon">🧹</span>Duplicates removed: 2</div>
+    <div class="check-item"><span class="check-icon">🩹</span>Missing scores filled: 1</div>
+    <div class="check-item"><span class="check-icon">🔢</span>Final row count: 4</div>
+    <div class="check-item"><span class="check-icon">📋</span>Names: ['Alice', 'Bob', 'Carol', 'Dave']</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Carol filled score: 75.6667</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -765,60 +769,60 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 8 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 9. You can retake this as many times as you want.</p>
+    <h2>🧪 Chapter 13 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 14. You can retake this as many times as you want.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">A dataset has 100 samples and 5 features. What shape would its feature matrix X have, following ML convention?</div>
+    <div class="q-text">What's the key tradeoff between <code>df.dropna()</code> and <code>df.fillna(value)</code> for a column with missing values?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> (5, 100) — features first, samples second</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> (100, 5) — one row per sample, one column per feature</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> (100, 100) — always square</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Shape doesn't matter for ML data</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> There's no difference, they do the same thing</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> dropna() discards the entire row (losing other columns' data too); fillna() keeps the row but can bias the data with an invented value</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> dropna() only works on numeric columns</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> fillna() automatically deletes duplicate rows too</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">What does the dot product of two vectors compute?</div>
+    <div class="q-text">What's the difference between <code>how='inner'</code> and <code>how='left'</code> in <code>pd.merge()</code>?</div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Elementwise multiplication only, giving back a vector</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The sum of elementwise products — a single number, computed with np.dot() or @</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The two vectors joined end to end</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The largest value shared by both vectors</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> inner keeps only keys present in BOTH tables; left keeps every row from the left table, filling unmatched columns with NaN</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> They produce identical results always</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> inner is for numbers, left is for text</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> left merges are not supported in pandas</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">Matrix A has shape (3, 4) and matrix B has shape (4, 2). What is the shape of A @ B?</div>
+    <div class="q-text">When should you use <code>pd.concat()</code> instead of <code>pd.merge()</code>?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> (3, 2) — outer dimensions, since the inner 4s match</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> (4, 4)</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> (3, 4)</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — the shapes are incompatible</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> When stacking tables with the SAME columns on top of each other (e.g. combining data batches), rather than joining different tables sideways by a shared key</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> They are interchangeable in every case</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> concat() is only for removing duplicates</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> concat() requires a shared key column, merge() does not</button>
     </div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write the NumPy expression for the L2 norm (Euclidean length) of a vector <code>v</code>, assigned to a variable called <code>length</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="length = ..." rows="3"></textarea>
+    <div class="q-text">Write the line that removes leading/trailing whitespace from every value in column <code>df['name']</code>, assigning the result back to <code>df['name']</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="df['name'] = ..." rows="3"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">X has shape (10, 3) and w has shape (3,). What shape is <code>X @ w</code>?</div>
+    <div class="q-text">A column of numbers was loaded as text (e.g. <code>'92'</code>, <code>'75'</code>). What happens if you call <code>.sum()</code> on it WITHOUT first converting it with <code>.astype(int)</code>?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> (10,) — one prediction per sample</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (3,)</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> (10, 3) — unchanged</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> An error — shapes are incompatible</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> pandas raises an error immediately</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It silently does string concatenation instead of addition, giving a wrong (but not obviously wrong-looking) result</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> pandas automatically converts it to numeric first</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It always returns 0</button>
     </div>
   </div>
 
@@ -827,12 +831,12 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
   <div class="quiz-result-banner" id="quiz-result"></div>
 
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
-    <div class="ncc-icon">🔀</div>
+    <div class="ncc-icon">🎓</div>
     <div class="ncc-info">
-      <h3>Chapter 9: Probability &amp; Statistics</h3>
-      <p>Mean, variance, distributions, correlation, and Bayes' theorem — the language every model evaluation report speaks.</p>
+      <h3>Chapter 14: Data Visualization (Module 3 Capstone)</h3>
+      <p>Matplotlib and Seaborn — turning cleaned data into charts that actually tell a story, and the Module 3 capstone project.</p>
     </div>
-    <a class="ncc-btn" href="ch09-probability-statistics.html">Start Chapter 9 →</a>
+    <a class="ncc-btn" href="ch14-data-visualization.html">Start Chapter 14 →</a>
   </div>
 </div><!-- end quiz -->
 
@@ -859,7 +863,7 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch08';
+const CH_ID='ch13';
 const STORE_KEY='aimlZTH_progress_v1';
 function loadStore(){
   try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
@@ -890,7 +894,7 @@ let quizDone = false;
     xp=saved.xp||0;
     quizDone=!!saved.quizDone;
   }
-  const prev=store.chapters && store.chapters['ch07'];
+  const prev=store.chapters && store.chapters['ch12'];
   if(!prev || !prev.quizDone){
     document.getElementById('prereq-note').style.display='flex';
   }
@@ -910,7 +914,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import numpy as np — loads on first use, may take a few extra seconds','info');
+    clog('# import pandas as pd, numpy as np — load on first use, may take a few extra seconds','info');
     if(quizDone) revealNextChapter();
     updateUI();
   }catch(e){
@@ -983,58 +987,64 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['dot product: 32'],
-    hint:"dot = (v1 * v2).sum()",
-    solution:`import numpy as np
-v1 = np.array([1, 2, 3])
-v2 = np.array([4, 5, 6])
-dot = (v1 * v2).sum()
-print(f'Dot product: {dot}')`
+    checks:['missing count: 2','average: 88.0000','filled: [85.0, 88.0, 91.0, 88.0]'],
+    hint:"missing_count = df1['score'].isna().sum(); avg = df1['score'].mean(); filled1 = df1['score'].fillna(avg); use .tolist() when printing",
+    solution:`import pandas as pd, numpy as np
+df1 = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, np.nan, 91, np.nan]})
+missing_count = df1['score'].isna().sum()
+avg = df1['score'].mean()
+filled1 = df1['score'].fillna(avg)
+print(f'Missing count: {missing_count}')
+print(f'Average: {avg:.4f}')
+print(f'Filled: {filled1.tolist()}')`
   },
   2:{
-    checks:['prediction: 1.0000'],
-    hint:"prediction = np.dot(weights, features) + bias",
-    solution:`import numpy as np
-weights  = np.array([0.5, -0.2, 0.1])
-features = np.array([2.0, 3.0, 5.0])
-bias = 0.1
-prediction = np.dot(weights, features) + bias
-print(f'Prediction: {prediction:.4f}')`
+    checks:['duplicate count: 2','remaining rows: 4',"names: ['alice', 'bob', 'dave', 'eve']"],
+    hint:"dup_count = df3.duplicated().sum(); deduped3 = df3.drop_duplicates()",
+    solution:`import pandas as pd
+df3 = pd.DataFrame({
+    'name': ['Alice','Bob','Alice','Dave','Bob','Eve'],
+    'city': ['Hubli','Pune','Hubli','Delhi','Pune','Mumbai'],
+})
+dup_count = df3.duplicated().sum()
+deduped3 = df3.drop_duplicates()
+print(f'Duplicate count: {dup_count}')
+print(f'Remaining rows: {len(deduped3)}')
+print(f'Names: {list(deduped3["name"])}')`
   },
   3:{
-    checks:['l2 norm: 5.0000','l1 norm: 7.0000','distance: 5.0000'],
-    hint:"l2 = np.linalg.norm(v); l1 = np.abs(v).sum(); distance = np.linalg.norm(a - b)",
-    solution:`import numpy as np
-v = np.array([3, 4])
-a = np.array([1, 2])
-b = np.array([4, 6])
-l2 = np.linalg.norm(v)
-l1 = np.abs(v).sum()
-distance = np.linalg.norm(a - b)
-print(f'L2 norm: {l2:.4f}')
-print(f'L1 norm: {l1:.4f}')
-print(f'Distance: {distance:.4f}')`
+    checks:["merged names: ['alice', 'bob']",'merged rows: 2'],
+    hint:"merged = pd.merge(scores_df, depts_df, on='name', how='inner')",
+    solution:`import pandas as pd
+scores_df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [92,75,81,60]})
+depts_df  = pd.DataFrame({'name': ['Alice','Bob','Eve'], 'dept': ['Sales','Eng','Sales']})
+merged = pd.merge(scores_df, depts_df, on='name', how='inner')
+print(f'Merged names: {list(merged["name"])}')
+print(f'Merged rows: {len(merged)}')`
   },
   4:{
-    checks:['shape: (4, 3)','row 1: [4, 5, 6]','column 2: [3, 6, 9, 12]','row 0 sum: 6'],
-    hint:"X.shape; X[1].tolist(); X[:,2].tolist(); X[0].sum()",
-    solution:`import numpy as np
-X = np.array([[1,2,3],[4,5,6],[7,8,9],[10,11,12]])
-print(f'Shape: {X.shape}')
-print(f'Row 1: {X[1].tolist()}')
-print(f'Column 2: {X[:,2].tolist()}')
-print(f'Row 0 sum: {X[0].sum()}')`
+    checks:['total rows: 3','total sales: 450'],
+    hint:"all_q = pd.concat([q1, q2], ignore_index=True); total_sales = all_q['sales'].sum()",
+    solution:`import pandas as pd
+q1 = pd.DataFrame({'name': ['Alice','Bob'], 'sales': [100,150]})
+q2 = pd.DataFrame({'name': ['Carol'], 'sales': [200]})
+all_q = pd.concat([q1, q2], ignore_index=True)
+total_sales = all_q['sales'].sum()
+print(f'Total rows: {len(all_q)}')
+print(f'Total sales: {total_sales}')`
   },
   5:{
-    checks:['sample 0: -1.3000','sample 1: -2.3000','sample 2: -3.3000'],
-    hint:"predictions = X @ w + b; for i, p in enumerate(predictions): print(f'Sample {i}: {p:.4f}')",
-    solution:`import numpy as np
-X = np.array([[1,2],[3,4],[5,6]])
-w = np.array([0.5, -1.0])
-b = 0.2
-predictions = X @ w + b
-for i, p in enumerate(predictions):
-    print(f'Sample {i}: {p:.4f}')`
+    checks:['sales q1: 950','eng q1: 620'],
+    hint:"data5.pivot_table(values='revenue', index='dept', columns='quarter', aggfunc='sum')",
+    solution:`import pandas as pd
+data5 = pd.DataFrame({
+    'dept':    ['Sales','Sales','Eng','Eng','Sales','Eng'],
+    'quarter': ['Q1','Q2','Q1','Q2','Q1','Q1'],
+    'revenue': [500, 600, 300, 350, 450, 320],
+})
+pivot5 = data5.pivot_table(values='revenue', index='dept', columns='quarter', aggfunc='sum')
+print(f'Sales Q1: {pivot5.loc["Sales","Q1"]}')
+print(f'Eng Q1: {pivot5.loc["Eng","Q1"]}')`
   }
 };
 
@@ -1092,7 +1102,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['mse: 0.146000','rmse: 0.382099'];
+  const checks=['duplicates removed: 2','missing scores filled: 1','final row count: 4',"names: ['alice', 'bob', 'carol', 'dave']",'carol filled score: 75.6667'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1101,11 +1111,11 @@ window.runProject=async function(){
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099)';
+    res.textContent='❌ Missing some required values — check the checklist above';
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'A',5:'A'};
+const CORRECT={1:'B',2:'A',3:'A',5:'B'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1119,12 +1129,12 @@ window.selectOpt=function(q,opt){
 window.checkQ4=function(){
   const val=document.getElementById('q4-input').value.trim().toLowerCase();
   const fb=document.getElementById('q4-feedback');
-  const passed=val.includes('np.linalg.norm')&&val.includes('(v)');
+  const passed=val.includes("df['name']")&&val.includes('.str.strip()');
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! length = np.linalg.norm(v)'
-    :'❌ Not quite. You need: length = np.linalg.norm(v)';
+    ?"✅ Correct! df['name'] = df['name'].str.strip()"
+    :"❌ Not quite. You need: df['name'] = df['name'].str.strip()";
 };
 
 function revealNextChapter(){
@@ -1154,7 +1164,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Vectors, dot products, norms, and matrix multiplication are yours now. Every model prediction you'll ever compute is built from exactly these operations.</div>`;
+      <div class="qrb-sub">Missing values, duplicates, merges, concatenation, pivot tables, and text cleaning — you can now take a genuinely messy dataset and make it analysis-ready.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
@@ -1233,3 +1243,4 @@ document.querySelectorAll('.sb-item').forEach(el=>{
 
 </body>
 </html>
+
