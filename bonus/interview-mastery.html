@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus: Interview Mastery</title>
+<!-- USAGE:
+  This is a BONUS/supplementary page — it is explicitly NOT one of the 35 core chapters. It does
+  not get renumbered into the course, isn't gated behind any quiz, and needs no Pyodide/Python
+  execution — it's pure written reference material: behavioral interview prep (STAR method),
+  an ML system design framework with worked case studies, a cloud-platform vocabulary
+  cheat-sheet, and 15 rapid-fire "gotcha" questions distinct from the ~120 Interview Prep
+  questions already spread across chapters 7, 10, 14, 20, 26, 30, 32, 33, 34, 35. No XP, no
+  localStorage progress tracking — just study material for after you've finished the course.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none;background:none}
+
+/* ---- top nav ---- */
+#topnav{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:0 24px;height:56px;overflow-x:auto}
+.tn-home{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--t2);padding:8px 12px 8px 0;border-right:1px solid var(--border);margin-right:8px;white-space:nowrap;flex-shrink:0}
+.tn-home:hover{color:var(--violet)}
+.tn-title{font-size:12.5px;font-weight:800;color:var(--violet);white-space:nowrap;flex-shrink:0;margin-right:10px}
+.tn-link{padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--t2);border-radius:8px;white-space:nowrap;flex-shrink:0;transition:all .15s;border:1px solid transparent}
+.tn-link:hover{color:var(--text);background:var(--card2)}
+.tn-link.active{color:var(--violet);background:var(--violet-bg);border-color:rgba(124,92,252,.3)}
+
+#main{max-width:880px;margin:0 auto;padding:36px 28px 100px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.14),rgba(0,217,166,.07));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:32px 36px;margin-bottom:36px}
+.lesson-intro h1{font-size:30px;font-weight:800;line-height:1.2;margin-bottom:12px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14.5px;color:var(--t2);line-height:1.8;max-width:680px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+section.big-section{margin-top:56px;scroll-margin-top:72px}
+.section-tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--violet);background:var(--violet-bg);border:1px solid rgba(124,92,252,.3);border-radius:20px;padding:5px 14px;margin-bottom:14px}
+.section-h1{font-size:26px;font-weight:800;margin-bottom:10px}
+.section-lead{font-size:14px;color:var(--t2);line-height:1.8;max-width:700px;margin-bottom:28px}
+
+.lesson-h2{font-size:19px;font-weight:800;margin:34px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);scroll-margin-top:72px}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.85;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px;vertical-align:top}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+.lesson-table.prose td{font-family:var(--sans);font-size:13px;color:var(--t2);line-height:1.6}
+.lesson-table.prose td.concept{color:var(--text);font-weight:700;font-family:var(--sans)}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}
+
+/* ---- STAR cards ---- */
+.star-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin:20px 0;overflow:hidden}
+.star-head{padding:18px 24px;background:var(--card2);border-bottom:1px solid var(--border)}
+.star-head .sh-label{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+.star-head .sh-q{font-size:15.5px;font-weight:700;color:var(--text);line-height:1.5}
+.star-row{padding:16px 24px;border-bottom:1px solid var(--border);display:flex;gap:16px}
+.star-row:last-child{border-bottom:none}
+.star-letter{width:32px;height:32px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;font-family:var(--mono)}
+.star-letter.S{background:var(--blue-bg);color:var(--blue)}
+.star-letter.T{background:var(--gold-bg);color:var(--gold)}
+.star-letter.A{background:var(--violet-bg);color:var(--violet)}
+.star-letter.R{background:var(--green-bg);color:var(--green)}
+.star-body{flex:1}
+.star-body .sb-label{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-bottom:5px}
+.star-body p{font-size:13.5px;color:var(--t2);line-height:1.75}
+.star-body p strong{color:var(--text)}
+.star-body code{font-family:var(--mono);font-size:12px;background:#0A0C12;padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+/* ---- iq-card (click-to-expand, same pattern as ch32/ch34) ---- */
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px;flex-shrink:0}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.iq-card.open .iq-a{max-height:900px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner strong{color:var(--text)}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+/* ---- case studies ---- */
+.case-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:26px 30px;margin:20px 0}
+.case-head{display:flex;align-items:center;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+.case-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.case-title{font-size:17px;font-weight:800}
+.case-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:3px 10px;border-radius:6px}
+.diff-mod{background:var(--cyan-bg);color:var(--cyan)}
+.diff-modhard{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.case-body p{font-size:13.5px;color:var(--t2);line-height:1.8;margin-bottom:12px}
+.case-body p strong{color:var(--text)}
+.case-body code{font-family:var(--mono);font-size:12px;background:#0A0C12;padding:1px 6px;border-radius:4px;color:var(--violet)}
+.tradeoff-box{background:linear-gradient(135deg,rgba(255,184,0,.12),rgba(255,87,87,.06));border:1px solid rgba(255,184,0,.3);border-radius:10px;padding:14px 18px;margin-top:14px;font-size:13.5px;line-height:1.7;color:#FCD34D}
+.tradeoff-box strong{color:#FFD666}
+
+/* ---- back to top / footer ---- */
+.back-top{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);color:var(--t2);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:60;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s;opacity:0;pointer-events:none}
+.back-top.show{opacity:1;pointer-events:auto}
+.back-top:hover{color:var(--violet);border-color:var(--violet)}
+
+.footer-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-top:56px;text-align:center}
+.footer-card h3{font-size:18px;font-weight:800;margin-bottom:8px}
+.footer-card p{font-size:13.5px;color:var(--t2);line-height:1.7;max-width:560px;margin:0 auto 18px}
+.footer-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:11px 22px;font-size:13.5px;font-weight:700}
+.footer-btn:hover{background:var(--violet-light)}
+
+@media(max-width:700px){
+  #main{padding:24px 16px 90px}
+  .lesson-intro{padding:24px 22px}
+  .lesson-intro h1{font-size:24px}
+  .star-row{flex-direction:column;gap:8px}
+  .case-card{padding:20px 18px}
+}
+</style>
+</head>
+<body>
+
+<div id="topnav">
+  <a class="tn-home" href="../index.html">🏠 ← Back to Course Home</a>
+  <span class="tn-title">🎯 Interview Mastery</span>
+  <a class="tn-link" data-sec="sec-behavioral" href="#sec-behavioral">① Behavioral (STAR)</a>
+  <a class="tn-link" data-sec="sec-systemdesign" href="#sec-systemdesign">② System Design</a>
+  <a class="tn-link" data-sec="sec-cloud" href="#sec-cloud">③ Cloud Cheat-Sheet</a>
+  <a class="tn-link" data-sec="sec-rapidfire" href="#sec-rapidfire">④ Rapid-Fire</a>
+</div>
+
+<div id="main">
+
+  <div class="lesson-intro">
+    <h1>Bonus: <span>Interview Mastery</span></h1>
+    <p>The 35 chapters gave you real technical depth and three production-project portfolio pieces. That's necessary, but it isn't the whole interview. This page closes the three gaps that are easy to miss: <strong>behavioral interviews</strong> (the STAR method, worked from your own Ch33/Ch34 projects), <strong>ML system design</strong> at the depth senior/FAANG-style interviews actually probe, and a <strong>cloud-platform translation cheat-sheet</strong> so a job description that says "SageMaker" or "Vertex AI" instead of "MLflow" doesn't throw you. Nothing here re-teaches course content — it assumes you've done all 35 chapters and their Interview Prep tabs (Ch 7, 10, 14, 20, 26, 30, 32, 33, 34, 35).</p>
+    <div class="badge-row">
+      <span class="badge capstone">🎁 Not one of the 35 chapters</span>
+      <span class="badge">📖 ~45 min read</span>
+      <span class="badge">🚫 No quiz, no XP — pure reference</span>
+      <span class="badge">🔗 Assumes all 35 chapters done</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════ SECTION 1: BEHAVIORAL ══════════════════════════════════════════════ -->
+  <section class="big-section" id="sec-behavioral">
+    <div class="section-tag">Section 1 of 4</div>
+    <h2 class="section-h1">🗣️ Behavioral Interviews — The STAR Method</h2>
+    <p class="section-lead">Technical interviews check whether you CAN do the work. Behavioral interviews check whether anyone would want to hand you a real project and trust your account of what happened on it. The single biggest failure mode is answering in the abstract ("I'm good at handling pressure") instead of telling one specific, verifiable story. STAR is the structure that forces specificity.</p>
+
+    <div class="lesson-h2" id="star-method">1.1 — What STAR Actually Means</div>
+    <p class="lesson-p">STAR is not a script to memorize — it's a checklist for whether your answer contains enough real information for an interviewer to evaluate you. Each letter answers one question the interviewer is silently asking:</p>
+
+    <table class="lesson-table prose">
+      <tr><th style="width:90px">Letter</th><th style="width:160px">Stands for</th><th>What it must contain — and what the interviewer is really checking</th></tr>
+      <tr><td class="concept">S</td><td>Situation</td><td>The concrete context — what system, what team, what was actually going on. One or two sentences. The interviewer is checking: <em>is this a real, specific thing that happened, or a vague generality?</em></td></tr>
+      <tr><td class="concept">T</td><td>Task</td><td>What YOU specifically were responsible for — not "the team's" goal in general, but your slice of it. The interviewer is checking: <em>can this person tell the difference between "we" and "I," and did they actually own something?</em></td></tr>
+      <tr><td class="concept">A</td><td>Action</td><td>The specific decisions and steps you took — the part that should take up the most airtime. Concrete verbs, concrete choices, and ideally a moment where you had to choose between two real options. The interviewer is checking: <em>does this person's process for solving problems make sense, and did they actually do the thinking, or just execute someone else's plan?</em></td></tr>
+      <tr><td class="concept">R</td><td>Result</td><td>What actually happened — ideally with a number, and ideally including what you'd do differently next time. The interviewer is checking: <em>did this person's action produce a real, honestly-reported outcome, including if that outcome was "we caught a problem before shipping," not just "everything worked perfectly"?</em></td></tr>
+    </table>
+
+    <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The most underrated STAR skill: picking the right story.</strong> A story where everything went smoothly is far weaker than one where something didn't work and you handled it well — the second one is the only kind that actually proves judgment. Both worked examples below are deliberately built around a system doing something OTHER than the ideal outcome, because that's what interviewers remember.</div></div>
+
+    <div class="lesson-h2" id="star-examples">1.2 — Two Fully Worked STAR Answers</div>
+    <p class="lesson-p">These are built from the two real production projects this course has you actually build — Ch33's end-to-end ML pipeline and Ch34's agentic system. If you built those capstones yourself, these are <em>your</em> stories to tell, with your own specifics substituted in.</p>
+
+    <div class="star-card">
+      <div class="star-head">
+        <div class="sh-label">Worked Example A</div>
+        <div class="sh-q">"Tell me about a time a model or system didn't perform the way you expected, and what you did about it."</div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter S">S</div>
+        <div class="star-body">
+          <div class="sb-label">Situation</div>
+          <p>I built an end-to-end churn-prediction pipeline: EDA on a telecom dataset, a scikit-learn <code>Pipeline</code> (scaler + classifier) tuned with <code>GridSearchCV</code> over <code>clf__C</code> in <code>[0.01, 0.1, 1, 10]</code>, then serialized the final model with <code>pickle</code> and wrapped it in a validating <code>serve()</code> function with a <code>HealthMonitor</code> tracking every request.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter T">T</div>
+        <div class="star-body">
+          <div class="sb-label">Task</div>
+          <p>Before letting the retrained model replace what was already serving traffic, my job was to run it through a deployment gate: compare its held-out test performance against <code>CURRENT_PROD_F1</code> — the F1 score of the model currently in production — and only ship if the new model actually beat that bar.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter A">A</div>
+        <div class="star-body">
+          <div class="sb-label">Action</div>
+          <p>On the held-out test set the tuned model scored <strong>accuracy 0.6667, precision 1.0000, recall 0.5000, F1 0.6667</strong>. Against <code>CURRENT_PROD_F1 = 0.75</code>, the gate logic — <code>decision = 'SHIP' if new_model_f1 >= CURRENT_PROD_F1 else 'HOLD'</code> — returned <strong>HOLD</strong>. Instead of treating that as a dead end (or, worse, quietly overriding the gate because the model "seemed fine"), I read the number breakdown as a diagnosis: precision of 1.0 meant every churn prediction it made was correct, but recall of 0.5 meant it was missing half of the customers who actually churned. That's not "the model is bad," that's "the model is too conservative" — a specific, fixable direction (class weighting, decision-threshold tuning, or a wider hyperparameter search) rather than a vague failure.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter R">R</div>
+        <div class="star-body">
+          <div class="sb-label">Result</div>
+          <p>The gate did its job: it kept a worse model from replacing a better one in production, and the <code>HealthMonitor</code> reported the situation honestly as <strong>"degraded"</strong> rather than silently green. Just as importantly, it gave me a concrete next step — go after recall specifically — instead of a discouraging "try again." That's the story I'd tell to answer this question: not "I always ship successfully," but "I built a system that tells the truth about whether something is ready, and I trust the truth over my own hope that it's fine."</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="star-card">
+      <div class="star-head">
+        <div class="sh-label">Worked Example B</div>
+        <div class="sh-q">"Tell me about a technical decision you had to defend."</div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter S">S</div>
+        <div class="star-body">
+          <div class="sb-label">Situation</div>
+          <p>I built a multi-step research agent using the ReAct pattern (Thought → Action → Observation): given a goal like "which city has the most candidates, and what's its average score," the agent has to call <code>list_cities</code>, then call <code>get_city_candidate_count</code> once per city, decide which city won, and only THEN call <code>get_city_avg_score</code> for that one city — a genuinely dynamic number of tool calls that can't be fixed in advance.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter T">T</div>
+        <div class="star-body">
+          <div class="sb-label">Task</div>
+          <p>An agent loop that can call tools indefinitely is a real operational risk — a bug in the reasoning step, or a genuinely confusing goal, can spin forever burning API calls and money. I needed to add a hard stopping guardrail, and defend that specific design choice: a <code>max_steps</code> cap on the loop (<code>for step in range(self.max_steps)</code>), passed into the <code>Agent</code> class's constructor.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter A">A</div>
+        <div class="star-body">
+          <div class="sb-label">Action</div>
+          <p>I validated the guardrail deliberately, not just added it and moved on: I ran the same agent with <code>max_steps=2</code> against the full task, which normally takes about 8 tool-driven steps to resolve. With the cap in place, the loop executed exactly 2 iterations — one <code>list_cities</code> call and one <code>get_city_candidate_count</code> call — producing exactly 4 trace lines, then stopped. Critically, the result dict did NOT contain <code>avg_score</code>, so <code>'avg_score' in result</code> correctly evaluated to <code>False</code> — the caller can tell the difference between "finished" and "cut off," instead of the code returning a half-built dict that looks like a real answer. When a teammate pushed back with "isn't a fixed step cap just a band-aid — shouldn't the agent recognize on its own when it's done?", I defended it directly: recognizing completion IS what the agent's decision logic does in the normal case; the cap isn't a replacement for that logic, it's the backstop for when that logic is wrong or the goal turns out to be more complex than expected — the same reasoning as putting a timeout on a network call even when the server "should" always respond quickly.</p>
+        </div>
+      </div>
+      <div class="star-row">
+        <div class="star-letter R">R</div>
+        <div class="star-body">
+          <div class="sb-label">Result</div>
+          <p>The guardrail stayed in, and the pushback turned into a broader conversation about defense-in-depth for agents — tool allow-lists, per-tool rate limits, and human-in-the-loop confirmation before any destructive action (sending an email, deleting a file, spending money). What I'd emphasize in an interview: the interviewer isn't listening for "I added a limit," they're listening for whether you can articulate WHY a safety mechanism is still necessary even when the "smart" logic is supposed to handle it — that's the difference between a system that's safe by design and one that's safe by accident.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="lesson-h2" id="behavioral-bank">1.3 — 10 Common Behavioral Questions: How to Think About Each One</div>
+    <p class="lesson-p">These aren't scripted answers — every candidate's real stories are different. What follows is a structure for HOW to approach each question, so you can plug in your own real experience (from these projects or elsewhere) instead of freezing. Click each to expand.</p>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Tell me about a time you disagreed with a technical decision."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Pick a disagreement you actually LOST, or one that ended in a genuine compromise — not one where you were simply proven right. Structure: what was the other position, what was the actual reasoning behind it (steelman it, don't strawman it), what evidence or argument you brought, and how it resolved. The trait being tested is whether you can disagree without being disagreeable, and whether you update your view when given good reasons — not whether you're always correct.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Describe a project that failed, or fell short."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Choose a REAL, specific failure with a concrete root cause — "it failed because the scope was unclear" is weaker than "it failed because I assumed the label definitions were stable across data sources, and they weren't, so the model I evaluated wasn't measuring what I thought." The ch33 HOLD-gate story above technically works here too — a model that didn't clear the bar isn't a "failed project," it's an honest system doing its job, and being able to draw that distinction out loud is itself a signal of maturity. Always land on: what specifically changed in how you work afterward.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"How do you handle ambiguous requirements?"<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Show a concrete process, not a personality trait: how you identify what's actually ambiguous (vs. assuming you understand), what you do to reduce the ambiguity cheaply (a quick clarifying question, a small prototype, a explicit written assumption you flag to a stakeholder) before committing real time, and how you keep moving without full information. The anti-pattern interviewers are listening for: someone who either freezes waiting for perfect clarity, or barrels ahead making silent assumptions nobody signed off on.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Tell me about a time you had to learn something quickly."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">The best version of this answer names the SPECIFIC learning strategy you used (reading the actual source docs vs. a tutorial, building a tiny reproducible example before touching the real codebase, asking one well-chosen expert one well-chosen question) rather than just "I read a lot and figured it out." Tie the result to something you shipped or decided with that new knowledge — learning that never gets applied doesn't answer the question.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Tell me about a time you received difficult feedback."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Don't pick feedback that was actually easy to hear ("my manager said I should learn a new library"). Pick something that stung a little, be honest about the initial reaction, and then show the specific behavior change that followed — feedback you agreed with instantly isn't as convincing as feedback you had to sit with before acting on. Avoid any framing where the feedback-giver was simply wrong; that answers a different question than the one being asked.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"How do you prioritize when everything feels urgent?"<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Give the actual criteria you use to rank work — impact if delayed, reversibility, who's blocked on it, how confident you are in the estimate — not just "I make a list." A strong answer includes one moment you deliberately did NOT do something urgent-seeming because a gut-check on the criteria said it wasn't actually the highest priority, and what happened as a result.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Tell me about a time you had to explain something technical to a non-technical stakeholder."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">The skill being tested is translation, not simplification-to-the-point-of-being-wrong. A good structure: what was the real technical nuance that mattered for their decision (e.g. "recall matters more than accuracy here because missing a churner is expensive and flagging a happy customer is cheap"), how you translated it into a decision they could actually make, and evidence they understood it (they made a different choice than they would have otherwise, or asked a follow-up that showed real comprehension).</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Describe a time you found a bug or issue no one else had noticed."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Walk through the actual detection process — what made you suspicious (a number that didn't add up, a metric that looked "too good," an edge case you happened to test), not just "I found it." This is a great place to reference something like a drift-detection mindset from Ch32 (comparing a distribution's mean to what it should be) or a deployment-gate mindset from Ch33 (treating a suspiciously perfect metric as a reason to look harder, not celebrate) — showing you have a habit of distrusting numbers that seem too convenient.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Tell me about a conflict with a teammate and how you resolved it."<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Pick a conflict about the WORK (a technical approach, a scope disagreement, a priority call) rather than a personal or interpersonal conflict — the latter can read as oversharing or as reflecting poorly on your judgment about what's appropriate to discuss. Show that you separated the disagreement from the relationship: you can push back hard on an idea while still treating the person well, and the resolution should show a concrete mechanism (a shared test, a small experiment, a third opinion) rather than "we talked it out" with no substance.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">"Where do you want to be in a few years, and why this role?"<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">This is checking for genuine fit and retention risk, not ambition per se. Anchor your answer in something specific about THIS role/company that connects to a real skill you're building — e.g. "I've built the full loop from data to a deployed, monitored model; I want to go deeper on the serving/scaling side, which is exactly what this team owns" — rather than a generic career-ladder answer that would apply to any company in the industry.</div></div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════ SECTION 2: SYSTEM DESIGN ══════════════════════════════════════════════ -->
+  <section class="big-section" id="sec-systemdesign">
+    <div class="section-tag">Section 2 of 4</div>
+    <h2 class="section-h1">🏗️ ML System Design Framework</h2>
+    <p class="section-lead">ML system design questions are open-ended on purpose — there's no single correct architecture. What interviewers actually score is whether you have a REPEATABLE way to explore the design space instead of free-associating. Use the same 8-step framework for every question, in order, and explicitly narrate which step you're on.</p>
+
+    <div class="lesson-h2" id="framework">2.1 — The 8-Step Framework</div>
+    <table class="lesson-table prose">
+      <tr><th style="width:26px">#</th><th style="width:190px">Step</th><th>What to actually cover</th></tr>
+      <tr><td class="concept">1</td><td class="concept">Clarify requirements &amp; constraints</td><td>Scale (requests/sec, data size), latency budget (real-time vs. batch), cost sensitivity, and the actual business metric this optimizes — ask before assuming. This single step is the one candidates skip most, and it's the one interviewers weight most heavily.</td></tr>
+      <tr><td class="concept">2</td><td class="concept">Data</td><td>Where labels come from, how fresh the data needs to be, how much history exists, and any known label-quality or delay problems (e.g. fraud labels that arrive weeks later).</td></tr>
+      <tr><td class="concept">3</td><td class="concept">Feature engineering</td><td>What signals are actually predictive, how they're computed (real-time vs. precomputed), and whether training-time and serving-time feature computation can silently diverge (training-serving skew).</td></tr>
+      <tr><td class="concept">4</td><td class="concept">Model choice &amp; tradeoffs</td><td>Pick a FAMILY of model (not a specific library), and explicitly justify it against 1-2 alternatives on interpretability, latency, and data requirements — not just "use a neural network because it's powerful."</td></tr>
+      <tr><td class="concept">5</td><td class="concept">Training pipeline</td><td>How often retraining happens, how the new model is validated before promotion (this is where a deployment gate like Ch33's belongs), and how experiments are tracked.</td></tr>
+      <tr><td class="concept">6</td><td class="concept">Serving / latency budget</td><td>Batch vs. real-time inference, caching, and where the model actually lives relative to the request path — this is where the latency budget from step 1 gets spent.</td></tr>
+      <tr><td class="concept">7</td><td class="concept">Monitoring &amp; feedback loop</td><td>What production signal tells you the model is still good (drift, a proxy metric, delayed ground truth), and how that signal flows back into retraining.</td></tr>
+      <tr><td class="concept">8</td><td class="concept">Scaling &amp; failure modes</td><td>What breaks first as load grows, what the system does when the model is unavailable or wrong (graceful degradation, a fallback rule-based system), and how you'd roll back a bad deployment.</td></tr>
+    </table>
+
+    <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Narrate the framework out loud.</strong> Literally saying "let me clarify requirements before I pick a model" signals structure even before you've said anything clever. Interviewers steer weak candidates back on track constantly; giving them nothing to steer is itself a strong signal.</div></div>
+
+    <div class="lesson-h2" id="cs1">2.2 — Case Study 1: Product Recommendation System <span class="badge" style="margin-left:8px">Moderate</span></div>
+    <div class="case-card">
+      <div class="case-head"><div class="case-num">1</div><div class="case-title">"Design a product recommendation system for an e-commerce site."</div><span class="case-diff diff-mod">Moderate</span></div>
+      <div class="case-body">
+        <p><strong>1) Requirements:</strong> Clarify scale (millions of users/items vs. thousands), whether recommendations are for a homepage (can be precomputed, looser latency) or "customers also bought" on a product page (needs to feel instant), and the actual goal — click-through, purchase, or long-term retention, which can pull the design in different directions.</p>
+        <p><strong>2) Data:</strong> Implicit feedback (views, clicks, purchases) is abundant but noisy; explicit feedback (ratings) is clean but sparse. Cold-start — new users and new items with no history — is the recurring hard problem here and should be named explicitly.</p>
+        <p><strong>3) Feature engineering:</strong> This is where <strong>Ch19's feature engineering</strong> concepts apply directly — user features (recency/frequency/monetary purchase patterns), item features (category, price band, popularity), and interaction features (has this user viewed this category before). <strong>Ch18's clustering</strong> concepts apply too: clustering users into behavioral segments is a legitimate simpler alternative to full collaborative filtering, and a good candidate mentions it as a fallback for the cold-start users a collaborative model can't yet serve.</p>
+        <p><strong>4) Model choice:</strong> Start with collaborative filtering (matrix factorization) as the core signal, blended with a simpler content-based/clustering fallback for cold-start users — naming BOTH and explaining when each applies is stronger than picking one and defending it as universally correct.</p>
+        <p><strong>5-6) Training &amp; serving:</strong> Retrain the collaborative model on a schedule (daily/weekly is typical — real-time retraining is rarely justified here); serve top-N candidates precomputed and cached per user, refreshed on that same schedule, rather than computing recommendations live on every page load.</p>
+        <p><strong>7-8) Monitoring &amp; scale:</strong> Track engagement on served recommendations (a proxy for quality, since "did this improve retention" takes too long to measure directly), and watch for popularity bias — the system recommending only already-popular items, which quietly starves new/niche items of exposure and grows worse over time if left unmonitored.</p>
+        <div class="tradeoff-box"><strong>The tradeoff the interviewer is listening for:</strong> personalization quality vs. cold-start coverage. A candidate who only describes matrix factorization and never mentions what happens for a brand-new user or item hasn't actually finished the design — that gap is exactly what the interviewer is probing for.</div>
+      </div>
+    </div>
+
+    <div class="lesson-h2" id="cs2">2.3 — Case Study 2: Real-Time Fraud / Anomaly Detection <span class="badge" style="margin-left:8px">Moderate-Hard</span></div>
+    <div class="case-card">
+      <div class="case-head"><div class="case-num">2</div><div class="case-title">"Design a real-time fraud detection system for card transactions."</div><span class="case-diff diff-modhard">Moderate-Hard</span></div>
+      <div class="case-body">
+        <p><strong>1) Requirements:</strong> This is the case study where the latency budget matters most — a fraud decision typically must return in well under 200ms because it blocks the transaction itself. Say that number, or ask for it, explicitly; it rules out slow model families before you even discuss them.</p>
+        <p><strong>2) Data:</strong> Severe class imbalance (fraud is a tiny fraction of transactions) and a critical, easy-to-miss wrinkle: <strong>confirmed fraud labels often arrive weeks after the transaction</strong> (from chargebacks or manual investigation), so the training data you have "today" is systematically missing labels for the most recent period — the model is always training on a stale, partially-labeled window.</p>
+        <p><strong>3) Feature engineering:</strong> Real-time aggregate features (transaction velocity in the last 5/60 minutes, deviation from this user's typical spending pattern — a direct cousin of the mean-shift z-score idea from earlier chapters), computed from a low-latency feature store, not recomputed from raw history on every request.</p>
+        <p><strong>4) Model choice:</strong> A fast, well-calibrated model (gradient-boosted trees are the industry default here) beats a fancier deep model if the fancier one can't hit the latency budget — this is the single most common "gotcha" in this case study.</p>
+        <p><strong>5-6) Training &amp; serving:</strong> Train on a rolling window that accounts for the label-delay problem explicitly (e.g., only treat a transaction as "confirmed legitimate" once enough time has passed that a chargeback would have appeared); serve via a low-latency real-time endpoint with the feature store as a hard dependency.</p>
+        <p><strong>7-8) Monitoring &amp; scale:</strong> Because true labels are delayed, you need a proxy signal for "is the model still working" that doesn't wait weeks — e.g. tracking the model's flagged-rate for drift, or a fast-reviewing human team sampling a subset of decisions daily. At scale, the system also needs a fallback: what happens if the model service times out — approve, decline, or route to a simpler rule-based check? That answer needs to be a deliberate business decision, not an afterthought.</p>
+        <div class="tradeoff-box"><strong>The tradeoff the interviewer is listening for:</strong> precision (annoying a legitimate customer with a false decline) vs. recall (letting fraud through) under a hard latency ceiling, PLUS the feedback-loop delay problem. A candidate who proposes a great model but never mentions that ground-truth labels arrive late hasn't fully understood why this problem is hard.</div>
+      </div>
+    </div>
+
+    <div class="lesson-h2" id="cs3">2.4 — Case Study 3: RAG-Based Customer Support Chatbot at Scale <span class="badge" style="margin-left:8px">Hard</span></div>
+    <div class="case-card">
+      <div class="case-head"><div class="case-num">3</div><div class="case-title">"Design a RAG-based customer support chatbot that needs to scale to millions of documents and users."</div><span class="case-diff diff-hard">Hard</span></div>
+      <div class="case-body">
+        <p><strong>1) Requirements:</strong> Clarify the acceptable hallucination rate (near-zero for anything touching billing/legal, looser for general FAQ), expected concurrent users, and knowledge-base size and update frequency.</p>
+        <p><strong>2-3) Data &amp; features:</strong> This is exactly the <strong>Ch30/Ch35 pattern</strong> — retrieve, construct a prompt from the retrieved context, generate, then a grounding/threshold check — scaled up. In this course, retrieval is TF-IDF + cosine similarity over a small in-memory corpus, and the gate is a similarity threshold (<code>SIM_THRESHOLD</code>) below which the bot honestly declines instead of guessing. At real scale, TF-IDF over an in-memory list becomes a <strong>vector database</strong> (Pinecone, Weaviate, pgvector, or a managed offering from the cloud platforms in Section 3) doing approximate-nearest-neighbor search over dense embeddings, often combined with <strong>hybrid search</strong> (keyword/BM25 + embedding similarity) because pure embedding search alone can miss exact-match terms like order numbers or product SKUs that a keyword search would catch instantly.</p>
+        <p><strong>4) Model choice:</strong> The retrieval model (embeddings) and the generation model (the LLM) are chosen and scaled independently — a common interview trap is talking only about the LLM and forgetting retrieval quality is usually the bigger lever on overall answer quality.</p>
+        <p><strong>5-6) Training &amp; serving:</strong> The knowledge base itself needs an ingestion pipeline (chunking new/updated documents, re-embedding, upserting into the vector store) that's decoupled from serving; serving adds a <strong>cache</strong> for frequently-asked queries (a huge cost/latency win, since a large fraction of support questions repeat) in front of the full retrieve-generate path.</p>
+        <p><strong>7-8) Monitoring &amp; scale:</strong> The Ch35 pattern's similarity-threshold check IS a real production monitoring signal, just simplified — at scale you'd track a full <strong>hallucination rate</strong> (sampled human review or an LLM-as-judge grading whether the answer is actually grounded in the retrieved context), retrieval hit-rate, and per-query latency broken out by the retrieval step vs. the generation step, since they scale very differently under load.</p>
+        <div class="tradeoff-box"><strong>The tradeoff the interviewer is listening for:</strong> that you understand WHY vector search replaces TF-IDF at scale (approximate nearest-neighbor search over embeddings captures semantic similarity, not just shared words, and scales to millions of documents where brute-force cosine similarity over every document does not) — and that grounding/threshold checks aren't a nice-to-have, they're the difference between a chatbot and a liability.</div>
+      </div>
+    </div>
+
+    <div class="lesson-h2" id="cs4">2.5 — Case Study 4: Content Moderation System <span class="badge" style="margin-left:8px">Hard</span></div>
+    <div class="case-card">
+      <div class="case-head"><div class="case-num">4</div><div class="case-title">"Design a content moderation system for user-generated posts."</div><span class="case-diff diff-hard">Hard</span></div>
+      <div class="case-body">
+        <p><strong>1) Requirements:</strong> The critical clarifying question here is the ASYMMETRIC cost of errors: a missed violation (false negative) can mean real harm reaching users and regulatory/PR risk; a wrongly-flagged legitimate post (false positive) frustrates users and erodes trust in the platform. These costs are almost never equal, and which one dominates depends entirely on the content category (violence vs. mild profanity have very different false-negative costs).</p>
+        <p><strong>2) Data:</strong> Labels come from a mix of human moderators (slow, expensive, high quality) and user reports (fast, cheap, noisy) — and the true label distribution is heavily imbalanced toward "not a violation," with violation categories themselves imbalanced against each other (hate speech vs. spam vs. graphic content need different amounts of training data and different urgency).</p>
+        <p><strong>3-4) Features &amp; model choice:</strong> A multi-stage system beats one monolithic classifier: a cheap, high-recall first-pass filter (catch anything even remotely suspicious, tolerate false positives at this stage) followed by a more expensive, higher-precision second-pass model or human review on what the first pass flagged. This mirrors a general pattern — spend the expensive resource (human judgment, a bigger model) only on the subset the cheap filter already narrowed down.</p>
+        <p><strong>5-6) Training &amp; serving:</strong> Different violation categories often warrant different models/thresholds rather than one shared threshold, since the false-negative cost differs so much by category; serving needs to be fast enough to act before a harmful post gets meaningful reach, but exact real-time-ness matters less than getting the escalation path right.</p>
+        <p><strong>7-8) Monitoring &amp; scale — human-in-the-loop:</strong> The core design decision is where humans sit in the loop: auto-remove only for very-high-confidence violations, auto-approve only for very-high-confidence clean content, and route the uncertain middle band to human reviewers. As volume scales, that middle band is the bottleneck — the system's real engineering challenge becomes shrinking it (better model calibration, active learning on reviewer decisions to keep improving the model) rather than just hiring more reviewers indefinitely.</p>
+        <div class="tradeoff-box"><strong>The tradeoff the interviewer is listening for:</strong> that you treat precision and recall as having fundamentally different DOLLAR costs depending on content category, and that you propose a human-in-the-loop escalation band rather than a single fully-automated threshold — a candidate who proposes "just pick a threshold that maximizes F1" hasn't grappled with the fact that the two error types aren't equally bad here.</div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════ SECTION 3: CLOUD CHEAT-SHEET ══════════════════════════════════════════════ -->
+  <section class="big-section" id="sec-cloud">
+    <div class="section-tag">Section 3 of 4</div>
+    <h2 class="section-h1">☁️ Cloud &amp; Production Tooling Translation Cheat-Sheet</h2>
+    <p class="section-lead">This course deliberately taught the underlying CONCEPTS (experiment tracking, a model registry, drift detection, a serve() function) rather than locking you into one vendor's product. That was the right call for learning — but a job description that says "must have SageMaker experience" shouldn't make you feel lost. This table is a translation layer, not a tutorial: read it once so a platform name in an interview or JD doesn't derail you.</p>
+
+    <div class="lesson-h2" id="cloud-table">3.1 — Concept → Platform Name Mapping</div>
+    <table class="lesson-table prose">
+      <tr><th style="width:170px">Concept (this course)</th><th>AWS</th><th>GCP</th><th>Azure / Databricks</th></tr>
+      <tr>
+        <td class="concept">Experiment tracking<br/><span style="color:var(--t3);font-weight:400">(Ch32's MLflow concept)</span></td>
+        <td><strong>SageMaker Experiments</strong> — logs runs, params, and metrics inside the SageMaker ecosystem.</td>
+        <td><strong>Vertex AI Experiments</strong> — same idea, integrated into Vertex's managed ML platform.</td>
+        <td><strong>Databricks natively hosts MLflow</strong> — this is worth knowing precisely: Databricks didn't build a competing tool, they're the primary commercial steward of the actual open-source MLflow project this course's Ch32 lesson refers to directly.</td>
+      </tr>
+      <tr>
+        <td class="concept">Model registry</td>
+        <td><strong>SageMaker Model Registry</strong> — versions models and tracks approval status (staging/production) for deployment.</td>
+        <td><strong>Vertex AI Model Registry</strong> — same role inside Vertex.</td>
+        <td><strong>Unity Catalog Model Registry</strong> — Databricks' current registry lives inside Unity Catalog (their unified data/AI governance layer), having absorbed what used to be a separate "MLflow Model Registry" product.</td>
+      </tr>
+      <tr>
+        <td class="concept">Serving / deployment<br/><span style="color:var(--t3);font-weight:400">(Ch31's <code>serve()</code>)</span></td>
+        <td><strong>SageMaker Endpoints</strong> — real-time, serverless, and batch-transform inference options.</td>
+        <td><strong>Vertex AI Endpoints</strong> — same real-time/batch split.</td>
+        <td><strong>Databricks Model Serving</strong> — managed real-time serving directly off models registered in Unity Catalog.</td>
+      </tr>
+      <tr>
+        <td class="concept">Drift detection<br/><span style="color:var(--t3);font-weight:400">(Ch32's mean-shift detector)</span></td>
+        <td><strong>SageMaker Model Monitor</strong> — automated data-quality and drift checks on live endpoint traffic.</td>
+        <td><strong>Vertex AI Model Monitoring</strong> — same category of feature.</td>
+        <td><strong>Databricks Lakehouse Monitoring</strong> — drift and data-quality monitoring built on their lakehouse tables.</td>
+      </tr>
+      <tr>
+        <td class="concept">Pipeline orchestration</td>
+        <td><strong>SageMaker Pipelines</strong> — defines and schedules multi-step ML workflows (train → evaluate → register → deploy).</td>
+        <td><strong>Vertex AI Pipelines</strong> — built on top of the open-source Kubeflow Pipelines SDK.</td>
+        <td><strong>Databricks Workflows</strong> — their job/pipeline orchestrator, usable for ML pipelines and general data jobs alike.</td>
+      </tr>
+      <tr>
+        <td class="concept">Feature store</td>
+        <td><strong>SageMaker Feature Store</strong> — centralized, versioned feature storage for training and low-latency serving.</td>
+        <td><strong>Vertex AI Feature Store</strong> — same role in GCP.</td>
+        <td><strong>Databricks Feature Store</strong> — now positioned as "Feature Engineering" inside Unity Catalog; exact branding here has shifted more than once, so don't over-index on the precise product name — the concept (a governed, reusable table of features shared between training and serving) is what matters.</td>
+      </tr>
+    </table>
+
+    <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Read this table as a map, not a syllabus.</strong> Exact product names and boundaries shift as vendors reorganize their offerings (which is exactly why this course taught the underlying concept first). If an interviewer names a specific product you don't recognize, it is completely reasonable to say "I know that role conceptually as [X from this table] — is that the same thing this product does?" That question itself demonstrates the translation skill this section is for.</div></div>
+
+    <div class="lesson-h2" id="k8s">3.2 — One More Piece of Vocabulary: Kubernetes on Top of Docker</div>
+    <p class="lesson-p">Ch31 taught Docker conceptually — a Dockerfile packages your entire runtime environment into one reproducible image — but stopped there, and interviewers may still ask "have you used Kubernetes?" <strong>Docker packages and runs ONE container; Kubernetes (often shortened to "K8s") orchestrates MANY containers across many machines.</strong> A <strong>pod</strong> is the smallest deployable unit in Kubernetes (usually one container, sometimes a couple of tightly-coupled ones); a <strong>deployment</strong> is a declarative spec saying "keep N replicas of this pod running at all times"; a <strong>service</strong> is a stable network address that routes traffic to whichever pods are currently healthy, even as individual pods are replaced. What Kubernetes adds on top of plain Docker is exactly what "orchestration" means in practice: automatically restarting a crashed container (self-healing), automatically adding more replicas under load and removing them when load drops (autoscaling), and rolling out a new image version gradually while keeping the old version available until the new one is confirmed healthy (rolling deployments) — none of which plain <code>docker run</code> does on its own.</p>
+
+  </section>
+
+  <!-- ══════════════════════════════════════════════ SECTION 4: RAPID-FIRE ══════════════════════════════════════════════ -->
+  <section class="big-section" id="sec-rapidfire">
+    <div class="section-tag">Section 4 of 4</div>
+    <h2 class="section-h1">⚡ 15 Rapid-Fire "Gotcha" Questions</h2>
+    <p class="section-lead">These are short, punchy, and pick at the exact spots where memorizers freeze and people who actually understand the concept answer in one breath. They're deliberately DIFFERENT from the ~120 Interview Prep questions already spread across Ch 7, 10, 14, 20, 32, 33, 34, and 35 — no repeats, just the fast-twitch questions that separate "I read about this" from "I get this."</p>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Explain bias vs. variance in one sentence a 5-year-old could understand.<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner"><strong>Bias is a student who barely studied and gets every practice question wrong the same way; variance is a student who memorized the practice questions perfectly but panics on anything slightly different.</strong> Both fail the real test — one because it never learned the pattern, the other because it only learned the examples instead of the pattern. This isn't testing whether you know the definition (that's covered elsewhere) — it's testing whether you can compress it for a non-technical audience without losing the actual meaning.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why would you choose F1 over plain accuracy?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Because accuracy treats a model that predicts the majority class every time as good, whenever classes are imbalanced. F1 is the harmonic mean of precision and recall specifically because the harmonic mean punishes a big gap between the two — a model with precision 1.0 and recall 0.01 gets an accuracy that can look fine but an F1 near zero, correctly reflecting that it's nearly useless. If someone answers "F1 balances precision and recall" without being able to say WHY the harmonic mean (not the plain average) is the right way to balance them, they've memorized the term, not the reasoning.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What happens if you don't scale features before KNN vs. before a decision tree?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">KNN breaks in a specific, predictable way: it measures raw Euclidean distance, so a feature ranging in the thousands (e.g. income) will silently dominate a feature ranging 0-1 (e.g. a normalized score), regardless of which one is actually more predictive. A decision tree is completely unaffected — it splits each feature independently at a threshold ("is income > 50000?"), so it never compares magnitudes ACROSS features and doesn't care that they're on different scales. Knowing which algorithms need scaling and which don't (and WHY) is a much sharper signal than reciting "always scale your features."</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why is a p-value NOT the probability that the null hypothesis is true?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">A p-value is the probability of seeing data AT LEAST this extreme <em>if the null hypothesis were true</em> — it's a statement about the data, conditioned on the null being true, not a statement about the probability the null itself is true. Those are different conditional probabilities (P(data | null) vs. P(null | data)), and confusing them is one of the most common statistics errors even among people who use p-values daily. A candidate who can state this distinction precisely — not just "it's not that simple" — has a real grip on the underlying statistics, not just the workflow of "p < 0.05 means significant."</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why is tuning your hyperparameters against the test set a silent form of cheating?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">The moment you look at test-set performance and use it to decide anything — pick a hyperparameter, choose between two models, decide to keep iterating — the test set has stopped measuring "how will this do on truly unseen data" and started measuring "how well did I fit to this specific set of examples," even though you never explicitly trained on them. This is why a separate validation set exists: hyperparameter decisions get made against validation, and the test set is touched exactly once, at the very end, to report a number you can actually trust.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">A fraud model gets 99% accuracy on a dataset that's 99% legitimate transactions. Should you be impressed?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">No — a model that predicts "not fraud" on every single transaction, without looking at the data at all, would also score 99% accuracy here. This is the "null accuracy" trap: accuracy is only meaningful relative to the baseline rate of the majority class, and on an imbalanced dataset that baseline can be extremely high while the model has learned nothing useful whatsoever. Always ask "accuracy compared to what baseline?" before treating a headline accuracy number as evidence of anything.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What does it mean for a model to be "well-calibrated," and how is that different from being accurate?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Accuracy asks "how often is the predicted CLASS correct." Calibration asks a different question: "when the model says 80% probability, does that outcome actually happen about 80% of the time?" A model can classify correctly most of the time while being badly calibrated (e.g. it's overconfident, saying 99% when it should say 70%) — which matters enormously anywhere the actual probability number is used downstream (risk scoring, triage ordering, any system that acts on the number rather than just the label).</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Two models have identical accuracy. Why could they have wildly different business value?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Because accuracy treats every error as equally costly, and in almost no real business are they. Model A might make its errors as false positives (cheap to deal with) while Model B makes the same NUMBER of errors as false negatives (catastrophic to miss) — same accuracy, very different dollar impact. This is why picking the right metric always requires asking what an error actually costs in the specific domain, not just which model scores higher on a generic number.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What is data leakage, beyond just "scaling before you split"? Give an example your normal train/test split wouldn't catch.<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Data leakage is any situation where information that wouldn't be available at real prediction time sneaks into training. Scaling-before-split is one form, but there are others a standard random split won't catch: <strong>temporal leakage</strong> — randomly splitting time-series data so the model trains on some future rows and tests on past ones, when in production it will only ever have the past; and <strong>target leakage</strong> — a feature that's a disguised proxy for the label itself (e.g. "date account was closed" as a feature when predicting churn — that column basically encodes the answer). Both make offline metrics look great and production performance collapse.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">A spam filter's false positive lands in a customer's inbox; a cancer-screening test's false negative sends a sick patient home reassured. Same "error rate" — why do you treat these completely differently?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">This is asking you to connect Type I error (false positive — flagging something that isn't actually true/present) and Type II error (false negative — missing something that IS true/present) to real consequences. For the spam filter, a false NEGATIVE (spam reaching the inbox) is mildly annoying, so tolerating some is fine — you'd rather not aggressively risk false positives (a real email getting binned). For cancer screening, a false negative can be fatal, so you deliberately accept many more false positives (unnecessary follow-up tests) to drive false negatives as close to zero as possible. The metric name doesn't tell you which error to minimize — the domain's cost structure does.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What's the practical difference between a parametric and a non-parametric model, and why does it matter for how much data you need?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">A parametric model (e.g. logistic regression) assumes a fixed functional form with a fixed, finite number of parameters regardless of how much data you feed it — it can work reasonably with relatively little data, but is limited by that assumed shape. A non-parametric model (e.g. k-nearest neighbors, or a decision tree that can keep growing) doesn't assume a fixed form — its effective complexity can grow with the data — which lets it fit more complex patterns, but usually needs meaningfully more data to do so reliably before it starts overfitting to noise instead of signal.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why would you ever ship a simpler model with a WORSE offline metric than a more complex alternative?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Because the offline metric isn't the only cost that matters: a simpler model is usually faster to serve (real latency-budget savings), easier to debug when it misbehaves in production, easier to explain to a regulator or stakeholder who needs a reason for a decision, and cheaper to retrain and maintain over years. A small accuracy gain from a much more complex model is a bad trade if it triples your serving cost or makes "why did the model say this" unanswerable — a genuinely senior answer weighs total cost of ownership, not just the leaderboard number.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What does it mean for a model to be "overfitting to the validation set," and how does that happen even if you never touch the test set?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">If you run enough rounds of hyperparameter search or model comparison against the SAME validation set, you'll eventually find a configuration that scores well on that validation set partly by chance, not purely by genuine generalization — information about that specific set has "leaked" into your choices through repeated reuse, even though you never trained on it directly. This is why serious pipelines rotate or refresh the validation set periodically, or use nested cross-validation, when the number of comparisons is large.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why isn't "just get more data" always the fix for a model performing poorly?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">More data only helps the specific failure mode it addresses (high variance / overfitting) — it does nothing for high bias (the model's assumed form genuinely can't represent the pattern, so a bigger dataset just gives it more examples to be equally wrong about), and it does nothing to fix noisy or incorrectly-labeled data, or the wrong features being collected in the first place. Diagnosing WHICH problem you actually have — via a learning curve, an error analysis, or a bias/variance read on train vs. validation performance — has to come before deciding that data volume is the lever to pull.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">Why does changing your classification threshold matter more than just picking a different metric to report?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Precision, recall, and F1 are all computed AFTER a threshold has already turned a probability into a hard yes/no — reporting a different metric doesn't change the model's actual behavior in production, but moving the threshold does. If false negatives are catastrophic (as in the cancer-screening example above), the fix isn't "report recall instead of accuracy," it's actually LOWERING the decision threshold so the model flags more borderline cases as positive, accepting more false positives on purpose. Candidates who only ever talk about which metric to report, and never about moving the threshold, are describing measurement, not the actual lever that changes outcomes.</div></div>
+    </div>
+
+  </section>
+
+  <div class="footer-card">
+    <h3>That's the whole gap, closed.</h3>
+    <p>Behavioral stories from real projects you built, a repeatable system design framework with four worked case studies, and the vocabulary to survive a JD that names a specific cloud platform. Nothing here replaces doing the work in the 35 chapters — it's what turns "I did the course" into "I can defend everything I did, in front of anyone."</p>
+    <a class="footer-btn" href="../index.html">🏠 Back to Course Home</a>
+  </div>
+
+</div>
+
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+
+<script>
+// Scrollspy: highlight the active in-page nav link as the user scrolls, and
+// show/hide the "back to top" button. No progress tracking, no localStorage —
+// this page is pure reference material.
+(function(){
+  var sections = ['sec-behavioral','sec-systemdesign','sec-cloud','sec-rapidfire'].map(function(id){
+    return document.getElementById(id);
+  }).filter(Boolean);
+  var links = Array.prototype.slice.call(document.querySelectorAll('.tn-link'));
+  var backTop = document.getElementById('back-top');
+
+  function setActive(id){
+    links.forEach(function(l){
+      l.classList.toggle('active', l.getAttribute('data-sec') === id);
+    });
+  }
+
+  function onScroll(){
+    var pos = window.scrollY + 90;
+    var current = sections[0];
+    sections.forEach(function(sec){
+      if(sec.offsetTop <= pos) current = sec;
+    });
+    if(current) setActive(current.id);
+    backTop.classList.toggle('show', window.scrollY > 400);
+  }
+
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>
