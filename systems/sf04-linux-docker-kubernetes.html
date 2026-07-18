@@ -1,0 +1,1297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus Systems 4: Linux, Docker &amp; Kubernetes</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the last chapter of the
+  4-chapter "Systems Fundamentals" track — NOT part of the 35-chapter core curriculum, same tier
+  as bonus/interview-mastery.html and the dsa/ module. Log classification, container-state
+  diagnosis, and pod-state-to-next-command mapping are all real, runnable, pure Python. Real
+  Linux/Docker/Kubernetes commands cannot execute inside this browser sandbox and are covered as
+  reference-only (no Run button) real command syntax instead. No XP, no localStorage — exercises/
+  capstone/quiz still run and grade live, but nothing persists across page loads. This is the
+  FINAL chapter of the Systems Fundamentals track — ends with a completion card, not a normal
+  next-chapter-card.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+.check-item.item-pass{color:var(--green)}
+.check-item.item-fail{color:var(--red)}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.course-complete-card{background:linear-gradient(135deg,rgba(124,92,252,.18),rgba(0,217,166,.1));border:1px solid rgba(124,92,252,.35);border-radius:14px;padding:32px 36px;margin-top:32px;text-align:center}
+.ccc-icon{font-size:48px;margin-bottom:12px}
+.course-complete-card h3{font-size:24px;font-weight:800;margin-bottom:10px}
+.course-complete-card h3 span{color:var(--violet)}
+.course-complete-card p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px;margin:0 auto 18px}
+.ccc-stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.ccc-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12.5px;color:var(--t2)}
+.ccc-stat strong{display:block;font-size:18px;color:var(--violet);font-weight:800}
+.ccc-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 26px;font-size:14px;font-weight:700;text-decoration:none;transition:background .12s}
+.ccc-btn:hover{background:var(--violet-light)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">SF 4: Linux, Docker &amp; Kubernetes</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Systems Fundamentals · 4 of 4</div>
+  </a>
+  <a class="sb-back" href="sf03-load-balancers-firewalls.html">← SF 3: Load Balancers &amp; Firewalls</a>
+  <div class="sb-section">SF 4 · Linux, Docker &amp; Kubernetes</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">This Is It</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='../index.html'"><span class="sb-icon">🏠</span><span class="sb-step">Back to Course Home</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus Systems 4 of 4</div>
+    <div class="tb-title">Linux, Docker &amp; Kubernetes Troubleshooting</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>Systems Fundamentals 4:<br/><span>Linux, Docker &amp; Kubernetes Troubleshooting</span></h1>
+    <p>This is the chapter where "I understand ML" turns into "I can be trusted to operate a real system." When something breaks at 2am, nobody cares how good your model is — they care whether you can read an error message, form a hypothesis, and check it fast. You'll learn the real diagnostic commands (reference-only — they need a real OS/cluster, not a browser), and you'll build and run genuine Python that classifies real-shaped error text, diagnoses container states, and maps Kubernetes pod states to the correct next command.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~65 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <!-- 4.1 -->
+  <div class="lesson-h2">4.1 — Linux Error Literacy</div>
+  <p class="lesson-p">Every process that exits leaves an <strong>exit code</strong> behind — <code>0</code> means success, anything else means failure, and a handful of non-zero codes have conventional meanings worth memorizing: <code>1</code> is a generic error, <code>126</code> means the command was found but isn't executable (a permissions problem), <code>127</code> means the command wasn't found at all (a typo or missing install), <code>137</code> means the process was killed by <code>SIGKILL</code> — signal 9 — which is what the kernel's OOM killer uses when a process exhausts available memory, and <code>139</code> means a segmentation fault (<code>SIGSEGV</code>). You can check the last command's exit code yourself with <code>echo $?</code> immediately after it runs.</p>
+
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>The single most useful distinction in all of networking debugging:</strong> <code>Connection refused</code> means your request DID reach the target machine, but nothing was listening on that port — the machine is up, the service isn't. A <code>Connection timed out</code> means your request never got a response AT ALL — usually a firewall silently dropping the packet, or the machine being unreachable. "Refused" tells you the service crashed or never started; "timed out" tells you to look at the network path, not the service.</div></div>
+
+  <p class="lesson-p">A few more real error messages worth recognizing instantly: <strong>"Permission denied"</strong> means the process's user doesn't have the file-mode/ownership rights it needs — fixed with <code>chmod</code> (change permission bits) or <code>chown</code> (change owner), never by just running everything as root, which trades a debugging problem for a security one. <strong>"No such file or directory"</strong> is almost always a path bug — very often code that assumed it would run from a specific working directory and didn't, so a relative path resolved somewhere unexpected. <strong>"Address already in use"</strong> means something else is already bound to that port on this machine — you either kill that process or pick a different port.</p>
+
+  <div class="lesson-table">
+    <table style="width:100%">
+      <tr><th>Command</th><th>What it's for</th></tr>
+      <tr><td class="highlight">journalctl -u &lt;service&gt; -f</td><td style="font-family:var(--sans);color:var(--t2)">Follow a systemd service's live logs — the first place to look for a service that's misbehaving</td></tr>
+      <tr><td class="highlight">dmesg | tail</td><td style="font-family:var(--sans);color:var(--t2)">Recent kernel messages — this is where OOM-killer activity shows up</td></tr>
+      <tr><td class="highlight">ps aux</td><td style="font-family:var(--sans);color:var(--t2)">List every running process — is the thing you expect to be running actually running?</td></tr>
+      <tr><td class="highlight">top / htop</td><td style="font-family:var(--sans);color:var(--t2)">Live CPU/memory usage per process — spot a runaway process fast</td></tr>
+      <tr><td class="highlight">ss -tulpn (or netstat -tulpn)</td><td style="font-family:var(--sans);color:var(--t2)">What's actually listening on which port — the direct check for "is anything even bound to 8080?"</td></tr>
+      <tr><td class="highlight">echo $?</td><td style="font-family:var(--sans);color:var(--t2)">Prints the exit code of the last command you ran</td></tr>
+    </table>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real, runnable piece: classifying error lines from a log block</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">log_lines = [
+    <span class="st">"app[3021]: ERROR PermissionError: Permission denied: '/var/log/app/output.log'"</span>,
+    <span class="st">"kernel: Out of memory: Killed process 4521 (worker) total-vm:2048000kB"</span>,
+    <span class="st">"app[3021]: ERROR ConnectionRefusedError: Connection refused"</span>,
+    <span class="st">"app[3021]: INFO Starting worker pool"</span>,
+    <span class="st">"nginx: ERROR bind() to 0.0.0.0:8080 failed (98: Address already in use)"</span>,
+    <span class="st">"app[3021]: ERROR FileNotFoundError: No such file or directory: 'config.yaml'"</span>,
+]
+
+<span class="kw">def</span> <span class="fn">classify_line</span>(line):
+    <span class="kw">if</span> <span class="st">'Permission denied'</span> <span class="kw">in</span> line <span class="kw">or</span> <span class="st">'PermissionError'</span> <span class="kw">in</span> line:
+        <span class="kw">return</span> <span class="st">'permission'</span>
+    <span class="kw">if</span> <span class="st">'Out of memory'</span> <span class="kw">in</span> line <span class="kw">or</span> <span class="st">'Killed process'</span> <span class="kw">in</span> line:
+        <span class="kw">return</span> <span class="st">'oom'</span>
+    <span class="kw">if</span> <span class="st">'Connection refused'</span> <span class="kw">in</span> line:
+        <span class="kw">return</span> <span class="st">'connection_refused'</span>
+    <span class="kw">if</span> <span class="st">'Address already in use'</span> <span class="kw">in</span> line:
+        <span class="kw">return</span> <span class="st">'port_in_use'</span>
+    <span class="kw">if</span> <span class="st">'No such file or directory'</span> <span class="kw">in</span> line:
+        <span class="kw">return</span> <span class="st">'missing_file'</span>
+    <span class="kw">return</span> <span class="kw">None</span>
+
+classified = {}
+<span class="kw">for</span> line <span class="kw">in</span> log_lines:
+    cat = classify_line(line)
+    <span class="kw">if</span> cat:
+        classified.setdefault(cat, []).append(line)
+        <span class="cm"># (append the LINE, not just count -- keeps the evidence, not just a tally)</span>
+
+<span class="kw">for</span> cat, lines <span class="kw">in</span> classified.items():
+    <span class="bi">print</span>(<span class="st">f'<span class="bi">{cat}</span>: <span class="bi">{len(lines)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Total classified: <span class="bi">{sum(len(v) for v in classified.values())}</span> of <span class="bi">{len(log_lines)}</span> lines'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>This is a simplified stand-in for what real observability tooling does at scale.</strong> A production system doesn't have a human reading every log line — it has pattern-matching rules (much more sophisticated than this, but the same idea) that classify and count errors automatically, so an on-call engineer sees "OOM errors spiked 5x in the last 10 minutes" instead of scrolling through raw text.</div></div>
+
+  <!-- 4.2 -->
+  <div class="lesson-h2">4.2 — Docker Error Literacy</div>
+  <p class="lesson-p">A <strong>Dockerfile</strong> builds an image as a stack of layers, one per instruction — each layer is cached, which is why reordering a Dockerfile (e.g. copying dependency files and installing them BEFORE copying your actual source code) can make rebuilds dramatically faster. But the errors that actually bite in practice happen at <em>run</em> time, not build time:</p>
+
+  <div class="lesson-table">
+    <table style="width:100%">
+      <tr><th>Symptom</th><th>Real cause</th></tr>
+      <tr><td class="highlight">"port is already allocated"</td><td style="font-family:var(--sans);color:var(--t2)">Something else on the HOST already has that port bound — pick a different host port, or stop the other process</td></tr>
+      <tr><td class="highlight">Container exits immediately after `docker run`</td><td style="font-family:var(--sans);color:var(--t2)">Almost always: the app crashed on startup (check <code>docker logs</code> first), OR the main process wasn't kept in the foreground — a container stays alive only as long as its PID 1 process keeps running</td></tr>
+      <tr><td class="highlight">"OOMKilled": true in `docker inspect`</td><td style="font-family:var(--sans);color:var(--t2)">The container hit its configured memory limit and the kernel killed it — same underlying mechanism as Linux's OOM killer, just scoped to the container's cgroup</td></tr>
+      <tr><td class="highlight">Volume mount permission errors</td><td style="font-family:var(--sans);color:var(--t2)">The UID running inside the container doesn't match the UID that owns the files on the host-mounted volume</td></tr>
+      <tr><td class="highlight">"image not found" / pull errors</td><td style="font-family:var(--sans);color:var(--t2)">Typo in the image name, wrong tag, or missing registry authentication</td></tr>
+    </table>
+  </div>
+
+  <p class="lesson-p">Reference commands (real Docker CLI, no Run button — this needs a real Docker daemon):</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Terminal / real Docker CLI — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="cm"># See ALL containers, including stopped/crashed ones (docker ps alone hides them)</span>
+docker ps -a
+
+<span class="cm"># The single most useful command when something's wrong -- read what the app itself said</span>
+docker logs &lt;container&gt;
+
+<span class="cm"># Full state dump -- exit code, OOMKilled flag, mounts, env vars, everything</span>
+docker inspect &lt;container&gt;
+
+<span class="cm"># Get an interactive shell INSIDE a running container to poke around live</span>
+docker exec -it &lt;container&gt; sh</div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real, runnable piece: diagnosing containers from their inspect state</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">diagnose_container</span>(inspect):
+    state = inspect[<span class="st">'State'</span>]
+    <span class="kw">if</span> state.get(<span class="st">'OOMKilled'</span>):
+        <span class="kw">return</span> <span class="st">'OOMKilled - hit its memory limit'</span>
+    <span class="kw">if</span> state[<span class="st">'ExitCode'</span>] != <span class="nm">0</span> <span class="kw">and</span> <span class="kw">not</span> state[<span class="st">'Running'</span>]:
+        <span class="kw">return</span> <span class="st">f"Exited with code <span class="bi">{state['ExitCode']}</span> - check docker logs"</span>
+    <span class="kw">if</span> state[<span class="st">'Running'</span>] <span class="kw">and</span> state.get(<span class="st">'Health'</span>, {}).get(<span class="st">'Status'</span>) != <span class="st">'healthy'</span>:
+        <span class="kw">return</span> <span class="st">'Running but unhealthy - check healthcheck + docker logs'</span>
+    <span class="kw">return</span> <span class="st">'Healthy'</span>
+
+containers = {
+    <span class="st">'web-1'</span>: {<span class="st">'State'</span>: {<span class="st">'Running'</span>: <span class="kw">False</span>, <span class="st">'ExitCode'</span>: <span class="nm">1</span>, <span class="st">'OOMKilled'</span>: <span class="kw">False</span>}},
+    <span class="st">'worker-2'</span>: {<span class="st">'State'</span>: {<span class="st">'Running'</span>: <span class="kw">False</span>, <span class="st">'ExitCode'</span>: <span class="nm">137</span>, <span class="st">'OOMKilled'</span>: <span class="kw">True</span>}},
+    <span class="st">'cache-3'</span>: {<span class="st">'State'</span>: {<span class="st">'Running'</span>: <span class="kw">True</span>, <span class="st">'ExitCode'</span>: <span class="nm">0</span>, <span class="st">'OOMKilled'</span>: <span class="kw">False</span>, <span class="st">'Health'</span>: {<span class="st">'Status'</span>: <span class="st">'healthy'</span>}}},
+}
+<span class="kw">for</span> name, info <span class="kw">in</span> containers.items():
+    <span class="bi">print</span>(<span class="st">f'<span class="bi">{name}</span>: <span class="bi">{diagnose_container(info)}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Notice the check ORDER in diagnose_container():</strong> <code>OOMKilled</code> is checked FIRST, before the generic non-zero-exit-code check. An OOM-killed container also has a non-zero exit code (typically 137), so if the generic check ran first it would report a misleadingly vague "exited with code 137" instead of the actually-useful "OOMKilled." Same discipline as SF 3's firewall rule ordering — specific, more-informative checks belong before general fallback ones.</div></div>
+
+  <!-- 4.3 -->
+  <div class="lesson-h2">4.3 — Kubernetes Pod Lifecycle &amp; the Real Diagnostic Workflow</div>
+  <p class="lesson-p">A pod moves through real, named phases: <strong>Pending</strong> (not yet scheduled onto a node — often a resource-request issue, or no node matches its constraints), <strong>ContainerCreating</strong> (node assigned, image being pulled / volumes being mounted), <strong>Running</strong>, <strong>CrashLoopBackOff</strong> (the container keeps starting and dying, and Kubernetes is backing off how fast it retries — a rapidly-crashing app, not a scheduling problem), <strong>ImagePullBackOff</strong> (Kubernetes cannot pull the image at all — almost always a typo in the image name/tag, or missing registry credentials), and <strong>Completed</strong>/<strong>Error</strong> for one-off Jobs.</p>
+
+  <div class="info-box danger"><div class="ib-icon">🎯</div><div class="ib-body"><strong>Liveness vs. readiness probes — one of the single most common real interview questions in this space.</strong> A failing <strong>liveness</strong> probe tells Kubernetes "this container is stuck/dead" — Kubernetes RESTARTS the container. A failing <strong>readiness</strong> probe tells Kubernetes "this container is alive but not ready to receive traffic yet" — Kubernetes stops SENDING it traffic, but does NOT restart it. Get this backwards and you'll either restart a container that just needs more warm-up time (readiness's actual job), or keep sending live traffic to something that's actually broken (liveness's actual job).</div></div>
+
+  <p class="lesson-p">The real diagnostic workflow engineers actually use, in order:</p>
+  <ul class="step-list">
+    <li data-n="1"><strong><code>kubectl get pods</code></strong> — spot the phase. Is it Pending, CrashLoopBackOff, ImagePullBackOff, or something else?</li>
+    <li data-n="2"><strong><code>kubectl describe pod &lt;name&gt;</code></strong> — read the <strong>Events</strong> section at the very bottom. This is where the real reason usually lives (a scheduling failure, a failed probe, an image pull error) — skipping straight to logs and missing this section is a very common early-career mistake.</li>
+    <li data-n="3"><strong><code>kubectl logs &lt;pod&gt;</code></strong> (or <code>kubectl logs &lt;pod&gt; --previous</code> if it already crashed and restarted — the CURRENT logs of a freshly-restarted container won't contain the crash that already happened).</li>
+    <li data-n="4"><strong><code>kubectl get events --sort-by=.lastTimestamp</code></strong> — cluster-wide recent events, useful when the problem might not even be about this one pod (e.g. a node running out of resources).</li>
+  </ul>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real, runnable piece: mapping pod state to the correct next command</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">POD_ACTIONS = {
+    <span class="st">'Pending'</span>: <span class="st">'kubectl describe pod &lt;name&gt;'</span>,
+    <span class="st">'ImagePullBackOff'</span>: <span class="st">'kubectl describe pod &lt;name&gt;'</span>,
+    <span class="st">'CrashLoopBackOff'</span>: <span class="st">'kubectl logs &lt;name&gt; --previous'</span>,
+}
+
+<span class="kw">def</span> <span class="fn">next_command</span>(pod):
+    phase = pod[<span class="st">'phase'</span>]
+    <span class="kw">if</span> phase == <span class="st">'Running'</span> <span class="kw">and</span> <span class="kw">not</span> pod.get(<span class="st">'ready'</span>, <span class="kw">True</span>):
+        <span class="kw">return</span> <span class="st">'kubectl describe pod &lt;name&gt;'</span>   <span class="cm"># readiness probe likely failing</span>
+    <span class="kw">return</span> POD_ACTIONS.get(phase, <span class="st">'kubectl get events --sort-by=.lastTimestamp'</span>)
+
+pods = [
+    {<span class="st">'name'</span>: <span class="st">'api-7f9'</span>, <span class="st">'phase'</span>: <span class="st">'CrashLoopBackOff'</span>, <span class="st">'restarts'</span>: <span class="nm">5</span>},
+    {<span class="st">'name'</span>: <span class="st">'worker-2c1'</span>, <span class="st">'phase'</span>: <span class="st">'ImagePullBackOff'</span>, <span class="st">'restarts'</span>: <span class="nm">0</span>},
+    {<span class="st">'name'</span>: <span class="st">'cache-9a0'</span>, <span class="st">'phase'</span>: <span class="st">'Running'</span>, <span class="st">'ready'</span>: <span class="kw">False</span>},
+    {<span class="st">'name'</span>: <span class="st">'gateway-3e2'</span>, <span class="st">'phase'</span>: <span class="st">'Pending'</span>, <span class="st">'restarts'</span>: <span class="nm">0</span>},
+]
+<span class="kw">for</span> pod <span class="kw">in</span> pods:
+    <span class="bi">print</span>(<span class="st">f"<span class="bi">{pod['name']}</span> (<span class="bi">{pod['phase']}</span>): <span class="bi">{next_command(pod)}</span>"</span>)</div>
+  </div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Systems Fundamentals 4 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div>Exit codes have conventional meanings (<code>0</code>=success, <code>137</code>=killed/OOM, <code>127</code>=command not found) — check with <code>echo $?</code>.</div></li>
+    <li data-n="2"><div><strong>"Connection refused"</strong> = reachable, nothing listening. <strong>"Connection timed out"</strong> = never got a response, usually a network/firewall path issue. Different problems, different fixes.</div></li>
+    <li data-n="3"><div>A container exiting immediately? Check <code>docker logs</code> FIRST. <code>OOMKilled</code> in <code>docker inspect</code> means it hit its memory limit.</div></li>
+    <li data-n="4"><div><strong>Liveness probe failure → restart. Readiness probe failure → removed from traffic, not restarted.</strong> Different mechanisms for different problems.</div></li>
+    <li data-n="5"><div>Real K8s workflow: <code>kubectl get pods</code> → <code>describe</code> (read Events!) → <code>logs</code> (or <code>--previous</code>) → cluster-wide <code>get events</code>.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Log Classifier, New Log Lines</div>
+        <div class="ex-desc">Reuse classify_line from 4.1 with a new log block, but count categories instead of storing lines.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact classify_line() from 4.1:
+  log_lines2 = [
+      "app[901]: ERROR PermissionError: Permission denied: '/etc/app/secret.key'",
+      "app[901]: ERROR PermissionError: Permission denied: '/etc/app/other.key'",
+      "kernel: Out of memory: Killed process 88 (worker)",
+      "nginx: ERROR bind() to 0.0.0.0:9090 failed (98: Address already in use)",
+      "app[901]: INFO ready",
+  ]
+  Build classified2 = {} mapping category -> COUNT (not a list this time)
+  Print f'Category counts: {classified2}'
+
+(Correct: Category counts: {'permission': 2, 'oom': 1, 'port_in_use': 1})</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># def classify_line(line): ...  (paste from 4.1)
+# log_lines2 = [...]
+# classified2 = {}
+# for line in log_lines2:
+#     cat = classify_line(line)
+#     if cat:
+#         classified2.setdefault(cat, 0)
+#         classified2[cat] += 1
+# print(f'Category counts: {classified2}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Docker Diagnosis, New Containers</div>
+        <div class="ex-desc">Reuse diagnose_container from 4.2 with 3 new containers in different states.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact diagnose_container() from 4.2:
+  containers2 = {
+      'api-1': {'State': {'Running': True, 'ExitCode': 0, 'OOMKilled': False, 'Health': {'Status': 'healthy'}}},
+      'queue-2': {'State': {'Running': False, 'ExitCode': 137, 'OOMKilled': True}},
+      'db-3': {'State': {'Running': False, 'ExitCode': 2, 'OOMKilled': False}},
+  }
+  Print f'{name}: {diagnose_container(info)}' for each
+
+(Correct, 3 lines:
+api-1: Healthy
+queue-2: OOMKilled - hit its memory limit
+db-3: Exited with code 2 - check docker logs)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def diagnose_container(inspect): ...  (paste from 4.2)
+# containers2 = {...}
+# for name, info in containers2.items():
+#     print(f'{name}: {diagnose_container(info)}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Pod Next-Command, New Pods</div>
+        <div class="ex-desc">Reuse next_command from 4.3 with 3 new pods, including one Running-but-ready.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact next_command() and POD_ACTIONS from 4.3:
+  pods3 = [
+      {'name': 'billing-4d1', 'phase': 'ImagePullBackOff', 'restarts': 0},
+      {'name': 'auth-9f2', 'phase': 'Running', 'ready': True},
+      {'name': 'notify-1a3', 'phase': 'CrashLoopBackOff', 'restarts': 3},
+  ]
+  Print f"{pod['name']} ({pod['phase']}): {next_command(pod)}" for each
+
+(Correct, 3 lines:
+billing-4d1 (ImagePullBackOff): kubectl describe pod <name>
+auth-9f2 (Running): kubectl get events --sort-by=.lastTimestamp
+notify-1a3 (CrashLoopBackOff): kubectl logs <name> --previous)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># POD_ACTIONS = {...}  def next_command(pod): ...  (paste from 4.3)
+# pods3 = [...]
+# for pod in pods3:
+#     print(f"{pod['name']} ({pod['phase']}): {next_command(pod)}")
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Exit Code Interpreter</div>
+        <div class="ex-desc">Write a fresh function mapping exit codes to their conventional meaning.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write interpret_exit_code(code) returning:
+  0 -> 'success'
+  137 -> 'killed (SIGKILL, often OOM)'
+  139 -> 'segmentation fault (SIGSEGV)'
+  1 -> 'general error'
+  126 -> 'command found but not executable'
+  127 -> 'command not found'
+  anything else -> f'non-zero exit ({code}) - check application-specific meaning'
+
+codes = [0, 137, 1, 127, 139]
+Print f'{c}: {interpret_exit_code(c)}' for each
+
+(Correct, 5 lines:
+0: success
+137: killed (SIGKILL, often OOM)
+1: general error
+127: command not found
+139: segmentation fault (SIGSEGV))</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code"># def interpret_exit_code(code): ...
+# codes = [0, 137, 1, 127, 139]
+# for c in codes:
+#     print(f'{c}: {interpret_exit_code(c)}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Escalation Decision</div>
+        <div class="ex-desc">Decide whether a flapping pod needs human escalation, based on restart count AND last failure reason.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write needs_escalation(pod) that returns True if EITHER:
+  - pod['restart_count'] >= 5, OR
+  - pod['last_reason'] == 'OOMKilled' AND pod['restart_count'] >= 2
+Otherwise False.
+
+pods5 = [
+    {'name': 'a', 'restart_count': 1, 'last_reason': 'Error'},
+    {'name': 'b', 'restart_count': 6, 'last_reason': 'Error'},
+    {'name': 'c', 'restart_count': 2, 'last_reason': 'OOMKilled'},
+    {'name': 'd', 'restart_count': 2, 'last_reason': 'Completed'},
+]
+Print f"{p['name']}: escalate={needs_escalation(p)}" for each
+
+(Correct: a: escalate=False / b: escalate=True / c: escalate=True / d: escalate=False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># def needs_escalation(pod): ...
+# pods5 = [...]
+# for p in pods5:
+#     print(f"{p['name']}: escalate={needs_escalation(p)}")
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>You're On Call</span></h2>
+    <p>4 realistic incident reports just landed — a mix of Docker and Kubernetes symptoms, written the way a real alert or Slack message actually reads. Write code that classifies each one's failure category, names the correct FIRST diagnostic command a real engineer would run, and states the most likely root cause. This is the whole chapter's shape compressed into one triage function — recognize the symptom, know the right first move.</p>
+    <div class="project-tags">
+      <span class="ptag">log/text classification</span>
+      <span class="ptag">docker</span>
+      <span class="ptag">kubernetes</span>
+      <span class="ptag">on-call triage</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Write <code>triage(report)</code> returning a <code>(category, first_command, likely_cause)</code> tuple</li>
+      <li>Detect a CrashLoopBackOff + "Killed process" combination as a Kubernetes OOM incident</li>
+      <li>Detect "exited immediately" + "Permission denied" as a Docker permission incident</li>
+      <li>Detect a pod stuck "Pending" as a likely scheduling/resource incident</li>
+      <li>Detect "Connection refused" as a networking incident (nothing listening)</li>
+      <li>Run <code>triage()</code> over all 4 incident reports and print category, first command, and likely cause for each</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ On-Call Triage — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: You're On Call
+# Use ONLY Systems Fundamentals 1-4 concepts
+# ══════════════════════════════════════════
+INCIDENTS = [
+    "Service checkout-api container exited immediately after deploy. docker logs shows: PermissionError: [Errno 13] Permission denied: '/data/cache.db'",
+    "Pod payment-worker-7f8 is stuck in CrashLoopBackOff with restart_count=8. Previous log shows: Out of memory: Killed process",
+    "New pod search-indexer-2c1 has been Pending for 10 minutes, no containers created yet.",
+    "Users report checkout is down. curl to the service returns: Connection refused",
+]
+
+# === TODO: the triage function ===
+# def triage(report):
+#     if 'CrashLoopBackOff' in report and 'Killed process' in report:
+#         return ('kubernetes', 'kubectl logs <pod> --previous', 'OOM - container exceeded memory limit')
+#     if 'exited immediately' in report and 'Permission denied' in report:
+#         return ('docker', 'docker logs <container>', 'App tried to write to a path it lacks permission for')
+#     if 'Pending' in report:
+#         return ('kubernetes', 'kubectl describe pod <name>', 'Likely unschedulable - insufficient cluster resources or no matching node')
+#     if 'Connection refused' in report:
+#         return ('networking', 'check if the service process is actually listening on the expected port', 'Nothing is listening on that port/host - the process may have crashed or never started')
+#     return ('unknown', 'kubectl get events --sort-by=.lastTimestamp', 'Needs manual investigation')
+
+# === TODO: run it and print each result ===
+# for i, report in enumerate(INCIDENTS, 1):
+#     category, command, cause = triage(report)
+#     print(f'Incident {i}: category={category}')
+#     print(f'  First command: {command}')
+#     print(f'  Likely cause: {cause}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🐳</span>Incident 1: category=docker</div>
+    <div class="check-item"><span class="check-icon">☸️</span>Incident 2: category=kubernetes, command mentions --previous</div>
+    <div class="check-item"><span class="check-icon">⏳</span>Incident 3: category=kubernetes, command mentions describe pod</div>
+    <div class="check-item"><span class="check-icon">🌐</span>Incident 4: category=networking</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Systems Fundamentals 4 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Your service logs "Connection refused" when trying to reach a database. What does this specifically tell you, as opposed to a timeout?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> The database machine IS reachable, but nothing is listening on that port — the DB process likely crashed or never started</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> There is definitely a firewall blocking the connection</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The network path is down</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> "Refused" and "timed out" mean the same thing operationally</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">A pod's readiness probe starts failing while the pod is otherwise running. What does Kubernetes do?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Restarts the container immediately</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Stops sending it traffic, but does NOT restart it — the container stays running, just out of rotation until it's ready again</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Deletes the pod permanently</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Nothing — readiness probes are purely informational</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A container exits immediately every time you `docker run` it. What's the very first thing to check?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> docker logs &lt;container&gt; — see what the app itself printed before it died</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Immediately rebuild the image from scratch</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Restart Docker itself</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Increase the container's memory limit</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the kubectl command to view logs from a pod's PREVIOUS (already-crashed) container instance, for a pod named <code>api-9f2</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="kubectl ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does "OOMKilled": true mean in `docker inspect` output?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> The container exceeded its configured memory limit and the kernel killed it</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The container ran out of disk space</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> The container's image failed to pull</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> A human manually stopped the container</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="course-complete-card" id="course-complete-card" style="display:none">
+    <div class="ccc-icon">🎉</div>
+    <h3>Systems Fundamentals <span>Complete</span></h3>
+    <p>APIs and HTTP, networking and microservice communication, load balancers and firewalls, and now Linux/Docker/Kubernetes troubleshooting — the exact backend/DevOps literacy that separates "can train a model" from "can be trusted to operate a real system." Combined with the DSA module and Interview Mastery, that's the full gap, closed.</p>
+    <div class="ccc-stats">
+      <div class="ccc-stat"><strong>4</strong>chapters</div>
+      <div class="ccc-stat"><strong>20</strong>exercises</div>
+      <div class="ccc-stat"><strong>4</strong>capstones</div>
+    </div>
+    <a class="ccc-btn" href="../index.html">🏠 Back to Course Home</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Linux/Docker/Kubernetes Interview Prep</h2>
+    <p>12 questions on operational troubleshooting — the "have you actually run this in production" questions that separate candidates who've read documentation from candidates who've been paged at 2am. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between a liveness probe and a readiness probe, precisely?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A failing <strong>liveness</strong> probe means "this container is stuck or dead" — Kubernetes restarts it. A failing <strong>readiness</strong> probe means "this container is alive but not ready for traffic yet" — Kubernetes removes it from service endpoints (stops routing traffic to it) WITHOUT restarting it. Confusing the two causes real incidents: using only a liveness probe for a slow-starting app can trigger a restart loop during normal startup; using only a readiness probe for a genuinely deadlocked process means it silently stays up forever, never restarted, never serving traffic.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the practical difference between CrashLoopBackOff and ImagePullBackOff?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><code>ImagePullBackOff</code> means Kubernetes can't even GET the image — the container has never actually started, so `kubectl logs` will show nothing useful; the fix is almost always in the image name/tag/registry-auth, found via `kubectl describe pod`. <code>CrashLoopBackOff</code> means the image WAS pulled and the container DID start, but it keeps crashing shortly after — the fix is in the application itself, found via `kubectl logs --previous`. Different failure point, different diagnostic command, different fix.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does OOMKilled mean, and how would you actually fix it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The container exceeded its configured memory limit and the kernel's cgroup OOM killer terminated it (exit code 137, SIGKILL). Real fixes: raise the memory limit if the usage is legitimate and just underprovisioned; find and fix an actual memory leak if usage climbs without bound over time (very different problems requiring very different fixes — profiling before you touch the config is the right first step, not just raising the limit and hoping).</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">"Connection refused" vs. "Connection timed out" — why does the distinction matter operationally?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">"Refused" means your packet reached the target machine and got an active rejection — nothing is listening on that port. You look at the SERVICE (is it running? did it crash? wrong port?). "Timed out" means you got no response at all — the packet likely never arrived. You look at the NETWORK PATH (firewall rule, security group, routing, or the host being down entirely). Debugging the wrong side wastes real time — restarting a healthy service won't fix a firewall rule, and rewriting a firewall rule won't fix a crashed process.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does `kubectl describe pod`'s Events section matter more than people expect?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because a lot of real failures happen BEFORE your application code ever runs — failed scheduling (no node has enough resources), failed image pulls, failed volume mounts, failed probes. None of that shows up in `kubectl logs`, because your container's own logging never started. The Events section is where Kubernetes itself reports what IT did and why — skipping straight to `logs` and finding nothing is a very common early mistake that wastes real debugging time.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why would a container exit immediately even though the app "should" work?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A container stays alive only as long as its PID 1 process keeps running in the FOREGROUND. A very common mistake: a Dockerfile's <code>CMD</code> starts a process that immediately backgrounds itself (daemonizes), so Docker sees PID 1 exit right away and stops the container — even though the "real" process is technically still trying to run. The fix is running the process in the foreground (many tools have a `--no-daemon`-style flag for exactly this reason).</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does exit code 137 specifically tell you, versus a generic exit code 1?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">137 = 128 + 9, where 9 is the signal number for SIGKILL — the process was forcibly killed from the outside (very often the OOM killer), not something that failed on its own via a normal error path. Exit code 1 is just "the program itself decided to exit with an error" — the process controlled its own shutdown. Seeing 137 should immediately point you toward memory limits and `dmesg`/`docker inspect`'s OOMKilled flag, not toward reading application error-handling code.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A pod is stuck in Pending for 10 minutes. What's your first hypothesis?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Pending almost always means it hasn't been SCHEDULED onto any node yet — most commonly because no node currently has enough free CPU/memory to satisfy the pod's resource requests, or a node-affinity/taint rule excludes every available node. `kubectl describe pod` Events will say exactly this (e.g. "0/5 nodes are available: insufficient cpu"). It's rarely an application bug at this stage, since the application container hasn't even started.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you approach a completely unfamiliar production incident, in general?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Same shape every time: (1) what changed recently — a deploy, a config change, a traffic spike; (2) what's the blast radius — one service or many, one region or all; (3) check the cheapest signals first (dashboards, `kubectl get pods`, error rates) before deep-diving into one theory; (4) form a specific, falsifiable hypothesis and check it directly rather than guessing broadly; (5) mitigate first if you can (rollback, restart, scale up), root-cause fully afterward — restoring service and finding the root cause are different goals with different urgency.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the actual difference between `chmod` and `chown`, and when do you need each?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><code>chmod</code> changes WHAT a file's owner/group/others are allowed to do to it (read/write/execute bits). <code>chown</code> changes WHO owns the file in the first place. A "Permission denied" error can come from either direction: the right user doesn't have the right BITS set (fix with `chmod`), or the process is running as the WRONG user entirely for a file it should own (fix with `chown`) — this second case is exactly what causes Docker volume-mount permission errors when the container's UID doesn't match the host file owner's UID.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why check `ss -tulpn` (or `netstat -tulpn`) specifically, instead of just trying to connect and seeing what happens?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It answers the exact question directly — "is ANYTHING actually listening on this port, on this machine, right now" — rather than inferring it indirectly from a failed connection attempt, which conflates "nothing is listening here" with "a firewall somewhere between me and there is blocking me." Checking directly on the machine itself rules out the network-path variable entirely, narrowing the search space fast.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does `journalctl -u <service> -f` matter for a systemd-managed service, specifically?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Many real services run as systemd units rather than inside a container, and systemd captures their stdout/stderr into the structured system journal rather than a plain log file — `journalctl -u <service>` is the correct, complete way to see that output (including startup failures that happened before any application-level log file was even opened), and `-f` follows it live the same way `tail -f` would for a plain file.</div></div>
+  </div>
+
+</div><!-- end interview -->
+
+  </div>
+</div>
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title"><span class="cd-dot" id="cd-dot"></span><span id="cd-status-text">Console</span></div>
+    <div class="cd-status" id="cd-status">idle</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">&gt;&gt;&gt;</div>
+    <textarea id="cd-input" placeholder="Type Python here, or use ▶ Run buttons above..." rows="1"></textarea>
+    <button class="cd-run" onclick="runConsoleInput()">Run</button>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+  </div>
+</div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+let pyodideReady = false;
+let pyodide = null;
+
+async function initPyodide(){
+  try{
+    pyodide = await loadPyodide();
+    pyodideReady = true;
+    document.getElementById('py-chip').innerHTML = '🟢 <span>Python Ready</span>';
+    logToConsole('Pyodide ready. Real CPython, running in your browser.', 'ok');
+  }catch(e){
+    document.getElementById('py-chip').innerHTML = '🔴 <span>Load Failed</span>';
+    logToConsole('Failed to load Pyodide: ' + e.message, 'err');
+  }
+}
+initPyodide();
+
+function logToConsole(text, cls){
+  const out = document.getElementById('cd-out');
+  const div = document.createElement('div');
+  div.className = 'cl ' + (cls||'out');
+  div.textContent = text;
+  out.appendChild(div);
+  out.scrollTop = out.scrollHeight;
+}
+
+async function runPy(code){
+  if(!pyodideReady) return {ok:false, out:'', err:'Python is still loading, try again in a moment.'};
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    let captured = '';
+    pyodide.setStdout({batched: (s)=>{ captured += s + '\n'; }});
+    pyodide.setStderr({batched: (s)=>{ captured += s + '\n'; }});
+    await pyodide.runPythonAsync(code);
+    return {ok:true, out:captured, err:''};
+  }catch(e){
+    return {ok:false, out:'', err:String(e)};
+  }
+}
+
+window.runToConsole = async function(btn){
+  const block = btn.closest('.code-block');
+  const codeEl = block.querySelector('.cb-code');
+  const code = codeEl.textContent;
+  logToConsole('Running code block...', 'info');
+  const {ok, out, err} = await runPy(code);
+  if(ok){
+    out.split('\n').forEach(line=>{ if(line) logToConsole(line, 'out'); });
+    logToConsole('Done.', 'ok');
+  }else{
+    logToConsole(err, 'err');
+  }
+};
+
+window.runConsoleInput = async function(){
+  const input = document.getElementById('cd-input');
+  const code = input.value;
+  if(!code.trim()) return;
+  logToConsole('>>> ' + code.split('\n')[0] + (code.includes('\n')?' ...':''), 'info');
+  const {ok, out, err} = await runPy(code);
+  if(ok){
+    out.split('\n').forEach(line=>{ if(line) logToConsole(line, 'out'); });
+  }else{
+    logToConsole(err, 'err');
+  }
+  input.value = '';
+};
+
+window.clearConsole = function(){
+  document.getElementById('cd-out').innerHTML = '';
+};
+
+window.toggleSidebar = function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole = function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+
+window.showSection = function(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show', s===name);
+    document.getElementById('tab-'+s).classList.toggle('active', s===name);
+    document.getElementById('sb-'+s).classList.toggle('active', s===name);
+  });
+  document.getElementById('sidebar').classList.remove('mob-open');
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+function spark(){
+  const s = document.createElement('div');
+  s.className = 'spark';
+  s.textContent = '✨';
+  s.style.left = (window.innerWidth/2 - 400) + 'px';
+  s.style.top = '100px';
+  document.body.appendChild(s);
+  setTimeout(()=>s.remove(), 700);
+}
+
+const EXERCISES = {
+  1:{
+    checks:["category counts: {'permission': 2, 'oom': 1, 'port_in_use': 1}"],
+    hint:"classified2.setdefault(cat, 0) then classified2[cat] += 1 for each classified line",
+    solution:`def classify_line(line):
+    if 'Permission denied' in line or 'PermissionError' in line:
+        return 'permission'
+    if 'Out of memory' in line or 'Killed process' in line:
+        return 'oom'
+    if 'Connection refused' in line:
+        return 'connection_refused'
+    if 'Address already in use' in line:
+        return 'port_in_use'
+    if 'No such file or directory' in line:
+        return 'missing_file'
+    return None
+
+log_lines2 = [
+    "app[901]: ERROR PermissionError: Permission denied: '/etc/app/secret.key'",
+    "app[901]: ERROR PermissionError: Permission denied: '/etc/app/other.key'",
+    "kernel: Out of memory: Killed process 88 (worker)",
+    "nginx: ERROR bind() to 0.0.0.0:9090 failed (98: Address already in use)",
+    "app[901]: INFO ready",
+]
+classified2 = {}
+for line in log_lines2:
+    cat = classify_line(line)
+    if cat:
+        classified2.setdefault(cat, 0)
+        classified2[cat] += 1
+print(f'Category counts: {classified2}')`
+  },
+  2:{
+    checks:['api-1: healthy','queue-2: oomkilled - hit its memory limit','db-3: exited with code 2 - check docker logs'],
+    hint:"Same diagnose_container() from 4.2, three new containers, print name: result for each",
+    solution:`def diagnose_container(inspect):
+    state = inspect['State']
+    if state.get('OOMKilled'):
+        return 'OOMKilled - hit its memory limit'
+    if state['ExitCode'] != 0 and not state['Running']:
+        return f"Exited with code {state['ExitCode']} - check docker logs"
+    if state['Running'] and state.get('Health', {}).get('Status') != 'healthy':
+        return 'Running but unhealthy - check healthcheck + docker logs'
+    return 'Healthy'
+
+containers2 = {
+    'api-1': {'State': {'Running': True, 'ExitCode': 0, 'OOMKilled': False, 'Health': {'Status': 'healthy'}}},
+    'queue-2': {'State': {'Running': False, 'ExitCode': 137, 'OOMKilled': True}},
+    'db-3': {'State': {'Running': False, 'ExitCode': 2, 'OOMKilled': False}},
+}
+for name, info in containers2.items():
+    print(f'{name}: {diagnose_container(info)}')`
+  },
+  3:{
+    checks:['billing-4d1 (imagepullbackoff): kubectl describe pod <name>','auth-9f2 (running): kubectl get events --sort-by=.lasttimestamp','notify-1a3 (crashloopbackoff): kubectl logs <name> --previous'],
+    hint:"auth-9f2 is Running AND ready=True, so it falls through to the default action, not the readiness-failure branch",
+    solution:`POD_ACTIONS = {
+    'Pending': 'kubectl describe pod <name>',
+    'ImagePullBackOff': 'kubectl describe pod <name>',
+    'CrashLoopBackOff': 'kubectl logs <name> --previous',
+}
+def next_command(pod):
+    phase = pod['phase']
+    if phase == 'Running' and not pod.get('ready', True):
+        return 'kubectl describe pod <name>'
+    return POD_ACTIONS.get(phase, 'kubectl get events --sort-by=.lastTimestamp')
+
+pods3 = [
+    {'name': 'billing-4d1', 'phase': 'ImagePullBackOff', 'restarts': 0},
+    {'name': 'auth-9f2', 'phase': 'Running', 'ready': True},
+    {'name': 'notify-1a3', 'phase': 'CrashLoopBackOff', 'restarts': 3},
+]
+for pod in pods3:
+    print(f"{pod['name']} ({pod['phase']}): {next_command(pod)}")`
+  },
+  4:{
+    checks:['0: success','137: killed (sigkill, often oom)','1: general error','127: command not found','139: segmentation fault (sigsegv)'],
+    hint:"A simple if/elif chain on the exact code value, with an f-string fallback for anything not explicitly listed",
+    solution:`def interpret_exit_code(code):
+    if code == 0:
+        return 'success'
+    if code == 137:
+        return 'killed (SIGKILL, often OOM)'
+    if code == 139:
+        return 'segmentation fault (SIGSEGV)'
+    if code == 1:
+        return 'general error'
+    if code == 126:
+        return 'command found but not executable'
+    if code == 127:
+        return 'command not found'
+    return f'non-zero exit ({code}) - check application-specific meaning'
+
+codes = [0, 137, 1, 127, 139]
+for c in codes:
+    print(f'{c}: {interpret_exit_code(c)}')`
+  },
+  5:{
+    checks:['a: escalate=false','b: escalate=true','c: escalate=true','d: escalate=false'],
+    hint:"Two separate OR'd conditions: restart_count >= 5 by itself, OR (OOMKilled AND restart_count >= 2)",
+    solution:`def needs_escalation(pod):
+    if pod['restart_count'] >= 5:
+        return True
+    if pod.get('last_reason') == 'OOMKilled' and pod['restart_count'] >= 2:
+        return True
+    return False
+
+pods5 = [
+    {'name': 'a', 'restart_count': 1, 'last_reason': 'Error'},
+    {'name': 'b', 'restart_count': 6, 'last_reason': 'Error'},
+    {'name': 'c', 'restart_count': 2, 'last_reason': 'OOMKilled'},
+    {'name': 'd', 'restart_count': 2, 'last_reason': 'Completed'},
+]
+for p in pods5:
+    print(f"{p['name']}: escalate={needs_escalation(p)}")`
+  }
+};
+
+window.runExercise = async function(n){
+  const code = document.getElementById('ex'+n+'-code').value;
+  const out = document.getElementById('ex'+n+'-out');
+  const result = document.getElementById('ex'+n+'-result');
+  out.className = 'ex-output show';
+  out.textContent = 'Running...';
+  result.className = 'ex-result';
+  const {ok, out: o, err} = await runPy(code);
+  if(ok){
+    out.textContent = o || '(no output)';
+    out.className = 'ex-output show ok';
+    const checks = EXERCISES[n].checks;
+    const lower = o.toLowerCase();
+    const passed = checks.every(c => lower.includes(c));
+    result.className = 'ex-result show ' + (passed?'pass':'fail');
+    result.textContent = passed ? '✅ Correct!' : '❌ Not quite — check the expected output above';
+  }else{
+    out.textContent = err;
+    out.className = 'ex-output show err';
+    result.className = 'ex-result show fail';
+    result.textContent = '❌ Python error';
+  }
+};
+
+window.showExHint = function(n){
+  alert('💡 Hint: ' + EXERCISES[n].hint);
+};
+window.showSolution = function(n){
+  document.getElementById('ex'+n+'-code').value = EXERCISES[n].solution;
+};
+window.resetEx = function(n){
+  document.getElementById('ex'+n+'-out').className = 'ex-output';
+  document.getElementById('ex'+n+'-result').className = 'ex-result';
+};
+
+window.runProject = async function(){
+  const code = document.getElementById('project-editor').value;
+  const out = document.getElementById('project-output');
+  const res = document.getElementById('project-result');
+  out.textContent = 'Running...'; out.className = 'pe-output';
+  res.style.display = 'none';
+  const {ok, out: o, err} = await runPy(code);
+  const full = (o||'') + ((!ok && err) ? '\n'+err : '');
+  out.textContent = full || (ok ? '(no output — add print() statements)' : 'Error');
+  out.className = 'pe-output' + (full ? ' has-output' : '');
+
+  const checks = ['incident 1: category=docker','--previous','incident 3: category=kubernetes','describe pod','incident 4: category=networking'];
+  const passed = ok && checks.every(c => full.toLowerCase().includes(c));
+  res.style.display = 'flex'; res.className = 'pe-result show ' + (passed?'pass':'fail');
+  if(passed){
+    res.textContent = '✅ Capstone complete! Systems Fundamentals module finished.';
+    spark();
+  }else if(!ok){
+    res.textContent = '❌ Python error — fix it and run again';
+  }else{
+    res.textContent = '❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT = {1:'A', 2:'B', 3:'A', 5:'A'};
+let quizAnswers = {};
+let quizDone = false;
+
+window.selectOpt = function(q, opt){
+  if(quizDone) return;
+  quizAnswers[q] = opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter = String.fromCharCode(65+i);
+    b.classList.toggle('selected', letter===opt);
+  });
+};
+
+window.checkQ4 = function(){
+  const val = document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb = document.getElementById('q4-feedback');
+  const passed = val.includes('kubectllogs') && val.includes('--previous') && val.includes('api-9f2');
+  quizAnswers[4] = passed ? 'PASS' : 'FAIL';
+  fb.className = 'q-feedback show ' + (passed?'correct':'wrong');
+  fb.textContent = passed
+    ? '✅ Correct! kubectl logs api-9f2 --previous'
+    : '❌ Not quite. You need: kubectl logs api-9f2 --previous';
+};
+
+window.submitQuiz = function(){
+  if(quizDone) return;
+  let score = 0;
+  [1,2,3,5].forEach(q=>{
+    const correct = CORRECT[q];
+    const given = quizAnswers[q];
+    if(given===correct) score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter = String.fromCharCode(65+i);
+      if(letter===correct) b.classList.add('correct');
+      else if(letter===given && given!==correct) b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS') score++;
+  quizDone = true;
+  const passed = score>=4;
+  const banner = document.getElementById('quiz-result');
+  banner.className = 'quiz-result-banner show ' + (passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display = 'flex';
+  document.getElementById('quiz-score').textContent = score;
+  if(passed){
+    banner.innerHTML = `<div class="qrb-title">🎉 Passed! ${score}/5</div><div class="qrb-sub">Systems Fundamentals 4 complete — and that's the whole 4-chapter track.</div>`;
+    document.getElementById('course-complete-card').style.display = 'block';
+    spark();
+  }else{
+    banner.innerHTML = `<div class="qrb-title">Not quite — ${score}/5</div><div class="qrb-sub">You need 4/5 to pass. Review the lesson and try again — this quiz can be retaken.</div>`;
+  }
+};
+</script>
+
+</body>
+</html>
