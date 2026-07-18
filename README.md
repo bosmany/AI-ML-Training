@@ -1,10 +1,32 @@
 # AI/ML: Zero to Hero
 
+[![Verify](https://github.com/bosmany/ai-ml-zero-to-hero/actions/workflows/verify.yml/badge.svg)](https://github.com/bosmany/ai-ml-zero-to-hero/actions/workflows/verify.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://bosmany.github.io/ai-ml-zero-to-hero/)
+
+A self-built, 35-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps and agentic AI — plus four bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals) and three real production projects with verified, reproducible results.
+
+**🔴 Live demo:** **[bosmany.github.io/ai-ml-zero-to-hero](https://bosmany.github.io/ai-ml-zero-to-hero/)**
+
+**Every exercise is auto-graded against real executed output.** Nothing in this repo is copy-pasted from a tutorial without being run and verified — every checker value across ~200 exercises, 8 module capstones, and 3 production projects was independently executed via Python and matched against its expected output before being shipped. A GitHub Actions workflow re-runs the structural verification (syntax + HTML balance) on every push.
+
+## 🏗️ Featured Projects
+
+| Project | What it does | Key result |
+|---|---|---|
+| [End-to-End ML Pipeline](projects/ch33-production-ml-pipeline.html) | Full churn-prediction pipeline: clean → feature-engineer → cross-validate → tune → deploy-gate | Correctly **blocked a regression** — automated gate held a retrain at F1 0.667 against a 0.75 production baseline |
+| [Agentic AI System](projects/ch34-agentic-ai-system.html) | Multi-step ReAct-pattern tool-calling agent with a safety guardrail | Resolves multi-hop queries via dynamically chained tool calls, not a hardcoded pipeline |
+| [RAG Chatbot, Deployed](projects/ch35-rag-chatbot-deployed.html) | Retrieval-augmented chatbot with similarity-threshold grounding + health monitoring | Correctly **declines out-of-scope queries** instead of hallucinating an answer |
+
+Full course map, live progress tracking, and every bonus module: open [`index.html`](index.html) (or just use the live demo link above).
+
+---
+
+## Status: all 35 chapters complete, verified, committed & pushed. Plus bonus Interview Mastery, DSA, Portfolio Packaging, and Systems Fundamentals modules.
+
 An interactive, self-contained, browser-based course that takes someone from zero programming knowledge to a working AI/ML skillset — Python fundamentals, math, data tools, classical ML, deep learning, NLP/LLMs, and MLOps deployment.
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
-
-## Status: all 35 chapters complete, verified, committed & pushed. Plus bonus Interview Mastery, DSA, Portfolio Packaging, and Systems Fundamentals modules.
 
 The course was expanded from 30 to 32 chapters partway through Module 1 (see renumbering note
 below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
