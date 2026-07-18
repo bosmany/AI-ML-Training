@@ -188,11 +188,14 @@ Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
 
 ## Resuming this project
 
-**All 35 chapters are done, independently verified, and pushed. There is no chapter work left.**
-Every exercise, capstone-project reference solution, and quiz answer key across all 35 files was
-actually executed via `py -3` and matched against its checker strings — nothing was hand-calculated
-or trusted on the strength of an agent's self-report alone.
+**Everything is done, independently verified, and pushed. There is no known open work.** This
+includes the 35-chapter core curriculum, four bonus modules, and real executed Colab notebooks —
+every exercise, capstone-project reference solution, and quiz answer key was actually executed
+(via `py -3` for HTML chapters, via a real PyTorch/Jupyter environment for notebooks) and matched
+against its expected output — nothing was hand-calculated or trusted on the strength of an agent's
+self-report alone.
 
+**The 35-chapter core curriculum** (Modules 1-8, ending with three production projects):
 - Ch 33 (`projects/ch33-production-ml-pipeline.html`): a real messy-data → clean → feature-engineer
   → cross-validate (LogisticRegression vs RandomForest) → GridSearchCV tune → evaluate →
   pickle/serve/monitor → ship-or-hold-gate pipeline.
@@ -208,22 +211,43 @@ or trusted on the strength of an agent's self-report alone.
   health monitoring) plus a reference-only FastAPI wrapper section. Ends with a "🎉 Course Complete"
   banner instead of a next-chapter card, linking back to `../index.html`.
 
-What's left is one deliberately-deferred, non-blocking item:
+**Four bonus modules** (not counted toward the 35-chapter total, all in the same "not graded but
+rigorously verified" tier):
+- `bonus/interview-mastery.html` — behavioral (STAR) prep built from Ch 33/34's real numbers, an
+  ML system design framework with 4 worked case studies, an AWS/GCP/Databricks cloud vocabulary
+  cheat-sheet, and 15 rapid-fire gotcha questions.
+- `dsa/ds01`-`ds04` — Data Structures & Algorithms for coding interviews (arrays/hashing,
+  trees/graphs/recursion, DP/greedy, sorting/searching), ending in a timed 3-problem mock
+  interview. All 20 exercises + 4 capstones independently re-executed and verified.
+- `bonus/portfolio-packaging.html` — resume bullets built from Ch 33-35's actual verified numbers,
+  a GitHub presentation template, a free GitHub Pages deployment walkthrough, and how to talk
+  about the projects in an interview.
+- `systems/sf01`-`sf04` — Systems Fundamentals (APIs & HTTP, Networking & Microservices, Load
+  Balancers & Firewalls, Linux/Docker/Kubernetes Troubleshooting) — built to directly close gaps
+  the user explicitly named as personal weak points. All 20 exercises + 4 capstones verified. One
+  real bug was caught and fixed here: sf03's exercise 4 checker used a JS `.replace('c','r')` call
+  (which only replaces the FIRST match, not all matches) as a lazy typo-fix, silently leaving the
+  wrong expected string — caught by re-executing the actual solution and diffing against the
+  checker, not by trusting the code as written.
 
-1. **Author the Colab `.ipynb` notebooks** — every Colab-chapter HTML page (Ch 22-24, 26, 28) links
-   to a specific GitHub path
-   (`https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/<folder>/<slug>.ipynb`)
-   but none of those notebook files exist in the repo yet — the badges currently 404. This is
-   deliberately deferred: a torch install into an isolated venv on this machine failed with a
-   network read-timeout (`download-r2.pytorch.org`), and shipping unverified notebook code would
-   conflict with this project's "make sure everything actually works" standard. Needs either a
-   working torch environment or explicit user sign-off to ship untested notebooks.
-2. Numeric verification discipline still applies if anything is ever edited: every checker's
-   expected value must come from actually running the exact solution code (this machine's Anaconda
-   Python works via `py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's
-   own text/history for `Library/bin` if the exact command is needed again), never hand-calculated.
+**Real, executed Colab notebooks** for the 5 PyTorch/HuggingFace chapters that can't run inside
+Pyodide/WebAssembly (`dl/ch22-intro-to-pytorch.ipynb`, `ch23-convolutional-neural-networks.ipynb`,
+`ch24-rnns-lstms.ipynb`, `ch26-deep-learning-capstone.ipynb`,
+`nlp/ch28-modern-nlp-transformers.ipynb`) — this was a previously-documented gap (the Colab badges
+404'd because the files didn't exist) that is now closed. A working isolated PyTorch venv was
+built on this machine after an earlier attempt failed on a network timeout; every notebook cell
+was verified to have genuinely executed (sequential `execution_count`s, zero error outputs, and
+spot-checked output content that would be very difficult to fabricate convincingly — e.g. Ch 28's
+real HuggingFace download/warning messages and exact BERT token IDs, Ch 22's full PyTorch
+`Adam` optimizer `repr()` dump). Ch 23/24/26 deliberately use synthetic in-memory data (no
+MNIST/CIFAR download) to keep them fast and network-independent.
 
-Tell whoever picks this up: **"The AI/ML Zero to Hero course is complete — all 35 chapters done,
-verified, and pushed. The only open item is authoring real Colab `.ipynb` notebooks for the
-PyTorch/HuggingFace chapters (22-24, 26, 28), deferred because torch wouldn't install on the
-original build machine for verification."**
+Numeric verification discipline still applies to any future edits: every checker's expected value
+must come from actually running the exact solution code (this machine's Anaconda Python works via
+`py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's own text/history for
+`Library/bin` if the exact command is needed again), never hand-calculated.
+
+Tell whoever picks this up: **"The AI/ML Zero to Hero course is fully complete — 35 core chapters
+plus four bonus modules (Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals) and
+real executed Colab notebooks, all independently verified and pushed. There is no known open
+work — if the user asks for something new, treat it as a fresh request, not a continuation."**
