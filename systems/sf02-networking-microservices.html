@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus Systems 2: Networking &amp; Microservices Communication</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 4-chapter "Systems
+  Fundamentals" track — NOT part of the 35-chapter core curriculum, same tier as
+  bonus/interview-mastery.html and the dsa/ module. Health checks, correlation-ID tracing,
+  microservice call-graph simulation, retry-with-backoff, and a circuit-breaker state machine
+  are all real, runnable, pure Python (stdlib only). Real sockets/DNS/message queues cannot
+  run inside this browser sandbox — those stay conceptual, explained precisely in the lesson
+  text rather than faked as runnable code. No XP, no localStorage — exercises/capstone/quiz
+  still run and grade live, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">SF 2: Networking &amp; Microservices</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Systems Fundamentals · 2 of 4</div>
+  </a>
+  <a class="sb-back" href="sf01-apis-http-fundamentals.html">← SF 1: APIs &amp; HTTP Fundamentals</a>
+  <div class="sb-section">SF 2 · Networking &amp; Microservices</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Systems Fundamentals</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='sf03-load-balancers-firewalls.html'"><span class="sb-icon">⚖️</span><span class="sb-step">SF 3: Load Balancers &amp; Firewalls</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus Systems 2 of 4</div>
+    <div class="tb-title">Networking &amp; Microservices Communication</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>Systems Fundamentals 2:<br/><span>Networking &amp; Microservices Communication</span></h1>
+    <p>"My service says it called the other service, but did it actually get there?" is one of the most common real production questions — and answering it well requires the minimum useful networking model (not a full OSI-layer deep-dive), the sync-vs-async tradeoff, and a genuinely runnable toolkit: health checks, correlation IDs, retries with backoff, and a circuit breaker. This chapter builds all four for real, plus a runnable simulation that traces a request across a chain of services and reports exactly where it broke.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <!-- 2.1 -->
+  <div class="lesson-h2">2.1 — The Minimum Useful Networking Model</div>
+  <p class="lesson-p">You don't need all seven OSI layers memorized to reason about microservices — you need four ideas. An <strong>IP address</strong> identifies a machine on a network. A <strong>port</strong> (0-65535) identifies WHICH process on that machine to talk to — a single server can run a web app on port 443 and a database on port 5432 at the same time, distinguished purely by port. <strong>DNS</strong> resolves a human-readable domain name (<code>api.example.com</code>) to the IP address a machine can actually route packets to — that's the entire idea, nothing more mystical than a giant lookup table. And two protocol names you'll hear constantly: <strong>TCP</strong> operates around what's informally called "Layer 4" (it deals in raw connections between IP:port pairs, with no idea what HTTP or a "request" even is), while <strong>HTTP</strong> operates around "Layer 7" (it's built ON TOP of a TCP connection, and understands methods, paths, headers). That Layer 4 / Layer 7 vocabulary matters directly in SF 3, where it's the whole difference between two kinds of load balancer.</p>
+
+  <!-- 2.2 -->
+  <div class="lesson-h2">2.2 — TCP vs UDP: Guaranteed Delivery vs Speed</div>
+  <p class="lesson-p"><strong>TCP</strong> guarantees delivery and ordering — every packet is acknowledged, lost packets get retransmitted, and the receiving application always sees bytes in the order they were sent. <strong>UDP</strong> makes none of those guarantees — packets can arrive out of order or simply vanish, and UDP won't retransmit them. That single difference explains a very concrete real-world split: a <strong>file download</strong> needs TCP (a file missing even one byte is corrupted — you need the guarantee). A <strong>live video call</strong> can use UDP (a packet from half a second ago that arrives late is USELESS by the time TCP would finish retransmitting it — you'd rather skip the frame and keep the call moving in real time than freeze everything waiting for a guaranteed-perfect but stale packet). TCP optimizes for correctness; UDP optimizes for timeliness.</p>
+
+  <!-- 2.3 -->
+  <div class="lesson-h2">2.3 — Synchronous vs Asynchronous Service Communication</div>
+  <p class="lesson-p"><strong>Synchronous</strong> communication — Service A calls Service B over HTTP and waits for the response before continuing — is simple to write and reason about, but it COUPLES the two services together in real time: if B is slow or down, A is slow or down too, and a chain of sync calls compounds latency (A waits for B, who waits for C...). <strong>Asynchronous</strong> communication — A publishes a message to a queue and moves on immediately, B consumes it whenever it's ready — decouples the two services' uptime: B being down for five minutes doesn't block A at all, the message just waits in the queue. The real cost of async is <strong>eventual consistency</strong>: there's a window of time where A's state has changed but B hasn't caught up yet, plus real complexity around message ordering and duplicate delivery. Neither is "better" — sync is right when the caller genuinely needs an immediate answer to keep going (e.g. "is this login valid"); async is right when the caller can move on before the work is fully done (e.g. "send this welcome email eventually").</p>
+
+  <!-- 2.4 -->
+  <div class="lesson-h2">2.4 — Verifying Service A Actually Reaches Service B</div>
+  <p class="lesson-p">Three real tools answer "is my service actually talking to the other one?" First: a <strong><code>/healthz</code></strong> endpoint that a service exposes, reporting whether it's actually able to serve traffic right now — infrastructure polls this constantly. Second: <strong>correlation IDs</strong> — a unique identifier generated once (usually at the entry point) and passed unchanged through every downstream call and every log line that request touches, so you can grep logs for ONE id and see the entire path a single request took, in order, across every service. Third: for a whole chain of services, it helps to think of the system as a <strong>call graph</strong> — which service calls which — and simulate tracing a request through it to see exactly which hop (if any) fails.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A health-check pass over multiple services</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">check_health</span>(services):
+    report = {}
+    <span class="kw">for</span> name, info <span class="kw">in</span> services.items():
+        report[name] = <span class="st">'healthy'</span> <span class="kw">if</span> info[<span class="st">'up'</span>] <span class="kw">and</span> info[<span class="st">'latency_ms'</span>] < <span class="nm">500</span> <span class="kw">else</span> <span class="st">'unhealthy'</span>
+    <span class="kw">return</span> report
+
+services = {
+    <span class="st">'auth-service'</span>: {<span class="st">'up'</span>: <span class="kw">True</span>, <span class="st">'latency_ms'</span>: <span class="nm">45</span>},
+    <span class="st">'candidate-service'</span>: {<span class="st">'up'</span>: <span class="kw">True</span>, <span class="st">'latency_ms'</span>: <span class="nm">620</span>},   <span class="cm"># up, but dangerously slow</span>
+    <span class="st">'scoring-service'</span>: {<span class="st">'up'</span>: <span class="kw">False</span>, <span class="st">'latency_ms'</span>: <span class="nm">0</span>},
+}
+<span class="bi">print</span>(check_health(services))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Notice "healthy" isn't just "up".</strong> A service that's technically running but taking 620ms to respond is a real production problem a boolean up/down check would completely miss — a good health check considers latency (and often error rate) alongside raw reachability.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Correlation IDs: tracing ONE request across services via logs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">log_event</span>(correlation_id, service, event, **extra):
+    <span class="kw">return</span> <span class="st">f'[<span class="bi">{correlation_id}</span>] <span class="bi">{service}</span>: <span class="bi">{event}</span> <span class="bi">{extra}</span>'</span>
+
+cid = <span class="st">'req-8842'</span>   <span class="cm"># generated ONCE, at the entry point (e.g. the API gateway)</span>
+logs = [
+    log_event(cid, <span class="st">'api-gateway'</span>, <span class="st">'received request'</span>, path=<span class="st">'/apply'</span>),
+    log_event(cid, <span class="st">'auth-service'</span>, <span class="st">'token validated'</span>, user_id=<span class="nm">501</span>),
+    log_event(cid, <span class="st">'candidate-service'</span>, <span class="st">'profile loaded'</span>, candidate_id=<span class="nm">501</span>),
+]
+<span class="kw">for</span> line <span class="kw">in</span> logs:
+    <span class="bi">print</span>(line)
+
+<span class="cm"># "trace this one request" = grep every log line for its correlation ID</span>
+matching = [l <span class="kw">for</span> l <span class="kw">in</span> logs <span class="kw">if</span> cid <span class="kw">in</span> l]
+<span class="bi">print</span>(<span class="st">f'Log lines for <span class="bi">{cid}</span>: <span class="bi">{len(matching)}</span>'</span>)</div>
+  </div>
+
+  <p class="lesson-p">Zoom out from single log lines to the whole system, and you can model it as a <strong>call graph</strong>: a dict mapping each service to the calls it makes downstream, each with a simulated latency and a flag for whether that specific hop fails. Tracing a request through it — stopping and reporting the instant something fails — is exactly the debugging instinct "which service actually broke," made runnable.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Simulating and tracing a microservice call graph</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">CALL_GRAPH = {
+    <span class="st">'api-gateway'</span>: [{<span class="st">'to'</span>: <span class="st">'auth-service'</span>, <span class="st">'latency_ms'</span>: <span class="nm">40</span>, <span class="st">'fails'</span>: <span class="kw">False</span>}],
+    <span class="st">'auth-service'</span>: [{<span class="st">'to'</span>: <span class="st">'candidate-service'</span>, <span class="st">'latency_ms'</span>: <span class="nm">60</span>, <span class="st">'fails'</span>: <span class="kw">False</span>}],
+    <span class="st">'candidate-service'</span>: [{<span class="st">'to'</span>: <span class="st">'scoring-service'</span>, <span class="st">'latency_ms'</span>: <span class="nm">150</span>, <span class="st">'fails'</span>: <span class="kw">True</span>}],   <span class="cm"># <- this hop fails</span>
+    <span class="st">'scoring-service'</span>: [{<span class="st">'to'</span>: <span class="st">'notification-service'</span>, <span class="st">'latency_ms'</span>: <span class="nm">30</span>, <span class="st">'fails'</span>: <span class="kw">False</span>}],
+    <span class="st">'notification-service'</span>: [],
+}
+
+<span class="kw">def</span> <span class="fn">trace_request</span>(graph, start):
+    total_latency = <span class="nm">0</span>
+    path = [start]
+    node = start
+    <span class="kw">while</span> graph.get(node):
+        call = graph[node][<span class="nm">0</span>]
+        total_latency += call[<span class="st">'latency_ms'</span>]
+        <span class="kw">if</span> call[<span class="st">'fails'</span>]:
+            <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">False</span>, <span class="st">'failed_at'</span>: call[<span class="st">'to'</span>], <span class="st">'path'</span>: path + [call[<span class="st">'to'</span>]], <span class="st">'total_latency_ms'</span>: total_latency}
+        path.append(call[<span class="st">'to'</span>])
+        node = call[<span class="st">'to'</span>]
+    <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">True</span>, <span class="st">'failed_at'</span>: <span class="kw">None</span>, <span class="st">'path'</span>: path, <span class="st">'total_latency_ms'</span>: total_latency}
+
+result = trace_request(CALL_GRAPH, <span class="st">'api-gateway'</span>)
+<span class="bi">print</span>(<span class="st">f'Trace result: <span class="bi">{result}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>This is the "which hop failed" question, made concrete.</strong> Instead of guessing, the trace walks the graph hop by hop, adding up latency as it goes, and stops exactly at the failing call — telling you both WHERE it broke and how much time was spent before the failure. Real distributed tracing tools (Jaeger, Zipkin, OpenTelemetry) do exactly this, using correlation IDs (called "trace IDs" there) to stitch spans from every service back into one picture.</div></div>
+
+  <!-- 2.5 -->
+  <div class="lesson-h2">2.5 — Timeouts, Retries With Backoff &amp; Circuit Breakers</div>
+  <p class="lesson-p">A <strong>timeout</strong> is a promise you make to yourself: "I will not wait for this call forever." Without one, a single slow downstream call can hang your service indefinitely. A <strong>retry</strong> re-attempts a failed call — but retrying immediately, in a tight loop, can hammer an already-struggling service and make things worse (a "retry storm"). <strong>Exponential backoff</strong> fixes that by waiting progressively longer between attempts (0.1s, 0.2s, 0.4s...), giving the downstream service breathing room to recover.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Retry with exponential backoff — genuinely runnable</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">call_with_retry</span>(fn, max_retries=<span class="nm">3</span>, base_delay=<span class="nm">0.1</span>):
+    delays = []
+    <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(max_retries + <span class="nm">1</span>):
+        result = fn(attempt)
+        <span class="kw">if</span> result[<span class="st">'ok'</span>]:
+            <span class="kw">return</span> result, delays
+        <span class="kw">if</span> attempt < max_retries:
+            delay = base_delay * (<span class="nm">2</span> ** attempt)   <span class="cm"># 0.1, 0.2, 0.4, 0.8, ...</span>
+            delays.append(delay)
+    <span class="kw">return</span> result, delays
+
+<span class="cm"># a flaky call that fails on attempts 0 and 1, succeeds on attempt 2</span>
+<span class="kw">def</span> <span class="fn">flaky_call</span>(attempt):
+    <span class="kw">return</span> {<span class="st">'ok'</span>: attempt >= <span class="nm">2</span>, <span class="st">'attempt'</span>: attempt}
+
+result, delays = call_with_retry(flaky_call)
+<span class="bi">print</span>(<span class="st">f'Result: <span class="bi">{result}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Backoff delays used: <span class="bi">{delays}</span>'</span>)</div>
+  </div>
+
+  <p class="lesson-p">But retries alone assume the failure is brief. If the downstream is genuinely down for a while, retries just mean EVERY caller keeps hammering it — a <strong>circuit breaker</strong> fixes that with a small state machine: <strong>CLOSED</strong> (normal — calls flow through, failures are counted), <strong>OPEN</strong> (after too many failures — calls are short-circuited immediately, no network call even attempted, protecting both the caller and the struggling service), and <strong>HALF_OPEN</strong> (after a cooldown — let a trial call through; succeed and it closes again, fail and it reopens).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A circuit breaker state machine — CLOSED / OPEN / HALF_OPEN</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">CircuitBreaker</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, failure_threshold=<span class="nm">3</span>, reset_after=<span class="nm">5</span>):
+        self.state = <span class="st">'CLOSED'</span>
+        self.failure_count = <span class="nm">0</span>
+        self.failure_threshold = failure_threshold
+        self.reset_after = reset_after       <span class="cm"># calls-while-open before trying a HALF_OPEN test</span>
+        self.calls_since_open = <span class="nm">0</span>
+
+    <span class="kw">def</span> <span class="fn">call</span>(self, fn, *args):
+        <span class="kw">if</span> self.state == <span class="st">'OPEN'</span>:
+            self.calls_since_open += <span class="nm">1</span>
+            <span class="kw">if</span> self.calls_since_open >= self.reset_after:
+                self.state = <span class="st">'HALF_OPEN'</span>            <span class="cm"># allow ONE trial call through</span>
+            <span class="kw">else</span>:
+                <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">False</span>, <span class="st">'error'</span>: <span class="st">'circuit open - call short-circuited, no network call made'</span>}
+        <span class="kw">try</span>:
+            result = fn(*args)
+            <span class="kw">if</span> <span class="kw">not</span> result[<span class="st">'ok'</span>]:
+                <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">'downstream failure'</span>)
+            <span class="kw">if</span> self.state == <span class="st">'HALF_OPEN'</span>:
+                self.state = <span class="st">'CLOSED'</span>                <span class="cm"># trial call succeeded -> fully recovered</span>
+            self.failure_count = <span class="nm">0</span>
+            <span class="kw">return</span> result
+        <span class="kw">except</span> <span class="bi">Exception</span>:
+            self.failure_count += <span class="nm">1</span>
+            <span class="kw">if</span> self.state == <span class="st">'HALF_OPEN'</span>:
+                self.state = <span class="st">'OPEN'</span>                  <span class="cm"># trial call failed -> still broken, reopen</span>
+                self.calls_since_open = <span class="nm">0</span>
+            <span class="kw">elif</span> self.failure_count >= self.failure_threshold:
+                self.state = <span class="st">'OPEN'</span>
+                self.calls_since_open = <span class="nm">0</span>
+            <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">False</span>, <span class="st">'error'</span>: <span class="st">'downstream failure'</span>}
+
+<span class="kw">def</span> <span class="fn">always_fail</span>(): <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">False</span>}
+<span class="kw">def</span> <span class="fn">always_succeed</span>(): <span class="kw">return</span> {<span class="st">'ok'</span>: <span class="kw">True</span>}
+
+cb = CircuitBreaker(failure_threshold=<span class="nm">3</span>, reset_after=<span class="nm">2</span>)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>):
+    cb.call(always_fail)
+<span class="bi">print</span>(<span class="st">f'State after 3 failures: <span class="bi">{cb.state}</span>'</span>)
+
+r1 = cb.call(always_succeed)   <span class="cm"># circuit is OPEN, still short-circuited (only 1 call since open)</span>
+<span class="bi">print</span>(<span class="st">f'r1: <span class="bi">{r1}</span>, state: <span class="bi">{cb.state}</span>'</span>)
+
+r2 = cb.call(always_succeed)   <span class="cm"># 2nd call since open -> HALF_OPEN trial -> succeeds -> CLOSED</span>
+<span class="bi">print</span>(<span class="st">f'r2: <span class="bi">{r2}</span>, state: <span class="bi">{cb.state}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Retries and circuit breakers solve different halves of the same problem.</strong> Retries absorb brief transient blips. A circuit breaker protects against a sustained outage — without it, every caller's retries keep pounding a service that's already struggling, which can prevent it from ever recovering. And crucially: NEVER retry a non-idempotent operation without an idempotency key — SF 1 covered exactly why (a naive retry on a bare POST can double-charge a card or double-send an email).</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Systems Fundamentals 2 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>IP + port + DNS</strong> is the whole minimum networking model — an address, which process on that address, and a name-to-address lookup.</div></li>
+    <li data-n="2"><div><strong>TCP guarantees delivery/order; UDP doesn't</strong> — which is exactly why file downloads need TCP and live video calls can use UDP.</div></li>
+    <li data-n="3"><div><strong>Sync communication</strong> couples uptime/latency across services; <strong>async</strong> decouples it at the cost of eventual consistency and added complexity.</div></li>
+    <li data-n="4"><div><strong>Health checks, correlation IDs, and call-graph tracing</strong> are the real toolkit for answering "is Service A actually reaching Service B?"</div></li>
+    <li data-n="5"><div><strong>Retry with exponential backoff</strong> absorbs brief blips; a <strong>circuit breaker</strong> (CLOSED/OPEN/HALF_OPEN) protects against sustained outages — and neither should ever apply blindly to a non-idempotent operation.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Health Checks Across a New Set of Services</div>
+        <div class="ex-desc">Reuse check_health from 2.4 and list which services came back unhealthy.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact check_health() from 2.4:
+  services2 = {
+      'gateway': {'up': True, 'latency_ms': 20},
+      'billing-service': {'up': True, 'latency_ms': 55},
+      'inventory-service': {'up': True, 'latency_ms': 900},
+      'email-service': {'up': False, 'latency_ms': 0},
+  }
+  report2 = check_health(services2)
+  unhealthy = [k for k, v in report2.items() if v == 'unhealthy']
+
+Print exactly:
+  f'Report: {report2}'
+  f'Unhealthy: {unhealthy}'
+(Correct: Report: {'gateway': 'healthy', 'billing-service': 'healthy', 'inventory-service': 'unhealthy', 'email-service': 'unhealthy'} / Unhealthy: ['inventory-service', 'email-service'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># def check_health(services): ...
+# (paste from 2.4, then:)
+# services2 = {
+#     'gateway': {'up': True, 'latency_ms': 20},
+#     'billing-service': {'up': True, 'latency_ms': 55},
+#     'inventory-service': {'up': True, 'latency_ms': 900},
+#     'email-service': {'up': False, 'latency_ms': 0},
+# }
+# report2 = check_health(services2)
+# unhealthy = [k for k, v in report2.items() if v == 'unhealthy']
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Trace One Request by Correlation ID Among Others</div>
+        <div class="ex-desc">Reuse log_event from 2.4 with logs from TWO different requests mixed together.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact log_event() from 2.4:
+  cid2 = 'req-3301'
+  logs2 = [
+      log_event(cid2, 'api-gateway', 'received request', path='/checkout'),
+      log_event('req-9999', 'api-gateway', 'received request', path='/other'),
+      log_event(cid2, 'payment-service', 'charge attempted', amount=42.5),
+      log_event(cid2, 'notification-service', 'receipt sent', email='a@b.com'),
+  ]
+  matching2 = [l for l in logs2 if cid2 in l]
+
+Print exactly:
+  f'Total logs: {len(logs2)}'
+  f'Matching {cid2}: {len(matching2)}'
+  (then each line in matching2, printed on its own)
+(Correct: Total logs: 4 / Matching req-3301: 3 — followed by the 3 matching log lines)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def log_event(correlation_id, service, event, **extra):
+#     return f'[{correlation_id}] {service}: {event} {extra}'
+#
+# cid2 = 'req-3301'
+# logs2 = [
+#     log_event(cid2, 'api-gateway', 'received request', path='/checkout'),
+#     log_event('req-9999', 'api-gateway', 'received request', path='/other'),
+#     log_event(cid2, 'payment-service', 'charge attempted', amount=42.5),
+#     log_event(cid2, 'notification-service', 'receipt sent', email='a@b.com'),
+# ]
+# matching2 = [l for l in logs2 if cid2 in l]
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Retry With Backoff: Fails 3 Times, Then Succeeds</div>
+        <div class="ex-desc">Reuse call_with_retry from 2.5 with a flakier function and a different base_delay.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact call_with_retry() from 2.5:
+  def flaky_call_2(attempt):
+      return {'ok': attempt >= 3, 'attempt': attempt}
+  result3, delays3 = call_with_retry(flaky_call_2, max_retries=3, base_delay=0.05)
+
+Print exactly:
+  f'Result: {result3}'
+  f'Delays: {delays3}'
+(Correct: Result: {'ok': True, 'attempt': 3} / Delays: [0.05, 0.1, 0.2])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># def call_with_retry(fn, max_retries=3, base_delay=0.1):
+#     delays = []
+#     for attempt in range(max_retries + 1):
+#         result = fn(attempt)
+#         if result['ok']:
+#             return result, delays
+#         if attempt < max_retries:
+#             delay = base_delay * (2 ** attempt)
+#             delays.append(delay)
+#     return result, delays
+#
+# def flaky_call_2(attempt):
+#     return {'ok': attempt >= 3, 'attempt': attempt}
+#
+# result3, delays3 = call_with_retry(flaky_call_2, max_retries=3, base_delay=0.05)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Call Graph: a Different Failure Point</div>
+        <div class="ex-desc">Reuse trace_request from 2.4 on a 4-service graph that fails one hop earlier.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact trace_request() from 2.4:
+  CALL_GRAPH_2 = {
+      'api-gateway': [{'to': 'auth-service', 'latency_ms': 25, 'fails': False}],
+      'auth-service': [{'to': 'user-service', 'latency_ms': 300, 'fails': True}],
+      'user-service': [{'to': 'profile-service', 'latency_ms': 20, 'fails': False}],
+      'profile-service': [],
+  }
+  result4 = trace_request(CALL_GRAPH_2, 'api-gateway')
+
+Print exactly: f'Trace: {result4}'
+(Correct: Trace: {'ok': False, 'failed_at': 'user-service', 'path': ['api-gateway', 'auth-service', 'user-service'], 'total_latency_ms': 325})</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code"># def trace_request(graph, start): ...  (paste from 2.4)
+CALL_GRAPH_2 = {
+    'api-gateway': [{'to': 'auth-service', 'latency_ms': 25, 'fails': False}],
+    'auth-service': [{'to': 'user-service', 'latency_ms': 300, 'fails': True}],
+    'user-service': [{'to': 'profile-service', 'latency_ms': 20, 'fails': False}],
+    'profile-service': [],
+}
+# result4 = trace_request(CALL_GRAPH_2, 'api-gateway')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Circuit Breaker: Trip, Short-Circuit, Recover</div>
+        <div class="ex-desc">Run a sequence of 6 calls through a CircuitBreaker and report the outcome of each plus the final state.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact CircuitBreaker class from 2.5 (and always_fail/always_succeed):
+  cb2 = CircuitBreaker(failure_threshold=2, reset_after=3)
+  calls = [always_fail, always_fail, always_succeed, always_succeed, always_succeed, always_succeed]
+  outcomes = []
+  for fn in calls:
+      r = cb2.call(fn)
+      outcomes.append(r['ok'])
+
+Print exactly:
+  f'Outcomes: {outcomes}'
+  f'Final state: {cb2.state}'
+(Correct: Outcomes: [False, False, False, False, True, True] / Final state: CLOSED)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># class CircuitBreaker: ...  (paste from 2.5)
+# def always_fail(): return {'ok': False}
+# def always_succeed(): return {'ok': True}
+#
+# cb2 = CircuitBreaker(failure_threshold=2, reset_after=3)
+# calls = [always_fail, always_fail, always_succeed, always_succeed, always_succeed, always_succeed]
+# outcomes = []
+# for fn in calls:
+#     r = cb2.call(fn)
+#     outcomes.append(r['ok'])
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>Job-Application Call Graph — Find the Broken Hop</span></h2>
+    <p>A realistic 5-service chain: API Gateway → Auth Service → Candidate Service → Scoring Service → Notification Service. One hop is going to fail. Your code needs to trace the request, report exactly which service failed and how much latency was spent before the failure, AND answer the practical question every on-call engineer asks next: would retrying this specific hop actually help?</p>
+    <div class="project-tags">
+      <span class="ptag">call graph</span>
+      <span class="ptag">failure localization</span>
+      <span class="ptag">retry safety</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A 5-node JOB_APP_GRAPH matching this chapter's call-graph shape, PLUS a safe_to_retry flag on each call (True if the operation is idempotent/safe to repeat, False if not — e.g. a notification send is not safe to retry blindly)</li>
+      <li>Reuse trace_request from the lesson to find which hop fails and the latency spent getting there</li>
+      <li>When it fails, look up the failing call's safe_to_retry flag and report it alongside the failure</li>
+      <li>Print: which service failed, the path up to the failure, total latency to failure, and whether retrying that hop is safe</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Job-Application Call Graph — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: Job-Application Call Graph
+# Use ONLY Systems Fundamentals 2 concepts
+# ══════════════════════════════════════════
+
+# === TODO 1: the 5-service graph, with a safe_to_retry flag per call ===
+# JOB_APP_GRAPH = {
+#     'api-gateway': [{'to': 'auth-service', 'latency_ms': 20, 'fails': False, 'safe_to_retry': True}],
+#     'auth-service': [{'to': 'candidate-service', 'latency_ms': 35, 'fails': False, 'safe_to_retry': True}],
+#     'candidate-service': [{'to': 'scoring-service', 'latency_ms': 80, 'fails': True, 'safe_to_retry': True}],
+#     'scoring-service': [{'to': 'notification-service', 'latency_ms': 25, 'fails': False, 'safe_to_retry': False}],
+#     'notification-service': [],
+# }
+
+# === TODO 2: reuse trace_request from the lesson ===
+# def trace_request(graph, start):
+#     total_latency = 0
+#     path = [start]
+#     node = start
+#     while graph.get(node):
+#         call = graph[node][0]
+#         total_latency += call['latency_ms']
+#         if call['fails']:
+#             return {'ok': False, 'failed_at': call['to'], 'path': path + [call['to']], 'total_latency_ms': total_latency}
+#         path.append(call['to'])
+#         node = call['to']
+#     return {'ok': True, 'failed_at': None, 'path': path, 'total_latency_ms': total_latency}
+
+# === TODO 3: trace, then look up the failing call's safe_to_retry flag ===
+# def trace_with_retry_advice(graph, start):
+#     trace = trace_request(graph, start)
+#     if trace['ok']:
+#         return trace
+#     failing_node = trace['path'][-2]     # the service that MADE the failing call
+#     call = graph[failing_node][0]
+#     trace['safe_to_retry'] = call['safe_to_retry']
+#     return trace
+#
+# cap_result = trace_with_retry_advice(JOB_APP_GRAPH, 'api-gateway')
+# print(f"Failed at: {cap_result['failed_at']}")
+# print(f"Path so far: {cap_result['path']}")
+# print(f"Total latency to failure: {cap_result['total_latency_ms']}ms")
+# print(f"Safe to retry: {cap_result['safe_to_retry']}")
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🎯</span>Failed at: scoring-service</div>
+    <div class="check-item"><span class="check-icon">🛤️</span>Path so far: ['api-gateway', 'auth-service', 'candidate-service', 'scoring-service']</div>
+    <div class="check-item"><span class="check-icon">⏱️</span>Total latency to failure: 135ms</div>
+    <div class="check-item"><span class="check-icon">🔁</span>Safe to retry: True</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Systems Fundamentals 2 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Service A calls Service B synchronously over HTTP and waits for the response. What's the real cost of that choice, beyond simplicity?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> There is no real cost — synchronous calls are always strictly better</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> It couples A's uptime and latency to B's — if B is slow or down, A is slow or down too, and a chain of sync calls compounds latency</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Synchronous calls automatically retry on failure with no extra code</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> A synchronous call requires a message queue to function at all</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why does a <code>/healthz</code> endpoint matter for a service running behind a load balancer or orchestrator, beyond "nice to have"?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> It makes the service itself run faster</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> It gives infrastructure a fast, cheap way to know an instance can serve traffic right now — a failing instance can be pulled from rotation or restarted automatically instead of silently failing every request</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> It's only used once, during initial deployment</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It replaces the need for any logging</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Under what condition does blindly retrying a failed request make things WORSE, not better?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Never — retries are always completely safe</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> When the operation is NOT idempotent (e.g. a bare POST that charges a card or sends an email) — a retry can duplicate a real side effect instead of safely repeating a no-op</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only when the service uses UDP instead of TCP</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Only if a correlation ID is missing from the request</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that computes the exponential backoff delay for a given attempt number <code>attempt</code> and a <code>base_delay</code>, matching this chapter's <code>call_with_retry</code> pattern (assign it to a variable named <code>delay</code>).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="delay = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">A circuit breaker has been OPEN for a while after sustained downstream failures. What happens next, and what is that transitional state called?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It stays OPEN forever until a human manually resets it</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> After a cooldown period it moves to HALF_OPEN, allowing a small number of trial requests through — success closes it again, failure reopens it</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It immediately snaps back to CLOSED with no testing at all</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It converts all future requests from TCP to UDP</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">⚖️</div>
+    <div class="ncc-info">
+      <h3>SF 3: Load Balancers &amp; Firewalls</h3>
+      <p>Next up: Layer 4 vs Layer 7 routing (built and run side by side), round robin vs least connections, health-aware backend pools, and a real, runnable firewall rule evaluator.</p>
+    </div>
+    <a class="ncc-btn" href="sf03-load-balancers-firewalls.html">Start SF 3 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Networking &amp; Microservices — Interview Prep</h2>
+    <p>12 questions covering the exact angles interviewers use to check whether you've genuinely reasoned about distributed systems reliability, not just called an HTTP client. Click a question to reveal the answer.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the real tradeoff between synchronous and asynchronous service communication?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Sync (direct HTTP call, wait for the response) is simpler to write and reason about, but it couples the caller's uptime and latency to the callee's — if B is slow or down, A is too, and a chain of sync calls compounds latency (A waits for B, who waits for C...). Async (a message queue, an event) decouples services — A can publish and move on even if B is temporarily down, since messages queue up until B recovers — but adds real complexity: eventual consistency (a window where A "finished" but B hasn't processed yet), message ordering, and what happens if a message gets processed twice.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why do health-check endpoints matter, beyond "nice to have"?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A <code>/healthz</code> endpoint gives infrastructure (a load balancer, an orchestrator like Kubernetes) a fast, cheap way to answer "can this instance serve traffic right now" without guessing from application-level signals. Without one, a crashed or degraded instance can keep receiving traffic indefinitely, silently failing every request it gets. With one, the failing instance gets pulled from rotation (or restarted) automatically, often before anyone even notices.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a correlation ID for, and why can't you just use timestamps to trace a request across services?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A correlation ID is a unique identifier generated once (usually at the entry point, like the API gateway) and passed along unchanged through every downstream call and every log line that request touches. It lets you grep logs for one ID and see the entire path a single request took across every service, in order. Timestamps can't do this reliably: multiple requests happen concurrently, clocks can drift slightly between machines, and nothing about a timestamp tells you WHICH request a given log line belongs to — a correlation ID is an explicit, unambiguous key for exactly that.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When do retries make things WORSE instead of better?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">When the operation being retried is NOT idempotent. Retrying a failed "charge this card" POST without an idempotency key can charge the customer twice; retrying a failed "send notification email" can spam the user. The fix isn't "never retry" — it's "only retry operations that are safe to repeat" (idempotent by nature, or made safe via an idempotency key), combined with a circuit breaker so a genuinely down service doesn't get hammered by every caller retrying simultaneously — a "retry storm" that can turn a partial outage into a full one.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Walk through the three circuit breaker states and what each one actually does.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">CLOSED is normal — requests flow through directly, failures are counted. After enough failures cross a threshold, the breaker trips to OPEN — calls are short-circuited immediately without even attempting the network call, protecting both the caller (fast failure instead of hanging) and the struggling downstream service (no added load while it's already in trouble). After a cooldown period, it moves to HALF_OPEN — it lets a small number of trial requests through to test recovery; success closes it again, failure reopens it and the cooldown starts over.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why can video calls get away with UDP while a file download needs TCP?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">TCP guarantees delivery and ordering — every packet is acknowledged, lost packets get retransmitted — exactly what a file download needs (a file missing even one byte is corrupted). UDP makes no such guarantee — packets can arrive out of order or simply not arrive, and UDP won't retransmit. For a live call, a packet from half a second ago that arrives late is USELESS by the time a guaranteed retransmit would finish — you'd rather skip it and keep the stream moving in real time than freeze waiting for a perfect-but-stale packet. TCP optimizes for correctness; UDP optimizes for timeliness — which one you want depends entirely on whether a late-but-correct packet is still useful.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">In one sentence, what does DNS actually do, and why does that matter for debugging?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">DNS resolves a human-readable domain name to the IP address a machine can actually route packets to — that's the whole idea. It matters for debugging because "can't reach the server" can come from at least two different places: DNS resolution failing (the name never turns into an IP at all) vs. the resolved IP being unreachable (the name resolves fine, but nothing responds) — mixing those up sends you down the wrong troubleshooting path.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does "connection refused" point at something different than a timeout?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">"Connection refused" means a packet reached the target machine and the target machine ACTIVELY said no — usually because nothing is listening on that port (the process isn't running, or is bound to a different port). A timeout means your packet never got any response at all, which usually means something in between is silently dropping it (a firewall rule, a security group, a network partition) or the target machine itself is unreachable. That's a genuinely useful diagnostic split covered in more depth in SF 4: "refused" tells you the network path IS open and something IS there, just not listening; a timeout tells you the network path itself is the suspect.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why would you choose a message queue over a direct HTTP call between two services?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A direct HTTP call couples the two services' availability together in real time — if the downstream is down or slow, the caller is blocked or failing too. A message queue (Kafka, RabbitMQ, SQS) decouples that: the caller publishes and moves on immediately, and the queue holds the message until the consumer is ready — even if the consumer is down for five minutes, nothing is lost, it just catches up later. The tradeoff is added complexity (message ordering, at-least-once vs exactly-once delivery, eventual consistency instead of an immediate answer), and it's a bad fit when the caller genuinely needs an immediate answer to keep going (e.g. "is this login valid" can't be answered asynchronously).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is "eventual consistency," concretely, and why is it the price of async communication?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">When Service A publishes an event and Service B consumes it asynchronously, there's a real window of time — milliseconds to seconds, sometimes longer under load — during which A's state has changed but B hasn't caught up. Anything reading from B during that window sees stale data relative to A. That's eventual consistency: the system WILL become consistent, just not INSTANTLY. It's the price of decoupling — a synchronous call gives immediate consistency but couples uptime; async gives resilience to the downstream being temporarily unavailable, at the cost of a window where different parts of the system briefly disagree.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you actually verify Service A is reaching Service B, beyond "it looks fine in the dashboard"?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Layer the evidence: (1) Check B's own health-check endpoint directly — if it's unhealthy, nothing reaching it matters yet. (2) Check A's outbound logs for the exact call it made to B and B's inbound logs for a matching entry with the SAME correlation ID — if A logged sending it but B never logged receiving it, the break is somewhere in between (DNS, firewall, wrong URL/port). (3) If both logged it but something's still wrong, compare timestamps for unusually high latency and check the actual response body/status B sent back, not just "did a response come back." Health, then logs matched by correlation ID, then latency/response detail — that layered approach is a much stronger answer than "I'd check the logs."</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You added retries AND a circuit breaker to a downstream call. Why do you need both, rather than just one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retries alone handle brief, transient blips (a dropped packet, a momentary GC pause) — but if the downstream is GENUINELY down for a while, retries alone just mean every caller hammers it repeatedly, which can prevent it from ever recovering (the "retry storm" problem). A circuit breaker alone handles the sustained-outage case (stop calling entirely once it's clearly failing) but without retries, a single transient blip that would have succeeded on the very next attempt gets treated as a hard failure. Together: retries absorb short-lived transient failures, and the circuit breaker only kicks in once failures are frequent/sustained enough to indicate a real outage — protecting the downstream from pile-on while staying resilient to one-off blips.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# No external libraries needed — everything here is pure Python (stdlib only)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["report: {'gateway': 'healthy', 'billing-service': 'healthy', 'inventory-service': 'unhealthy', 'email-service': 'unhealthy'}","unhealthy: ['inventory-service', 'email-service']"],
+    hint:"'unhealthy' happens if either up is False OR latency_ms >= 500 — inventory-service is up but at 900ms, so it's still unhealthy",
+    solution:`def check_health(services):
+    report = {}
+    for name, info in services.items():
+        report[name] = 'healthy' if info['up'] and info['latency_ms'] < 500 else 'unhealthy'
+    return report
+
+services2 = {
+    'gateway': {'up': True, 'latency_ms': 20},
+    'billing-service': {'up': True, 'latency_ms': 55},
+    'inventory-service': {'up': True, 'latency_ms': 900},
+    'email-service': {'up': False, 'latency_ms': 0},
+}
+report2 = check_health(services2)
+unhealthy = [k for k, v in report2.items() if v == 'unhealthy']
+print(f'Report: {report2}')
+print(f'Unhealthy: {unhealthy}')`
+  },
+  2:{
+    checks:["total logs: 4","matching req-3301: 3","[req-3301] api-gateway: received request {'path': '/checkout'}","[req-3301] payment-service: charge attempted {'amount': 42.5}","[req-3301] notification-service: receipt sent {'email': 'a@b.com'}"],
+    hint:"filter with `if cid2 in l` — the correlation id string appears literally inside each formatted log line",
+    solution:`def log_event(correlation_id, service, event, **extra):
+    return f'[{correlation_id}] {service}: {event} {extra}'
+
+cid2 = 'req-3301'
+logs2 = [
+    log_event(cid2, 'api-gateway', 'received request', path='/checkout'),
+    log_event('req-9999', 'api-gateway', 'received request', path='/other'),
+    log_event(cid2, 'payment-service', 'charge attempted', amount=42.5),
+    log_event(cid2, 'notification-service', 'receipt sent', email='a@b.com'),
+]
+matching2 = [l for l in logs2 if cid2 in l]
+print(f'Total logs: {len(logs2)}')
+print(f'Matching {cid2}: {len(matching2)}')
+for l in matching2:
+    print(l)`
+  },
+  3:{
+    checks:["result: {'ok': true, 'attempt': 3}","delays: [0.05, 0.1, 0.2]"],
+    hint:"attempts 0, 1, 2 all fail (attempt < 3), so 3 delays get appended before attempt 3 succeeds",
+    solution:`def call_with_retry(fn, max_retries=3, base_delay=0.1):
+    delays = []
+    for attempt in range(max_retries + 1):
+        result = fn(attempt)
+        if result['ok']:
+            return result, delays
+        if attempt < max_retries:
+            delay = base_delay * (2 ** attempt)
+            delays.append(delay)
+    return result, delays
+
+def flaky_call_2(attempt):
+    return {'ok': attempt >= 3, 'attempt': attempt}
+
+result3, delays3 = call_with_retry(flaky_call_2, max_retries=3, base_delay=0.05)
+print(f'Result: {result3}')
+print(f'Delays: {delays3}')`
+  },
+  4:{
+    checks:["trace: {'ok': false, 'failed_at': 'user-service', 'path': ['api-gateway', 'auth-service', 'user-service'], 'total_latency_ms': 325}"],
+    hint:"the trace walks api-gateway -> auth-service -> user-service, adding 25 + 300 before the call TO user-service fails (25+300=325)",
+    solution:`def trace_request(graph, start):
+    total_latency = 0
+    path = [start]
+    node = start
+    while graph.get(node):
+        call = graph[node][0]
+        total_latency += call['latency_ms']
+        if call['fails']:
+            return {'ok': False, 'failed_at': call['to'], 'path': path + [call['to']], 'total_latency_ms': total_latency}
+        path.append(call['to'])
+        node = call['to']
+    return {'ok': True, 'failed_at': None, 'path': path, 'total_latency_ms': total_latency}
+
+CALL_GRAPH_2 = {
+    'api-gateway': [{'to': 'auth-service', 'latency_ms': 25, 'fails': False}],
+    'auth-service': [{'to': 'user-service', 'latency_ms': 300, 'fails': True}],
+    'user-service': [{'to': 'profile-service', 'latency_ms': 20, 'fails': False}],
+    'profile-service': [],
+}
+result4 = trace_request(CALL_GRAPH_2, 'api-gateway')
+print(f'Trace: {result4}')`
+  },
+  5:{
+    checks:["outcomes: [false, false, false, false, true, true]","final state: closed"],
+    hint:"threshold=2 means the breaker OPENs after the 2nd failure; reset_after=3 means it needs 3 calls-while-open before trying a HALF_OPEN test",
+    solution:`class CircuitBreaker:
+    def __init__(self, failure_threshold=3, reset_after=5):
+        self.state = 'CLOSED'
+        self.failure_count = 0
+        self.failure_threshold = failure_threshold
+        self.reset_after = reset_after
+        self.calls_since_open = 0
+    def call(self, fn, *args):
+        if self.state == 'OPEN':
+            self.calls_since_open += 1
+            if self.calls_since_open >= self.reset_after:
+                self.state = 'HALF_OPEN'
+            else:
+                return {'ok': False, 'error': 'circuit open'}
+        try:
+            result = fn(*args)
+            if not result['ok']:
+                raise ValueError('downstream failure')
+            if self.state == 'HALF_OPEN':
+                self.state = 'CLOSED'
+            self.failure_count = 0
+            return result
+        except Exception:
+            self.failure_count += 1
+            if self.state == 'HALF_OPEN':
+                self.state = 'OPEN'
+                self.calls_since_open = 0
+            elif self.failure_count >= self.failure_threshold:
+                self.state = 'OPEN'
+                self.calls_since_open = 0
+            return {'ok': False, 'error': 'downstream failure'}
+
+def always_fail(): return {'ok': False}
+def always_succeed(): return {'ok': True}
+
+cb2 = CircuitBreaker(failure_threshold=2, reset_after=3)
+calls = [always_fail, always_fail, always_succeed, always_succeed, always_succeed, always_succeed]
+outcomes = []
+for fn in calls:
+    r = cb2.call(fn)
+    outcomes.append(r['ok'])
+print(f'Outcomes: {outcomes}')
+print(f'Final state: {cb2.state}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['failed at: scoring-service',"path so far: ['api-gateway', 'auth-service', 'candidate-service', 'scoring-service']",'total latency to failure: 135ms','safe to retry: true'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('delay=base_delay*(2**attempt)');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! delay = base_delay * (2 ** attempt)'
+    :'❌ Not quite. You need: delay = base_delay * (2 ** attempt)';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Health checks, correlation IDs, retries with backoff, and circuit breakers — the real toolkit for knowing whether your microservices are actually talking to each other reliably. Check out the Interview Prep tab, then move on to SF 3.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
