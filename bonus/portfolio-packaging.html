@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus: Portfolio Packaging</title>
+<!-- USAGE:
+  This is a BONUS/supplementary page — it is explicitly NOT one of the 35 core chapters. It does
+  not get renumbered into the course, isn't gated behind any quiz, and needs no Pyodide/Python
+  execution — it's pure written reference material: how to turn Ch 33-35's production projects
+  into resume bullets, a GitHub presentation, a free live deployment, and interview-ready talking
+  points. No XP, no localStorage progress tracking — just a practical guide for after the course.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none;background:none}
+
+#topnav{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:0 24px;height:56px;overflow-x:auto}
+.tn-home{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:var(--t2);padding:8px 12px 8px 0;border-right:1px solid var(--border);margin-right:8px;white-space:nowrap;flex-shrink:0}
+.tn-home:hover{color:var(--violet)}
+.tn-title{font-size:12.5px;font-weight:800;color:var(--violet);white-space:nowrap;flex-shrink:0;margin-right:10px}
+.tn-link{padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--t2);border-radius:8px;white-space:nowrap;flex-shrink:0;transition:all .15s;border:1px solid transparent}
+.tn-link:hover{color:var(--text);background:var(--card2)}
+.tn-link.active{color:var(--violet);background:var(--violet-bg);border-color:rgba(124,92,252,.3)}
+
+#main{max-width:880px;margin:0 auto;padding:36px 28px 100px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.14),rgba(0,217,166,.07));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:32px 36px;margin-bottom:36px}
+.lesson-intro h1{font-size:30px;font-weight:800;line-height:1.2;margin-bottom:12px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14.5px;color:var(--t2);line-height:1.8;max-width:680px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:18px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+section.big-section{margin-top:56px;scroll-margin-top:72px}
+.section-tag{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:var(--violet);background:var(--violet-bg);border:1px solid rgba(124,92,252,.3);border-radius:20px;padding:5px 14px;margin-bottom:14px}
+.section-h1{font-size:26px;font-weight:800;margin-bottom:10px}
+.section-lead{font-size:14px;color:var(--t2);line-height:1.8;max-width:700px;margin-bottom:28px}
+
+.lesson-h2{font-size:19px;font-weight:800;margin:34px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border);scroll-margin-top:72px}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.85;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px;vertical-align:top}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+.lesson-table.prose td{font-family:var(--sans);font-size:13px;color:var(--t2);line-height:1.6}
+.lesson-table.prose td.concept{color:var(--text);font-weight:700;font-family:var(--sans)}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-copy{font-size:11px;color:var(--t2);background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-weight:600}
+.cb-copy:hover{color:var(--violet);border-color:var(--violet)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}
+
+/* ---- bullet cards ---- */
+.bullet-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin:20px 0;overflow:hidden}
+.bullet-head{padding:16px 22px;background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bullet-head .bh-title{font-size:15px;font-weight:800}
+.bullet-head .bh-chip{font-size:10.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:6px;background:var(--violet-bg);color:var(--violet)}
+.bullet-body{padding:18px 22px}
+.bullet-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2);line-height:1.7}
+.bullet-item:last-child{border-bottom:none}
+.bullet-item::before{content:'▸';color:var(--violet);font-weight:800;flex-shrink:0}
+.bullet-item strong{color:var(--text)}
+.bullet-item code{font-family:var(--mono);font-size:12px;background:#0A0C12;padding:1px 6px;border-radius:4px;color:var(--cyan)}
+
+/* ---- iq-card (reused for FAQ-style content) ---- */
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px;flex-shrink:0}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .3s ease}
+.iq-card.open .iq-a{max-height:900px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner strong{color:var(--text)}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.back-top{position:fixed;bottom:24px;right:24px;background:var(--card);border:1px solid var(--border);color:var(--t2);border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:60;box-shadow:0 4px 16px rgba(0,0,0,.3);transition:all .15s;opacity:0;pointer-events:none}
+.back-top.show{opacity:1;pointer-events:auto}
+.back-top:hover{color:var(--violet);border-color:var(--violet)}
+
+.footer-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-top:56px;text-align:center}
+.footer-card h3{font-size:18px;font-weight:800;margin-bottom:8px}
+.footer-card p{font-size:13.5px;color:var(--t2);line-height:1.7;max-width:560px;margin:0 auto 18px}
+.footer-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:11px 22px;font-size:13.5px;font-weight:700}
+.footer-btn:hover{background:var(--violet-light)}
+
+@media(max-width:700px){
+  #main{padding:24px 16px 90px}
+  .lesson-intro{padding:24px 22px}
+  .lesson-intro h1{font-size:24px}
+  .bullet-head{flex-direction:column;align-items:flex-start}
+}
+</style>
+</head>
+<body>
+
+<div id="topnav">
+  <a class="tn-home" href="../index.html">🏠 ← Back to Course Home</a>
+  <span class="tn-title">💼 Portfolio Packaging</span>
+  <a class="tn-link" data-sec="sec-bullets" href="#sec-bullets">① Resume Bullets</a>
+  <a class="tn-link" data-sec="sec-github" href="#sec-github">② GitHub Presentation</a>
+  <a class="tn-link" data-sec="sec-deploy" href="#sec-deploy">③ Free Live Deployment</a>
+  <a class="tn-link" data-sec="sec-talk" href="#sec-talk">④ LinkedIn &amp; Talking About It</a>
+</div>
+
+<div id="main">
+
+  <div class="lesson-intro">
+    <h1>Bonus: <span>Portfolio Packaging</span></h1>
+    <p>You already built three real, verified production projects — an ML pipeline with a real deployment gate, a working multi-step AI agent, and a deployed RAG chatbot. Nobody hires the code sitting in your repo; they hire the story you tell about it. This page turns Ch 33-35 into resume bullets with real numbers, a GitHub presentation that doesn't look like a course exercise, a free live URL an interviewer can actually click, and exactly how to talk about all of it out loud.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~20 min read</span>
+      <span class="badge capstone">💼 Not graded — reference only</span>
+      <span class="badge">🔗 Cross-links to Interview Mastery</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════ SECTION 1: RESUME BULLETS ══════════════════════════════ -->
+  <section class="big-section" id="sec-bullets">
+    <div class="section-tag">Section 1 of 4</div>
+    <h2 class="section-h1">📄 Resume Bullets, Built From Your Real Numbers</h2>
+    <p class="section-lead">The single biggest resume mistake: vague bullets ("worked on machine learning projects") that could describe anyone. Every bullet below uses the ACTUAL verified output from your Ch 33-35 capstones — not invented numbers. Pick the phrasing that fits your target role, but never swap in a rounder or more impressive-sounding number than what the project actually produced — if an interviewer asks you to walk through it (and a good one will), the number needs to hold up.</p>
+
+    <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Rule zero: never inflate a number.</strong> An interviewer who catches one exaggerated metric stops trusting every other bullet on your resume. Every figure below is the real, reproducible output of code you can re-run and re-verify in front of someone if asked — that reproducibility is worth more than a rounder number.</div></div>
+
+    <div class="bullet-card">
+      <div class="bullet-head"><span class="bh-title">Project 1 — End-to-End ML Pipeline</span><span class="bh-chip">Ch 33</span></div>
+      <div class="bullet-body">
+        <div class="bullet-item">Built an end-to-end ML pipeline (cleaning → feature engineering → cross-validated model comparison → <code>GridSearchCV</code> tuning → held-out evaluation → serialized serving layer) that shipped a churn model reaching <strong>0.91 F1</strong> on held-out test data.</div>
+        <div class="bullet-item">Designed an automated ship/hold deployment gate that correctly <strong>blocked a retrained model</strong> from replacing production (test F1 <strong>0.667</strong> vs. a <strong>0.75</strong> production baseline) — preventing a real regression instead of shipping on a vague "looks fine" judgment call.</div>
+        <div class="bullet-item">Implemented a validating model-serving function with request/error-rate health monitoring, correctly rejecting malformed requests with a controlled error response instead of crashing.</div>
+      </div>
+    </div>
+
+    <div class="bullet-card">
+      <div class="bullet-head"><span class="bh-title">Project 2 — Agentic AI System</span><span class="bh-chip">Ch 34</span></div>
+      <div class="bullet-body">
+        <div class="bullet-item">Designed and built a multi-step, ReAct-pattern autonomous agent (tool registry, reasoning loop, dynamic tool selection) that resolved multi-hop questions requiring a variable, not-hardcoded sequence of tool calls to answer.</div>
+        <div class="bullet-item">Implemented a <code>max_steps</code> safety guardrail and validated it directly — confirmed the agent correctly halts after a fixed step budget and reports an incomplete result rather than returning a wrong answer disguised as a complete one.</div>
+        <div class="bullet-item">Found and fixed a parameter-name collision bug (<code>call_tool(name, **kwargs)</code> breaking when a tool's own argument was also named <code>name</code>) — a real debugging story with a concrete root cause, not a generic "solved bugs" line.</div>
+      </div>
+    </div>
+
+    <div class="bullet-card">
+      <div class="bullet-head"><span class="bh-title">Project 3 — RAG Chatbot, Deployed</span><span class="bh-chip">Ch 35</span></div>
+      <div class="bullet-body">
+        <div class="bullet-item">Built a retrieval-augmented generation chatbot (TF-IDF retrieval, cosine similarity, prompt construction, similarity-threshold grounding) that correctly <strong>declined to answer</strong> 1 of 4 out-of-scope test queries rather than hallucinating an answer — a deliberate design choice, not a limitation.</div>
+        <div class="bullet-item">Added production health monitoring (request count, error rate) and a reference FastAPI deployment wrapper, mirroring how a real support-chatbot service would be operated after launch, not just demoed once.</div>
+      </div>
+    </div>
+
+    <div class="bullet-card">
+      <div class="bullet-head"><span class="bh-title">Skills Line (for the top of your resume)</span><span class="bh-chip">All modules</span></div>
+      <div class="bullet-body">
+        <div class="bullet-item"><strong>Languages/Libraries:</strong> Python, NumPy, pandas, scikit-learn, PyTorch</div>
+        <div class="bullet-item"><strong>ML:</strong> classical ML (regression/trees/ensembles/clustering), feature engineering, cross-validation, hyperparameter tuning, deep learning fundamentals (backprop, CNNs, RNNs/LSTMs, Transformers/attention)</div>
+        <div class="bullet-item"><strong>LLMs/Agentic AI:</strong> LLM APIs, retrieval-augmented generation (RAG), multi-step tool-calling agents (ReAct pattern), prompt construction</div>
+        <div class="bullet-item"><strong>MLOps:</strong> experiment tracking concepts, model registries, drift detection, CI/CD pipeline design, deployment gating, health monitoring</div>
+        <div class="bullet-item"><strong>Systems/DevOps:</strong> Docker fundamentals, Kubernetes vocabulary, REST APIs, load balancing (L4/L7), CI/CD</div>
+        <div class="bullet-item"><strong>CS fundamentals:</strong> data structures &amp; algorithms (arrays, hashing, trees, graphs, dynamic programming), Big-O analysis</div>
+      </div>
+    </div>
+
+    <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Only list what you can defend live.</strong> If a line on your skills list would make you freeze if someone said "okay, explain that," either study it until it wouldn't, or take it off. A shorter, fully-defensible list beats a longer one with soft spots.</div></div>
+  </section>
+
+  <!-- ══════════════════════════════ SECTION 2: GITHUB PRESENTATION ══════════════════════════════ -->
+  <section class="big-section" id="sec-github">
+    <div class="section-tag">Section 2 of 4</div>
+    <h2 class="section-h1">🐙 Making Your GitHub Repo Look Like a Portfolio, Not a Course Folder</h2>
+    <p class="section-lead">Right now your repo's README is this course's own build log — great for you, meaningless to a recruiter skimming for 15 seconds. Before you link this repo anywhere on a resume or LinkedIn, add a short, human README section at the very top that a stranger can understand in one scroll.</p>
+
+    <div class="lesson-h2">2.1 — A Top-of-README Template You Can Copy</div>
+    <p class="lesson-p">Paste this above your existing content (don't delete the build log — just make sure it's not the first thing a visitor sees):</p>
+    <div class="code-block">
+      <div class="cb-header"><span class="cb-label">README.md — add this section at the very top</span></div>
+      <div class="cb-code"><span class="cm"># AI/ML Zero to Hero — [Your Name]'s Learning Portfolio
+
+A self-built, 35-chapter, browser-based AI/ML curriculum I completed end-to-end, plus three
+production-style projects with real, reproducible results. Every exercise auto-grades against
+real executed output — nothing here is copy-pasted from a tutorial without being run and verified.
+
+## 🏗️ Featured Projects
+
+| Project | What it does | Key result |
+|---|---|---|
+| [End-to-End ML Pipeline](projects/ch33-production-ml-pipeline.html) | Full churn-prediction pipeline: clean → tune → deploy-gate | Correctly blocked a regression (0.667 F1 vs 0.75 prod baseline) |
+| [Agentic AI System](projects/ch34-agentic-ai-system.html) | Multi-step ReAct-pattern tool-calling agent | Resolves multi-hop queries via dynamic tool chaining |
+| [RAG Chatbot, Deployed](projects/ch35-rag-chatbot-deployed.html) | Retrieval-augmented chatbot with grounding + monitoring | Correctly declines out-of-scope queries instead of hallucinating |
+
+**Live demo:** [link once deployed — see Section 3 below]
+**Course map:** [index.html](index.html)</span></div>
+    </div>
+
+    <div class="lesson-h2">2.2 — One README Per Featured Project (Optional but Strong)</div>
+    <p class="lesson-p">If you want Ch 33-35 to read as standalone portfolio pieces (useful if you ever extract them into their own repos), each one deserves its own short <code>README.md</code> covering: what it does, why the design choices were made (e.g. "the gate exists because a rising CV score doesn't guarantee held-out generalization"), how to run it, and the actual output. Keep it under a page — recruiters skim, they don't read.</p>
+
+    <div class="lesson-h2">2.3 — Pin It</div>
+    <p class="lesson-p">On your GitHub profile, use the "Pin repositories" feature (Profile → Customize your pins) to put this repo front and center. A profile with 30 forgotten forks and this one pinned tells a very different story than this one buried on page 3.</p>
+  </section>
+
+  <!-- ══════════════════════════════ SECTION 3: FREE LIVE DEPLOYMENT ══════════════════════════════ -->
+  <section class="big-section" id="sec-deploy">
+    <div class="section-tag">Section 3 of 4</div>
+    <h2 class="section-h1">🚀 A Free, Live URL an Interviewer Can Actually Click</h2>
+    <p class="section-lead">This entire course is static HTML — no server, no backend, no database. That means it's a perfect fit for <strong>GitHub Pages</strong>, which hosts static sites straight from your repo for free, with zero configuration beyond a few clicks. This alone is a genuine differentiator: most candidates' "projects" are a GitHub link nobody clicks; yours is a live, working URL.</p>
+
+    <div class="lesson-h2">3.1 — Turn On GitHub Pages (5 minutes, no code changes needed)</div>
+    <ul class="step-list">
+      <li data-n="1">Go to your repo on GitHub → <strong>Settings</strong> → <strong>Pages</strong> (left sidebar).</li>
+      <li data-n="2">Under "Build and deployment", set <strong>Source</strong> to "Deploy from a branch".</li>
+      <li data-n="3">Set <strong>Branch</strong> to <code>main</code> and the folder to <code>/ (root)</code>, then click <strong>Save</strong>.</li>
+      <li data-n="4">Wait 1-2 minutes. GitHub will publish a URL that looks like <code>https://&lt;your-username&gt;.github.io/&lt;repo-name&gt;/</code>.</li>
+      <li data-n="5">Visit that URL — you should see <code>index.html</code>, the full course map, live in a browser with no local setup.</li>
+    </ul>
+    <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>This is the single highest-leverage 5 minutes in this whole packaging guide.</strong> Put this URL on your resume, LinkedIn, and at the top of your README. "Here's a live link, click it" beats "clone this and run it locally" every time a recruiter is deciding whether to spend 15 more seconds on your application.</div></div>
+
+    <div class="lesson-h2">3.2 — Link Directly to Your Featured Projects</div>
+    <p class="lesson-p">Don't just link the homepage — link straight to the projects, so a skimming recruiter lands exactly where the value is:</p>
+    <div class="code-block">
+      <div class="cb-header"><span class="cb-label">Direct project links (replace with your actual GitHub Pages URL)</span></div>
+      <div class="cb-code"><span class="cm">https://YOUR-USERNAME.github.io/AI-ML-Training/projects/ch33-production-ml-pipeline.html
+https://YOUR-USERNAME.github.io/AI-ML-Training/projects/ch34-agentic-ai-system.html
+https://YOUR-USERNAME.github.io/AI-ML-Training/projects/ch35-rag-chatbot-deployed.html</span></div>
+    </div>
+
+    <div class="lesson-h2">3.3 — Optional Stretch Goal: Make the Agent or Chatbot "Really" Live</div>
+    <p class="lesson-p">Ch 34 and Ch 35's "reasoning"/"generation" steps are deterministic stand-ins for a real LLM call, by design (a browser sandbox can't safely hold a real API key or make authenticated calls). If you want a genuinely more impressive live demo later, the natural next step is standing up a small real backend (e.g. a lightweight FastAPI service on a free tier like Render or Fly.io) that wraps a real Claude API call, with the exact same tool-registry/RAG-retrieval logic you already built and verified here. That's real, additional engineering work — not required, but it's the most credible way to go from "understands the pattern" to "has operated the real thing."</p>
+  </section>
+
+  <!-- ══════════════════════════════ SECTION 4: LINKEDIN & TALKING ABOUT IT ══════════════════════════════ -->
+  <section class="big-section" id="sec-talk">
+    <div class="section-tag">Section 4 of 4</div>
+    <h2 class="section-h1">🗣️ LinkedIn, and How to Actually Talk About This</h2>
+
+    <div class="lesson-h2">4.1 — LinkedIn "Featured" Section</div>
+    <p class="lesson-p">Add your GitHub Pages URL (and the 3 direct project links) to LinkedIn's <strong>Featured</strong> section (Profile → Add profile section → Featured → Add a link). This is the section recruiters and hiring managers actually look at before they message you — an empty Featured section is a missed impression, every time.</p>
+    <p class="lesson-p">For the "About" section or a project post, use the same real-numbers discipline as Section 1 — one short paragraph naming the 3 projects and the one concrete result from each (the deployment gate blocking a regression is the strongest single story here — it demonstrates judgment, not just model-building).</p>
+
+    <div class="lesson-h2">4.2 — How to Talk About These Projects Out Loud</div>
+    <p class="lesson-p">This is exactly what the <a href="interview-mastery.html">Interview Mastery bonus page</a>'s Section 1 already built for you — two fully-worked STAR-method answers using these EXACT Ch 33 and Ch 34 numbers (the HOLD-gate decision, and the <code>max_steps</code> guardrail design defense). Don't write new stories from scratch; go reread those two worked examples and practice saying them out loud until they feel natural, not memorized.</p>
+
+    <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>The pattern that works in any "walk me through a project" answer:</strong> what the system does → the one decision that mattered most → the number that proves it worked → what you'd do differently at real scale. Four sentences, not a monologue. Let the interviewer ask follow-ups — that's them getting interested, not you running out of things to say.</div></div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What if an interviewer asks "is this a real production system, or a course project?"<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Answer honestly — it's the strongest position anyway. Something like: "It's a self-built project following a real production pipeline shape — the ML lifecycle, the agent loop, the RAG grounding logic are all genuine, tested code I wrote and verified myself. What's simulated is the LLM call itself, since I built it to run entirely client-side without exposing an API key — the retrieval, prompting, and grounding logic around that call is real." Interviewers respect precision about what's real and what's a deliberate simplification far more than a vague answer that dodges the question.</div></div>
+    </div>
+
+    <div class="iq-card" onclick="this.classList.toggle('open')">
+      <div class="iq-q">What if I don't have professional experience — is a self-built project enough to talk about?<span class="iq-arrow">▶</span></div>
+      <div class="iq-a"><div class="iq-a-inner">Yes, with one condition: you have to be able to go deep when asked. A candidate who built something themselves and can explain every design decision under follow-up questioning reads as MORE credible than a candidate reciting a corporate project they touched one small piece of. Depth beats source — that's exactly why every checker value in these projects was independently verified rather than assumed, so you can defend any number that comes up.</div></div>
+    </div>
+  </section>
+
+  <div class="footer-card">
+    <h3>Real projects. Real numbers. A real link to click.</h3>
+    <p>That combination is genuinely rare among candidates at any experience level. Turn on GitHub Pages today — it's the fastest return on effort in this entire guide.</p>
+    <a class="footer-btn" href="interview-mastery.html" style="margin-right:10px">🎯 Back to Interview Mastery</a>
+    <a class="footer-btn" href="../index.html">🏠 Back to Course Home</a>
+  </div>
+
+</div>
+
+<button class="back-top" id="back-top" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">↑</button>
+
+<script>
+(function(){
+  var sections = ['sec-bullets','sec-github','sec-deploy','sec-talk'].map(function(id){
+    return document.getElementById(id);
+  }).filter(Boolean);
+  var links = Array.prototype.slice.call(document.querySelectorAll('.tn-link'));
+  var backTop = document.getElementById('back-top');
+
+  function setActive(id){
+    links.forEach(function(l){
+      l.classList.toggle('active', l.getAttribute('data-sec') === id);
+    });
+  }
+
+  function onScroll(){
+    var pos = window.scrollY + 90;
+    var current = sections[0];
+    sections.forEach(function(sec){
+      if(sec.offsetTop <= pos) current = sec;
+    });
+    if(current) setActive(current.id);
+    backTop.classList.toggle('show', window.scrollY > 400);
+  }
+
+  window.addEventListener('scroll', onScroll, {passive:true});
+  onScroll();
+})();
+</script>
+
+</body>
+</html>

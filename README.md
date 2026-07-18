@@ -4,7 +4,7 @@ An interactive, self-contained, browser-based course that takes someone from zer
 
 Every chapter is a single standalone `.html` file: open it in a browser (double-click, or host it anywhere) and it runs real Python **in the browser** via [Pyodide](https://pyodide.org/) (actual CPython + NumPy/Pandas compiled to WebAssembly) — no server, no install. Each chapter follows the same shape: **Lesson → 5 auto-graded Practice exercises → a Mini Project → a Quiz** (80% to unlock the next chapter). Progress is saved per-browser via `localStorage`.
 
-## Status: all 35 chapters complete, verified, committed & pushed. Plus bonus Interview Mastery + DSA modules.
+## Status: all 35 chapters complete, verified, committed & pushed. Plus bonus Interview Mastery, DSA, and Portfolio Packaging modules.
 
 The course was expanded from 30 to 32 chapters partway through Module 1 (see renumbering note
 below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
@@ -60,6 +60,7 @@ object lists all 35 chapters across 8 modules, all `avail:true`.
 | 35 | Production Project: RAG Chatbot, Deployed *(course finale 🎉)* | `projects/ch35-rag-chatbot-deployed.html` |
 | Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 35)* | `bonus/interview-mastery.html` |
 | Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 35, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
+| Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 35)* | `bonus/portfolio-packaging.html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
