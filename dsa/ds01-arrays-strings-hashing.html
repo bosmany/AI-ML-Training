@@ -1,0 +1,1333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DSA 1: Arrays, Strings &amp; Hashing</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 4-chapter "Data
+  Structures & Algorithms for Coding Interviews" track — NOT part of the 35-chapter core
+  curriculum, same tier as bonus/interview-mastery.html. Every code block, exercise, and
+  capstone here is real, runnable, pure Python (lists/dicts/sets only, no numpy needed).
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live
+  in the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DSA 1: Arrays, Strings &amp; Hashing</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · DSA for Interviews · 1 of 4</div>
+  </a>
+  <a class="sb-back" href="../bonus/interview-mastery.html">← Back to Bonus Hub</a>
+  <div class="sb-section">DSA 1 · Arrays, Strings &amp; Hashing</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — DSA Module</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='ds02-trees-graphs-recursion.html'"><span class="sb-icon">🌲</span><span class="sb-step">DSA 2: Trees, Graphs &amp; Recursion</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DSA 1 of 4</div>
+    <div class="tb-title">Arrays, Strings &amp; Hashing</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>DSA Bonus 1:<br/><span>Arrays, Strings &amp; Hashing</span></h1>
+    <p>Before any interviewer looks at your ML knowledge, most companies run you through a coding-interview gate — and that gate is almost always built from a small set of recurring patterns, not exotic algorithms. This chapter covers the three patterns that show up constantly in "easy" and "medium" interview questions: <strong>two pointers</strong>, <strong>sliding window</strong>, and <strong>hash maps</strong> — plus enough informal Big-O intuition to reason about which one to reach for. Every idea here is demonstrated with real, runnable code, not just described.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <!-- 1.1 -->
+  <div class="lesson-h2">1.1 — Big-O Intuition: Why Growth Rate Beats Raw Speed</div>
+  <p class="lesson-p">Big-O describes how an algorithm's work grows as input size <code>n</code> grows — NOT how fast it runs on one specific input. A cleverly-optimized O(n²) algorithm can beat a naive O(n) one on a small input, but as <code>n</code> gets large, the ALGORITHM with the better growth rate always wins eventually, no matter how much "constant factor" speed the other one has. This is the single most important intuition for interviews: when an interviewer asks "can you do better than that?", they are almost always asking about growth rate, not micro-optimization.</p>
+
+  <table class="lesson-table">
+    <tr><th>You do this...</th><th>...that many times, roughly</th><th>Complexity</th></tr>
+    <tr><td>Look up one value by index</td><td>1 (constant)</td><td class="highlight">O(1)</td></tr>
+    <tr><td>Scan every element once</td><td>n</td><td class="highlight">O(n)</td></tr>
+    <tr><td>Scan every PAIR of elements (nested loop)</td><td>n × n</td><td class="highlight">O(n²)</td></tr>
+  </table>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">O(n²) vs O(n): a real, timed comparison — same task, same data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> time
+
+<span class="kw">def</span> <span class="fn">has_duplicate_On2</span>(arr):
+    <span class="cm"># nested loop: checks every PAIR -&gt; O(n^2)</span>
+    n = <span class="bi">len</span>(arr)
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(n):
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="bi">range</span>(i + <span class="nm">1</span>, n):
+            <span class="kw">if</span> arr[i] == arr[j]:
+                <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">def</span> <span class="fn">has_duplicate_On</span>(arr):
+    <span class="cm"># one pass with a hash set -&gt; O(n)</span>
+    seen = <span class="bi">set</span>()
+    <span class="kw">for</span> x <span class="kw">in</span> arr:
+        <span class="kw">if</span> x <span class="kw">in</span> seen:
+            <span class="kw">return</span> <span class="kw">True</span>
+        seen.add(x)
+    <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="cm"># worst case for both: no duplicate exists, so every check runs to the end</span>
+data = <span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">3000</span>))
+
+start = time.perf_counter()
+has_duplicate_On2(data)
+t_n2 = time.perf_counter() - start
+
+start = time.perf_counter()
+has_duplicate_On(data)
+t_n = time.perf_counter() - start
+
+<span class="bi">print</span>(<span class="st">f'O(n^2) version: <span class="bi">{t_n2:.4f}</span>s'</span>)
+<span class="bi">print</span>(<span class="st">f'O(n) version:   <span class="bi">{t_n:.4f}</span>s'</span>)
+<span class="bi">print</span>(<span class="st">f'O(n^2) was slower: <span class="bi">{t_n2 > t_n}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>3,000 elements means the O(n²) version does roughly 4.5 million comparisons, while the O(n) version does 3,000.</strong> Double the input to 6,000 and the O(n) version does 2x the work — but the O(n²) version does roughly 4x the work. That's the growth-rate gap interviewers are testing for when they ask about complexity.</div></div>
+
+  <!-- 1.2 -->
+  <div class="lesson-h2">1.2 — Two Pointers: One Pass, Two Positions</div>
+  <p class="lesson-p">The <strong>two-pointer</strong> pattern uses two index variables that move through a sequence — often from opposite ends inward — instead of nested loops. It works whenever moving one pointer lets you safely rule out a whole range of possibilities at once, which is exactly what a SORTED array or a symmetric check (like a palindrome) gives you.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two pointers: reverse, palindrome check, two-sum on sorted array</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">reverse_string</span>(s):
+    chars = <span class="bi">list</span>(s)
+    left, right = <span class="nm">0</span>, <span class="bi">len</span>(chars) - <span class="nm">1</span>
+    <span class="kw">while</span> left < right:
+        chars[left], chars[right] = chars[right], chars[left]
+        left += <span class="nm">1</span>
+        right -= <span class="nm">1</span>
+    <span class="kw">return</span> <span class="st">''</span>.join(chars)
+
+<span class="kw">def</span> <span class="fn">is_palindrome</span>(s):
+    <span class="cm"># ignore case and anything that isn't a letter/digit</span>
+    cleaned = [c.lower() <span class="kw">for</span> c <span class="kw">in</span> s <span class="kw">if</span> c.isalnum()]
+    left, right = <span class="nm">0</span>, <span class="bi">len</span>(cleaned) - <span class="nm">1</span>
+    <span class="kw">while</span> left < right:
+        <span class="kw">if</span> cleaned[left] != cleaned[right]:
+            <span class="kw">return</span> <span class="kw">False</span>
+        left += <span class="nm">1</span>
+        right -= <span class="nm">1</span>
+    <span class="kw">return</span> <span class="kw">True</span>
+
+<span class="kw">def</span> <span class="fn">two_sum_sorted</span>(arr, target):
+    <span class="cm"># arr MUST already be sorted for this logic to be correct</span>
+    left, right = <span class="nm">0</span>, <span class="bi">len</span>(arr) - <span class="nm">1</span>
+    <span class="kw">while</span> left < right:
+        s = arr[left] + arr[right]
+        <span class="kw">if</span> s == target:
+            <span class="kw">return</span> (left, right)
+        <span class="kw">elif</span> s < target:
+            left += <span class="nm">1</span>   <span class="cm"># sum too small -&gt; need a bigger left value</span>
+        <span class="kw">else</span>:
+            right -= <span class="nm">1</span>  <span class="cm"># sum too big -&gt; need a smaller right value</span>
+    <span class="kw">return</span> <span class="kw">None</span>
+
+<span class="bi">print</span>(<span class="st">f"reverse_string('hello'): <span class="bi">{reverse_string('hello')}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"is_palindrome('A man, a plan, a canal: Panama'): <span class="bi">{is_palindrome('A man, a plan, a canal: Panama')}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"is_palindrome('race a car'): <span class="bi">{is_palindrome('race a car')}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"two_sum_sorted([2, 7, 11, 15], 9): <span class="bi">{two_sum_sorted([2, 7, 11, 15], 9)}</span>"</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The #1 off-by-one trap:</strong> the loop condition must be <code>left &lt; right</code>, not <code>left &lt;= right</code>. With <code>&lt;=</code>, a single middle element in an odd-length sequence gets compared against itself, and (worse) the two pointers can cross and start reading from the wrong end. Trace it by hand on a 3-element array before trusting it.</div></div>
+
+  <!-- 1.3 -->
+  <div class="lesson-h2">1.3 — Sliding Window: Tracking a Moving Range Efficiently</div>
+  <p class="lesson-p">A <strong>sliding window</strong> is a contiguous range <code>[left, right]</code> that expands and shrinks as you scan once through the data — instead of re-scanning a fresh sub-range from scratch for every possible starting point (which is what makes the naive version O(n²) or worse). Reach for this pattern whenever the question is about a contiguous subarray or substring satisfying some condition.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Sliding window: longest unique substring, max sum of a fixed-size window</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">longest_unique_substring</span>(s):
+    seen = {}          <span class="cm"># char -&gt; most recent index seen at</span>
+    left = <span class="nm">0</span>
+    best_len = <span class="nm">0</span>
+    best_sub = <span class="st">''</span>
+    <span class="kw">for</span> right, ch <span class="kw">in</span> <span class="bi">enumerate</span>(s):
+        <span class="kw">if</span> ch <span class="kw">in</span> seen <span class="kw">and</span> seen[ch] >= left:
+            left = seen[ch] + <span class="nm">1</span>     <span class="cm"># jump left past the earlier duplicate</span>
+        seen[ch] = right
+        <span class="kw">if</span> right - left + <span class="nm">1</span> > best_len:
+            best_len = right - left + <span class="nm">1</span>
+            best_sub = s[left:right + <span class="nm">1</span>]
+    <span class="kw">return</span> best_len, best_sub
+
+<span class="kw">def</span> <span class="fn">max_sum_subarray_k</span>(arr, k):
+    <span class="cm"># fixed-size window of length k -&gt; slide it, don't re-sum from scratch</span>
+    window_sum = <span class="bi">sum</span>(arr[:k])
+    best = window_sum
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(k, <span class="bi">len</span>(arr)):
+        window_sum += arr[i] - arr[i - k]   <span class="cm"># add new right edge, drop old left edge</span>
+        best = <span class="bi">max</span>(best, window_sum)
+    <span class="kw">return</span> best
+
+length, sub = longest_unique_substring(<span class="st">'abcabcbb'</span>)
+<span class="bi">print</span>(<span class="st">f"longest_unique_substring('abcabcbb'): length=<span class="bi">{length}</span>, substring='<span class="bi">{sub}</span>'"</span>)
+<span class="bi">print</span>(<span class="st">f"max_sum_subarray_k([2, 1, 5, 1, 3, 2], 3): <span class="bi">{max_sum_subarray_k([2, 1, 5, 1, 3, 2], 3)}</span>"</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Notice <code>max_sum_subarray_k</code> never re-sums the whole window.</strong> It updates the running sum by one addition and one subtraction per step — that's what turns an O(n·k) naive re-sum-every-window approach into O(n). "Slide, don't re-scan" is the core idea behind every sliding-window solution.</div></div>
+
+  <!-- 1.4 -->
+  <div class="lesson-h2">1.4 — Hash Maps: Trading Memory for O(1) Lookup</div>
+  <p class="lesson-p">A Python <code>dict</code> (hash map) gives average-case O(1) lookup, insert, and membership-check — dramatically faster than the O(n) scan a list requires to answer "have I seen this before?" The cost is memory: you're storing an extra copy of everything you've seen so far. This time-for-space trade is one of the most common patterns in interview solutions, and is exactly why an O(n²) nested-loop solution to a problem can usually be rewritten as an O(n) single-pass solution using a hash map.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Hash maps: unsorted two-sum, first non-repeating char, group anagrams</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">two_sum_unsorted</span>(arr, target):
+    <span class="cm"># single pass: for each x, check if target-x was ALREADY seen</span>
+    seen = {}   <span class="cm"># value -&gt; index</span>
+    <span class="kw">for</span> i, x <span class="kw">in</span> <span class="bi">enumerate</span>(arr):
+        complement = target - x
+        <span class="kw">if</span> complement <span class="kw">in</span> seen:
+            <span class="kw">return</span> (seen[complement], i)
+        seen[x] = i
+    <span class="kw">return</span> <span class="kw">None</span>
+
+<span class="kw">def</span> <span class="fn">first_non_repeating</span>(s):
+    counts = {}
+    <span class="kw">for</span> ch <span class="kw">in</span> s:
+        counts[ch] = counts.get(ch, <span class="nm">0</span>) + <span class="nm">1</span>
+    <span class="kw">for</span> ch <span class="kw">in</span> s:            <span class="cm"># second pass preserves ORIGINAL order</span>
+        <span class="kw">if</span> counts[ch] == <span class="nm">1</span>:
+            <span class="kw">return</span> ch
+    <span class="kw">return</span> <span class="kw">None</span>
+
+<span class="kw">def</span> <span class="fn">group_anagrams</span>(words):
+    groups = {}   <span class="cm"># sorted-letters key -&gt; list of original words</span>
+    <span class="kw">for</span> w <span class="kw">in</span> words:
+        key = <span class="st">''</span>.join(<span class="bi">sorted</span>(w))   <span class="cm"># anagrams share this exact key</span>
+        groups.setdefault(key, []).append(w)
+    <span class="kw">return</span> <span class="bi">list</span>(groups.values())
+
+<span class="bi">print</span>(<span class="st">f"two_sum_unsorted([3, 2, 4], 6): <span class="bi">{two_sum_unsorted([3, 2, 4], 6)}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"first_non_repeating('swiss'): <span class="bi">{first_non_repeating('swiss')}</span>"</span>)
+<span class="bi">print</span>(<span class="st">f"group_anagrams(...): <span class="bi">{group_anagrams(['eat','tea','tan','ate','nat','bat'])}</span>"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Why does <code>two_sum_unsorted</code> check for the complement BEFORE adding the current value?</strong> Because a pair needs two DIFFERENT indices. If you added first and checked second, an element could pair with itself (e.g. target=6, x=3 would incorrectly "find" complement 3 using its own index). Checking first, inserting second, is what guarantees the two indices returned are always distinct.</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">DSA 1 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Big-O</strong> describes growth rate, not raw speed — the algorithm with the better growth rate always wins as <code>n</code> gets large, regardless of small-input performance.</div></li>
+    <li data-n="2"><div><strong>Two pointers</strong> turns many O(n²) nested-loop problems into O(n) by moving two positions through sorted or symmetric data — watch the <code>&lt;</code> vs <code>&lt;=</code> boundary condition.</div></li>
+    <li data-n="3"><div><strong>Sliding window</strong> tracks a contiguous range in one pass by expanding/shrinking it incrementally instead of re-scanning from scratch.</div></li>
+    <li data-n="4"><div><strong>Hash maps</strong> trade memory for O(1) average lookup, turning many O(n²) "have I seen this?" problems into O(n) single-pass solutions.</div></li>
+    <li data-n="5"><div>Recognizing WHICH pattern applies — sorted+symmetric → two pointers, contiguous range → sliding window, "have I seen this?" → hash map — is the actual interview skill, more than memorizing any one solution.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Two Pointers: Reverse &amp; Palindrome Check</div>
+        <div class="ex-desc">Reuse reverse_string and is_palindrome from 1.2 on new inputs.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact reverse_string() and is_palindrome() from 1.2, compute:
+  r = reverse_string('interview')
+  p1 = is_palindrome('Was it a car or a cat I saw?')
+  p2 = is_palindrome('Hello World')
+
+Print exactly:
+  f'Reversed: {r}'
+  f'Palindrome 1: {p1}'
+  f'Palindrome 2: {p2}'
+(Correct: Reversed: weivretni / Palindrome 1: True / Palindrome 2: False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># def reverse_string(s): ...
+# def is_palindrome(s): ...
+# (paste from 1.2, then:)
+# r = reverse_string('interview')
+# p1 = is_palindrome('Was it a car or a cat I saw?')
+# p2 = is_palindrome('Hello World')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Two-Sum on a Sorted Array</div>
+        <div class="ex-desc">Reuse two_sum_sorted from 1.2 with a new sorted array and target.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact two_sum_sorted() from 1.2:
+  arr2 = [1, 3, 4, 6, 9, 12]
+  idx = two_sum_sorted(arr2, 15)
+
+Print exactly:
+  f'Indices: {idx}'
+  f'Values: {arr2[idx[0]]} + {arr2[idx[1]]}'
+(Correct: Indices: (1, 5) / Values: 3 + 12)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def two_sum_sorted(arr, target): ...
+# (paste from 1.2, then:)
+# arr2 = [1, 3, 4, 6, 9, 12]
+# idx = two_sum_sorted(arr2, 15)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Sliding Window: Longest Unique Substring</div>
+        <div class="ex-desc">Reuse longest_unique_substring from 1.3 on a new string.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact longest_unique_substring() from 1.3:
+  length, sub = longest_unique_substring('pwwkew')
+
+Print exactly:
+  f'Length: {length}'
+  f'Substring: {sub}'
+(Correct: Length: 3 / Substring: wke)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># def longest_unique_substring(s): ...
+# (paste from 1.3, then:)
+# length, sub = longest_unique_substring('pwwkew')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Sliding Window: Max Sum of a Fixed-Size Window</div>
+        <div class="ex-desc">Reuse max_sum_subarray_k from 1.3 on a new array.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact max_sum_subarray_k() from 1.3:
+  arr4 = [4, 2, 1, 7, 8, 1, 2, 8, 1, 0]
+  result4 = max_sum_subarray_k(arr4, 3)
+
+Print exactly: f'Max sum: {result4}'
+(Correct: Max sum: 16)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code"># def max_sum_subarray_k(arr, k): ...
+# (paste from 1.3, then:)
+# arr4 = [4, 2, 1, 7, 8, 1, 2, 8, 1, 0]
+# result4 = max_sum_subarray_k(arr4, 3)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Hash Maps: Two-Sum With Negatives &amp; Group Anagrams</div>
+        <div class="ex-desc">Reuse two_sum_unsorted and group_anagrams from 1.4 on new data, including negative numbers.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact two_sum_unsorted() and group_anagrams() from 1.4:
+  arr5 = [-3, 4, 3, 90]
+  idx5 = two_sum_unsorted(arr5, 0)
+  words5 = ['listen', 'silent', 'enlist', 'google', 'gogole', 'cat']
+  groups5 = group_anagrams(words5)
+
+Print exactly:
+  f'Two-sum indices: {idx5}'
+  f'Anagram groups: {groups5}'
+  f'Number of groups: {len(groups5)}'
+(Correct: Two-sum indices: (0, 2) / Anagram groups: [['listen', 'silent', 'enlist'], ['google', 'gogole'], ['cat']] / Number of groups: 3)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># def two_sum_unsorted(arr, target): ...
+# def group_anagrams(words): ...
+# (paste from 1.4, then:)
+# arr5 = [-3, 4, 3, 90]
+# idx5 = two_sum_unsorted(arr5, 0)
+# words5 = ['listen', 'silent', 'enlist', 'google', 'gogole', 'cat']
+# groups5 = group_anagrams(words5)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>Longest Clean Access Window</span></h2>
+    <p>A server access log is a list of IP addresses in the order they connected. Security wants to know the longest stretch of consecutive log entries during which no single IP connected twice — a real sliding-window-plus-hash-map problem, same shape as "longest substring without repeating characters" but applied to a list of real-looking log entries instead of single characters.</p>
+    <div class="project-tags">
+      <span class="ptag">sliding window</span>
+      <span class="ptag">hash map</span>
+      <span class="ptag">two-pointer boundary tracking</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A function longest_no_repeat_window(entries) that returns (best_len, best_start) using the same sliding-window-with-a-dict pattern as longest_unique_substring in 1.3</li>
+      <li>last_seen dict maps an IP to the most recent index it appeared at; when a repeat is found INSIDE the current window, jump left past it</li>
+      <li>Track the best (longest) window's length and starting index as you scan once through the log</li>
+      <li>Report: total log entries, total unique IPs overall, the longest clean window's length, its start/end index, and the actual IPs in that window</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Longest Clean Access Window — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: Longest Clean Access Window
+# Use ONLY DSA 1 concepts (sliding window + hash map)
+# ══════════════════════════════════════════
+logs = [
+    '1.1.1.1', '2.2.2.2', '1.1.1.1', '3.3.3.3', '4.4.4.4',
+    '5.5.5.5', '6.6.6.6', '2.2.2.2', '7.7.7.7', '3.3.3.3', '8.8.8.8'
+]
+
+# === TODO 1: the sliding-window scan ===
+# def longest_no_repeat_window(entries):
+#     last_seen = {}
+#     left = 0
+#     best_len = 0
+#     best_start = 0
+#     for right, ip in enumerate(entries):
+#         if ip in last_seen and last_seen[ip] >= left:
+#             left = last_seen[ip] + 1
+#         last_seen[ip] = right
+#         if right - left + 1 > best_len:
+#             best_len = right - left + 1
+#             best_start = left
+#     return best_len, best_start
+
+# === TODO 2: run it and report ===
+# length, start = longest_no_repeat_window(logs)
+# window = logs[start:start + length]
+# unique_ips_total = len(set(logs))
+#
+# print(f'Total log entries: {len(logs)}')
+# print(f'Unique IPs overall: {unique_ips_total}')
+# print(f'Longest clean window length: {length}')
+# print(f'Window start index: {start}')
+# print(f'Window end index: {start + length - 1}')
+# print(f'Window IPs: {window}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📊</span>Total log entries: 11</div>
+    <div class="check-item"><span class="check-icon">🌐</span>Unique IPs overall: 8</div>
+    <div class="check-item"><span class="check-icon">🪟</span>Longest clean window length: 7</div>
+    <div class="check-item"><span class="check-icon">📍</span>Window start index: 2</div>
+    <div class="check-item"><span class="check-icon">📍</span>Window end index: 8</div>
+    <div class="check-item"><span class="check-icon">📝</span>Window IPs: ['1.1.1.1', '3.3.3.3', '4.4.4.4', '5.5.5.5', '6.6.6.6', '2.2.2.2', '7.7.7.7']</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DSA 1 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why does an algorithm's Big-O growth rate matter more than its raw speed on one specific input size?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It doesn't — the fastest algorithm on your test case is always the right choice</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> As input size n grows large, an algorithm with a better growth rate (e.g. O(n)) will always eventually outperform one with a worse growth rate (e.g. O(n²)), regardless of how well-optimized the worse one is for small n</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Big-O measures memory usage only, never speed</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Big-O only applies to sorting algorithms</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What must be true about the input for the two-pointer <code>two_sum_sorted</code> approach to work correctly?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Nothing — it works on any array in any order</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The array must already be sorted — moving a pointer only safely rules out possibilities because a sorted order guarantees which direction the sum will change</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The array must contain no duplicate values</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> The array must have an even number of elements</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">In <code>longest_unique_substring</code>, what does the check <code>seen[ch] &gt;= left</code> accomplish, as opposed to just checking <code>ch in seen</code>?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> It makes the function run faster with no behavior change</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> It ignores a character's LAST occurrence if that occurrence was already pushed out of the current window — otherwise the window would shrink for a duplicate that isn't actually inside it anymore</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It sorts the characters before comparing them</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It has no real effect and could be removed safely</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that computes a hash-map lookup for the "complement" of <code>x</code> against a <code>target</code>, matching this chapter's <code>two_sum_unsorted</code> pattern (assign it to a variable named <code>complement</code>).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="complement = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What is the fundamental trade-off a hash map makes to achieve O(1) average lookup time?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It sacrifices correctness for speed</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It trades extra memory (storing everything you've seen so far) for speed — turning many O(n²) "have I seen this?" problems into O(n) at the cost of O(n) extra space</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It only works on sorted data, like two pointers</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Nothing — hash maps have no downsides compared to lists</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🌲</div>
+    <div class="ncc-info">
+      <h3>DSA 2: Trees, Graphs &amp; Recursion</h3>
+      <p>Next up: recursion fundamentals, binary tree traversals, graph BFS/DFS, and backtracking — the second half of the algorithm-round gate.</p>
+    </div>
+    <a class="ncc-btn" href="ds02-trees-graphs-recursion.html">Start DSA 2 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Arrays, Strings &amp; Hashing — Interview Prep</h2>
+    <p>12 questions covering the complexity-analysis and pattern-recognition angles interviewers actually probe for this topic. Click a question to reveal the answer. Not graded — this is here so you can talk through your reasoning out loud, not just recognize the right answer on a multiple-choice quiz.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you determine the time complexity of a piece of code you're seeing for the first time?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Count the loops and how their bounds relate to the input size <code>n</code>. A single loop over <code>n</code> items is O(n). A loop nested inside another loop, both over roughly <code>n</code> items, is O(n²) — multiply, don't add, nested loop bounds. A loop whose range HALVES each iteration (like binary search) is O(log n). If a loop calls a function that itself does O(n) work per iteration, multiply that in too — an O(n) loop calling an O(n) operation each time is O(n²) overall, even though there's only one visible loop.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between average-case and worst-case complexity for a hash map, and why does it matter?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A hash map's O(1) lookup is an AVERAGE case, assuming a good hash function spreads keys evenly across buckets. Worst case (many keys colliding into the same bucket) degrades to O(n) — Python's dict implementation handles this well in practice, but it's worth knowing the guarantee is probabilistic, not absolute, which is why interviewers usually accept "O(1) average / O(n) worst case" as the fully correct answer rather than just "O(1)".</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you recognize that a problem calls for two pointers rather than a hash map?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Two strong signals: the input is already sorted (or you're allowed to sort it and order doesn't matter to the answer), and/or the problem has some symmetry (a palindrome check, "meet in the middle"). If the data ISN'T sorted and sorting it would lose needed information (like original indices), a hash map is usually the better fit since it doesn't require any ordering at all — that's exactly why <code>two_sum_unsorted</code> uses a dict instead of sorting-then-two-pointers.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why not just sort the array first and then use two pointers for every "two-sum"-style problem?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Sorting costs O(n log n) up front, and — critically — it destroys the ORIGINAL indices unless you separately track them alongside each value before sorting. If the problem asks for the original positions of the two numbers (as most two-sum variants do), sorting adds both an O(n log n) cost AND extra bookkeeping complexity that a single-pass hash map avoids entirely at O(n). Sort-then-two-pointers is the right call when you don't need original order/indices, or you need the pointers technique for a reason beyond just finding one pair (e.g. finding ALL pairs, or a 3-sum problem).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the single most common off-by-one mistake in sliding-window code, and how do you catch it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Miscounting the window's length as <code>right - left</code> instead of <code>right - left + 1</code> (since both endpoints are inclusive), or forgetting to update the "best" tracker at the right moment (before vs. after moving a pointer). The fastest way to catch it: trace the algorithm by hand on the smallest possible non-trivial example (e.g. a 2-3 character string) and compare against what you'd compute manually — most off-by-one bugs are invisible on medium-sized test cases but immediately obvious on tiny ones.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does <code>group_anagrams</code> use <code>''.join(sorted(word))</code> as a dictionary key instead of the word itself?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Anagrams are different arrangements of the SAME letters — so sorting each word's letters produces an identical string for every anagram in the group (e.g. both 'eat' and 'tea' sort to 'aet'), which is exactly the property needed for a dict key: anagrams collide into the same bucket, non-anagrams don't. Using the raw word as the key would put every word in its own group, defeating the purpose.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the time complexity of the <code>group_anagrams</code> approach shown in this chapter, including the sort?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">If there are <code>n</code> words with maximum length <code>k</code>, sorting each word costs O(k log k), and you do that for all <code>n</code> words, giving O(n · k log k) total — NOT simply O(n). This is a common interview follow-up: "what's the actual complexity, accounting for the sort inside the loop?" — a candidate who says "O(n)" without noticing the per-word sort cost is missing a layer.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you extend the two-sum pattern to a three-sum problem, and why does the approach change?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Sort the array first (O(n log n)), then for each element, run the classic two-pointer two-sum on the REMAINING array to find pairs that sum to <code>target - current_element</code> — giving O(n²) overall (O(n) outer loop × O(n) inner two-pointer scan) instead of the O(n³) brute force of checking every triple. This is a good example of why two pointers and hash maps aren't rivals to memorize separately — three-sum combines a hash-map-style "fix one, solve the rest" idea with the two-pointer inner loop.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does the palindrome checker filter with <code>c.isalnum()</code> before comparing characters?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Real-world palindrome questions ("Was it a car or a cat I saw?") include spaces, punctuation, and mixed case that aren't meaningful to the palindrome property itself — only the letters/digits and their order matter. Filtering to alphanumeric characters (and lowercasing) first normalizes the input so the two-pointer comparison only ever looks at the characters that actually matter, which is also a good habit generally: separate "cleaning the input" from "the actual algorithm" so each piece is simple to reason about.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">If an interviewer asks you to solve a problem "without extra space," which pattern are they usually steering you toward?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Almost always two pointers (or in-place array manipulation), since it uses O(1) extra space — no auxiliary dict or set. This is a common interview trick: they'll first let you solve it with a hash map (which is a perfectly valid O(n) time / O(n) space answer), then ask "can you do it in O(1) space?" to see if you recognize a two-pointer reformulation exists, which usually costs you nothing in time complexity if the input can be sorted or is already ordered.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the time and space complexity of the sliding-window <code>longest_unique_substring</code> solution?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Time: O(n) — the <code>right</code> pointer visits each character once, and <code>left</code> only ever moves forward, so across the whole run each pointer does at most n total steps, giving O(n) not O(n²) despite the nested-looking logic. Space: O(min(n, alphabet size)) for the <code>seen</code> dict, since it can hold at most one entry per distinct character — for ASCII text that's a small constant, but it's worth stating precisely rather than just saying "O(1)".</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you explain, out loud, WHY a nested-loop two-sum can be rewritten with a hash map to go from O(n²) to O(n)?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The nested-loop version re-scans the ENTIRE array for every single element to find its complement — that repeated scanning is exactly the wasted work. A hash map replaces "scan the array again" with "look up in a dict," which is O(1) instead of O(n) — so the same O(n) outer loop, combined with an O(1) inner lookup instead of an O(n) inner scan, drops the total from O(n) × O(n) = O(n²) down to O(n) × O(1) = O(n). Framing it as "what expensive repeated work can a dict replace with a cheap lookup" is the general lens for spotting this kind of optimization in ANY problem, not just two-sum.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# No external libraries needed — everything here is pure Python','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['reversed: weivretni','palindrome 1: true','palindrome 2: false'],
+    hint:"Filter with c.isalnum() before comparing; reverse via swapping chars list in place with two pointers",
+    solution:`def reverse_string(s):
+    chars = list(s)
+    left, right = 0, len(chars) - 1
+    while left < right:
+        chars[left], chars[right] = chars[right], chars[left]
+        left += 1
+        right -= 1
+    return ''.join(chars)
+
+def is_palindrome(s):
+    cleaned = [c.lower() for c in s if c.isalnum()]
+    left, right = 0, len(cleaned) - 1
+    while left < right:
+        if cleaned[left] != cleaned[right]:
+            return False
+        left += 1
+        right -= 1
+    return True
+
+r = reverse_string('interview')
+p1 = is_palindrome('Was it a car or a cat I saw?')
+p2 = is_palindrome('Hello World')
+print(f'Reversed: {r}')
+print(f'Palindrome 1: {p1}')
+print(f'Palindrome 2: {p2}')`
+  },
+  2:{
+    checks:['indices: (1, 5)','values: 3 + 12'],
+    hint:"left starts at 0, right at len-1; move left up if sum too small, right down if sum too big",
+    solution:`def two_sum_sorted(arr, target):
+    left, right = 0, len(arr) - 1
+    while left < right:
+        s = arr[left] + arr[right]
+        if s == target:
+            return (left, right)
+        elif s < target:
+            left += 1
+        else:
+            right -= 1
+    return None
+
+arr2 = [1, 3, 4, 6, 9, 12]
+idx = two_sum_sorted(arr2, 15)
+print(f'Indices: {idx}')
+print(f'Values: {arr2[idx[0]]} + {arr2[idx[1]]}')`
+  },
+  3:{
+    checks:['length: 3','substring: wke'],
+    hint:"seen dict maps char -> last index; jump left past a duplicate only if it's inside the current window (seen[ch] >= left)",
+    solution:`def longest_unique_substring(s):
+    seen = {}
+    left = 0
+    best_len = 0
+    best_sub = ''
+    for right, ch in enumerate(s):
+        if ch in seen and seen[ch] >= left:
+            left = seen[ch] + 1
+        seen[ch] = right
+        if right - left + 1 > best_len:
+            best_len = right - left + 1
+            best_sub = s[left:right + 1]
+    return best_len, best_sub
+
+length, sub = longest_unique_substring('pwwkew')
+print(f'Length: {length}')
+print(f'Substring: {sub}')`
+  },
+  4:{
+    checks:['max sum: 16'],
+    hint:"window_sum starts as sum of first k elements; each step add the new right edge, subtract the old left edge",
+    solution:`def max_sum_subarray_k(arr, k):
+    window_sum = sum(arr[:k])
+    best = window_sum
+    for i in range(k, len(arr)):
+        window_sum += arr[i] - arr[i - k]
+        best = max(best, window_sum)
+    return best
+
+arr4 = [4, 2, 1, 7, 8, 1, 2, 8, 1, 0]
+result4 = max_sum_subarray_k(arr4, 3)
+print(f'Max sum: {result4}')`
+  },
+  5:{
+    checks:["two-sum indices: (0, 2)","anagram groups: [['listen', 'silent', 'enlist'], ['google', 'gogole'], ['cat']]",'number of groups: 3'],
+    hint:"two_sum_unsorted: check target-x in seen BEFORE inserting x; group_anagrams: key = ''.join(sorted(word))",
+    solution:`def two_sum_unsorted(arr, target):
+    seen = {}
+    for i, x in enumerate(arr):
+        complement = target - x
+        if complement in seen:
+            return (seen[complement], i)
+        seen[x] = i
+    return None
+
+def group_anagrams(words):
+    groups = {}
+    for w in words:
+        key = ''.join(sorted(w))
+        groups.setdefault(key, []).append(w)
+    return list(groups.values())
+
+arr5 = [-3, 4, 3, 90]
+idx5 = two_sum_unsorted(arr5, 0)
+words5 = ['listen', 'silent', 'enlist', 'google', 'gogole', 'cat']
+groups5 = group_anagrams(words5)
+print(f'Two-sum indices: {idx5}')
+print(f'Anagram groups: {groups5}')
+print(f'Number of groups: {len(groups5)}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['total log entries: 11','unique ips overall: 8','longest clean window length: 7','window start index: 2','window end index: 8',"window ips: ['1.1.1.1', '3.3.3.3', '4.4.4.4', '5.5.5.5', '6.6.6.6', '2.2.2.2', '7.7.7.7']"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('complement=target-x');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! complement = target - x'
+    :'❌ Not quite. You need: complement = target - x';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Two pointers, sliding window, and hash maps — the three patterns behind most "easy" and "medium" coding-interview questions. Check out the Interview Prep tab, then move on to DSA 2.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

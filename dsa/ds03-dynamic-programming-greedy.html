@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DSA 3: Dynamic Programming &amp; Greedy Algorithms</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 4-chapter "Data
+  Structures & Algorithms for Coding Interviews" track — NOT part of the 35-chapter core
+  curriculum, same tier as bonus/interview-mastery.html. Every code block, exercise, and
+  capstone here is real, runnable, pure Python (lists/dicts only, no numpy needed).
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live
+  in the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DSA 3: Dynamic Programming &amp; Greedy</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · DSA for Interviews · 3 of 4</div>
+  </a>
+  <a class="sb-back" href="ds02-trees-graphs-recursion.html">← DSA 2: Trees, Graphs &amp; Recursion</a>
+  <div class="sb-section">DSA 3 · Dynamic Programming &amp; Greedy</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — DSA Module</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='ds04-sorting-searching-mock-interview.html'"><span class="sb-icon">🎯</span><span class="sb-step">DSA 4: Sorting, Searching &amp; Mock Interview</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DSA 3 of 4</div>
+    <div class="tb-title">Dynamic Programming &amp; Greedy Algorithms</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>DSA Bonus 3:<br/><span>Dynamic Programming &amp; Greedy Algorithms</span></h1>
+    <p>DP is the topic candidates fear most — and it's really just DSA 2's memoization idea, generalized and made systematic. This chapter builds that bridge explicitly: from the memoized Fibonacci you already understand, to a proper 1D DP table, to a proper 2D DP table, ending with greedy algorithms and — critically — a REAL, runnable example of a greedy approach visibly failing where DP succeeds, so the distinction is demonstrated, not just asserted.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~65 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <!-- 3.1 -->
+  <div class="lesson-h2">3.1 — What DP Actually Is: Optimal Substructure + Overlapping Subproblems</div>
+  <p class="lesson-p">Dynamic Programming applies to problems with two properties: <strong>optimal substructure</strong> (the best solution to the whole problem is built from best solutions to smaller sub-problems — exactly like <code>factorial(n) = n * factorial(n-1)</code>), and <strong>overlapping subproblems</strong> (those smaller sub-problems repeat, so caching pays off — exactly like naive Fibonacci recomputing <code>fib(28)</code> dozens of times, from DSA 2). <code>fib_memo</code> from DSA 2 already WAS a dynamic programming solution — a <strong>top-down</strong> one (recursion + a cache). This chapter's new piece is <strong>bottom-up</strong> DP: build the answer iteratively from the smallest sub-problem up, storing every intermediate result in an explicit <code>dp</code> array — no recursion, no call stack risk, and it makes the "table filling in" visible.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Climbing stairs: 1D DP, bottom-up, dp array printed at every step</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># How many distinct ways to climb n stairs, moving 1 or 2 steps at a time?</span>
+<span class="kw">def</span> <span class="fn">climbing_stairs</span>(n):
+    dp = [<span class="nm">0</span>] * (n + <span class="nm">1</span>)
+    dp[<span class="nm">0</span>] = <span class="nm">1</span>                 <span class="cm"># 1 way to "climb" 0 stairs: do nothing</span>
+    <span class="kw">if</span> n >= <span class="nm">1</span>:
+        dp[<span class="nm">1</span>] = <span class="nm">1</span>             <span class="cm"># 1 way to climb 1 stair: a single 1-step</span>
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2</span>, n + <span class="nm">1</span>):
+        dp[i] = dp[i - <span class="nm">1</span>] + dp[i - <span class="nm">2</span>]   <span class="cm"># last move was a 1-step, or a 2-step</span>
+    <span class="kw">return</span> dp
+
+n = <span class="nm">8</span>
+dp = climbing_stairs(n)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(n + <span class="nm">1</span>):
+    <span class="bi">print</span>(<span class="st">f'dp[<span class="bi">{i}</span>] (ways to reach step <span class="bi">{i}</span>) = <span class="bi">{dp[i]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Total distinct ways to climb <span class="bi">{n}</span> stairs: <span class="bi">{dp[n]}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Notice this is EXACTLY the Fibonacci recurrence</strong> from DSA 2 (<code>dp[i] = dp[i-1] + dp[i-2]</code>) — climbing stairs and Fibonacci are the same underlying problem wearing a different costume. Recognizing "this is secretly Fibonacci" (or secretly some other DP shape you already know) is a real, learnable interview skill.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Coin change: minimum coins to make an amount, 1D DP</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">coin_change_min</span>(coins, amount):
+    dp = [<span class="bi">float</span>(<span class="st">'inf'</span>)] * (amount + <span class="nm">1</span>)
+    dp[<span class="nm">0</span>] = <span class="nm">0</span>                       <span class="cm"># 0 coins needed to make amount 0</span>
+    <span class="kw">for</span> a <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, amount + <span class="nm">1</span>):
+        <span class="kw">for</span> c <span class="kw">in</span> coins:
+            <span class="kw">if</span> c <= a <span class="kw">and</span> dp[a - c] + <span class="nm">1</span> < dp[a]:
+                dp[a] = dp[a - c] + <span class="nm">1</span>   <span class="cm"># best way to make 'a': use coin c, plus best way to make (a-c)</span>
+    <span class="kw">return</span> dp
+
+coins = [<span class="nm">1</span>, <span class="nm">5</span>, <span class="nm">10</span>, <span class="nm">25</span>]
+amount = <span class="nm">63</span>
+dp2 = coin_change_min(coins, amount)
+<span class="bi">print</span>(<span class="st">f'Min coins to make <span class="bi">{amount}</span>: <span class="bi">{dp2[amount]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'dp[60]: <span class="bi">{dp2[60]}</span>, dp[61]: <span class="bi">{dp2[61]}</span>, dp[62]: <span class="bi">{dp2[62]}</span>, dp[63]: <span class="bi">{dp2[63]}</span>'</span>)</div>
+  </div>
+
+  <!-- 3.2 -->
+  <div class="lesson-h2">3.2 — 2D DP: When One Index Isn't Enough</div>
+  <p class="lesson-p">Some problems need TWO indices to describe a sub-problem — <strong>Longest Common Subsequence (LCS)</strong> is the classic example: "what's the longest sequence that appears in both <code>s1[0:i]</code> AND <code>s2[0:j]</code>?" needs both <code>i</code> and <code>j</code>, so the DP table is 2D. The recurrence: if the current characters match, extend the diagonal's answer by 1; if they don't, take the best of "drop this character from s1" or "drop this character from s2."</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Longest Common Subsequence — full 2D dp table printed</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">lcs</span>(s1, s2):
+    m, n = <span class="bi">len</span>(s1), <span class="bi">len</span>(s2)
+    dp = [[<span class="nm">0</span>] * (n + <span class="nm">1</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(m + <span class="nm">1</span>)]
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, m + <span class="nm">1</span>):
+        <span class="kw">for</span> j <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, n + <span class="nm">1</span>):
+            <span class="kw">if</span> s1[i - <span class="nm">1</span>] == s2[j - <span class="nm">1</span>]:
+                dp[i][j] = dp[i - <span class="nm">1</span>][j - <span class="nm">1</span>] + <span class="nm">1</span>       <span class="cm"># chars match -&gt; extend the diagonal</span>
+            <span class="kw">else</span>:
+                dp[i][j] = <span class="bi">max</span>(dp[i - <span class="nm">1</span>][j], dp[i][j - <span class="nm">1</span>])  <span class="cm"># best of dropping either char</span>
+    <span class="kw">return</span> dp, dp[m][n]
+
+s1, s2 = <span class="st">'INTERVIEW'</span>, <span class="st">'INTEGER'</span>
+table, length = lcs(s1, s2)
+<span class="kw">for</span> row <span class="kw">in</span> table:
+    <span class="bi">print</span>(row)
+<span class="bi">print</span>(<span class="st">f"LCS length of '<span class="bi">{s1}</span>' and '<span class="bi">{s2}</span>': <span class="bi">{length}</span>"</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>LCS's time and space complexity is O(m·n)</strong> — one cell per (i, j) pair, constant work per cell. This is the general shape of 2D DP: if your sub-problem needs two indices to describe, expect an O(m·n) table, not O(m+n). LCS itself powers real tools you've used — it's the core algorithm behind <code>diff</code> / "track changes" style comparisons.</div></div>
+
+  <!-- 3.3 -->
+  <div class="lesson-h2">3.3 — Greedy Algorithms: Fast, Simple, and Not Always Correct</div>
+  <p class="lesson-p">A <strong>greedy</strong> algorithm makes the locally-best choice at each step and never reconsiders it — no table, no backtracking, just one pass. It's much simpler and faster than DP when it works — but it doesn't always find the truly optimal answer, and knowing WHICH problems it's safe for is the actual skill.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Activity selection: greedy (earliest finish time) IS optimal here</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">activity_selection</span>(activities):
+    <span class="cm"># activities: list of (start, end) — pick the MAX-COUNT non-overlapping set</span>
+    sorted_acts = <span class="bi">sorted</span>(activities, key=<span class="kw">lambda</span> a: a[<span class="nm">1</span>])   <span class="cm"># sort by END time</span>
+    selected = [sorted_acts[<span class="nm">0</span>]]
+    last_end = sorted_acts[<span class="nm">0</span>][<span class="nm">1</span>]
+    <span class="kw">for</span> start, end <span class="kw">in</span> sorted_acts[<span class="nm">1</span>:]:
+        <span class="kw">if</span> start >= last_end:            <span class="cm"># doesn't overlap the last one we picked</span>
+            selected.append((start, end))
+            last_end = end
+    <span class="kw">return</span> selected
+
+activities = [(<span class="nm">1</span>,<span class="nm">4</span>), (<span class="nm">3</span>,<span class="nm">5</span>), (<span class="nm">0</span>,<span class="nm">6</span>), (<span class="nm">5</span>,<span class="nm">7</span>), (<span class="nm">3</span>,<span class="nm">9</span>), (<span class="nm">5</span>,<span class="nm">9</span>), (<span class="nm">6</span>,<span class="nm">10</span>), (<span class="nm">8</span>,<span class="nm">11</span>), (<span class="nm">8</span>,<span class="nm">12</span>), (<span class="nm">2</span>,<span class="nm">14</span>), (<span class="nm">12</span>,<span class="nm">16</span>)]
+chosen = activity_selection(activities)
+<span class="bi">print</span>(<span class="st">f'Activities chosen: <span class="bi">{chosen}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Number chosen: <span class="bi">{len(chosen)}</span>'</span>)</div>
+  </div>
+  <p class="lesson-p">Now the critical counterexample. <strong>0/1 knapsack</strong> looks superficially similar to activity selection (pick items to maximize value under a constraint), but greedy — even the "smartest" greedy heuristic, picking items by value-per-weight ratio — provably does NOT always find the optimal answer. Below, the DP solution and the greedy solution are run on the EXACT same data, and they disagree.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">0/1 Knapsack: greedy-by-ratio visibly FAILS where DP succeeds</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">knapsack_01_dp</span>(weights, values, capacity):
+    n = <span class="bi">len</span>(weights)
+    dp = [[<span class="nm">0</span>] * (capacity + <span class="nm">1</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(n + <span class="nm">1</span>)]
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, n + <span class="nm">1</span>):
+        <span class="kw">for</span> w <span class="kw">in</span> <span class="bi">range</span>(capacity + <span class="nm">1</span>):
+            dp[i][w] = dp[i - <span class="nm">1</span>][w]                    <span class="cm"># option 1: don't take item i</span>
+            <span class="kw">if</span> weights[i - <span class="nm">1</span>] <= w:
+                dp[i][w] = <span class="bi">max</span>(dp[i][w], dp[i - <span class="nm">1</span>][w - weights[i - <span class="nm">1</span>]] + values[i - <span class="nm">1</span>])  <span class="cm"># option 2: take it</span>
+    <span class="kw">return</span> dp[n][capacity]
+
+<span class="kw">def</span> <span class="fn">knapsack_greedy_by_ratio</span>(weights, values, capacity):
+    items = <span class="bi">sorted</span>(<span class="bi">zip</span>(weights, values), key=<span class="kw">lambda</span> wv: wv[<span class="nm">1</span>] / wv[<span class="nm">0</span>], reverse=<span class="kw">True</span>)
+    total_value = <span class="nm">0</span>
+    remaining = capacity
+    <span class="kw">for</span> w, v <span class="kw">in</span> items:
+        <span class="kw">if</span> w <= remaining:             <span class="cm"># greedily take the best ratio that still fits</span>
+            total_value += v
+            remaining -= w
+    <span class="kw">return</span> total_value
+
+weights = [<span class="nm">10</span>, <span class="nm">20</span>, <span class="nm">30</span>]
+values  = [<span class="nm">60</span>, <span class="nm">100</span>, <span class="nm">120</span>]
+capacity = <span class="nm">50</span>
+
+dp_best = knapsack_01_dp(weights, values, capacity)
+greedy_best = knapsack_greedy_by_ratio(weights, values, capacity)
+<span class="bi">print</span>(<span class="st">f'DP optimal value: <span class="bi">{dp_best}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Greedy-by-ratio value: <span class="bi">{greedy_best}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Greedy found the true optimum: <span class="bi">{dp_best == greedy_best}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>DP optimal value: 220 — Greedy-by-ratio value: 160.</strong> Greedy picks items 1 and 2 by ratio (6.0 and 5.0 value/weight) for 160, leaving item 3 unused since it no longer fits. But items 2+3 together give 100+120=220 using the exact same 50 capacity. Greedy can't "look ahead" or reconsider — once it commits to item 1, it's stuck with whatever fits around that choice, even though skipping item 1 entirely was the better call. DP considers every combination systematically and never makes this mistake.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Why does greedy work fine on activity selection but fail on knapsack?</strong> Activity selection has a special property (an exchange argument proves the earliest-finishing activity is always safe to include in SOME optimal solution) that 0/1 knapsack simply doesn't have — taking the best ratio item first can lock out a better combination later, with no way to undo it. There's no shortcut for knowing this in advance besides recognizing the problem type — which is exactly what repetition across problems builds.</div></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">DSA 3 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>DP applies</strong> when a problem has optimal substructure (best answer built from best sub-answers) AND overlapping subproblems (those sub-answers repeat) — memoized Fibonacci from DSA 2 already was DP, just top-down.</div></li>
+    <li data-n="2"><div><strong>Bottom-up (tabulation)</strong> builds the answer iteratively into an explicit <code>dp</code> array/table — no recursion, no stack-depth risk, and the table fill is directly observable.</div></li>
+    <li data-n="3"><div><strong>1D DP</strong> (climbing stairs, coin change) needs one index per sub-problem; <strong>2D DP</strong> (LCS) needs two, giving an O(m·n) table.</div></li>
+    <li data-n="4"><div><strong>Greedy</strong> is faster and simpler than DP but only correct for problems with a provable "safe choice" property (activity selection) — it can and does fail on problems that look similar but lack that property (0/1 knapsack).</div></li>
+    <li data-n="5"><div>The real interview skill isn't memorizing solutions — it's recognizing WHICH shape a new problem has: is there a safe greedy choice, or do I need to consider combinations systematically with DP?</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Climbing Stairs on a New n</div>
+        <div class="ex-desc">Reuse climbing_stairs from 3.1 with n=10.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact climbing_stairs() from 3.1:
+  n1 = 10
+  dp1 = climbing_stairs(n1)
+
+Print exactly:
+  f'dp array: {dp1}'
+  f'Total ways to climb {n1} stairs: {dp1[n1]}'
+(Correct: dp array: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89] / Total ways to climb 10 stairs: 89)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># def climbing_stairs(n): ...
+# (paste from 3.1, then:)
+# n1 = 10
+# dp1 = climbing_stairs(n1)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Coin Change: Minimum Coins on New Data</div>
+        <div class="ex-desc">Reuse coin_change_min from 3.1 with a new coin set and amount.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact coin_change_min() from 3.1:
+  coins2 = [1, 2, 5]
+  amount2 = 11
+  dp2 = coin_change_min(coins2, amount2)
+
+Print exactly: f'Min coins to make {amount2}: {dp2[amount2]}'
+(Correct: Min coins to make 11: 3)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def coin_change_min(coins, amount): ...
+# (paste from 3.1, then:)
+# coins2 = [1, 2, 5]
+# amount2 = 11
+# dp2 = coin_change_min(coins2, amount2)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">LCS on a New Pair of Strings</div>
+        <div class="ex-desc">Reuse lcs() from 3.2 on two new strings.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact lcs() from 3.2:
+  s1_3, s2_3 = 'CODING', 'DOCKING'
+  table3, length3 = lcs(s1_3, s2_3)
+
+Print exactly: f"LCS length of '{s1_3}' and '{s2_3}': {length3}"
+(Correct: LCS length of 'CODING' and 'DOCKING': 4)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># def lcs(s1, s2): ...
+# (paste from 3.2, then:)
+# s1_3, s2_3 = 'CODING', 'DOCKING'
+# table3, length3 = lcs(s1_3, s2_3)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Greedy Activity Selection on New Data</div>
+        <div class="ex-desc">Reuse activity_selection from 3.3 on a new set of intervals.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact activity_selection() from 3.3:
+  acts4 = [(1, 3), (2, 5), (4, 7), (1, 8), (6, 9), (8, 10), (9, 11)]
+  chosen4 = activity_selection(acts4)
+
+Print exactly:
+  f'Chosen: {chosen4}'
+  f'Count: {len(chosen4)}'
+(Correct: Chosen: [(1, 3), (4, 7), (8, 10)] / Count: 3)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code"># def activity_selection(activities): ...
+# (paste from 3.3, then:)
+# acts4 = [(1, 3), (2, 5), (4, 7), (1, 8), (6, 9), (8, 10), (9, 11)]
+# chosen4 = activity_selection(acts4)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Another Knapsack Counterexample</div>
+        <div class="ex-desc">Reuse knapsack_01_dp and knapsack_greedy_by_ratio from 3.3 on a NEW dataset and confirm they disagree again.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the exact knapsack_01_dp() and knapsack_greedy_by_ratio() from 3.3:
+  weights5 = [12, 3, 2, 6]
+  values5 = [20, 19, 13, 52]
+  capacity5 = 9
+  dp_best5 = knapsack_01_dp(weights5, values5, capacity5)
+  greedy_best5 = knapsack_greedy_by_ratio(weights5, values5, capacity5)
+
+Print exactly:
+  f'DP optimal value: {dp_best5}'
+  f'Greedy-by-ratio value: {greedy_best5}'
+  f'Greedy found the true optimum: {dp_best5 == greedy_best5}'
+(Correct: DP optimal value: 71 / Greedy-by-ratio value: 65 / Greedy found the true optimum: False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># def knapsack_01_dp(weights, values, capacity): ...
+# def knapsack_greedy_by_ratio(weights, values, capacity): ...
+# (paste from 3.3, then:)
+# weights5 = [12, 3, 2, 6]
+# values5 = [20, 19, 13, 52]
+# capacity5 = 9
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>Maximize Value of a Fixed Interview Day</span></h2>
+    <p>An interview day has fixed candidate slots — each with a start time, end time, and a "value" (how promising the candidate is). Two slots that overlap can't both be used (only one interviewer, one room). This is <strong>weighted interval scheduling</strong>: unlike DSA 3's plain activity selection (which just maximizes COUNT), here different candidates are worth different amounts, so greedy-by-earliest-finish is no longer guaranteed optimal — this needs real DP.</p>
+    <div class="project-tags">
+      <span class="ptag">weighted interval scheduling</span>
+      <span class="ptag">1D DP with reconstruction</span>
+      <span class="ptag">optimal substructure</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Sort slots by end time (same first move as greedy activity selection)</li>
+      <li>dp[i] = best total value achievable using the first i sorted slots; for slot i, choose max(include it + dp[last compatible slot], exclude it) = dp[i-1]</li>
+      <li>"Last compatible slot" for slot i = the latest earlier slot whose end time is &lt;= slot i's start time</li>
+      <li>Reconstruct WHICH slots were chosen by walking your include/exclude decisions backward</li>
+      <li>Report: the full dp table, the maximum total value, which candidates were scheduled, how many interviews that is, and how much total value was left unscheduled</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Maximize Interview Day Value — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: Maximize Value of a Fixed Interview Day
+# Use ONLY DSA 3 concepts (1D DP with reconstruction)
+# ══════════════════════════════════════════
+slots = [
+    {'name': 'Alice', 'start': 9, 'end': 10, 'value': 8},
+    {'name': 'Bob', 'start': 9, 'end': 11, 'value': 12},
+    {'name': 'Carol', 'start': 10, 'end': 12, 'value': 10},
+    {'name': 'Dave', 'start': 11, 'end': 13, 'value': 9},
+    {'name': 'Eve', 'start': 12, 'end': 14, 'value': 11},
+    {'name': 'Frank', 'start': 13, 'end': 15, 'value': 7},
+]
+
+# === TODO 1: weighted interval scheduling DP ===
+# def weighted_interval_scheduling(slots):
+#     ordered = sorted(slots, key=lambda s: s['end'])
+#     n = len(ordered)
+#     dp = [0] * (n + 1)
+#     choice = [None] * (n + 1)
+#
+#     def last_compatible(i):
+#         for j in range(i - 1, -1, -1):
+#             if ordered[j]['end'] <= ordered[i]['start']:
+#                 return j
+#         return -1
+#
+#     for i in range(1, n + 1):
+#         cur = ordered[i - 1]
+#         j = last_compatible(i - 1)
+#         include = cur['value'] + (dp[j + 1] if j != -1 else 0)
+#         exclude = dp[i - 1]
+#         if include > exclude:
+#             dp[i] = include
+#             choice[i] = ('include', j)
+#         else:
+#             dp[i] = exclude
+#             choice[i] = ('exclude', None)
+#
+#     selected = []
+#     i = n
+#     while i > 0:
+#         action, j = choice[i]
+#         if action == 'include':
+#             selected.append(ordered[i - 1])
+#             i = j + 1
+#         else:
+#             i -= 1
+#     selected.reverse()
+#     return dp[n], selected, dp
+
+# === TODO 2: run it and report ===
+# best_value, chosen, dp_table = weighted_interval_scheduling(slots)
+# chosen_names = [c['name'] for c in chosen]
+# total_slots_offered = sum(s['value'] for s in slots)
+#
+# print(f'DP table: {dp_table}')
+# print(f'Maximum total value: {best_value}')
+# print(f'Chosen candidates: {chosen_names}')
+# print(f'Number of interviews scheduled: {len(chosen)}')
+# print(f'Value left on the table: {total_slots_offered - best_value}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📊</span>DP table: [0, 8, 12, 18, 21, 29, 29]</div>
+    <div class="check-item"><span class="check-icon">💰</span>Maximum total value: 29</div>
+    <div class="check-item"><span class="check-icon">👥</span>Chosen candidates: ['Alice', 'Carol', 'Eve']</div>
+    <div class="check-item"><span class="check-icon">🗓️</span>Number of interviews scheduled: 3</div>
+    <div class="check-item"><span class="check-icon">📉</span>Value left on the table: 28</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DSA 3 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">What two properties must a problem have for Dynamic Programming to apply?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It must involve sorting and involve a graph</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Optimal substructure (the best whole-problem answer is built from best sub-answers) and overlapping subproblems (those sub-answers repeat, making caching worthwhile)</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> It must be solvable with a single greedy pass</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It must have exactly two input arrays</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What's the practical difference between top-down (memoization) and bottom-up (tabulation) DP?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> They solve different problems entirely</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Top-down uses recursion plus a cache and only computes sub-problems actually needed, but risks stack depth issues; bottom-up builds an explicit table iteratively from the smallest case up, avoiding recursion but usually computing every sub-problem</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Bottom-up is always less efficient than top-down</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Top-down never uses a dictionary or array to cache results</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Why does greedy-by-ratio fail on 0/1 knapsack but succeed on activity selection?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Greedy always fails on both; the chapter's activity selection result was a coincidence</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Activity selection has a provable "safe choice" property (the earliest-finishing activity is always part of some optimal solution); 0/1 knapsack has no such property — an early greedy choice can lock out a better combination with no way to undo it</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Knapsack always has more items than activity selection</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Greedy only works on problems with negative numbers</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the bottom-up recurrence line used in <code>climbing_stairs</code> to compute <code>dp[i]</code> (matching this chapter's pattern exactly).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="dp[i] = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What is the time/space complexity of the Longest Common Subsequence DP solution on strings of length m and n?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> O(m + n) time and space</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> O(m·n) time and space — one table cell per (i, j) pair, with constant work to fill each cell</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> O(2^(m+n)), same as brute-force enumeration</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> O(1), since it's a lookup table</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎯</div>
+    <div class="ncc-info">
+      <h3>DSA 4: Sorting, Searching &amp; a Timed Mock Interview</h3>
+      <p>Last up: sorting algorithms from scratch, binary search, a Big-O cheat-sheet worth memorizing, and a timed 3-problem mock coding interview that draws on everything in DSA 1-3.</p>
+    </div>
+    <a class="ncc-btn" href="ds04-sorting-searching-mock-interview.html">Start DSA 4 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Dynamic Programming &amp; Greedy — Interview Prep</h2>
+    <p>12 questions on the angles interviewers actually probe: recognizing DP problems, complexity trade-offs, and precisely WHY greedy fails where it fails. Click a question to reveal the answer. Not graded — practice saying these out loud, not just recognizing them.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you recognize, from a fresh problem statement, that it's a DP problem?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Look for language like "maximum/minimum," "count the number of ways," or "is it possible to" combined with a sense that the answer for a larger input depends on answers to smaller versions of the same input (optimal substructure) — and, critically, that a brute-force recursive solution would re-solve the SAME smaller sub-problem multiple times (overlapping subproblems). If a brute-force recursive attempt has no repeated sub-problems, DP won't help — that's a strong signal you're looking at plain recursion or backtracking instead.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the standard process for going from "this is a DP problem" to a working solution?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">1) Define the sub-problem precisely in words (e.g. "dp[i] = the minimum coins needed to make amount i"). 2) Find the recurrence — how does dp[i] relate to smaller dp values? 3) Identify the base case(s). 4) Decide the fill order (usually smallest sub-problem to largest). 5) Decide top-down (recursion + cache) or bottom-up (explicit table) — bottom-up is usually preferred in interviews since it avoids recursion-depth concerns and makes the table inspectable.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Time/space complexity: memoization (top-down) vs tabulation (bottom-up) — are they actually different?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Asymptotically, usually the same — both solve each distinct sub-problem once. The practical differences: memoization can be FASTER in wall-clock time on inputs where many sub-problems are never actually needed (it only computes what recursion actually visits), while tabulation typically computes every sub-problem in the table regardless of whether the final answer needs all of them. Memoization also adds function-call overhead and risks recursion depth limits (DSA 2) that tabulation doesn't have.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you reduce the space complexity of a 1D DP solution like climbing stairs or coin change?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">If <code>dp[i]</code> only ever depends on a FIXED small number of previous entries (climbing stairs only needs <code>dp[i-1]</code> and <code>dp[i-2]</code>), you don't need the whole array — just keep the last few values in plain variables and slide them forward each iteration, dropping space from O(n) to O(1). This "rolling variables" trick doesn't work for every DP (coin change genuinely needs the full array, since any earlier coin combination might be reused), so check the recurrence's actual dependencies before assuming you can shrink it.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Is there ever a version of the knapsack problem where greedy IS provably optimal?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Yes — the FRACTIONAL knapsack problem (you're allowed to take a FRACTION of an item, not just all-or-nothing) is solved optimally by the exact same greedy-by-ratio approach that fails on 0/1 knapsack. The reason: with fractions allowed, you can always "top off" the last item to exactly fill remaining capacity, so there's no scenario where a slightly-worse-ratio combination beats the greedy choice — the all-or-nothing constraint is specifically what breaks greedy's guarantee in the 0/1 version.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the "exchange argument" that proves greedy is optimal for activity selection?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Take any optimal solution that doesn't include the earliest-finishing activity. You can always SWAP its first-chosen activity for the earliest-finishing one without reducing the count — the earliest-finishing activity ends no later, so it can't conflict with anything the rest of that optimal solution schedules afterward. Since the swap never makes things worse, an optimal solution containing the earliest-finishing activity always exists, which justifies greedily picking it every time. This style of argument (show a greedy choice can always be swapped in for free) is the standard way of PROVING a greedy algorithm correct, rather than just trusting it looks right.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How does this chapter's capstone (weighted interval scheduling) differ from plain activity selection, and why does that difference force DP?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Plain activity selection maximizes COUNT, where every activity is worth the same "1 unit" — greedy-by-earliest-finish is provably safe there. Weighted interval scheduling maximizes total VALUE, where a high-value activity might be worth sacrificing several lower-value ones for — greedy-by-earliest-finish has no mechanism to account for value at all, so it can (and does, on real inputs) pick a worse combination. The value dimension is exactly what breaks the exchange argument that made plain activity selection greedy-safe.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">If you're not sure whether greedy is safe for a new problem, what should you do in an interview?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Say so explicitly, and try to construct a small counterexample by hand (2-4 items) before committing to greedy — this chapter's knapsack counterexample is exactly that kind of small, hand-constructable case. If you can't quickly find a counterexample AND can articulate why the greedy choice is always safe (an exchange-argument-style justification), greedy is probably fine. If you're unsure either way, defaulting to DP is the safer answer to actually ship correct — you can always mention "greedy might work here and would be faster, but I'd want to verify the exchange property first."</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's a real-world application of Longest Common Subsequence beyond interview questions?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Version control diff tools (git diff, "track changes" in documents) use LCS-family algorithms to find the minimal set of insertions/deletions that transform one version of a file into another — the LCS is literally the "unchanged" content, and everything not in it is what gets shown as added/removed. Bioinformatics also uses LCS-family algorithms (sequence alignment) to compare DNA/protein sequences.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you extend the coin_change_min DP to also RECONSTRUCT which coins were used, not just the count?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Track a second array alongside <code>dp</code> — e.g. <code>choice[a] = c</code>, the coin that achieved <code>dp[a]</code>'s best value — updated at the same time <code>dp[a]</code> is updated. To reconstruct, start at <code>amount</code>, repeatedly look up <code>choice[amount]</code>, append that coin, and subtract it from the remaining amount, until you reach 0. This "parallel choice array" pattern is exactly what this chapter's capstone does to reconstruct which candidates were scheduled, not just the maximum value.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is it worth explicitly stating the recurrence relation out loud before coding, in an interview?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because DP bugs are almost always recurrence bugs, not syntax bugs — an off-by-one in the recurrence, a missing base case, or a wrong "which sub-problems does this depend on" produces code that runs without error but returns the wrong number. Stating "dp[i][j] means X, and it equals Y based on dp[i-1][j] and dp[i][j-1]" out loud BEFORE writing code lets the interviewer catch a wrong recurrence early, rather than debugging silently-wrong output later — and it's the single strongest signal that you actually understand the problem rather than pattern-matching a memorized solution.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does DP guarantee correctness where greedy might not, even though DP considers "the same" choices greedy does?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Greedy commits to one choice per step and never revisits it. DP effectively considers BOTH "include this" and "exclude this" at every step (that's exactly the <code>dp[i][w] = max(dp[i-1][w], ...)</code> pattern in knapsack) and lets the table capture the best outcome under every possible prior state — so it never accidentally locks itself out of a better combination the way greedy can. The cost of that guarantee is doing genuinely more work (considering combinations, not just one path) — which is precisely the time/space trade-off DP makes for correctness.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# No external libraries needed — everything here is pure Python','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:['dp array: [1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89]','total ways to climb 10 stairs: 89'],
+    hint:"dp[0]=1, dp[1]=1, then dp[i] = dp[i-1] + dp[i-2] for i from 2 to n",
+    solution:`def climbing_stairs(n):
+    dp = [0] * (n + 1)
+    dp[0] = 1
+    if n >= 1:
+        dp[1] = 1
+    for i in range(2, n + 1):
+        dp[i] = dp[i - 1] + dp[i - 2]
+    return dp
+
+n1 = 10
+dp1 = climbing_stairs(n1)
+print(f'dp array: {dp1}')
+print(f'Total ways to climb {n1} stairs: {dp1[n1]}')`
+  },
+  2:{
+    checks:['min coins to make 11: 3'],
+    hint:"dp[0]=0; for each amount a from 1..amount, try each coin c <= a: dp[a] = min(dp[a], dp[a-c]+1)",
+    solution:`def coin_change_min(coins, amount):
+    dp = [float('inf')] * (amount + 1)
+    dp[0] = 0
+    for a in range(1, amount + 1):
+        for c in coins:
+            if c <= a and dp[a - c] + 1 < dp[a]:
+                dp[a] = dp[a - c] + 1
+    return dp
+
+coins2 = [1, 2, 5]
+amount2 = 11
+dp2 = coin_change_min(coins2, amount2)
+print(f'Min coins to make {amount2}: {dp2[amount2]}')`
+  },
+  3:{
+    checks:["lcs length of 'coding' and 'docking': 4"],
+    hint:"dp[i][j]: if chars match, dp[i-1][j-1]+1; else max(dp[i-1][j], dp[i][j-1])",
+    solution:`def lcs(s1, s2):
+    m, n = len(s1), len(s2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if s1[i - 1] == s2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+    return dp, dp[m][n]
+
+s1_3, s2_3 = 'CODING', 'DOCKING'
+table3, length3 = lcs(s1_3, s2_3)
+print(f"LCS length of '{s1_3}' and '{s2_3}': {length3}")`
+  },
+  4:{
+    checks:['chosen: [(1, 3), (4, 7), (8, 10)]','count: 3'],
+    hint:"sort by end time; greedily keep an activity if its start >= the last chosen activity's end",
+    solution:`def activity_selection(activities):
+    sorted_acts = sorted(activities, key=lambda a: a[1])
+    selected = [sorted_acts[0]]
+    last_end = sorted_acts[0][1]
+    for start, end in sorted_acts[1:]:
+        if start >= last_end:
+            selected.append((start, end))
+            last_end = end
+    return selected
+
+acts4 = [(1, 3), (2, 5), (4, 7), (1, 8), (6, 9), (8, 10), (9, 11)]
+chosen4 = activity_selection(acts4)
+print(f'Chosen: {chosen4}')
+print(f'Count: {len(chosen4)}')`
+  },
+  5:{
+    checks:['dp optimal value: 71','greedy-by-ratio value: 65','greedy found the true optimum: false'],
+    hint:"same two functions as 3.3's knapsack demo, just new weights/values/capacity — verify by running, don't hand-calculate",
+    solution:`def knapsack_01_dp(weights, values, capacity):
+    n = len(weights)
+    dp = [[0] * (capacity + 1) for _ in range(n + 1)]
+    for i in range(1, n + 1):
+        for w in range(capacity + 1):
+            dp[i][w] = dp[i - 1][w]
+            if weights[i - 1] <= w:
+                dp[i][w] = max(dp[i][w], dp[i - 1][w - weights[i - 1]] + values[i - 1])
+    return dp[n][capacity]
+
+def knapsack_greedy_by_ratio(weights, values, capacity):
+    items = sorted(zip(weights, values), key=lambda wv: wv[1] / wv[0], reverse=True)
+    total_value = 0
+    remaining = capacity
+    for w, v in items:
+        if w <= remaining:
+            total_value += v
+            remaining -= w
+    return total_value
+
+weights5 = [12, 3, 2, 6]
+values5 = [20, 19, 13, 52]
+capacity5 = 9
+dp_best5 = knapsack_01_dp(weights5, values5, capacity5)
+greedy_best5 = knapsack_greedy_by_ratio(weights5, values5, capacity5)
+print(f'DP optimal value: {dp_best5}')
+print(f'Greedy-by-ratio value: {greedy_best5}')
+print(f'Greedy found the true optimum: {dp_best5 == greedy_best5}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['dp table: [0, 8, 12, 18, 21, 29, 29]','maximum total value: 29',"chosen candidates: ['alice', 'carol', 'eve']",'number of interviews scheduled: 3','value left on the table: 28'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('dp[i]=dp[i-1]+dp[i-2]');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! dp[i] = dp[i - 1] + dp[i - 2]'
+    :'❌ Not quite. You need: dp[i] = dp[i - 1] + dp[i - 2]';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Optimal substructure, overlapping subproblems, 1D/2D DP tables, and exactly where greedy breaks down — you understand the topic candidates fear most. Check out the Interview Prep tab, then move on to DSA 4.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
