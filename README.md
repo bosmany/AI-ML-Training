@@ -154,8 +154,8 @@ PyTorch and HuggingFace `transformers` can't run in Pyodide (large compiled nati
 WASM build). For these chapters, copy `dl/ch22-intro-to-pytorch.html`'s exact shell, not a normal
 chapter's:
 - A `.colab-banner` div near the top of the lesson (and again in the project section) linking to
-  `https://colab.research.google.com/github/bosmany/AI-ML-Training/blob/main/<folder>/<slug>.ipynb`
-  (the actual `.ipynb` files don't exist yet anywhere in this repo — that's a known gap, see below).
+  `https://colab.research.google.com/github/bosmany/ai-ml-zero-to-hero/blob/main/<folder>/<slug>.ipynb`
+  — the real, executed `.ipynb` files now exist for Ch 22-24, 26, 28 (see "Resuming this project").
 - Lesson code blocks have NO `▶ Run` button (just a "Colab / real Python — reference only" label).
 - Practice exercises are graded by **pattern-matching the typed code** (`checkTextEx(n)`, checks
   matched against the student's code with all whitespace stripped and lowercased), not by
