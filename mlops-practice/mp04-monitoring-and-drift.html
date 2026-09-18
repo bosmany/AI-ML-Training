@@ -1,0 +1,1578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus MLOps Practice 4: Monitoring &amp; Drift</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 5-chapter "Python for
+  MLOps: Day-to-Day" track — NOT part of the 41-chapter core curriculum, same tier as the
+  dsa/ and systems/ modules. PSI, KS/chi-square drift tests, error-budget math, hysteresis
+  alerting and canary decisions are real, runnable Python (NumPy + SciPy + pandas, fetched by
+  Pyodide on first import). All data is hand-built and deterministic (no random draws) so the
+  auto-graded output is identical across NumPy/SciPy versions. The Prometheus section is
+  reference-only, no Run button, since a metrics server needs a real network socket this
+  browser sandbox doesn't have — same pattern as systems/sf01's curl section.
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live
+  in the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">MLOps 4: Monitoring &amp; Drift</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for MLOps · 4 of 5</div>
+  </a>
+  <a class="sb-back" href="mp03-pipelines-orchestration.html">← MLOps 3: Pipelines &amp; Orchestration</a>
+  <div class="sb-section">MLOps 4 · Monitoring &amp; Drift</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Python for MLOps</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='mp05-mlops-python-mock-interview.html'"><span class="sb-icon">🎯</span><span class="sb-step">MLOps 5: Mock Interview</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus MLOps Practice 4 of 5</div>
+    <div class="tb-title">Monitoring &amp; Drift</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>Python for MLOps 4:<br/><span>Monitoring &amp; Drift</span></h1>
+    <p>A deployed model fails differently from ordinary software: the service can be perfectly healthy while the predictions quietly rot. This chapter is the day-to-day toolkit of the engineer who gets paged for that — latency percentiles and error budgets, data-quality checks, PSI and KS drift scores you can implement in a few lines, evaluation when labels arrive weeks late, alerts that don't flap, and the promote / hold / rollback logic behind a safe model rollout. Every metric here is something you'll be asked to define, compute, or defend in an MLOps or SRE interview.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~75 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+
+  <div class="lesson-h2">4.1 — What to Monitor: Four Layers, and Why Accuracy Alone Is Too Late</div>
+  <p class="lesson-p">A model in production is two systems stacked on top of each other: a <strong>service</strong> (it can be slow, crash, or run out of memory like any other API) and a <strong>statistical artifact</strong> (it can quietly get worse while the service is perfectly healthy). Traditional monitoring only sees the first. A model that returns HTTP 200 in 20 ms with garbage predictions looks <em>green</em> on every infrastructure dashboard. That's why ML monitoring is built in four layers, ordered by how quickly each one can tell you something is wrong.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The four monitoring layers and how fast each one can detect a problem</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">layers = [
+    <span class="cm"># (layer, example signals, needs ground-truth labels?, typical time to detect)</span>
+    (<span class="st">'Service health'</span>,    <span class="st">'p95 latency, 5xx rate, GPU memory'</span>,                       <span class="kw">False</span>, <span class="st">'seconds to minutes'</span>),
+    (<span class="st">'Data quality'</span>,      <span class="st">'null rate, out-of-range values, new categories'</span>,          <span class="kw">False</span>, <span class="st">'minutes to hours'</span>),
+    (<span class="st">'Data drift'</span>,        <span class="st">'PSI / KS on input features, prediction distribution'</span>,     <span class="kw">False</span>, <span class="st">'hours to days'</span>),
+    (<span class="st">'Model performance'</span>, <span class="st">'accuracy, precision, revenue impact'</span>,                     <span class="kw">True</span>,  <span class="st">'days to months (labels arrive late)'</span>),
+]
+<span class="kw">for</span> name, signal, needs_labels, lag <span class="kw">in</span> layers:
+    tag = <span class="st">'needs labels'</span> <span class="kw">if</span> needs_labels <span class="kw">else</span> <span class="st">'label-free'</span>
+    <span class="bi">print</span>(<span class="st">f'{name:&lt;18} [{tag:&lt;12}] detects in: {lag}'</span>)
+    <span class="bi">print</span>(<span class="st">f'    e.g. {signal}'</span>)</div>
+  </div>
+  <p class="lesson-p">Read the last column top to bottom: the layers you can watch <em>today</em> (health, quality, drift) never need labels, and the one everybody wants (accuracy) is the one that arrives last. In fraud, credit, churn, or recommendations the true outcome can take weeks or months to be known. If accuracy is your only alarm, you find out about a broken model after the damage is done. The engineering answer is to <strong>watch the label-free layers as early-warning signals</strong>, and treat accuracy as the slow, authoritative confirmation.</p>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Three kinds of drift, and only one is visible without labels.</strong> <em>Data (covariate) drift</em>: the input distribution <code>P(X)</code> changes — a new app version changes how a field is populated. <em>Label (prior) drift</em>: the base rate <code>P(y)</code> changes — fraud spikes during a sale. <em>Concept drift</em>: the relationship <code>P(y | X)</code> itself changes — the same customer features now mean something different after a pricing change. Data drift is detectable from inputs alone. Concept drift can leave every input distribution untouched and still destroy accuracy — which is exactly why label-free monitoring is necessary but never sufficient.</div></div>
+
+  <div class="lesson-h2">4.2 — Latency Percentiles: Why the Mean Lies</div>
+  <p class="lesson-p">Average latency is the most common wrong number on a dashboard. Latency distributions have a long right tail: most requests are fast, a few are catastrophically slow, and the mean smears the two together into a number that describes neither. Users experience the tail, so operators watch <strong>percentiles</strong>: p50 (the typical request), p95 and p99 (the slow tail that a real fraction of users hit on every session).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Mean vs percentiles on the same 20 requests</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># 20 request latencies in ms: mostly fast, two slow outliers</span>
+latencies = [<span class="nm">42</span>, <span class="nm">38</span>, <span class="nm">45</span>, <span class="nm">51</span>, <span class="nm">40</span>, <span class="nm">39</span>, <span class="nm">44</span>, <span class="nm">47</span>, <span class="nm">41</span>, <span class="nm">43</span>,
+             <span class="nm">46</span>, <span class="nm">40</span>, <span class="nm">38</span>, <span class="nm">52</span>, <span class="nm">44</span>, <span class="nm">41</span>, <span class="nm">39</span>, <span class="nm">45</span>, <span class="nm">480</span>, <span class="nm">1250</span>]
+
+mean = <span class="bi">sum</span>(latencies) / <span class="bi">len</span>(latencies)
+p50, p95, p99 = np.percentile(latencies, [<span class="nm">50</span>, <span class="nm">95</span>, <span class="nm">99</span>])
+<span class="bi">print</span>(<span class="st">f'mean = {mean:.1f} ms'</span>)
+<span class="bi">print</span>(<span class="st">f'p50  = {p50:.1f} ms'</span>)
+<span class="bi">print</span>(<span class="st">f'p95  = {p95:.1f} ms'</span>)
+<span class="bi">print</span>(<span class="st">f'p99  = {p99:.1f} ms'</span>)</div>
+  </div>
+  <p class="lesson-p">The mean (125 ms) is three times the typical request (43.5 ms) and a tenth of the worst one — it's useless for both. Notice too that <code>np.percentile</code> <em>interpolates</em>: p95 comes out at 518.5 ms, a value no request actually took. Some tools use the <strong>nearest-rank</strong> definition instead, which always returns a real observation. Neither is wrong, but two systems that disagree on the definition will disagree on the number, so know which one your monitoring stack uses.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Nearest-rank percentile (always returns an observed value)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+
+<span class="kw">def</span> <span class="fn">nearest_rank</span>(values, pct):
+    ordered = <span class="bi">sorted</span>(values)
+    rank = math.ceil(pct / <span class="nm">100</span> * <span class="bi">len</span>(ordered))      <span class="cm"># 1-based rank</span>
+    <span class="kw">return</span> ordered[<span class="bi">max</span>(rank, <span class="nm">1</span>) - <span class="nm">1</span>]
+
+latencies = [<span class="nm">42</span>, <span class="nm">38</span>, <span class="nm">45</span>, <span class="nm">51</span>, <span class="nm">40</span>, <span class="nm">39</span>, <span class="nm">44</span>, <span class="nm">47</span>, <span class="nm">41</span>, <span class="nm">43</span>,
+             <span class="nm">46</span>, <span class="nm">40</span>, <span class="nm">38</span>, <span class="nm">52</span>, <span class="nm">44</span>, <span class="nm">41</span>, <span class="nm">39</span>, <span class="nm">45</span>, <span class="nm">480</span>, <span class="nm">1250</span>]
+<span class="bi">print</span>(<span class="st">'nearest-rank p95:'</span>, nearest_rank(latencies, <span class="nm">95</span>))
+<span class="bi">print</span>(<span class="st">'nearest-rank p99:'</span>, nearest_rank(latencies, <span class="nm">99</span>))</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>You cannot average percentiles.</strong> If instance A serves 1,000 requests with p95 = 50 ms and instance B serves 10 requests with p95 = 900 ms, the "average p95" of 475 ms is nonsense — nearly every user saw ~50 ms. The p95 of the <em>pooled</em> traffic is 50 ms. To aggregate across instances you must merge the underlying data or, at scale, merge <strong>histograms</strong> (which is precisely why Prometheus exposes latency as histogram buckets and computes quantiles from the merged buckets, never from per-instance quantiles).</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Average-of-p95 vs pooled p95</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+instance_a = [<span class="nm">50</span>] * <span class="nm">990</span> + [<span class="nm">100</span>] * <span class="nm">10</span>     <span class="cm"># 1,000 requests</span>
+instance_b = [<span class="nm">900</span>] * <span class="nm">10</span>                  <span class="cm"># 10 requests</span>
+
+p95_a = np.percentile(instance_a, <span class="nm">95</span>)
+p95_b = np.percentile(instance_b, <span class="nm">95</span>)
+<span class="bi">print</span>(<span class="st">'average of the two p95s:'</span>, (p95_a + p95_b) / <span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">'p95 of the pooled traffic:'</span>, np.percentile(instance_a + instance_b, <span class="nm">95</span>))</div>
+  </div>
+
+  <div class="lesson-h2">4.3 — SLIs, SLOs, Error Budgets and Burn Rate</div>
+  <p class="lesson-p">Three terms that interviews mix up constantly. An <strong>SLI</strong> (service level indicator) is a measurement: "the fraction of prediction requests that returned successfully in under 300 ms." An <strong>SLO</strong> (objective) is the target for that measurement: "99.9% over a rolling 30 days." An <strong>SLA</strong> (agreement) is the contractual promise to a customer, with consequences (credits, penalties), and is usually looser than the internal SLO so you have room to react before breaching it. The gap between 100% and your SLO is the <strong>error budget</strong> — the amount of unreliability you are <em>allowed</em> to spend on deploys, experiments, and incidents.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Turning an SLO into minutes of allowed downtime</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">error_budget_minutes</span>(slo_pct, window_days=<span class="nm">30</span>):
+    allowed_fraction = <span class="nm">1</span> - slo_pct / <span class="nm">100</span>
+    <span class="kw">return</span> window_days * <span class="nm">24</span> * <span class="nm">60</span> * allowed_fraction
+
+<span class="kw">for</span> slo <span class="kw">in</span> [<span class="nm">99.0</span>, <span class="nm">99.5</span>, <span class="nm">99.9</span>, <span class="nm">99.95</span>, <span class="nm">99.99</span>]:
+    <span class="bi">print</span>(<span class="st">f'{slo:&gt;6}% over 30 days -&gt; {error_budget_minutes(slo):&gt;7.1f} min of allowed downtime'</span>)</div>
+  </div>
+  <p class="lesson-p">Each extra nine cuts the budget by ten. 99.9% allows 43.2 minutes a month; 99.99% allows 4.3 — less than one slow deploy. That's why the SLO is a product decision and not "as high as possible": every nine costs real engineering effort. The budget also turns arguments into arithmetic — if you've spent it, feature launches pause and reliability work takes priority; if you have plenty left, you can ship faster.</p>
+  <p class="lesson-p"><strong>Burn rate</strong> tells you how fast you're spending the budget: the observed error rate divided by the error rate the SLO allows. A burn rate of 1 spends exactly the whole budget by the end of the window; 14.4 exhausts a 30-day budget in about two days.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Burn rate for a 1-hour window</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">burn_rate</span>(errors, requests, slo_pct):
+    observed = errors / requests
+    allowed = <span class="nm">1</span> - slo_pct / <span class="nm">100</span>
+    <span class="kw">return</span> observed / allowed
+
+<span class="cm"># In the last hour: 1,440 failed predictions out of 100,000, against a 99.9% SLO</span>
+rate = burn_rate(<span class="nm">1440</span>, <span class="nm">100_000</span>, <span class="nm">99.9</span>)
+<span class="bi">print</span>(<span class="st">f'burn rate: {rate:.1f}x'</span>)
+<span class="bi">print</span>(<span class="st">f'at this pace the 30-day budget is gone in {30 * 24 / rate:.0f} hours'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Alert on burn rate, not on raw error counts.</strong> The widely used pattern (from Google's SRE workbook) pages when the burn rate is high over both a long and a short window — e.g. 14.4x over 1 hour <em>and</em> over 5 minutes, which means 2% of the monthly budget went in an hour and it's still happening. The short window makes the alert stop firing quickly once the problem is fixed; the long window stops a single blip from paging anyone.</div></div>
+
+  <div class="lesson-h2">4.4 — Data Quality Checks: The Cheapest Drift Detector</div>
+  <p class="lesson-p">Before any statistics, check the boring things. The majority of "model drift" incidents are really <strong>upstream data bugs</strong>: a column that started arriving null, a unit change (dollars to cents), a new category the encoder has never seen, a timestamp in the wrong timezone. These checks are cheap, need no reference distribution, and catch problems within minutes. Run them on every batch or on a sampled slice of live traffic.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A small data-quality report over one batch of incoming rows</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">batch = [
+    {<span class="st">'age'</span>: <span class="nm">34</span>,   <span class="st">'country'</span>: <span class="st">'IN'</span>, <span class="st">'income'</span>: <span class="nm">52000</span>},
+    {<span class="st">'age'</span>: <span class="kw">None</span>, <span class="st">'country'</span>: <span class="st">'IN'</span>, <span class="st">'income'</span>: <span class="nm">61000</span>},
+    {<span class="st">'age'</span>: <span class="nm">29</span>,   <span class="st">'country'</span>: <span class="st">'US'</span>, <span class="st">'income'</span>: -<span class="nm">5</span>},
+    {<span class="st">'age'</span>: <span class="nm">41</span>,   <span class="st">'country'</span>: <span class="st">'ZZ'</span>, <span class="st">'income'</span>: <span class="nm">73000</span>},
+    {<span class="st">'age'</span>: <span class="nm">230</span>,  <span class="st">'country'</span>: <span class="st">'US'</span>, <span class="st">'income'</span>: <span class="nm">48000</span>},
+    {<span class="st">'age'</span>: <span class="nm">38</span>,   <span class="st">'country'</span>: <span class="st">'DE'</span>, <span class="st">'income'</span>: <span class="kw">None</span>},
+]
+known_countries = {<span class="st">'IN'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>, <span class="st">'GB'</span>}
+valid_ranges = {<span class="st">'age'</span>: (<span class="nm">0</span>, <span class="nm">120</span>), <span class="st">'income'</span>: (<span class="nm">0</span>, <span class="nm">10_000_000</span>)}
+
+<span class="kw">def</span> <span class="fn">quality_report</span>(rows):
+    n = <span class="bi">len</span>(rows)
+    report = {}
+    <span class="kw">for</span> col, (lo, hi) <span class="kw">in</span> valid_ranges.items():
+        present = [r[col] <span class="kw">for</span> r <span class="kw">in</span> rows <span class="kw">if</span> r[col] <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>]
+        report[<span class="st">f'{col} null rate'</span>] = <span class="st">f'{(n - len(present)) / n:.1%}'</span>
+        report[<span class="st">f'{col} out of range'</span>] = <span class="bi">sum</span>(<span class="nm">1</span> <span class="kw">for</span> v <span class="kw">in</span> present <span class="kw">if</span> <span class="kw">not</span> lo &lt;= v &lt;= hi)
+    report[<span class="st">'unseen countries'</span>] = <span class="bi">sorted</span>({r[<span class="st">'country'</span>] <span class="kw">for</span> r <span class="kw">in</span> rows} - known_countries)
+    <span class="kw">return</span> report
+
+<span class="kw">for</span> check, result <span class="kw">in</span> quality_report(batch).items():
+    <span class="bi">print</span>(<span class="st">f'{check:&lt;20} {result}'</span>)</div>
+  </div>
+  <p class="lesson-p">Each of those five lines maps to a real incident class: null spikes (a broken join), out-of-range values (a unit or parsing bug), and unseen categories (a new market or a typo upstream). Two habits make these checks useful: keep the valid ranges and known categories in a <strong>versioned data contract</strong> next to the model rather than hard-coded in the check, and alert on the <em>rate</em> over a batch, not on single rows, so one malformed request doesn't page anyone.</p>
+
+  <div class="lesson-h2">4.5 — Data Drift I: Population Stability Index From Scratch</div>
+  <p class="lesson-p"><strong>PSI</strong> compares the distribution of one feature between a <em>reference</em> (usually the training data) and <em>current</em> production data. Slice the reference into bins, measure what fraction of each dataset lands in each bin, and sum <code>(current% − reference%) × ln(current% / reference%)</code> across the bins. Zero means identical; larger means more shift. It is popular because it is a single interpretable number per feature, needs no labels, and is cheap enough to compute on every batch.</p>
+  <p class="lesson-p">Two implementation details decide whether your PSI is trustworthy. First, <strong>the bins must come from the reference</strong> — cut it into quantiles so each reference bin holds an equal share, then count current data against those same cut points. Second, an empty bin makes the logarithm blow up (division by zero), so clip every proportion to a small epsilon such as <code>1e-4</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">PSI implemented with NumPy, applied to increasingly shifted data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">psi</span>(reference, current, bins=<span class="nm">5</span>, eps=<span class="nm">1e-4</span>):
+    reference = np.asarray(reference, dtype=float)
+    current = np.asarray(current, dtype=float)
+    <span class="cm"># interior cut points at the reference's quantiles (np.unique drops duplicates for tied data)</span>
+    cuts = np.unique(np.quantile(reference, np.linspace(<span class="nm">0</span>, <span class="nm">1</span>, bins + <span class="nm">1</span>)[<span class="nm">1</span>:-<span class="nm">1</span>]))
+    ref_counts = np.bincount(np.searchsorted(cuts, reference, side=<span class="st">'right'</span>), minlength=<span class="bi">len</span>(cuts) + <span class="nm">1</span>)
+    cur_counts = np.bincount(np.searchsorted(cuts, current, side=<span class="st">'right'</span>), minlength=<span class="bi">len</span>(cuts) + <span class="nm">1</span>)
+    ref_pct = np.clip(ref_counts / <span class="bi">len</span>(reference), eps, <span class="kw">None</span>)
+    cur_pct = np.clip(cur_counts / <span class="bi">len</span>(current), eps, <span class="kw">None</span>)
+    <span class="kw">return</span> <span class="bi">float</span>(np.<span class="bi">sum</span>((cur_pct - ref_pct) * np.log(cur_pct / ref_pct)))
+
+<span class="kw">def</span> <span class="fn">psi_verdict</span>(value):
+    <span class="kw">if</span> value &lt; <span class="nm">0.1</span>:
+        <span class="kw">return</span> <span class="st">'stable'</span>
+    <span class="kw">return</span> <span class="st">'moderate drift'</span> <span class="kw">if</span> value &lt; <span class="nm">0.25</span> <span class="kw">else</span> <span class="st">'major drift'</span>
+
+ages = <span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">101</span>))                       <span class="cm"># reference: 1..100</span>
+<span class="bi">print</span>(<span class="st">'bin edges from the reference:'</span>, np.quantile(ages, [<span class="nm">0.2</span>, <span class="nm">0.4</span>, <span class="nm">0.6</span>, <span class="nm">0.8</span>]).<span class="bi">round</span>(<span class="nm">1</span>).tolist())
+<span class="kw">for</span> shift <span class="kw">in</span> (<span class="nm">0</span>, <span class="nm">5</span>, <span class="nm">12</span>, <span class="nm">20</span>):
+    value = psi(ages, [a + shift <span class="kw">for</span> a <span class="kw">in</span> ages])
+    <span class="bi">print</span>(<span class="st">f'shift +{shift:&lt;2} -&gt; PSI {value:.4f}  ({psi_verdict(value)})'</span>)</div>
+  </div>
+  <p class="lesson-p">The verdict column uses the industry rule of thumb: <strong>below 0.1 stable, 0.1 to 0.25 moderate, above 0.25 major</strong>. Treat those numbers as a starting point, not physics.</p>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>What PSI hides.</strong> (1) The value depends on the number and placement of bins — 5 bins and 20 bins give different numbers for the same data, so fix the binning per feature and keep it fixed. (2) With small samples PSI is noisy: a handful of rows moving between bins produces a "drift". (3) Quantile bins on a feature with a few distinct values (a 0/1 flag, a count that's mostly zero) collapse into fewer bins. (4) PSI says <em>that</em> the distribution moved, not whether it matters: a shift in a feature the model barely uses is harmless, and a tiny shift in the single most important feature can be critical. Pair drift scores with feature importance when deciding whether to act.</div></div>
+
+  <div class="lesson-h2">4.6 — Data Drift II: KS Test, Chi-Square, and When p-Values Mislead</div>
+  <p class="lesson-p">PSI is a heuristic; the <strong>two-sample Kolmogorov–Smirnov (KS) test</strong> is a proper statistical test for numeric features. It measures the largest vertical gap between the two empirical cumulative distributions (the <em>KS statistic</em>, between 0 and 1) and converts it into a p-value for the hypothesis "both samples come from the same distribution". For categorical features the equivalent is a <strong>chi-square test</strong> on the category counts.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">KS statistic vs p-value: same shift, 100x more data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+reference = [i / <span class="nm">100</span> <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">20</span>, <span class="nm">60</span>)]            <span class="cm"># 40 values: 0.20 .. 0.59</span>
+current = [<span class="bi">round</span>(v + <span class="nm">0.03</span>, <span class="nm">2</span>) <span class="kw">for</span> v <span class="kw">in</span> reference]       <span class="cm"># the same data nudged by 0.03</span>
+
+small = stats.ks_2samp(reference, current)
+<span class="bi">print</span>(<span class="st">f'n=40 each    : KS={small.statistic:.3f}  p={small.pvalue:.4f}'</span>)
+
+<span class="cm"># Repeat every value 100 times: the shape of both distributions is unchanged</span>
+big = stats.ks_2samp(reference * <span class="nm">100</span>, current * <span class="nm">100</span>)
+<span class="bi">print</span>(<span class="st">f'n=4,000 each : KS={big.statistic:.3f}  p={big.pvalue:.2e}'</span>)</div>
+  </div>
+  <p class="lesson-p">Same shift, same KS statistic (0.075), but the p-value fell from "no evidence at all" (0.9999) to about 3 in 10 billion. That is the trap: <strong>with enough rows, any difference — however meaningless — becomes statistically significant</strong>. A model serving millions of predictions a day will trip a p&lt;0.05 alarm every single day on shifts nobody cares about. The fix is to alert on an <em>effect size</em> (the KS statistic itself, or PSI) with a threshold that reflects a shift worth acting on, and to use the p-value only as a secondary guard against noise on small samples.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Chi-square test for a categorical feature</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+categories = [<span class="st">'mobile'</span>, <span class="st">'desktop'</span>, <span class="st">'tablet'</span>]
+reference_counts = [<span class="nm">600</span>, <span class="nm">300</span>, <span class="nm">100</span>]      <span class="cm"># training-time device mix</span>
+current_counts = [<span class="nm">480</span>, <span class="nm">420</span>, <span class="nm">100</span>]        <span class="cm"># this week's device mix</span>
+
+chi2, p_value, dof, expected = stats.chi2_contingency([reference_counts, current_counts])
+<span class="bi">print</span>(<span class="st">f'chi2={chi2:.2f}  dof={dof}  p={p_value:.2e}'</span>)
+<span class="kw">for</span> name, ref, cur <span class="kw">in</span> <span class="bi">zip</span>(categories, reference_counts, current_counts):
+    <span class="bi">print</span>(<span class="st">f'{name:&lt;8} {ref / sum(reference_counts):.0%} -&gt; {cur / sum(current_counts):.0%}'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Which test when?</strong> Use PSI or the KS statistic for a fast, thresholdable score per numeric feature; chi-square (or PSI over category proportions) for categoricals; and remember multiple-testing: checking 200 features at p&lt;0.05 gives you about 10 false alarms per run by chance alone. Rank features by drift score, look at the top few, and weight by importance.</div></div>
+
+  <div class="lesson-h2">4.7 — Prediction Drift and Delayed Labels</div>
+  <p class="lesson-p">When ground truth arrives late you still have the model's own outputs. The distribution of predictions (the mean score, the share of positive predictions) is a free, label-free signal: if the model suddenly flags 80% of requests instead of 60%, either the inputs changed or the model is misbehaving — either way, look now. The proper accuracy number can only be computed on <strong>matured cohorts</strong>: predictions old enough that their label has arrived. Reporting accuracy over "the last week" when only 30% of that week's labels exist mixes real accuracy with selection bias.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Label-free positive rate vs accuracy on matured cohorts only</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># week -&gt; list of (predicted, true_label); None = the label hasn't arrived yet</span>
+week_data = {
+    <span class="nm">1</span>: [(<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">1</span>)],
+    <span class="nm">2</span>: [(<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">1</span>, <span class="nm">1</span>)],
+    <span class="nm">3</span>: [(<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">1</span>, <span class="nm">0</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">0</span>, <span class="nm">0</span>)],
+    <span class="nm">4</span>: [(<span class="nm">1</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">0</span>), (<span class="nm">0</span>, <span class="nm">0</span>), (<span class="nm">1</span>, <span class="nm">1</span>), (<span class="nm">0</span>, <span class="nm">1</span>)],
+    <span class="nm">5</span>: [(<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">0</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>)],
+    <span class="nm">6</span>: [(<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">1</span>, <span class="kw">None</span>), (<span class="nm">0</span>, <span class="kw">None</span>)],
+}
+
+<span class="kw">def</span> <span class="fn">weekly_report</span>(data, as_of_week, label_delay_weeks=<span class="nm">2</span>):
+    <span class="kw">for</span> week, rows <span class="kw">in</span> data.items():
+        positive_rate = <span class="bi">sum</span>(pred <span class="kw">for</span> pred, _ <span class="kw">in</span> rows) / <span class="bi">len</span>(rows)
+        <span class="kw">if</span> week + label_delay_weeks &lt;= as_of_week:
+            accuracy = <span class="bi">sum</span>(pred == label <span class="kw">for</span> pred, label <span class="kw">in</span> rows) / <span class="bi">len</span>(rows)
+            <span class="bi">print</span>(<span class="st">f'week {week}: positive rate {positive_rate:.0%} | accuracy {accuracy:.0%} (labels matured)'</span>)
+        <span class="kw">else</span>:
+            <span class="bi">print</span>(<span class="st">f'week {week}: positive rate {positive_rate:.0%} | accuracy n/a (labels still arriving)'</span>)
+
+weekly_report(week_data, as_of_week=<span class="nm">6</span>)</div>
+  </div>
+  <p class="lesson-p">Two lessons in that output. First, weeks 5 and 6 already show the positive rate jumping from 60% to 80% — a warning available <em>today</em>, while their accuracy won't exist for two more weeks. Second, look at weeks 3 and 4: accuracy fell from 100% to 40% while the positive rate sat flat at 60%. That is concept drift in miniature — the prediction distribution didn't move, the model just became wrong. Label-free monitoring would have missed it entirely, which is why you always schedule the delayed accuracy evaluation and treat it as the source of truth.</p>
+
+  <div class="lesson-h2">4.8 — Alerting Without Flapping: Hysteresis and Consecutive Windows</div>
+  <p class="lesson-p">A drift score hovering around its threshold is the worst case for alerting: 0.24, 0.26, 0.24, 0.27 means a naive <code>if psi &gt;= 0.25</code> alert fires, clears, fires and clears — a stream of pages that teaches the on-call to ignore them. This is <strong>alert fatigue</strong>, and it is a design bug, not a people problem. Two standard cures: require the condition to hold for <em>N consecutive windows</em> before firing, and use <strong>hysteresis</strong> — clear only when the metric drops well below the firing threshold, again for several consecutive windows.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Naive threshold vs a hysteresis alert over 11 windows of PSI values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">psi_series = [<span class="nm">0.05</span>, <span class="nm">0.12</span>, <span class="nm">0.27</span>, <span class="nm">0.22</span>, <span class="nm">0.26</span>, <span class="nm">0.28</span>, <span class="nm">0.09</span>, <span class="nm">0.24</span>, <span class="nm">0.08</span>, <span class="nm">0.07</span>, <span class="nm">0.06</span>]
+
+<span class="kw">def</span> <span class="fn">naive_flips</span>(series, threshold=<span class="nm">0.25</span>):
+    state, flips = <span class="kw">False</span>, <span class="nm">0</span>
+    <span class="kw">for</span> value <span class="kw">in</span> series:
+        now = value &gt;= threshold
+        <span class="kw">if</span> now != state:
+            flips += <span class="nm">1</span>
+        state = now
+    <span class="kw">return</span> flips
+
+<span class="kw">class</span> <span class="cls">HysteresisAlert</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, high=<span class="nm">0.25</span>, low=<span class="nm">0.10</span>, fire_after=<span class="nm">2</span>, clear_after=<span class="nm">3</span>):
+        self.high, self.low = high, low
+        self.fire_after, self.clear_after = fire_after, clear_after
+        self.firing, self.up, self.down = <span class="kw">False</span>, <span class="nm">0</span>, <span class="nm">0</span>
+
+    <span class="kw">def</span> <span class="fn">update</span>(self, value):
+        self.up = self.up + <span class="nm">1</span> <span class="kw">if</span> value &gt;= self.high <span class="kw">else</span> <span class="nm">0</span>       <span class="cm"># consecutive windows above `high`</span>
+        self.down = self.down + <span class="nm">1</span> <span class="kw">if</span> value &lt; self.low <span class="kw">else</span> <span class="nm">0</span>     <span class="cm"># consecutive windows below `low`</span>
+        <span class="kw">if</span> <span class="kw">not</span> self.firing <span class="kw">and</span> self.up &gt;= self.fire_after:
+            self.firing = <span class="kw">True</span>
+            <span class="kw">return</span> <span class="st">'FIRING'</span>
+        <span class="kw">if</span> self.firing <span class="kw">and</span> self.down &gt;= self.clear_after:
+            self.firing = <span class="kw">False</span>
+            <span class="kw">return</span> <span class="st">'RESOLVED'</span>
+        <span class="kw">return</span> <span class="kw">None</span>
+
+<span class="bi">print</span>(<span class="st">'naive threshold state flips:'</span>, naive_flips(psi_series))
+alert = HysteresisAlert()
+<span class="kw">for</span> window, value <span class="kw">in</span> <span class="bi">enumerate</span>(psi_series, start=<span class="nm">1</span>):
+    change = alert.update(value)
+    <span class="kw">if</span> change:
+        <span class="bi">print</span>(<span class="st">f'window {window}: PSI {value:.2f} -&gt; {change}'</span>)</div>
+  </div>
+  <p class="lesson-p">The naive alert flips four times on this series; the hysteresis version produces exactly two events — one page when the shift is confirmed (window 6), one resolution once things have been calm for three windows (window 11). Also give alerts a <strong>severity</strong>: a moderate PSI (0.1–0.25) should open a ticket for business hours, a major one should page, and every page should link to a runbook that says what to check first.</p>
+
+  <div class="lesson-h2">4.9 — Canary, Shadow, and Automated Rollback</div>
+  <p class="lesson-p">Monitoring is what lets you deploy a new model version safely. In a <strong>shadow</strong> deployment the new model receives a copy of live traffic but its answers are discarded — you compare it against the current model at zero user risk, at the cost of running two models and never seeing real user reactions. In a <strong>canary</strong> deployment a small slice (say 5%) of real traffic is actually served by the new model, so you see genuine service metrics and behavior before committing. Both rely on the same comparison: how do the two versions differ on error rate, latency, and <strong>agreement rate</strong> (how often they give the same prediction on the same request)?</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">An automated promote / hold / rollback decision</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">baseline = {<span class="st">'error_rate'</span>: <span class="nm">0.0040</span>, <span class="st">'p95_ms'</span>: <span class="nm">180</span>}
+canary   = {<span class="st">'error_rate'</span>: <span class="nm">0.0052</span>, <span class="st">'p95_ms'</span>: <span class="nm">201</span>}
+
+baseline_preds = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>]
+canary_preds   = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>]
+
+<span class="kw">def</span> <span class="fn">agreement_rate</span>(a, b):
+    <span class="kw">return</span> <span class="bi">sum</span>(x == y <span class="kw">for</span> x, y <span class="kw">in</span> <span class="bi">zip</span>(a, b)) / <span class="bi">len</span>(a)
+
+<span class="kw">def</span> <span class="fn">rollout_decision</span>(base, cand, agreement):
+    hard_failures = []
+    <span class="kw">if</span> cand[<span class="st">'error_rate'</span>] &gt; base[<span class="st">'error_rate'</span>] * <span class="nm">1.5</span>:
+        hard_failures.append(<span class="st">'error rate up more than 50%'</span>)
+    <span class="kw">if</span> cand[<span class="st">'p95_ms'</span>] &gt; base[<span class="st">'p95_ms'</span>] * <span class="nm">1.2</span>:
+        hard_failures.append(<span class="st">'p95 latency up more than 20%'</span>)
+    <span class="kw">if</span> hard_failures:
+        <span class="kw">return</span> <span class="st">'ROLLBACK'</span>, hard_failures
+    <span class="kw">if</span> agreement &lt; <span class="nm">0.95</span>:
+        <span class="kw">return</span> <span class="st">'HOLD'</span>, [<span class="st">f'agreement {agreement:.0%} &lt; 95%: compare on labels or business metric before promoting'</span>]
+    <span class="kw">return</span> <span class="st">'PROMOTE'</span>, []
+
+agreement = agreement_rate(baseline_preds, canary_preds)
+decision, reasons = rollout_decision(baseline, canary, agreement)
+<span class="bi">print</span>(<span class="st">f'agreement rate: {agreement:.0%}'</span>)
+<span class="bi">print</span>(<span class="st">f'decision: {decision}'</span>)
+<span class="kw">for</span> reason <span class="kw">in</span> reasons:
+    <span class="bi">print</span>(<span class="st">f'  - {reason}'</span>)</div>
+  </div>
+  <p class="lesson-p">Notice the three-way decision. Service regressions (errors, latency) are unambiguous, so they trigger an automatic rollback. A <em>low agreement rate</em> is not automatically bad — a better model is supposed to disagree with the old one on some requests — so it triggers a <strong>hold</strong> that needs a label-based or business-metric comparison rather than a blind rollback. Encoding that distinction is what separates a thoughtful rollout policy from a reflex.</p>
+
+  <div class="lesson-h2">4.10 — Exposing Metrics in Production (Reference Only)</div>
+  <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code — no Run button.</strong> <code>prometheus_client</code> starts a real HTTP server and needs a real network socket, which this browser sandbox can't provide. Everything above (PSI, KS, burn rate, alert logic) is the part you write and test yourself; this is how those numbers get scraped by a monitoring system.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Prometheus metric types for an inference service (reference only)</span></div>
+    <div class="cb-code"><span class="kw">from</span> prometheus_client <span class="kw">import</span> Counter, Gauge, Histogram, start_http_server
+
+<span class="cm"># Counter: only goes up (requests served, errors). Use rate() over it in queries.</span>
+PREDICTIONS = Counter(<span class="st">'model_predictions_total'</span>, <span class="st">'Predictions served'</span>, [<span class="st">'model_version'</span>])
+<span class="cm"># Gauge: a value that goes up and down (latest drift score, queue depth).</span>
+FEATURE_PSI = Gauge(<span class="st">'feature_psi'</span>, <span class="st">'Latest PSI vs the training reference'</span>, [<span class="st">'feature'</span>])
+<span class="cm"># Histogram: observations bucketed so quantiles can be computed AFTER aggregation.</span>
+LATENCY = Histogram(<span class="st">'inference_latency_seconds'</span>, <span class="st">'Inference latency'</span>,
+                    buckets=(<span class="nm">0.01</span>, <span class="nm">0.025</span>, <span class="nm">0.05</span>, <span class="nm">0.1</span>, <span class="nm">0.25</span>, <span class="nm">0.5</span>, <span class="nm">1.0</span>, <span class="nm">2.5</span>))
+
+start_http_server(<span class="nm">8000</span>)          <span class="cm"># serves the /metrics endpoint Prometheus scrapes</span>
+
+<span class="kw">def</span> <span class="fn">handle_request</span>(features):
+    <span class="kw">with</span> LATENCY.time():                                   <span class="cm"># records elapsed seconds</span>
+        prediction = <span class="nm">1</span>                                     <span class="cm"># model.predict(features) goes here</span>
+    PREDICTIONS.labels(model_version=<span class="st">'v7'</span>).inc()
+    <span class="kw">return</span> prediction
+
+<span class="cm"># A batch job that computes drift can publish its result the same way:</span>
+FEATURE_PSI.labels(feature=<span class="st">'income'</span>).<span class="bi">set</span>(<span class="nm">0.31</span>)
+
+<span class="cm"># PromQL to chart p95 latency across ALL replicas (merges the buckets, then takes the quantile):</span>
+<span class="cm">#   histogram_quantile(0.95, sum(rate(inference_latency_seconds_bucket[5m])) by (le))</span></div>
+  </div>
+  <p class="lesson-p">The three metric types map onto what you just built: a <strong>counter</strong> feeds error-rate and burn-rate math, a <strong>gauge</strong> carries a drift score so an alert rule can apply the same hysteresis logic, and a <strong>histogram</strong> is the only correct way to get a fleet-wide p95. Dedicated drift libraries (Evidently, WhyLabs, NannyML and others) package the statistical tests from 4.5–4.6 with reports and dashboards; their APIs change between versions, so check the current documentation before copying snippets from older tutorials. The underlying ideas are the ones you just implemented.</p>
+
+  <div class="lesson-h2">Monitoring &amp; Drift Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Monitor four layers</strong> — service health, data quality, data drift, model performance — ordered by how fast each can detect trouble. Only the last needs labels, and it arrives last.</div></li>
+    <li data-n="2"><div><strong>Percentiles, not means</strong>, describe latency; percentiles can't be averaged across instances (merge histograms instead).</div></li>
+    <li data-n="3"><div>An <strong>SLO defines an error budget</strong> (99.9% over 30 days = 43.2 minutes); <strong>burn rate</strong> says how fast you're spending it and is the right thing to alert on.</div></li>
+    <li data-n="4"><div><strong>Data-quality checks</strong> (nulls, ranges, unseen categories) catch most "drift" incidents, which are really upstream bugs.</div></li>
+    <li data-n="5"><div><strong>PSI</strong> (quantile bins from the reference, epsilon for empty bins; 0.1 / 0.25 rules of thumb) and the <strong>KS / chi-square tests</strong> detect drift — but on huge samples p-values flag meaningless shifts, so alert on effect size.</div></li>
+    <li data-n="6"><div>Use <strong>label-free signals</strong> (prediction distribution, input drift) as early warning and evaluate accuracy on <strong>matured cohorts</strong>; concept drift can move accuracy without moving any distribution.</div></li>
+    <li data-n="7"><div>Prevent alert fatigue with <strong>consecutive windows and hysteresis</strong>; gate releases with <strong>shadow/canary</strong> comparisons and an automated promote / hold / rollback policy.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Float results are compared with a small tolerance.</p>
+  </div>
+
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">PSI Function and Verdict</div>
+        <div class="ex-desc">Implement Population Stability Index with reference-quantile bins and print a verdict.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+A model's "spend_score" feature has this reference (training) data and this week's
+production data (already defined for you below).
+
+Write psi(reference, current, bins=5, eps=1e-4):
+  - interior cut points = np.quantile(reference, [0.2, 0.4, 0.6, 0.8])  (use np.linspace to build them)
+  - bucket each value with np.searchsorted(cuts, value, side='right'); count with np.bincount
+    (minlength = number of cuts + 1)
+  - turn counts into proportions, clip each to at least eps
+  - PSI = sum((cur - ref) * ln(cur / ref))
+
+Then print exactly these two lines:
+  f'PSI: {score:.4f}'
+  f'Verdict: {verdict}'
+where verdict is 'stable' (&lt; 0.1), 'moderate drift' (&lt; 0.25) or 'major drift'.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import numpy as np
+
+reference = [round(20 + 0.8 * i, 1) for i in range(100)]
+current = [round(v + 10, 1) for v in reference]
+
+# def psi(reference, current, bins=5, eps=1e-4):
+#     ...
+#
+# def verdict(value):
+#     ...
+#
+# score = psi(reference, current)
+# print(f'PSI: {score:.4f}')
+# print(f'Verdict: {verdict(score)}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">KS Drift Check With an Effect-Size Guard</div>
+        <div class="ex-desc">Run a two-sample KS test per feature and only call it drift when the p-value AND the effect size agree.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Two features were sampled at training time (reference) and again this week.
+Write ks_verdict(ref, cur, alpha=0.05, min_effect=0.2) using scipy.stats.ks_2samp.
+A feature is 'DRIFT' only if pvalue &lt; alpha AND statistic &gt;= min_effect,
+otherwise 'STABLE' (this is the effect-size guard from 4.6).
+
+For each feature in the dict, print exactly:
+  f'{name}: KS={statistic:.3f} p={pvalue:.4f} -&gt; {label}'
+(Correct: session_score: KS=0.400 p=0.0156 -&gt; DRIFT / basket_score: KS=0.200 p=0.5941 -&gt; STABLE)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">from scipy import stats
+
+reference = [round(0.30 + 0.01 * i, 2) for i in range(30)]
+features = {
+    'session_score': [round(v + 0.12, 2) for v in reference],
+    'basket_score': [round(v + 0.06, 2) for v in reference],
+}
+
+# def ks_verdict(ref, cur, alpha=0.05, min_effect=0.2):
+#     result = stats.ks_2samp(ref, cur)
+#     ...
+#
+# for name, current in features.items():
+#     ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Error Budget and Burn-Rate Calculator</div>
+        <div class="ex-desc">Turn an SLO and a list of incidents into budget, consumption, and a paging decision.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Your prediction API has a 99.95% availability SLO over 30 days.
+  error_budget_minutes(slo_pct, window_days=30) = window_days*24*60*(1 - slo_pct/100)
+  burn_rate(errors, requests, slo_pct)          = (errors/requests) / (1 - slo_pct/100)
+  severity(rate): 'PAGE' if rate &gt;= 10, 'TICKET' if rate &gt;= 2, else 'OK'
+
+This month's incidents lasted 7.5, 4.0 and 5.5 minutes. In the last hour the API
+failed 330 of 60,000 requests.
+
+Print exactly:
+  f'Budget: {budget:.1f} minutes'
+  f'Consumed: {consumed:.1f} minutes ({consumed / budget:.1%} of budget)'
+  f'Remaining: {budget - consumed:.1f} minutes'
+  f'Burn rate: {rate:.1f}x -&gt; {severity(rate)}'
+(Correct: Budget: 21.6 minutes / Consumed: 17.0 minutes (78.7% of budget) / Remaining: 4.6 minutes / Burn rate: 11.0x -&gt; PAGE)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">incidents = [7.5, 4.0, 5.5]
+
+# def error_budget_minutes(slo_pct, window_days=30):
+#     ...
+#
+# def burn_rate(errors, requests, slo_pct):
+#     ...
+#
+# def severity(rate):
+#     ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Alert State Machine With Hysteresis</div>
+        <div class="ex-desc">Fire after N consecutive breaches, resolve after M consecutive calm windows, and compare with a naive alert.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given 14 windows of a feature's PSI, write run_alerts(series, high=0.20, low=0.10,
+fire_after=3, clear_after=2) returning a list of (window, value, state) transitions
+(windows are numbered from 1):
+  - count consecutive windows with value &gt;= high  -&gt; when the count reaches fire_after
+    and the alert isn't firing: transition to 'FIRING'
+  - count consecutive windows with value &lt; low    -&gt; when the count reaches clear_after
+    and the alert IS firing: transition to 'RESOLVED'
+  - a window that doesn't extend a streak resets that streak to 0
+
+Also write naive_flips(series, threshold=0.20): how many times a plain
+"value &gt;= threshold" state changes (starting from not-firing).
+
+Print each transition as f'window {w}: PSI {v:.2f} -&gt; {state}', then:
+  f'Transitions: {len(events)}'
+  f'Naive threshold would have flipped: {n} times'
+(Correct: window 7: PSI 0.31 -&gt; FIRING / window 11: PSI 0.06 -&gt; RESOLVED / Transitions: 2 / ... flipped: 8 times)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">psi_series = [0.04, 0.21, 0.23, 0.08, 0.22, 0.26, 0.31, 0.19, 0.24, 0.09, 0.06, 0.28, 0.05, 0.04]
+
+# def run_alerts(series, high=0.20, low=0.10, fire_after=3, clear_after=2):
+#     firing, up, down = False, 0, 0
+#     transitions = []
+#     for window, value in enumerate(series, start=1):
+#         ...
+#     return transitions
+#
+# def naive_flips(series, threshold=0.20):
+#     ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Canary Rollback Decision</div>
+        <div class="ex-desc">Compare two canaries against the baseline and decide ROLLBACK or PROMOTE with reasons.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Compare each canary with the baseline. decide(base, canary, base_preds, canary_preds)
+returns (decision, reasons). Add a reason (in this order) for each rule that is broken:
+  'error_rate'  if canary error_rate &gt; baseline error_rate * 1.25
+  'p95_ms'      if canary p95_ms     &gt; baseline p95_ms     * 1.10
+  'agreement'   if agreement rate (share of equal predictions) &lt; 0.90
+Decision is 'ROLLBACK' if there is any reason, else 'PROMOTE'.
+
+For each canary print exactly two lines:
+  f"{name}: {decision} | reasons: {', '.join(reasons) or 'none'}"
+  f"  agreement: {agreement:.1%}"
+(Correct: canary-a: ROLLBACK | reasons: p95_ms, agreement / agreement: 84.0% ; canary-b: PROMOTE | reasons: none / agreement: 96.0%)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">baseline = {'error_rate': 0.0040, 'p95_ms': 180.0}
+baseline_preds = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0]
+canaries = {
+    'canary-a': ({'error_rate': 0.0045, 'p95_ms': 205.0},
+                 [1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0]),
+    'canary-b': ({'error_rate': 0.0038, 'p95_ms': 176.0},
+                 [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0]),
+}
+
+# def agreement(a, b):
+#     ...
+#
+# def decide(base, canary, base_preds, canary_preds):
+#     ...
+#
+# for name, (metrics, preds) in canaries.items():
+#     ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>DriftMonitor</span></h2>
+    <p>Every ML platform ends up with a job that runs on a schedule, compares last night's production data with the training reference, and decides whether a human (or a retraining pipeline) needs to be involved. Build the core of it: per-feature PSI plus a statistical test, a severity label, and one overall recommendation.</p>
+    <div class="project-tags">
+      <span class="ptag">PSI</span>
+      <span class="ptag">KS test</span>
+      <span class="ptag">chi-square</span>
+      <span class="ptag">retrain policy</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A <code>DriftMonitor</code> class built from a reference DataFrame and the list of categorical column names</li>
+      <li><code>check(current_df)</code> returns one row per feature: numeric features get PSI (5 reference-quantile bins, eps 1e-4) plus <code>scipy.stats.ks_2samp</code>; categorical features get PSI over category proportions plus a chi-square p-value</li>
+      <li>Label each feature <code>stable</code> (PSI &lt; 0.1), <code>moderate drift</code> (&lt; 0.25) or <code>major drift</code></li>
+      <li><code>recommend(rows)</code>: <strong>RETRAIN</strong> if any feature has major drift or at least two have moderate drift; <strong>INVESTIGATE</strong> if exactly one is moderate; otherwise <strong>NO ACTION</strong></li>
+      <li>Print a report: a header, then <code>{feature}: {label} (psi=X.XXX)</code> per feature, then <code>Recommendation: {ACTION} ({major} major, {moderate} moderate)</code></li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ DriftMonitor — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor">import numpy as np
+import pandas as pd
+from collections import Counter
+from scipy import stats
+
+# ── Data (already built for you; deterministic, no randomness) ──
+N = 200
+reference = pd.DataFrame({
+    'age': [22 + (i * 7) % 40 for i in range(N)],
+    'income': [30000 + (i * 137) % 50000 for i in range(N)],
+    'session_min': [3 + (i * 11) % 25 for i in range(N)],
+    'device': ['mobile'] * 120 + ['desktop'] * 60 + ['tablet'] * 20,
+})
+current = pd.DataFrame({
+    'age': [22 + (i * 7) % 40 + (1 if i % 10 == 0 else 0) for i in range(N)],
+    'income': [45000 + (i * 137) % 50000 for i in range(N)],
+    'session_min': [6 + (i * 11) % 25 for i in range(N)],
+    'device': ['mobile'] * 80 + ['desktop'] * 100 + ['tablet'] * 20,
+})
+
+# === TODO 1: numeric_psi(ref, cur) - reuse the function from 4.5 (quantile bins from `ref`) ===
+
+# === TODO 2: categorical_psi(ref, cur) - same formula, but the "bins" are the categories ===
+#   hint: Counter(ref)[category] / len(ref), clipped to at least 1e-4, over sorted(set(ref) | set(cur))
+
+# === TODO 3: label(psi_value) -&gt; 'stable' / 'moderate drift' / 'major drift' ===
+
+# === TODO 4: class DriftMonitor ===
+#   __init__(self, reference, categorical=())
+#   check(self, current)  -&gt; list of (column, psi, label, detail) for every column
+#       detail for numeric:      f'ks={statistic:.3f} p={pvalue:.4f}'
+#       detail for categorical:  f'chi2 p={p:.5f}'  (stats.chi2_contingency on a 2 x categories count table; p is index 1)
+#   recommend(self, rows) -&gt; the "Recommendation: ..." string
+
+# === TODO 5: run it and print the report ===
+#   print(f'DRIFT REPORT (reference n={len(reference)}, current n={len(current)})')
+#   for each row: print(f'{col}: {label} (psi={psi:.3f})') and an indented detail line
+#   print(monitor.recommend(rows))
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">✅</span><code>age: stable</code> — the tiny +1 nudge on every 10th row is noise</div>
+    <div class="check-item"><span class="check-icon">🚨</span><code>income: major drift</code> — the whole distribution moved up by 15,000</div>
+    <div class="check-item"><span class="check-icon">🟡</span><code>session_min: moderate drift</code> — PSI says it moved even though the KS p-value (about 0.11) isn't significant; that disagreement is the point of 4.6</div>
+    <div class="check-item"><span class="check-icon">📱</span><code>device: moderate drift</code> — mobile fell from 60% to 40% of traffic</div>
+    <div class="check-item"><span class="check-icon">🔁</span><code>Recommendation: RETRAIN (1 major, 2 moderate)</code></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Monitoring &amp; Drift Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A credit-risk model's <code>income</code> feature shows PSI = 0.31 against the training data. What's the right reading?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Model accuracy has dropped by 31%</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> A major shift in that feature's distribution: find the cause (data bug or real change) and decide whether to retrain</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Nothing — PSI only matters above 0.5</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> The p-value is 0.31, so the change isn't significant</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">A KS test on 5 million rows a day reports p &lt; 1e-12 every day, even when the shift is tiny. What's the best fix?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Lower alpha to 1e-20 so it stops firing</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Stop monitoring that feature</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Alert on an effect size (KS statistic or PSI) with a meaningful threshold; treat the p-value as a secondary guard</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Only test on 10 rows so the p-values look reasonable</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A service has a 99.9% availability SLO over 30 days. Roughly how much downtime does its error budget allow?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> About 43 minutes</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> About 4.3 minutes</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> About 7 hours</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> None — 99.9% means no downtime is allowed</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Ground-truth labels for your model arrive about three weeks after each prediction. What is the best monitoring plan?</div>
+    <div class="q-options" id="q4-opts">
+      <button class="q-opt" onclick="selectOpt(4,'A')"><span class="q-opt-letter">A</span> Wait for accuracy to be computable, then react</button>
+      <button class="q-opt" onclick="selectOpt(4,'B')"><span class="q-opt-letter">B</span> Monitor data quality, input drift and the prediction distribution now as early warnings, and evaluate accuracy on matured cohorts as labels land</button>
+      <button class="q-opt" onclick="selectOpt(4,'C')"><span class="q-opt-letter">C</span> Retrain every night regardless of any signal</button>
+      <button class="q-opt" onclick="selectOpt(4,'D')"><span class="q-opt-letter">D</span> Watch only the training loss</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">Why do drift alerts use "N consecutive windows" and hysteresis?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> They make the drift metric numerically smaller</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> They reduce the cost of computing PSI</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> They replace the need for any statistical test</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> A noisy metric hovering around a threshold would otherwise fire and clear repeatedly, causing alert fatigue</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎯</div>
+    <div class="ncc-info">
+      <h3>MLOps 5: MLOps Python Mock Interview</h3>
+      <p>The final chapter of the track: timed, auto-graded interview problems (point-in-time joins, train/serve skew, rollout decisions, A/B tests) plus the system-design style questions that tie the whole track together.</p>
+    </div>
+    <a class="ncc-btn" href="mp05-mlops-python-mock-interview.html">Start MLOps 5 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Monitoring &amp; Drift — Interview Prep</h2>
+    <p>10 questions covering the angles interviewers use to check whether you've actually run a model in production, not just trained one. Click a question to reveal the answer.</p>
+  </div>
+
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between data drift, label drift and concept drift — and which can you detect without labels?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Data (covariate) drift</strong> is a change in the input distribution <code>P(X)</code>. <strong>Label (prior) drift</strong> is a change in the base rate <code>P(y)</code>. <strong>Concept drift</strong> is a change in the relationship <code>P(y | X)</code> — the same inputs now imply a different outcome. Data drift is detectable from inputs alone; label drift can be inferred from the prediction distribution only if the model is well calibrated; concept drift generally needs labels, because inputs and predictions can look perfectly normal while accuracy collapses. A strong answer adds that label-free monitoring is an early warning, and delayed accuracy on matured cohorts is the confirmation.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How is PSI computed, what thresholds do people use, and what are its weaknesses?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Bin the reference distribution (typically at its quantiles), measure the fraction of reference and current data in each bin, then sum <code>(cur% − ref%) × ln(cur% / ref%)</code>, clipping empty bins to a small epsilon. Common rules of thumb: below 0.1 stable, 0.1–0.25 moderate, above 0.25 major. Weaknesses: results depend on the number and placement of bins; small samples are noisy; features with few distinct values collapse the bins; and it measures that a distribution moved, not whether the model cares. Mention that the thresholds are conventions from credit scoring, so calibrate them against your own false-alarm rate.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Your KS test flags drift on almost every feature, every day. What's going on and what do you do?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">With very large samples the test has enough power to detect differences that are statistically real but practically meaningless, so p-values collapse toward zero. Stop using the p-value as the alert condition. Use an effect size — the KS statistic, PSI, or a Wasserstein distance — with thresholds tuned to shifts that actually move model quality, optionally keep p&lt;alpha as a secondary guard, correct for multiple testing across features (or rank features and inspect the top few), and weight by feature importance so you spend attention where it matters.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you monitor a model when labels arrive weeks or months late?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Layer the signals. Immediately: service metrics, data-quality checks, input-feature drift, and the prediction/score distribution. As labels land: compute accuracy or business metrics on <em>matured cohorts</em> only (predictions old enough to have their labels), and report label coverage so nobody misreads a half-labelled week. Where possible add proxy labels (clicks, early-payment signals) or delayed but faster feedback, and run periodic labelled audits on a sample. Be explicit that concept drift can be invisible to the label-free signals, so the delayed evaluation is what you ultimately trust.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Explain SLI, SLO, SLA and error budget. What happens when the budget is spent?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">An SLI is a measured indicator (fraction of requests under 300 ms and successful); an SLO is the internal target for it (99.9% over 30 days); an SLA is the external contractual commitment with penalties, deliberately looser than the SLO. The error budget is <code>1 − SLO</code> — 43.2 minutes per 30 days at 99.9%. It converts reliability into a shared, quantitative currency: with budget left, teams can ship and experiment; once it is spent, risky launches pause and reliability work gets priority until the window recovers. Good answers also mention burn-rate alerting instead of alerting on raw error counts.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why shouldn't you alert on average latency, and why can't you average p95 across instances?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Latency is right-skewed: the mean blends a mass of fast requests with a few very slow ones and describes neither, while users feel the tail. Percentiles (p50/p95/p99) describe the experience. But a percentile isn't additive: the mean of two instances' p95 values is not the p95 of the combined traffic, and can be wildly off when instances have different request volumes. To aggregate correctly you merge the raw samples or, at scale, merge histogram buckets and compute the quantile afterwards — which is why Prometheus uses histograms and <code>histogram_quantile</code> over summed buckets.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A drift alert keeps flapping and the on-call has started ignoring it. How would you redesign it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Treat it as an alert-quality bug. Require the breach to persist for N consecutive windows before firing, use hysteresis (a lower clearing threshold held for several windows) so it doesn't flip around the boundary, and split severity: moderate drift opens a ticket, major drift pages. Prefer burn-rate style multi-window conditions where applicable, attach a runbook and the top drifting features to the alert, and review alert precision regularly — every page that required no action is a defect to fix or delete.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between shadow, canary and A/B deployments of a new model?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Shadow</strong>: the new model gets a copy of live traffic but its outputs are discarded — zero user risk, good for comparing predictions and checking latency, but you never see real user reactions and you pay to run both. <strong>Canary</strong>: a small percentage of real traffic is served by the new model, so you observe real service metrics and behaviour and can roll back quickly if guardrails trip. <strong>A/B test</strong>: a randomized, statistically powered split designed to measure the effect on a business metric, run for a planned duration. A typical path is shadow, then canary, then a wider rollout or A/B test for the final business decision.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A drift alert fires on a key feature but model metrics look fine. What do you check?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">First rule out a pipeline artifact: a schema or unit change upstream, a new null/default fill, a timezone or encoding change, or a broken join — data-quality checks usually expose this within minutes. Then check for seasonality or a known event (a promotion, a holiday, a new market) by comparing against the same period last year rather than only the training window. Check whether the feature matters (importance) and whether predictions actually moved. If it's real and benign, update the reference window or the threshold and document why; if it's real and important, plan retraining or recalibration. Never just silence it.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What should trigger retraining, and what can go wrong with automatic retraining?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Common triggers: a schedule (simple, predictable), drift beyond a threshold, or a confirmed performance drop on matured labels — usually a combination, with the performance signal being the most trustworthy. The risks: retraining on corrupted or unlabeled-biased data bakes the problem into the new model; feedback loops (the model's own decisions shaping its training data); silent regressions if a candidate isn't validated against a champion on a held-out set and guardrail metrics; and cost. Automatic retraining therefore needs data validation gates, champion/challenger evaluation, a staged rollout (shadow or canary) and a one-step rollback.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# numpy, scipy and pandas download on first import (a few seconds, once per tab)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["psi:", "verdict: moderate drift"],
+    checkFn:(full)=>{
+      const m=full.match(/psi:\s*(-?\d+\.?\d*)/i);
+      if(!m)return false;
+      return Math.abs(parseFloat(m[1])-0.1756)<0.002;
+    },
+    hint:"cuts = np.quantile(reference, np.linspace(0, 1, bins + 1)[1:-1]) gives the 4 interior edges. np.bincount(np.searchsorted(cuts, values, side='right'), minlength=len(cuts)+1) counts per bucket. Divide by len(values), then np.clip(..., eps, None).",
+    solution:`import numpy as np
+
+reference = [round(20 + 0.8 * i, 1) for i in range(100)]
+current = [round(v + 10, 1) for v in reference]
+
+def psi(reference, current, bins=5, eps=1e-4):
+    reference = np.asarray(reference, dtype=float)
+    current = np.asarray(current, dtype=float)
+    cuts = np.unique(np.quantile(reference, np.linspace(0, 1, bins + 1)[1:-1]))
+    ref_counts = np.bincount(np.searchsorted(cuts, reference, side='right'), minlength=len(cuts) + 1)
+    cur_counts = np.bincount(np.searchsorted(cuts, current, side='right'), minlength=len(cuts) + 1)
+    ref_p = np.clip(ref_counts / len(reference), eps, None)
+    cur_p = np.clip(cur_counts / len(current), eps, None)
+    return float(np.sum((cur_p - ref_p) * np.log(cur_p / ref_p)))
+
+def verdict(value):
+    if value < 0.1:
+        return 'stable'
+    if value < 0.25:
+        return 'moderate drift'
+    return 'major drift'
+
+score = psi(reference, current)
+print(f'PSI: {score:.4f}')
+print(f'Verdict: {verdict(score)}')`
+  },
+  2:{
+    checks:["session_score: ks=", "-> drift", "basket_score: ks=", "-> stable"],
+    checkFn:(full)=>{
+      const a=full.match(/session_score: ks=([\d.]+) p=([\d.]+)/i);
+      const b=full.match(/basket_score: ks=([\d.]+) p=([\d.]+)/i);
+      if(!a||!b)return false;
+      return Math.abs(parseFloat(a[1])-0.4)<0.002 && Math.abs(parseFloat(a[2])-0.0156)<0.001
+          && Math.abs(parseFloat(b[1])-0.2)<0.002 && Math.abs(parseFloat(b[2])-0.5941)<0.003;
+    },
+    hint:"result = stats.ks_2samp(ref, cur); result.statistic and result.pvalue are the two numbers. drifted = result.pvalue < alpha and result.statistic >= min_effect.",
+    solution:`from scipy import stats
+
+reference = [round(0.30 + 0.01 * i, 2) for i in range(30)]
+features = {
+    'session_score': [round(v + 0.12, 2) for v in reference],
+    'basket_score': [round(v + 0.06, 2) for v in reference],
+}
+
+def ks_verdict(ref, cur, alpha=0.05, min_effect=0.2):
+    result = stats.ks_2samp(ref, cur)
+    drifted = result.pvalue < alpha and result.statistic >= min_effect
+    return result.statistic, result.pvalue, 'DRIFT' if drifted else 'STABLE'
+
+for name, current in features.items():
+    stat, p, label = ks_verdict(reference, current)
+    print(f'{name}: KS={stat:.3f} p={p:.4f} -> {label}')`
+  },
+  3:{
+    checks:["budget: 21.6 minutes", "consumed: 17.0 minutes (78.7% of budget)", "remaining: 4.6 minutes", "burn rate: 11.0x -> page"],
+    hint:"Budget = 30*24*60*(1 - 0.9995) = 21.6. consumed = sum(incidents). Burn rate = (330/60000) / 0.0005 = 11.0, which is >= 10, so PAGE.",
+    solution:`incidents = [7.5, 4.0, 5.5]
+
+def error_budget_minutes(slo_pct, window_days=30):
+    return window_days * 24 * 60 * (1 - slo_pct / 100)
+
+def burn_rate(errors, requests, slo_pct):
+    return (errors / requests) / (1 - slo_pct / 100)
+
+def severity(rate):
+    if rate >= 10:
+        return 'PAGE'
+    if rate >= 2:
+        return 'TICKET'
+    return 'OK'
+
+budget = error_budget_minutes(99.95)
+consumed = sum(incidents)
+print(f'Budget: {budget:.1f} minutes')
+print(f'Consumed: {consumed:.1f} minutes ({consumed / budget:.1%} of budget)')
+print(f'Remaining: {budget - consumed:.1f} minutes')
+rate = burn_rate(330, 60000, 99.95)
+print(f'Burn rate: {rate:.1f}x -> {severity(rate)}')`
+  },
+  4:{
+    checks:["window 7: psi 0.31 -> firing", "window 11: psi 0.06 -> resolved", "transitions: 2", "naive threshold would have flipped: 8 times"],
+    hint:"Update both streak counters every window: up = up + 1 if value >= high else 0; down = down + 1 if value < low else 0. Then check the fire condition only while NOT firing, and the resolve condition only while firing.",
+    solution:`psi_series = [0.04, 0.21, 0.23, 0.08, 0.22, 0.26, 0.31, 0.19, 0.24, 0.09, 0.06, 0.28, 0.05, 0.04]
+
+def run_alerts(series, high=0.20, low=0.10, fire_after=3, clear_after=2):
+    firing, up, down = False, 0, 0
+    transitions = []
+    for window, value in enumerate(series, start=1):
+        up = up + 1 if value >= high else 0
+        down = down + 1 if value < low else 0
+        if not firing and up >= fire_after:
+            firing = True
+            transitions.append((window, value, 'FIRING'))
+        elif firing and down >= clear_after:
+            firing = False
+            transitions.append((window, value, 'RESOLVED'))
+    return transitions
+
+def naive_flips(series, threshold=0.20):
+    state, flips = False, 0
+    for value in series:
+        now = value >= threshold
+        if now != state:
+            flips += 1
+        state = now
+    return flips
+
+events = run_alerts(psi_series)
+for window, value, state in events:
+    print(f'window {window}: PSI {value:.2f} -> {state}')
+print(f'Transitions: {len(events)}')
+print(f'Naive threshold would have flipped: {naive_flips(psi_series)} times')`
+  },
+  5:{
+    checks:["canary-a: rollback | reasons: p95_ms, agreement", "canary-b: promote | reasons: none", "agreement: 84.0%", "agreement: 96.0%"],
+    hint:"agreement = sum(x == y for x, y in zip(a, b)) / len(a). Build reasons as a list in rule order, then ', '.join(reasons) or 'none'.",
+    solution:`baseline = {'error_rate': 0.0040, 'p95_ms': 180.0}
+baseline_preds = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 1, 0]
+canaries = {
+    'canary-a': ({'error_rate': 0.0045, 'p95_ms': 205.0},
+                 [1, 0, 1, 0, 0, 0, 1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0]),
+    'canary-b': ({'error_rate': 0.0038, 'p95_ms': 176.0},
+                 [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 0, 0, 0, 0]),
+}
+
+def agreement(a, b):
+    return sum(x == y for x, y in zip(a, b)) / len(a)
+
+def decide(base, canary, base_preds, canary_preds):
+    reasons = []
+    if canary['error_rate'] > base['error_rate'] * 1.25:
+        reasons.append('error_rate')
+    if canary['p95_ms'] > base['p95_ms'] * 1.10:
+        reasons.append('p95_ms')
+    if agreement(base_preds, canary_preds) < 0.90:
+        reasons.append('agreement')
+    return ('ROLLBACK' if reasons else 'PROMOTE'), reasons
+
+for name, (metrics, preds) in canaries.items():
+    decision, reasons = decide(baseline, metrics, baseline_preds, preds)
+    print(f"{name}: {decision} | reasons: {', '.join(reasons) or 'none'}")
+    print(f"  agreement: {agreement(baseline_preds, preds):.1%}")`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  if(passed&&ex.checkFn){
+    passed=ex.checkFn(full);
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["age: stable", "income: major drift", "session_min: moderate drift", "device: moderate drift", "recommendation: retrain (1 major, 2 moderate)"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! Your monitor reports every feature and the right recommendation.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'C',3:'A',4:'B',5:'D'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,4,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Four layers of monitoring, PSI and KS with their pitfalls, error budgets and burn rate, delayed-label evaluation, alerting that doesn't flap, and canary rollback logic — the working vocabulary of an on-call ML engineer. Skim the Interview Prep tab, then move on to the final chapter: a mock interview.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

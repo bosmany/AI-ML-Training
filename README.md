@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://bosmany.github.io/ai-ml-zero-to-hero/)
 
-A self-built, 41-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps, agentic AI, and production FastAPI web apps — plus four bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals) and three real production projects with verified, reproducible results.
+A self-built, 41-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps, agentic AI, and production FastAPI web apps — plus six bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals, and day-to-day Python for DevOps and for MLOps engineers) and three real production projects with verified, reproducible results.
 
 **🔴 Live demo:** **[bosmany.github.io/ai-ml-zero-to-hero](https://bosmany.github.io/ai-ml-zero-to-hero/)**
 
@@ -23,7 +23,7 @@ Full course map, live progress tracking, and every bonus module: open [`index.ht
 
 ---
 
-## Status: all 41 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, and Systems Fundamentals modules.
+## Status: all 41 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, and Python for MLOps modules.
 
 An interactive, self-contained, browser-based course that takes someone from zero programming knowledge to a working AI/ML skillset — Python fundamentals, math, data tools, classical ML, deep learning, NLP/LLMs, and MLOps deployment.
 
@@ -104,6 +104,8 @@ exception handler registered after an app has served its first request is silent
 | Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 41, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
 | Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 41)* | `bonus/portfolio-packaging.html` |
 | Bonus | Systems Fundamentals — 4 chapters: APIs &amp; HTTP, Networking &amp; Microservices, Load Balancers &amp; Firewalls, Linux/Docker/Kubernetes Troubleshooting *(not graded/counted in the 41, but has real auto-graded exercises)* | `systems/sf01-...html` through `sf04-...html` |
+| Bonus | Python for DevOps: Day-to-Day — 5 chapters: log parsing & text processing, config (YAML/JSON/TOML) & validation, automation scripts & resilience, cloud & container ops by example (boto3/kubectl-shaped data), and a DevOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 41, but has real auto-graded exercises)* | `devops/do01-...html` through `do05-...html` |
+| Bonus | Python for MLOps: Day-to-Day — 5 chapters: reproducibility & data validation, experiment tracking & model registry, pipelines & orchestration, monitoring & drift, and an MLOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 41, but has real auto-graded exercises)* | `mlops-practice/mp01-...html` through `mp05-...html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
@@ -233,7 +235,7 @@ Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
 ## Resuming this project
 
 **Everything is done, independently verified, and pushed. There is no known open work.** This
-includes the 41-chapter core curriculum, four bonus modules, and real executed Colab notebooks —
+includes the 41-chapter core curriculum, six bonus modules, and real executed Colab notebooks —
 every exercise, capstone-project reference solution, and quiz answer key was actually executed
 (via `py -3` for HTML chapters, via a real PyTorch/Jupyter environment for notebooks) and matched
 against its expected output — nothing was hand-calculated or trusted on the strength of an agent's
@@ -267,7 +269,7 @@ previously only checked the labels, never the numbers); Ch 2 set/generator/neste
 pytest (reference-only), logging depth, `pyproject.toml`; Ch 7 `async for`/`async with`,
 `create_task` vs `gather`, `requests` POST/auth/status handling, `pathlib`, packaging.
 
-**Four bonus modules** (not counted toward the 41-chapter total, all in the same "not graded but
+**Six bonus modules** (not counted toward the 41-chapter total, all in the same "not graded but
 rigorously verified" tier):
 - `bonus/interview-mastery.html` — behavioral (STAR) prep built from Ch 33/34's real numbers, an
   ML system design framework with 4 worked case studies, an AWS/GCP/Databricks cloud vocabulary
@@ -285,6 +287,25 @@ rigorously verified" tier):
   (which only replaces the FIRST match, not all matches) as a lazy typo-fix, silently leaving the
   wrong expected string — caught by re-executing the actual solution and diffing against the
   checker, not by trusting the code as written.
+- `devops/do01`-`do05` — Python for DevOps, day to day: log parsing and text processing (regex named
+  groups, `Counter` top-N, time bucketing, percentiles, sliding-window brute-force detection),
+  config formats (`safe_load` vs `load`, the YAML "Norway problem", `tomllib`, layered config,
+  pydantic validation, config diffs, a k8s/compose linter), automation and resilience (`pathlib`,
+  duplicate finding, retention, retry with backoff and jitter, idempotency, atomic writes, cron
+  matching), cloud and container ops on boto3-/kubectl-/docker-shaped data (pagination, security
+  group and IAM audits, pod triage, k8s quantities), and a timed mock interview. Real SDK/subprocess
+  code is shown reference-only; runnable exercises operate on realistic data structures.
+- `mlops-practice/mp01`-`mp05` — Python for MLOps, day to day: reproducibility and data validation
+  (dataset fingerprints, environment auditing, data-quality gates, leakage and train/serve skew),
+  experiment tracking and a model registry built from scratch (MLflow shown reference-only),
+  pipelines and orchestration (DAGs, topological sort, retries, input-hash caching, idempotency,
+  backfills), monitoring and drift (percentiles, SLO error budgets, PSI, KS/chi-square, hysteresis,
+  canary rollback), and a timed mock interview. Each of the ten chapters has an Interview Prep tab.
+  Verification: every runnable block, exercise solution and starter was run under REAL Pyodide
+  0.26.4 (the exact runtime the browser uses: pandas 2.2, numpy 1.26, scipy 1.12, pydantic 2.7,
+  PyYAML 6.0.1) driven from Node, not just CPython, and each solution was checked against its own
+  grader. The same run over Python Ch 1-7 needed a fix to the harness itself (a raw `<` in code
+  text is literal in HTML unless followed by a letter or `/`), not to the chapters.
 
 **Real, executed Colab notebooks** for the 5 PyTorch/HuggingFace chapters that can't run inside
 Pyodide/WebAssembly (`dl/ch22-intro-to-pytorch.ipynb`, `ch23-convolutional-neural-networks.ipynb`,
@@ -304,6 +325,6 @@ must come from actually running the exact solution code (this machine's Anaconda
 `Library/bin` if the exact command is needed again), never hand-calculated.
 
 Tell whoever picks this up: **"The AI/ML Zero to Hero course is fully complete — 41 core chapters
-plus four bonus modules (Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals) and
+plus six bonus modules (Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, Python for MLOps) and
 real executed Colab notebooks, all independently verified and pushed. There is no known open
 work — if the user asks for something new, treat it as a fresh request, not a continuation."**

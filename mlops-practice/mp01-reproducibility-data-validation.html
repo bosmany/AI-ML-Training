@@ -1,0 +1,1585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus MLOps in Practice 1: Reproducibility &amp; Data Validation</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly) and, on first use, pandas/numpy/pydantic. This is a BONUS
+  module — the 5-chapter "MLOps in Practice" track — NOT part of the 41-chapter core curriculum,
+  same tier as bonus/interview-mastery.html, dsa/ and systems/. Fingerprinting, requirements
+  auditing, data-quality gates, pydantic contracts, leakage checks and the DatasetGate capstone are
+  real, runnable Python. pandera, Great Expectations, DVC and pip-tools need a real OS/git/network,
+  so those sections are reference-only (no Run button), same treatment as python/ch07's subprocess.
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live in
+  the browser, but nothing persists across page loads. Every expected value in this file was
+  produced by actually running the reference solution.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">MLOps 1: Reproducibility &amp; Data Validation</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · MLOps in Practice · 1 of 5</div>
+  </a>
+  <a class="sb-back" href="../index.html">← Back to Course Home</a>
+  <div class="sb-section">MLOps 1 · Reproducibility &amp; Data Validation</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — MLOps in Practice</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='mp02-experiment-tracking-model-registry.html'"><span class="sb-icon">📈</span><span class="sb-step">MLOps 2: Experiment Tracking &amp; Registry</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus MLOps 1 of 5</div>
+    <div class="tb-title">Reproducibility &amp; Data Validation</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>MLOps in Practice 1:<br/><span>Reproducibility &amp; Data Validation</span></h1>
+    <p>Before any model trains, an MLOps engineer answers two questions: <em>can I rebuild this exactly?</em> and <em>is this data even fit to train on?</em> Most production ML incidents trace back to one of them — a dataset that silently changed upstream, a dependency that floated to a new major version, a "great" offline metric that came from leakage. This chapter is the daily toolkit: run manifests, seeding, dataset fingerprints, requirements hygiene, data-quality gates, data contracts, and the leakage/skew checks interviewers love to probe.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~75 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone: DatasetGate</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">1.1 — What "Reproducible" Actually Requires</div>
+  <p class="lesson-p">"I can't reproduce last month's model" is one of the most expensive sentences in ML. A trained model is a function of <strong>five</strong> things, and reproducing it means pinning all five: the <strong>code</strong> (a git commit, not "main"), the <strong>data</strong> (an immutable snapshot or fingerprint, not "the table"), the <strong>config</strong> (every hyperparameter, including the defaults you never typed), the <strong>environment</strong> (Python and every library version, including transitive dependencies), and the <strong>randomness</strong> (seeds — see 1.2). Miss one and "same code" still gives a different model. The habit that makes this practical is a <strong>run manifest</strong>: one small, canonical JSON document listing all five, hashed into a run id you store next to the model.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A run manifest: change ANY pinned input and the run id changes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib
+<span class="kw">import</span> json
+
+<span class="kw">def</span> <span class="fn">run_id</span>(code_version, data_hash, config, seed, env):
+    manifest = {<span class="st">'code'</span>: code_version, <span class="st">'data'</span>: data_hash, <span class="st">'config'</span>: config, <span class="st">'seed'</span>: seed, <span class="st">'env'</span>: env}
+    blob = json.dumps(manifest, sort_keys=<span class="kw">True</span>).encode()
+    <span class="kw">return</span> hashlib.sha256(blob).hexdigest()[:<span class="nm">12</span>]
+
+base = <span class="bi">dict</span>(
+    code_version=<span class="st">'a1b2c3d'</span>,                      <span class="cm"># git commit SHA</span>
+    data_hash=<span class="st">'d4e5f6a7'</span>,                        <span class="cm"># fingerprint of the training data (see 1.3)</span>
+    config={<span class="st">'lr'</span>: <span class="nm">0.05</span>, <span class="st">'max_depth'</span>: <span class="nm">6</span>},
+    seed=<span class="nm">42</span>,
+    env={<span class="st">'python'</span>: <span class="st">'3.11'</span>, <span class="st">'numpy'</span>: <span class="st">'1.26.4'</span>, <span class="st">'scikit-learn'</span>: <span class="st">'1.4.2'</span>},
+)
+<span class="bi">print</span>(<span class="st">'baseline        :'</span>, run_id(**base))
+<span class="bi">print</span>(<span class="st">'same inputs     :'</span>, run_id(**base) == run_id(**base))
+<span class="bi">print</span>(<span class="st">'seed 42 -&gt; 43   :'</span>, run_id(**{**base, <span class="st">'seed'</span>: <span class="nm">43</span>}) == run_id(**base))
+<span class="bi">print</span>(<span class="st">'numpy upgraded  :'</span>, run_id(**{**base, <span class="st">'env'</span>: {**base[<span class="st">'env'</span>], <span class="st">'numpy'</span>: <span class="st">'2.0.0'</span>}}) == run_id(**base))
+<span class="bi">print</span>(<span class="st">'new data        :'</span>, run_id(**{**base, <span class="st">'data_hash'</span>: <span class="st">'00ff00ff'</span>}) == run_id(**base))</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Why hash a canonical manifest?</strong> <code>sort_keys=True</code> makes the JSON byte-identical no matter how the dict was built, so the same five inputs always give the same run id, and any drift — a bumped library, a re-exported dataset — shows up as a different id. That is the whole trick behind experiment trackers, build caches and model registries.</div></div>
+
+  <div class="lesson-h2">1.2 — Seeding Correctly</div>
+  <p class="lesson-p">Everyone knows to "set the seed". Fewer people know why it still fails. The classic mistake is <strong>one shared random stream</strong> consumed by several stages (split, augmentation, weight init): change the <em>order</em> or the <em>number</em> of draws in one stage and every stage after it silently changes too. Prefer <strong>local generators</strong> (<code>np.random.default_rng(seed)</code>, <code>random.Random(seed)</code>) over global state, and derive an independent <strong>child stream per stage</strong> from one root seed with <code>SeedSequence.spawn</code> — then reordering stages cannot change the train/test split.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Local generators beat global seeds — and independent streams beat one shared stream</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> random
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># 1) A local generator with the same seed always gives the same stream</span>
+a = np.random.default_rng(<span class="nm">42</span>)
+b = np.random.default_rng(<span class="nm">42</span>)
+<span class="bi">print</span>(<span class="st">'same seed, same draws        :'</span>, a.integers(<span class="nm">0</span>, <span class="nm">10</span>**<span class="nm">6</span>, <span class="nm">5</span>).tolist() == b.integers(<span class="nm">0</span>, <span class="nm">10</span>**<span class="nm">6</span>, <span class="nm">5</span>).tolist())
+<span class="bi">print</span>(<span class="st">'stdlib Random(7) reproducible:'</span>, random.Random(<span class="nm">7</span>).random() == random.Random(<span class="nm">7</span>).random())
+
+<span class="cm"># 2) The fragile part: ONE shared generator consumed by several stages</span>
+<span class="kw">def</span> <span class="fn">shared_stream</span>(order, seed=<span class="nm">7</span>):
+    rng = np.random.default_rng(seed)
+    out = {}
+    <span class="kw">for</span> stage <span class="kw">in</span> order:
+        out[stage] = rng.permutation(<span class="nm">10</span>).tolist()
+    <span class="kw">return</span> out
+
+split_first = shared_stream([<span class="st">'split'</span>, <span class="st">'augment'</span>])[<span class="st">'split'</span>]
+split_second = shared_stream([<span class="st">'augment'</span>, <span class="st">'split'</span>])[<span class="st">'split'</span>]
+<span class="bi">print</span>(<span class="st">'shared rng, stages reordered -&gt; same split?  '</span>, split_first == split_second)
+
+<span class="cm"># 3) The fix: give each stage its OWN child stream from one root seed</span>
+<span class="kw">def</span> <span class="fn">independent_streams</span>(order, seed=<span class="nm">7</span>):
+    children = np.random.SeedSequence(seed).spawn(<span class="nm">2</span>)
+    rngs = {<span class="st">'split'</span>: np.random.default_rng(children[<span class="nm">0</span>]), <span class="st">'augment'</span>: np.random.default_rng(children[<span class="nm">1</span>])}
+    <span class="kw">return</span> {stage: rngs[stage].permutation(<span class="nm">10</span>).tolist() <span class="kw">for</span> stage <span class="kw">in</span> order}
+
+<span class="bi">print</span>(<span class="st">'child streams, stages reordered -&gt; same split?'</span>, independent_streams([<span class="st">'split'</span>, <span class="st">'augment'</span>])[<span class="st">'split'</span>] == independent_streams([<span class="st">'augment'</span>, <span class="st">'split'</span>])[<span class="st">'split'</span>])</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Never assert on raw random draws</strong> — assert on properties ("same seed gives identical output", "split is disjoint"). Draw values differ across NumPy versions, so a test that hard-codes them breaks on upgrade. Also remember what a seed does <em>not</em> cover: the <code>PYTHONHASHSEED</code> that randomizes string hashing (and set/dict-of-string ordering in old code paths), multi-threaded reductions, and GPU kernels that are nondeterministic unless you opt into deterministic algorithms in your framework.</div></div>
+
+  <div class="lesson-h2">1.3 — Dataset Fingerprinting</div>
+  <p class="lesson-p">If the data can change without anyone noticing, you cannot reproduce anything. A <strong>fingerprint</strong> is a hash of a dataset's <em>canonical</em> form, stored in the run manifest. The word that matters is canonical: two files with identical content but different row order, column order, float formatting or NaN spelling must hash the same, or you will drown in false alarms and start ignoring the alarm. So: sort columns, (optionally) sort rows, serialize with a fixed float format and an explicit null token, then <code>sha256</code> the bytes.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A dataset fingerprint: canonical CSV bytes -&gt; sha256</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="kw">def</span> <span class="fn">fingerprint</span>(df, ignore_row_order=<span class="kw">True</span>, float_digits=<span class="nm">10</span>):
+    cols = <span class="bi">sorted</span>(df.columns)                       <span class="cm"># column order must not matter</span>
+    canon = df[cols]
+    <span class="kw">if</span> ignore_row_order:
+        canon = canon.sort_values(cols, kind=<span class="st">'mergesort'</span>)
+    csv = canon.to_csv(index=<span class="kw">False</span>, lineterminator=<span class="st">'\n'</span>,
+                       float_format=<span class="st">f'%.{float_digits}g'</span>, na_rep=<span class="st">'&lt;NA&gt;'</span>)
+    <span class="kw">return</span> hashlib.sha256(csv.encode(<span class="st">'utf-8'</span>)).hexdigest()
+
+a = pd.DataFrame({<span class="st">'id'</span>: [<span class="nm">3</span>, <span class="nm">1</span>, <span class="nm">2</span>], <span class="st">'amount'</span>: [<span class="nm">19.99</span>, <span class="nm">5.0</span>, <span class="nm">12.5</span>], <span class="st">'status'</span>: [<span class="st">'paid'</span>, <span class="st">'paid'</span>, <span class="st">'refunded'</span>]})
+shuffled = a.iloc[[<span class="nm">2</span>, <span class="nm">0</span>, <span class="nm">1</span>]].reset_index(drop=<span class="kw">True</span>)
+edited = a.copy(); edited.loc[<span class="nm">0</span>, <span class="st">'amount'</span>] = <span class="nm">19.98</span>
+noisy = a.copy(); noisy[<span class="st">'amount'</span>] = noisy[<span class="st">'amount'</span>] + <span class="nm">1e-13</span>     <span class="cm"># float noise from a different machine</span>
+
+<span class="bi">print</span>(<span class="st">'shuffled rows, order-insensitive :'</span>, fingerprint(a) == fingerprint(shuffled))
+<span class="bi">print</span>(<span class="st">'shuffled rows, order-sensitive   :'</span>, fingerprint(a, ignore_row_order=<span class="kw">False</span>) == fingerprint(shuffled, ignore_row_order=<span class="kw">False</span>))
+<span class="bi">print</span>(<span class="st">'one value edited -&gt; detected     :'</span>, fingerprint(a) != fingerprint(edited))
+<span class="bi">print</span>(<span class="st">'1e-13 float noise absorbed       :'</span>, fingerprint(a) == fingerprint(noisy))
+<span class="bi">print</span>(<span class="st">'raw floats: 0.1+0.2 == 0.3       :'</span>, <span class="nm">0.1</span> + <span class="nm">0.2</span> == <span class="nm">0.3</span>)
+<span class="bi">print</span>(<span class="st">'rounded to 10 digits             :'</span>, <span class="st">f'{0.1 + 0.2:.10g}'</span> == <span class="st">f'{0.3:.10g}'</span>)
+<span class="bi">print</span>(<span class="st">'digest length (hex chars)        :'</span>, <span class="bi">len</span>(fingerprint(a)))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Floats and dtypes are the usual culprits.</strong> <code>0.1 + 0.2 != 0.3</code>, and the same number can come back as <code>1.0000000000000002</code> from a different machine or aggregation order — so fix the digits you hash. An <code>int</code> column that becomes <code>float</code> because one value is missing changes the CSV text (<code>3</code> vs <code>3.0</code>); decide whether that should count as a change. For very large data you hash file chunks or use the storage layer's checksums (that is what DVC and object stores do) instead of re-serializing everything.</div></div>
+
+  <div class="lesson-h2">1.4 — Capturing and Auditing the Environment</div>
+  <p class="lesson-p">An <code>import numpy</code> that works today and breaks next month usually means a dependency <em>floated</em>. Every line of a <code>requirements.txt</code> is one of three kinds: <strong>pinned</strong> (<code>==</code>: exactly this version), <strong>ranged</strong> (<code>&gt;=</code>, <code>~=</code>: any version in a window) or <strong>unpinned</strong> (a bare name: whatever is newest today). Reproducible builds want everything pinned — including <em>transitive</em> dependencies you never wrote down, which is why teams keep a human-edited <code>requirements.in</code> and <em>compile</em> it into a fully pinned lock file. Parsing these lines correctly (comments, <code>-r</code> includes, extras like <code>pydantic[email]</code>, environment markers after <code>;</code>) is a classic small CI check.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parsing requirements.txt and classifying pinned / ranged / unpinned</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+
+REQ = re.<span class="bi">compile</span>(<span class="st">r'^(?P&lt;name&gt;[A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?\s*(?P&lt;op&gt;==|&gt;=|&lt;=|~=|!=|&gt;|&lt;)?\s*(?P&lt;ver&gt;[A-Za-z0-9_.*+!\-]+)?'</span>)
+
+<span class="kw">def</span> <span class="fn">parse_requirement</span>(line):
+    line = line.split(<span class="st">'#'</span>)[<span class="nm">0</span>].split(<span class="st">';'</span>)[<span class="nm">0</span>].strip()   <span class="cm"># drop comments and environment markers</span>
+    <span class="kw">if</span> <span class="kw">not</span> line <span class="kw">or</span> line.startswith(<span class="st">'-'</span>):               <span class="cm"># blank lines and options like -r base.txt</span>
+        <span class="kw">return</span> <span class="kw">None</span>
+    m = REQ.match(line)
+    name = m[<span class="st">'name'</span>].lower().replace(<span class="st">'_'</span>, <span class="st">'-'</span>)
+    <span class="kw">return</span> name, m[<span class="st">'op'</span>], m[<span class="st">'ver'</span>]
+
+<span class="kw">def</span> <span class="fn">classify</span>(op):
+    <span class="kw">if</span> op == <span class="st">'=='</span>: <span class="kw">return</span> <span class="st">'pinned'</span>
+    <span class="kw">if</span> op <span class="kw">is</span> <span class="kw">None</span>: <span class="kw">return</span> <span class="st">'unpinned'</span>
+    <span class="kw">return</span> <span class="st">'ranged'</span>
+
+text = <span class="st">"""
+# model service
+numpy==1.26.4
+pandas&gt;=2.0
+scikit-learn
+requests==2.31.0 ; python_version &gt;= "3.9"
+pydantic[email]==2.6.1
+-r base.txt
+"""</span>
+<span class="kw">for</span> raw <span class="kw">in</span> text.splitlines():
+    parsed = parse_requirement(raw)
+    <span class="kw">if</span> parsed:
+        name, op, ver = parsed
+        <span class="bi">print</span>(<span class="st">f'{name:14s} {classify(op):9s} op={op} ver={ver}'</span>)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Locking a fully pinned environment (pip-tools / uv) — reference only</span></div>
+    <div class="cb-code"># requirements.in  -&gt; the few packages YOU depend on (ranges are fine here)
+#   pandas&gt;=2.0
+#   scikit-learn~=1.4
+#
+# compile to a lock file with every transitive dependency pinned (+ hashes)
+pip-compile --generate-hashes requirements.in -o requirements.txt
+#   or, with uv:  uv pip compile requirements.in -o requirements.txt
+
+# install EXACTLY what the lock file says, and fail if anything is missing/extra
+pip install --require-hashes -r requirements.txt
+
+# what is actually installed right now (audit, or capture into the run manifest)
+pip freeze</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference-only.</strong> <code>pip</code>, <code>uv</code> and Docker need a real operating system, which this in-browser Python does not have — run these on your own machine. The parsing logic above is the part you can practice here.</div></div>
+
+  <div class="lesson-h2">1.5 — Data-Quality Checks as a Pass/Fail Report</div>
+  <p class="lesson-p">Data checks are <strong>unit tests for data</strong>. The useful families are: <em>schema</em> (columns and dtypes exist), <em>range</em> (age between 18 and 100), <em>domain</em> (country is one of a known set), <em>completeness</em> (null rate under a threshold), <em>uniqueness</em> (keys are unique), <em>referential</em> (every id exists in the reference table), <em>volume</em> (row count within an expected band) and <em>freshness</em> (newest record is recent enough). Return a <strong>structured report</strong> — check name, pass/fail, detail — not a bare <code>assert</code>: a report can be logged, diffed between runs, and turned into an alert that says <em>which</em> check failed and by how much.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Data-quality checks as a structured pass/fail report</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+loans = pd.DataFrame({
+    <span class="st">'loan_id'</span>: [<span class="nm">101</span>, <span class="nm">102</span>, <span class="nm">103</span>, <span class="nm">104</span>, <span class="nm">104</span>, <span class="nm">106</span>, <span class="nm">107</span>, <span class="nm">108</span>],
+    <span class="st">'age'</span>:     [<span class="nm">34</span>, <span class="nm">29</span>, <span class="nm">41</span>, <span class="nm">17</span>, <span class="nm">52</span>, <span class="nm">38</span>, <span class="nm">240</span>, <span class="nm">45</span>],
+    <span class="st">'income'</span>:  [<span class="nm">52000</span>, <span class="kw">None</span>, <span class="nm">61000</span>, <span class="nm">48000</span>, <span class="nm">75000</span>, <span class="kw">None</span>, <span class="nm">58000</span>, <span class="kw">None</span>],
+    <span class="st">'country'</span>: [<span class="st">'IN'</span>, <span class="st">'IN'</span>, <span class="st">'US'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>, <span class="st">'IN'</span>, <span class="st">'XX'</span>, <span class="st">'US'</span>],
+    <span class="st">'default'</span>: [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>],
+})
+
+<span class="kw">def</span> <span class="fn">check_quality</span>(df):
+    report = {}
+    report[<span class="st">'loan_id_unique'</span>] = (<span class="kw">not</span> df[<span class="st">'loan_id'</span>].duplicated().<span class="bi">any</span>(), <span class="st">f"{int(df['loan_id'].duplicated().sum())} duplicate key(s)"</span>)
+    bad_age = ~df[<span class="st">'age'</span>].between(<span class="nm">18</span>, <span class="nm">100</span>)
+    report[<span class="st">'age_in_18_100'</span>] = (<span class="kw">not</span> bad_age.<span class="bi">any</span>(), <span class="st">f'{int(bad_age.sum())} row(s) out of range'</span>)
+    null_rate = <span class="bi">float</span>(df[<span class="st">'income'</span>].isna().mean())
+    report[<span class="st">'income_null_rate&lt;=0.20'</span>] = (null_rate &lt;= <span class="nm">0.20</span>, <span class="st">f'null rate {null_rate:.3f}'</span>)
+    bad_country = ~df[<span class="st">'country'</span>].isin([<span class="st">'IN'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>])
+    report[<span class="st">'country_allowed'</span>] = (<span class="kw">not</span> bad_country.<span class="bi">any</span>(), <span class="st">f'{int(bad_country.sum())} unknown value(s)'</span>)
+    report[<span class="st">'label_is_binary'</span>] = (<span class="bi">set</span>(df[<span class="st">'default'</span>].unique()) &lt;= {<span class="nm">0</span>, <span class="nm">1</span>}, <span class="st">'labels ok'</span>)
+    <span class="kw">return</span> report
+
+report = check_quality(loans)
+<span class="kw">for</span> name, (ok, detail) <span class="kw">in</span> report.items():
+    <span class="bi">print</span>(<span class="st">f"{'PASS' if ok else 'FAIL'}  {name:24s} {detail}"</span>)
+failed = [name <span class="kw">for</span> name, (ok, _) <span class="kw">in</span> report.items() <span class="kw">if</span> <span class="kw">not</span> ok]
+<span class="bi">print</span>(<span class="st">'gate:'</span>, <span class="st">'BLOCK the training run'</span> <span class="kw">if</span> failed <span class="kw">else</span> <span class="st">'proceed'</span>, <span class="st">'-&gt;'</span>, failed)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Where the gate goes and what it does.</strong> Run checks <em>before</em> training, as the first pipeline step, and make failure loud: block the run (or quarantine the bad partition) and notify the dataset owner. Derive thresholds from history — "null rate has never exceeded 2%" — rather than guessing; a check nobody trusts gets disabled the first time it fires on a Friday.</div></div>
+
+  <div class="lesson-h2">1.6 — Row-Level Validation and Data Contracts with pydantic</div>
+  <p class="lesson-p">pandas checks are column-wise and vectorized; <strong>pydantic v2</strong> validates one record at a time against a typed model, which is exactly what you want at a boundary — a request payload, a message from a queue, a sample of a new feed. The model doubles as a <strong>data contract</strong> written in code: field types, ranges (<code>Field(ge=..., le=...)</code>), allowed values (<code>Literal</code>) and, with <code>extra='forbid'</code>, a rule that unexpected columns are violations rather than silently ignored. Each error carries a location and a machine-readable <code>type</code>, so you can count failures by field.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Row-level validation with a pydantic v2 model — the data contract in code</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> typing <span class="kw">import</span> Literal, Optional
+<span class="kw">from</span> pydantic <span class="kw">import</span> BaseModel, ConfigDict, Field, ValidationError
+
+<span class="kw">class</span> <span class="cls">LoanRow</span>(BaseModel):
+    model_config = ConfigDict(extra=<span class="st">'forbid'</span>)          <span class="cm"># unexpected columns are a contract violation</span>
+    loan_id: <span class="bi">int</span>
+    age: <span class="bi">int</span> = Field(ge=<span class="nm">18</span>, le=<span class="nm">100</span>)
+    income: Optional[<span class="bi">float</span>] = Field(default=<span class="kw">None</span>, ge=<span class="nm">0</span>)
+    country: Literal[<span class="st">'IN'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>]
+    default: Literal[<span class="nm">0</span>, <span class="nm">1</span>]
+
+rows = [
+    {<span class="st">'loan_id'</span>: <span class="nm">1</span>, <span class="st">'age'</span>: <span class="nm">34</span>, <span class="st">'income'</span>: <span class="nm">52000.0</span>, <span class="st">'country'</span>: <span class="st">'IN'</span>, <span class="st">'default'</span>: <span class="nm">0</span>},
+    {<span class="st">'loan_id'</span>: <span class="nm">2</span>, <span class="st">'age'</span>: <span class="nm">17</span>, <span class="st">'income'</span>: <span class="nm">48000.0</span>, <span class="st">'country'</span>: <span class="st">'US'</span>, <span class="st">'default'</span>: <span class="nm">0</span>},
+    {<span class="st">'loan_id'</span>: <span class="nm">3</span>, <span class="st">'age'</span>: <span class="nm">41</span>, <span class="st">'income'</span>: -<span class="nm">5.0</span>, <span class="st">'country'</span>: <span class="st">'XX'</span>, <span class="st">'default'</span>: <span class="nm">1</span>},
+    {<span class="st">'loan_id'</span>: <span class="st">'abc'</span>, <span class="st">'age'</span>: <span class="nm">29</span>, <span class="st">'country'</span>: <span class="st">'DE'</span>, <span class="st">'default'</span>: <span class="nm">0</span>, <span class="st">'risk_band'</span>: <span class="st">'B'</span>},
+    {<span class="st">'age'</span>: <span class="nm">52</span>, <span class="st">'country'</span>: <span class="st">'IN'</span>, <span class="st">'default'</span>: <span class="nm">1</span>},
+]
+problems = {}
+<span class="kw">for</span> i, row <span class="kw">in</span> <span class="bi">enumerate</span>(rows):
+    <span class="kw">try</span>:
+        LoanRow(**row)
+    <span class="kw">except</span> ValidationError <span class="kw">as</span> e:
+        problems[i] = <span class="bi">sorted</span>((err[<span class="st">'loc'</span>][<span class="nm">0</span>], err[<span class="st">'type'</span>]) <span class="kw">for</span> err <span class="kw">in</span> e.errors())
+<span class="bi">print</span>(<span class="st">'valid rows :'</span>, <span class="bi">len</span>(rows) - <span class="bi">len</span>(problems), <span class="st">'of'</span>, <span class="bi">len</span>(rows))
+<span class="kw">for</span> i, errs <span class="kw">in</span> problems.items():
+    <span class="bi">print</span>(<span class="st">f'row {i}:'</span>, errs)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>A data contract is more than a schema.</strong> It is an agreement between the team that <em>produces</em> a dataset and the teams that <em>consume</em> it: schema, semantics (what does <code>income</code> mean — gross or net, which currency?), quality guarantees, freshness SLA, an owner to page, and a version. Removing, renaming or re-typing a column is a <em>breaking</em> change (major version bump, announced in advance); adding an optional column is not. The value is catching the change at the producer's CI instead of in your model's metrics three weeks later.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Use the right tool for the volume.</strong> Validating millions of rows one pydantic object at a time is slow. Use pydantic for boundaries and samples, and vectorized pandas (or a dedicated library, 1.8) for bulk checks.</div></div>
+
+  <div class="lesson-h2">1.7 — Leakage and Train/Serve Skew</div>
+  <p class="lesson-p"><strong>Leakage</strong> means the model saw information at training time that will not exist at prediction time — so the offline metric is fiction. It comes in three everyday forms. <strong>(a) Split leakage:</strong> a random split of time-ordered data lets the training set contain the <em>future</em> of your test rows; a random split of per-customer data puts the same customer on both sides. The fixes are a <strong>time split</strong> (optionally with an <em>embargo</em> gap when labels take days to resolve) and a <strong>group split</strong> (a customer lives entirely on one side).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Random split vs time split vs group split on the same events</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+events = pd.DataFrame({
+    <span class="st">'customer'</span>: [<span class="st">'a'</span>, <span class="st">'a'</span>, <span class="st">'b'</span>, <span class="st">'b'</span>, <span class="st">'c'</span>, <span class="st">'c'</span>, <span class="st">'d'</span>, <span class="st">'d'</span>],
+    <span class="st">'day'</span>:      [<span class="nm">1</span>, <span class="nm">5</span>, <span class="nm">2</span>, <span class="nm">6</span>, <span class="nm">3</span>, <span class="nm">7</span>, <span class="nm">4</span>, <span class="nm">8</span>],
+    <span class="st">'churned'</span>:  [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>],
+})
+
+<span class="cm"># A "random" split (fixed indices so the demo is deterministic): rows 1, 4, 6 go to test</span>
+test_idx = [<span class="nm">1</span>, <span class="nm">4</span>, <span class="nm">6</span>]
+rand_train, rand_test = events.drop(index=test_idx), events.loc[test_idx]
+<span class="bi">print</span>(<span class="st">'random split  -&gt; train contains days after the earliest test day:'</span>, rand_train[<span class="st">'day'</span>].<span class="bi">max</span>() &gt; rand_test[<span class="st">'day'</span>].<span class="bi">min</span>())
+<span class="bi">print</span>(<span class="st">'random split  -&gt; customers on BOTH sides:'</span>, <span class="bi">sorted</span>(<span class="bi">set</span>(rand_train[<span class="st">'customer'</span>]) &amp; <span class="bi">set</span>(rand_test[<span class="st">'customer'</span>])))
+
+<span class="cm"># Time split: everything before the cutoff trains, everything after tests</span>
+cutoff = <span class="nm">5</span>
+t_train, t_test = events[events[<span class="st">'day'</span>] &lt; cutoff], events[events[<span class="st">'day'</span>] &gt;= cutoff]
+<span class="bi">print</span>(<span class="st">'time split    -&gt; train max day &lt; test min day:'</span>, t_train[<span class="st">'day'</span>].<span class="bi">max</span>() &lt; t_test[<span class="st">'day'</span>].<span class="bi">min</span>())
+
+<span class="cm"># Group split: a customer lives entirely on one side</span>
+test_customers = {<span class="st">'c'</span>, <span class="st">'d'</span>}
+g_train = events[~events[<span class="st">'customer'</span>].isin(test_customers)]
+g_test = events[events[<span class="st">'customer'</span>].isin(test_customers)]
+<span class="bi">print</span>(<span class="st">'group split   -&gt; customers on BOTH sides:'</span>, <span class="bi">sorted</span>(<span class="bi">set</span>(g_train[<span class="st">'customer'</span>]) &amp; <span class="bi">set</span>(g_test[<span class="st">'customer'</span>])))</div>
+  </div>
+  <p class="lesson-p"><strong>(b) Target leakage:</strong> a feature that is really a consequence of the label — a <code>cancel_reason</code> field that support fills in <em>after</em> the customer churns. The tell is a feature that is suspiciously perfect; a correlation screen catches the crude cases, and the real fix is asking, for every feature, <em>"would I have this value at the moment the prediction is made?"</em></p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Target leakage: the feature that is suspiciously perfect</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+df = pd.DataFrame({
+    <span class="st">'tenure_months'</span>:         [<span class="nm">24</span>, <span class="nm">3</span>, <span class="nm">36</span>, <span class="nm">5</span>, <span class="nm">12</span>, <span class="nm">2</span>, <span class="nm">48</span>, <span class="nm">7</span>],
+    <span class="st">'support_calls'</span>:         [<span class="nm">1</span>, <span class="nm">6</span>, <span class="nm">0</span>, <span class="nm">4</span>, <span class="nm">2</span>, <span class="nm">5</span>, <span class="nm">1</span>, <span class="nm">3</span>],
+    <span class="st">'cancel_reason_present'</span>: [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>],   <span class="cm"># filled in by support AFTER the customer churns</span>
+    <span class="st">'churned'</span>:               [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>],
+})
+
+corr = df.drop(columns=<span class="st">'churned'</span>).corrwith(df[<span class="st">'churned'</span>]).<span class="bi">abs</span>().<span class="bi">round</span>(<span class="nm">2</span>).sort_values(ascending=<span class="kw">False</span>)
+<span class="kw">for</span> feature, value <span class="kw">in</span> corr.items():
+    flag = <span class="st">'  &lt;-- too good to be true'</span> <span class="kw">if</span> value &gt;= <span class="nm">0.95</span> <span class="kw">else</span> <span class="st">''</span>
+    <span class="bi">print</span>(<span class="st">f'{feature:24s} |corr| = {value:.2f}{flag}'</span>)</div>
+  </div>
+  <p class="lesson-p"><strong>(c) Train/serve skew</strong> is the production twin of leakage: the features the model sees live differ from the ones it trained on — a different code path computes them, a unit changes (dollars vs cents), a timezone shifts, a default fills a missing value. Save summary statistics at training time and compare them with what serving actually sends.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Train/serve skew: compare what the model trained on with what it now sees</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+train_stats = {<span class="st">'income'</span>: (<span class="nm">52000.0</span>, <span class="nm">9000.0</span>), <span class="st">'age'</span>: (<span class="nm">38.0</span>, <span class="nm">8.5</span>)}    <span class="cm"># (mean, std) saved at training time</span>
+serving = pd.DataFrame({<span class="st">'income'</span>: [<span class="nm">31000</span>, <span class="nm">29500</span>, <span class="nm">33200</span>, <span class="nm">30800</span>], <span class="st">'age'</span>: [<span class="nm">37</span>, <span class="nm">41</span>, <span class="nm">36</span>, <span class="nm">39</span>]})
+
+<span class="kw">for</span> feature, (mean, std) <span class="kw">in</span> train_stats.items():
+    shift = <span class="bi">abs</span>(serving[feature].mean() - mean) / std              <span class="cm"># shift in training standard deviations</span>
+    <span class="bi">print</span>(<span class="st">f'{feature:7s} shift = {shift:.2f} std'</span>, <span class="st">'-&gt; SKEW'</span> <span class="kw">if</span> shift &gt; <span class="nm">1.0</span> <span class="kw">else</span> <span class="st">'-&gt; ok'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The interview tell.</strong> "Offline AUC 0.99, production is a coin flip" almost always means leakage or skew, not a bad algorithm. State the checklist out loud: split strategy, features unavailable at prediction time, labels that resolve late, and a feature-level comparison of training vs serving distributions.</div></div>
+
+  <div class="lesson-h2">1.8 — Tools You Will Meet: pandera, Great Expectations, DVC</div>
+  <p class="lesson-p">Everything above is what these tools do for you at scale. <strong>pandera</strong> lets you declare a DataFrame schema (dtypes, checks, uniqueness) and validate it — with <code>lazy=True</code> it reports <em>all</em> failures instead of stopping at the first. <strong>Great Expectations</strong> models checks as reusable "expectations" grouped into suites that run in a pipeline and publish human-readable reports (its API has changed considerably between major versions, so follow the docs for the version you install). <strong>DVC</strong> versions large data next to your git history: git stores a small pointer file, the data lives in remote storage.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">pandera: the 1.5 checks declared as a schema — reference only</span></div>
+    <div class="cb-code"><span class="kw">import</span> pandera <span class="kw">as</span> pa
+
+schema = pa.DataFrameSchema(
+    {
+        <span class="st">"loan_id"</span>: pa.Column(<span class="bi">int</span>),
+        <span class="st">"age"</span>: pa.Column(<span class="bi">int</span>, pa.Check.in_range(<span class="nm">18</span>, <span class="nm">100</span>)),
+        <span class="st">"income"</span>: pa.Column(<span class="bi">float</span>, pa.Check.ge(<span class="nm">0</span>), nullable=<span class="kw">True</span>),
+        <span class="st">"country"</span>: pa.Column(<span class="bi">str</span>, pa.Check.isin([<span class="st">"IN"</span>, <span class="st">"US"</span>, <span class="st">"DE"</span>])),
+    },
+    unique=[<span class="st">"loan_id"</span>],     <span class="cm"># duplicate keys fail</span>
+    strict=<span class="kw">True</span>,            <span class="cm"># unexpected columns fail</span>
+)
+
+<span class="kw">try</span>:
+    schema.validate(df, lazy=<span class="kw">True</span>)      <span class="cm"># lazy=True collects ALL failures</span>
+<span class="kw">except</span> pa.errors.SchemaErrors <span class="kw">as</span> err:
+    <span class="bi">print</span>(err.failure_cases)            <span class="cm"># a DataFrame: column, check, failing value, row index</span></div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">DVC: version a dataset alongside git — reference only</span></div>
+    <div class="cb-code">dvc init
+dvc add data/train.parquet            # writes data/train.parquet.dvc (a pointer with a checksum)
+git add data/train.parquet.dvc data/.gitignore
+git commit -m "Track training data v1"
+dvc push                              # data -&gt; remote storage (S3/GCS/...), pointer stays in git
+
+# months later: get EXACTLY the data that commit trained on
+git checkout &lt;old-commit&gt;
+dvc checkout</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference-only.</strong> pandera, Great Expectations and DVC are not available in this in-browser Python (DVC also needs git and remote storage). The snippets show the shape of the tools; the exercises below build the same ideas from scratch so you understand what they do.</div></div>
+
+  <div class="lesson-h2">Chapter Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Reproducible = five pins</strong>: code, data, config, environment, randomness — captured in a hashed run manifest.</div></li>
+    <li data-n="2"><div><strong>Seed with local generators and per-stage child streams</strong>, and assert on properties, never on raw draws.</div></li>
+    <li data-n="3"><div><strong>Fingerprint data in canonical form</strong> (sorted, fixed float format, explicit nulls) so only real changes change the hash.</div></li>
+    <li data-n="4"><div><strong>Audit requirements</strong>: pinned vs ranged vs unpinned; lock transitive dependencies.</div></li>
+    <li data-n="5"><div><strong>Data checks are unit tests for data</strong> — a structured report, run first, blocking on failure, thresholds from history.</div></li>
+    <li data-n="6"><div><strong>Contracts</strong> = schema + semantics + SLA + owner + version; pydantic validates records at boundaries, pandas validates in bulk.</div></li>
+    <li data-n="7"><div><strong>Leakage and skew</strong> explain "great offline, bad in production": time/group splits, features unavailable at prediction time, training-vs-serving stats.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. pandas loads the first time you run one (a few seconds).</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">An Order-Insensitive Dataset Fingerprint</div>
+        <div class="ex-desc">Canonicalize, then hash: same rows in any order must give the same digest.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write fingerprint(df) that returns a sha256 hex digest of a DataFrame in CANONICAL form:
+  - columns sorted alphabetically
+  - rows sorted by all columns (kind='mergesort')
+  - serialized with df.to_csv(index=False, lineterminator='\n',
+        float_format='%.10g', na_rep='&lt;NA&gt;'), encoded as UTF-8
+
+Then, using the three DataFrames given in the starter code
+(orders_b is orders_a shuffled; orders_c has one edited amount), print exactly:
+  f'same_data: {fingerprint(orders_a) == fingerprint(orders_b)}'
+  f'edit_detected: {fingerprint(orders_a) != fingerprint(orders_c)}'
+  f'hash_length: {len(fingerprint(orders_a))}'
+(Correct: same_data: True / edit_detected: True / hash_length: 64)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import hashlib
+import pandas as pd
+
+orders_a = pd.DataFrame({'order_id': [3, 1, 2, 4], 'amount': [19.99, 5.0, 12.5, 7.25],
+                         'status': ['paid', 'paid', 'refunded', 'paid']})
+orders_b = orders_a.iloc[[2, 0, 3, 1]].reset_index(drop=True)   # same rows, shuffled
+orders_c = orders_a.copy()
+orders_c.loc[2, 'amount'] = 12.51                                # one edited value
+
+# def fingerprint(df):
+#     cols = sorted(df.columns)
+#     canon = ...            # df[cols], then sort_values(cols, kind='mergesort')
+#     csv = canon.to_csv(...)
+#     return hashlib.sha256(csv.encode('utf-8')).hexdigest()
+#
+# print(...)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Audit a requirements.txt</div>
+        <div class="ex-desc">Parse pip lines (comments, markers, extras, -r) and split them into pinned / ranged / unpinned.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given the requirements text in the starter code, classify every package:
+  pinned   -&gt; uses ==
+  ranged   -&gt; uses any other operator (&gt;=, &lt;=, ~=, !=, &gt;, &lt;)
+  unpinned -&gt; a bare name with no version
+Rules: ignore blank lines and lines starting with '-' (like -r base.txt); strip '# comments'
+and environment markers after ';'; ignore extras like [email]; lower-case the names.
+
+Print exactly (each list sorted):
+  f'pinned: {sorted(pinned)}'
+  f'ranged: {sorted(ranged)}'
+  f'unpinned: {sorted(unpinned)}'
+  f'ok_for_prod: {not ranged and not unpinned}'
+(Correct: pinned: ['mlflow', 'numpy', 'pydantic', 'requests'] / ranged: ['pandas', 'torch'] / unpinned: ['scikit-learn', 'uvicorn'] / ok_for_prod: False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import re
+
+requirements = """
+# core
+numpy==1.26.4
+pandas&gt;=2.0
+scikit-learn
+torch~=2.2.0
+requests==2.31.0 ; python_version &gt;= "3.9"
+pydantic[email]==2.6.1
+-r base.txt
+uvicorn   # server
+MLflow==2.11.1
+"""
+
+pinned, ranged, unpinned = [], [], []
+# for raw in requirements.splitlines():
+#     line = raw.split('#')[0].split(';')[0].strip()
+#     if not line or line.startswith('-'):
+#         continue
+#     m = re.match(r'^([A-Za-z0-9_.\-]+)(?:\[[^\]]*\])?\s*(==|&gt;=|&lt;=|~=|!=|&gt;|&lt;)?', line)
+#     name, op = m.group(1).lower(), m.group(2)
+#     ...
+#
+# print(...)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">A Data-Quality Report</div>
+        <div class="ex-desc">Write run_checks(df) that returns one boolean per named check, then summarize failures.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write run_checks(df) returning a dict of check name -&gt; True (passed) / False (failed):
+  'user_id_unique'      user_id has no duplicates
+  'age_in_0_120'        every age is between 0 and 120 inclusive
+  'plan_allowed'        every plan is in ['free', 'pro', 'enterprise']
+  'email_null_rate_ok'  the fraction of null emails is &lt;= 0.2
+
+Run it on the DataFrame in the starter code and print exactly:
+  f'failed: {sorted(names_that_failed)}'
+  f'passed: {number_of_passing_checks}'
+(Correct: failed: ['age_in_0_120', 'plan_allowed', 'user_id_unique'] / passed: 1)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import pandas as pd
+
+df = pd.DataFrame({
+    'user_id': [1, 2, 3, 3, 5, 6],
+    'age':     [25, 31, -4, 45, 130, 29],
+    'plan':    ['free', 'pro', 'pro', 'enterprise', 'gold', 'free'],
+    'email':   ['a@x.com', None, 'c@x.com', 'd@x.com', 'e@x.com', 'f@x.com'],
+})
+
+# def run_checks(df):
+#     return {
+#         'user_id_unique': ...,        # df['user_id'].duplicated()
+#         'age_in_0_120': ...,          # df['age'].between(0, 120)
+#         'plan_allowed': ...,          # df['plan'].isin([...])
+#         'email_null_rate_ok': ...,    # df['email'].isna().mean()
+#     }
+#
+# results = run_checks(df)
+# print(...)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Leakage Detector</div>
+        <div class="ex-desc">Find train/test id overlap and features that are suspiciously predictive of the target.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given the train and test DataFrames in the starter code:
+  1. overlap: the sorted list of user_id values that appear in BOTH train and test
+  2. leaky features: features (every column except user_id and churned) whose absolute
+     Pearson correlation with churned in the TRAIN set is &gt;= 0.95 -- sorted list of names
+
+Print exactly:
+  f'overlap_ids: {overlap}'
+  f'leaky_features: {leaky}'
+(Correct: overlap_ids: [5, 6] / leaky_features: ['refund_issued'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import pandas as pd
+
+train = pd.DataFrame({
+    'user_id':       [1, 2, 3, 4, 5, 6],
+    'sessions':      [5, 3, 4, 6, 2, 3],
+    'refund_issued': [0, 1, 0, 1, 0, 1],
+    'churned':       [0, 1, 0, 1, 0, 1],
+})
+test = pd.DataFrame({
+    'user_id':       [5, 6, 7, 8],
+    'sessions':      [2, 3, 4, 6],
+    'refund_issued': [0, 1, 0, 1],
+    'churned':       [0, 1, 0, 1],
+})
+
+# overlap = sorted(set(train['user_id']) &amp; set(test['user_id']))
+# features = [c for c in train.columns if c not in ('user_id', 'churned')]
+# corr = train[features].corrwith(train['churned']).abs()
+# leaky = ...   # names in corr where corr &gt;= 0.95, sorted
+#
+# print(...)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">A Time-Based Splitter With an Embargo</div>
+        <div class="ex-desc">Train on the past, test on the future, and drop the rows too close to the cutoff.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Split the events DataFrame in the starter code by time (ts is already a datetime):
+  cutoff  = 2024-03-01, embargo = 7 days
+  train     -&gt; ts &lt;  cutoff - embargo
+  embargoed -&gt; cutoff - embargo &lt;= ts &lt; cutoff   (dropped: their labels overlap the test period)
+  test      -&gt; ts &gt;= cutoff
+
+Print exactly:
+  f'train: {len(train)}'
+  f'embargoed: {len(embargoed)}'
+  f'test: {len(test)}'
+  f'leak_free: {train_ts_max_plus_embargo_is_before_test_ts_min}'
+(Correct: train: 4 / embargoed: 1 / test: 3 / leak_free: True)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import pandas as pd
+
+df = pd.DataFrame({'ts': ['2024-01-05', '2024-01-20', '2024-02-10', '2024-02-20',
+                          '2024-02-25', '2024-03-02', '2024-03-15', '2024-04-01'],
+                   'y':  [0, 1, 0, 0, 1, 1, 0, 1]})
+df['ts'] = pd.to_datetime(df['ts'])
+
+cutoff = pd.Timestamp('2024-03-01')
+embargo = pd.Timedelta(days=7)
+
+# train = df[df['ts'] &lt; cutoff - embargo]
+# embargoed = ...
+# test = ...
+#
+# print(f'train: {len(train)}')
+# ...
+# print(f'leak_free: {bool(train["ts"].max() + embargo &lt; test["ts"].min())}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>DatasetGate — a CI Step for Data</span></h2>
+    <p>Every serious ML pipeline has a step that answers "is this data fit to train on?" before any compute is spent. Build it as a reusable class driven by a data contract: it takes a DataFrame, returns PASS or FAIL, and — crucially — tells you <em>why</em>, with stable machine-readable reason codes a CI job or alert can act on.</p>
+    <div class="project-tags">
+      <span class="ptag">data contracts</span>
+      <span class="ptag">quality gate</span>
+      <span class="ptag">reason codes</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A DatasetGate class configured by the CONTRACT dict in the starter code (required columns, unique key, ranges, allowed values, max null rates, min rows)</li>
+      <li>check(df) returns (status, reasons): status is 'PASS' when there are no reasons, else 'FAIL'; reasons is a SORTED list of codes like missing_column:income, duplicate_keys:customer_id, out_of_range:age, not_allowed:country, null_rate:income, too_few_rows</li>
+      <li>A column that is missing is reported once as missing_column and skipped by every other check; range checks ignore null values (nulls are the null-rate check's job)</li>
+      <li>Run it on the three datasets provided and print one line each: <code>name: STATUS | reason; reason</code> (reasons joined by '; ')</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ DatasetGate — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: DatasetGate
+# Use ONLY MLOps in Practice 1 concepts
+# ══════════════════════════════════════════
+
+import pandas as pd
+
+CONTRACT = {
+    'required_columns': ['customer_id', 'age', 'income', 'country', 'default'],
+    'unique_key': 'customer_id',
+    'ranges': {'age': (18, 100), 'income': (0, 1_000_000)},
+    'allowed': {'country': ['IN', 'US', 'DE']},
+    'max_null_rate': {'age': 0.0, 'income': 0.20},
+    'min_rows': 5,
+}
+
+# === TODO 1: the gate ===
+# class DatasetGate:
+#     def __init__(self, contract):
+#         self.c = contract
+#
+#     def check(self, df):
+#         reasons = []
+#         # missing required columns      -&gt; f'missing_column:{col}'
+#         # fewer rows than min_rows      -&gt; 'too_few_rows'
+#         # duplicated unique_key values  -&gt; f'duplicate_keys:{key}'
+#         # non-null values outside range -&gt; f'out_of_range:{col}'
+#         # values not in allowed list    -&gt; f'not_allowed:{col}'
+#         # null rate above the limit     -&gt; f'null_rate:{col}'
+#         # Only check a column that actually exists (a missing column is reported once).
+#         reasons.sort()
+#         return ('FAIL' if reasons else 'PASS'), reasons
+
+# === TODO 2: three datasets to try it on ===
+good = pd.DataFrame({'customer_id': [1, 2, 3, 4, 5, 6], 'age': [34, 29, 41, 52, 38, 45],
+                     'income': [52000, 48000, None, 75000, 58000, 61000],
+                     'country': ['IN', 'IN', 'US', 'DE', 'IN', 'US'], 'default': [0, 1, 0, 1, 0, 0]})
+bad_schema = good.drop(columns=['income'])
+bad_values = pd.DataFrame({'customer_id': [1, 2, 2, 4, 5, 6], 'age': [34, 17, 41, 52, 38, 45],
+                           'income': [None, None, 61000, 75000, 58000, None],
+                           'country': ['IN', 'IN', 'XX', 'DE', 'IN', 'US'], 'default': [0, 1, 0, 1, 0, 0]})
+
+# === TODO 3: run the gate and print one line per dataset ===
+# gate = DatasetGate(CONTRACT)
+# for name, frame in [('good', good), ('bad_schema', bad_schema), ('bad_values', bad_values)]:
+#     status, reasons = gate.check(frame)
+#     print(f"{name}: {status} | {'; '.join(reasons)}")
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">✅</span>good: PASS | (the clean dataset passes with no reasons)</div>
+    <div class="check-item"><span class="check-icon">🧱</span>bad_schema: FAIL | missing_column:income (and nothing else)</div>
+    <div class="check-item"><span class="check-icon">🔁</span>bad_values: FAIL with duplicate_keys:customer_id</div>
+    <div class="check-item"><span class="check-icon">🌍</span>...plus not_allowed:country, null_rate:income and out_of_range:age, in sorted order</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 MLOps in Practice 1 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Which set of inputs must ALL be pinned to reproduce a model training run?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> The code and the random seed — everything else is deterministic</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The data and the hyperparameters — code and libraries rarely change results</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Code (commit), data (snapshot/fingerprint), config, environment (library versions) and randomness (seeds)</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Only the environment, since a Docker image contains everything else</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Two DataFrames contain exactly the same rows, but in a different order, and hashing their raw CSV gives different digests. What is the right fix?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Accept it — different digests just mean the data is different</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Canonicalize before hashing: sort columns and rows and use a fixed float format and null token, then hash the bytes</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Hash only the first row, since the rest follow from it</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Round every column to integers before hashing</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Which of these is a textbook example of TARGET leakage in a churn model?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Using the customer's tenure in months as a feature</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Splitting the data by time instead of at random</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Standardizing features using training-set statistics only</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> A feature like <code>cancel_reason_present</code>, which support only fills in AFTER the customer has churned</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the pandas expression that gives the fraction of missing values in EACH column of a DataFrame named <code>df</code> (one line, assign it to a variable named <code>null_rates</code>).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="null_rates = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">Why is a random train/test split usually wrong for time-ordered data such as transactions or daily user activity?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It leaves the training set too small to learn from</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Random splits are not allowed by scikit-learn</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It is fine as long as the seed is fixed</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Training rows can come from AFTER the test rows, so the model effectively sees the future and the offline metric is optimistic; use a time split (with an embargo if labels resolve late)</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">📈</div>
+    <div class="ncc-info">
+      <h3>MLOps in Practice 2: Experiment Tracking &amp; Model Registry</h3>
+      <p>Next up: build a mini experiment tracker, compare runs, and encode model promotion rules — the daily mechanics behind MLflow-style workflows.</p>
+    </div>
+    <a class="ncc-btn" href="mp02-experiment-tracking-model-registry.html">Start MLOps 2 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Reproducibility &amp; Data Validation — Interview Prep</h2>
+    <p>10 questions MLOps and ML-platform interviewers ask about reproducibility, data quality, leakage and skew. Click a question to reveal what a strong answer sounds like.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What makes an ML experiment reproducible, and what do people usually forget?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Five things have to be pinned: the code (a commit SHA, not a branch), the data (an immutable snapshot or a content fingerprint), the config (all hyperparameters including defaults), the environment (Python plus every library, including transitive dependencies) and the randomness (seeds). I record them together in a hashed run manifest stored next to the model. What people forget most often is the data — "the table" changed under them — and transitive dependencies that floated to a new version. A strong answer also admits the limits: GPU kernels and multi-threaded reductions can be nondeterministic unless you explicitly opt into deterministic algorithms, so I define reproducible as "within a stated tolerance" when bit-exactness is not achievable.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is calling random.seed(42) or np.random.seed(42) at the top of a script not enough?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Global seeding is fragile because all code shares one stream. If one stage draws one extra number, or stages run in a different order, everything downstream changes silently. It also does nothing for libraries with their own generators, for PYTHONHASHSEED, or for nondeterministic GPU/threaded operations. Better practice is local generators (np.random.default_rng(seed)), one independent child stream per stage derived from a root seed with SeedSequence.spawn, seeds passed explicitly into functions, and tests that assert properties (same seed gives the same split) rather than hard-coded random values.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you version a 200 GB training dataset?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Not in git. I would store the data in immutable, content-addressed storage (object storage with versioned partitions, or a table format with time travel such as Delta or Iceberg) and version a small pointer with the code: a manifest listing the files and their checksums, or a DVC .dvc file. Training records the dataset fingerprint in the run manifest, so any model can be traced to the exact data. Key properties are immutability (new data is a new version, never an in-place edit), cheap access to old versions, and a fingerprint computed on a canonical form so cosmetic changes such as row order do not create false differences.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Give three examples of data leakage and how you would detect each.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Split leakage: a random split of time-ordered data puts future rows in training, or the same customer appears on both sides — detect by checking that max(train time) is before min(test time) and that group ids do not overlap. Target leakage: a feature that is a consequence of the label (a cancellation reason filled in after churn) — detect with a suspiciously high single-feature score or correlation, and by asking of every feature whether it exists at prediction time. Preprocessing leakage: fitting a scaler, imputer or encoder on the full dataset before splitting — detect by reviewing the pipeline order and fitting every transform on training data only (a scikit-learn Pipeline inside cross-validation does this correctly).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is a random split wrong for time-dependent data, and what do you do instead?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because production predicts the future from the past. A random split lets the model train on rows after the test rows, so the offline metric measures interpolation, not forecasting, and is optimistic. Use a time-based split (train before a cutoff, test after), or walk-forward validation with several cutoffs for a more stable estimate. If labels take days to resolve — a fraud chargeback, a 30-day churn window — add an embargo gap so training rows whose labels overlap the test period are dropped. For per-entity data, also group the split so one customer never appears on both sides.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is train/serve skew, what causes it, and how do you catch it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It is when the features the model sees at serving time differ from those it trained on, so accuracy drops even though the model did not change. Typical causes: feature logic implemented twice (a SQL job for training, application code for serving), unit or timezone differences, different handling of missing values, and stale or late features. Prevention is one shared feature definition (a feature store or a shared library). Detection is logging the served features and comparing their distributions with the training statistics — mean and standard deviation shifts, null rates, category frequencies — and alerting when they diverge.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a data contract, and who owns it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A data contract is an explicit agreement between the team producing a dataset and the teams consuming it: the schema, the semantics (units, currency, time zone, what null means), quality guarantees, a freshness SLA, a named owner and a version. The producer owns it and enforces it in their own CI, so a breaking change (removing, renaming or re-typing a column) fails there, is versioned as a major change and is announced, instead of silently breaking downstream models. Consumers can then validate incoming data against the same contract, for example with a pydantic model or a pandera schema.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What checks would you put in front of a training pipeline, and what happens when one fails?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Schema (columns and dtypes), volume (row count within an expected band), freshness (latest timestamp is recent), completeness (null rates), domain and range checks, key uniqueness, referential integrity, and distribution checks against a reference window. Thresholds come from historical data rather than guesses. It runs as the first pipeline step and returns a structured report with reason codes. On failure the run is blocked or the bad partition is quarantined, the dataset owner is alerted with the specific failing check, and the previous good model stays in production. Softer checks can warn instead of block, as long as that policy is explicit.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Offline AUC is 0.99 but the model does badly in production. How do you debug it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Suspect leakage or skew before the algorithm. First the split: was it random on time-ordered or per-customer data? Then features: is any of them unavailable, or different, at prediction time — check for suspiciously perfect features. Then labels: do they resolve late, so the training labels used information from the future? Then skew: compare the training feature distributions with the logged serving features. Also check for sampling differences between the evaluation set and live traffic. The fastest confirmation is re-evaluating on a strictly time-later holdout that mimics production; if the score collapses, the original number was leakage.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When would you use pydantic, pandera or Great Expectations, versus hand-written pandas checks?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Pydantic validates one record at a time against a typed model, which suits API and message boundaries and small samples but is slow for millions of rows. pandera declares a DataFrame schema (dtypes, checks, uniqueness) and validates whole frames vectorized, which fits inside Python pipelines and tests. Great Expectations adds reusable expectation suites, checkpoints and human-readable reports, which suits shared platforms where non-authors need to see results. Hand-written pandas checks are fine for a handful of rules and for learning, but they tend to grow inconsistent, so past a few checks I would move to a declared schema or expectation suite.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# pandas, numpy and pydantic load automatically the first time you import them (a few seconds)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["same_data: true", "edit_detected: true", "hash_length: 64"],
+    hint:"Sort columns first (df[sorted(df.columns)]), then sort_values on ALL of those columns. hashlib.sha256(text.encode('utf-8')).hexdigest() is always 64 hex characters.",
+    solution:`import hashlib
+import pandas as pd
+
+def fingerprint(df):
+    cols = sorted(df.columns)
+    canon = df[cols].sort_values(cols, kind='mergesort')
+    csv = canon.to_csv(index=False, lineterminator='\\n', float_format='%.10g', na_rep='<NA>')
+    return hashlib.sha256(csv.encode('utf-8')).hexdigest()
+
+orders_a = pd.DataFrame({'order_id': [3, 1, 2, 4], 'amount': [19.99, 5.0, 12.5, 7.25],
+                         'status': ['paid', 'paid', 'refunded', 'paid']})
+orders_b = orders_a.iloc[[2, 0, 3, 1]].reset_index(drop=True)
+orders_c = orders_a.copy()
+orders_c.loc[2, 'amount'] = 12.51
+
+print('same_data:', fingerprint(orders_a) == fingerprint(orders_b))
+print('edit_detected:', fingerprint(orders_a) != fingerprint(orders_c))
+print('hash_length:', len(fingerprint(orders_a)))`
+  },
+  2:{
+    checks:["pinned: ['mlflow', 'numpy', 'pydantic', 'requests']", "ranged: ['pandas', 'torch']", "unpinned: ['scikit-learn', 'uvicorn']", "ok_for_prod: false"],
+    hint:"The regex's second group is the operator: '==' means pinned, None means unpinned, anything else means ranged. Remember to lower-case 'MLflow'.",
+    solution:`import re
+
+requirements = """
+# core
+numpy==1.26.4
+pandas>=2.0
+scikit-learn
+torch~=2.2.0
+requests==2.31.0 ; python_version >= "3.9"
+pydantic[email]==2.6.1
+-r base.txt
+uvicorn   # server
+MLflow==2.11.1
+"""
+
+pinned, ranged, unpinned = [], [], []
+for raw in requirements.splitlines():
+    line = raw.split('#')[0].split(';')[0].strip()
+    if not line or line.startswith('-'):
+        continue
+    m = re.match(r'^([A-Za-z0-9_.\\-]+)(?:\\[[^\\]]*\\])?\\s*(==|>=|<=|~=|!=|>|<)?', line)
+    name, op = m.group(1).lower(), m.group(2)
+    if op == '==':
+        pinned.append(name)
+    elif op is None:
+        unpinned.append(name)
+    else:
+        ranged.append(name)
+
+print('pinned:', sorted(pinned))
+print('ranged:', sorted(ranged))
+print('unpinned:', sorted(unpinned))
+print('ok_for_prod:', not ranged and not unpinned)`
+  },
+  3:{
+    checks:["failed: ['age_in_0_120', 'plan_allowed', 'user_id_unique']", "passed: 1"],
+    hint:"Each check is one vectorized expression: ~df['user_id'].duplicated().any(), df['age'].between(0, 120).all(), df['plan'].isin([...]).all(), df['email'].isna().mean() <= 0.2. sum() over the dict's boolean values counts the passes.",
+    solution:`import pandas as pd
+
+df = pd.DataFrame({
+    'user_id': [1, 2, 3, 3, 5, 6],
+    'age':     [25, 31, -4, 45, 130, 29],
+    'plan':    ['free', 'pro', 'pro', 'enterprise', 'gold', 'free'],
+    'email':   ['a@x.com', None, 'c@x.com', 'd@x.com', 'e@x.com', 'f@x.com'],
+})
+
+def run_checks(df):
+    return {
+        'user_id_unique': not df['user_id'].duplicated().any(),
+        'age_in_0_120': bool(df['age'].between(0, 120).all()),
+        'plan_allowed': bool(df['plan'].isin(['free', 'pro', 'enterprise']).all()),
+        'email_null_rate_ok': float(df['email'].isna().mean()) <= 0.2,
+    }
+
+results = run_checks(df)
+failed = sorted(name for name, ok in results.items() if not ok)
+print('failed:', failed)
+print('passed:', sum(results.values()))`
+  },
+  4:{
+    checks:["overlap_ids: [5, 6]", "leaky_features: ['refund_issued']"],
+    hint:"DataFrame.corrwith(series) gives one correlation per column; .abs() then boolean-filter with corr[corr >= 0.95].index and wrap in sorted().",
+    solution:`import pandas as pd
+
+train = pd.DataFrame({
+    'user_id':       [1, 2, 3, 4, 5, 6],
+    'sessions':      [5, 3, 4, 6, 2, 3],
+    'refund_issued': [0, 1, 0, 1, 0, 1],
+    'churned':       [0, 1, 0, 1, 0, 1],
+})
+test = pd.DataFrame({
+    'user_id':       [5, 6, 7, 8],
+    'sessions':      [2, 3, 4, 6],
+    'refund_issued': [0, 1, 0, 1],
+    'churned':       [0, 1, 0, 1],
+})
+
+overlap = sorted(set(train['user_id']) & set(test['user_id']))
+features = [c for c in train.columns if c not in ('user_id', 'churned')]
+corr = train[features].corrwith(train['churned']).abs()
+leaky = sorted(corr[corr >= 0.95].index)
+
+print('overlap_ids:', overlap)
+print('leaky_features:', leaky)`
+  },
+  5:{
+    checks:["train: 4", "embargoed: 1", "test: 3", "leak_free: true"],
+    hint:"Three boolean masks on df['ts']: before cutoff - embargo, between cutoff - embargo and cutoff, and >= cutoff. Wrap the final comparison in bool() so it prints as True/False.",
+    solution:`import pandas as pd
+
+df = pd.DataFrame({'ts': ['2024-01-05', '2024-01-20', '2024-02-10', '2024-02-20',
+                          '2024-02-25', '2024-03-02', '2024-03-15', '2024-04-01'],
+                   'y':  [0, 1, 0, 0, 1, 1, 0, 1]})
+df['ts'] = pd.to_datetime(df['ts'])
+
+cutoff = pd.Timestamp('2024-03-01')
+embargo = pd.Timedelta(days=7)
+
+train = df[df['ts'] < cutoff - embargo]
+embargoed = df[(df['ts'] >= cutoff - embargo) & (df['ts'] < cutoff)]
+test = df[df['ts'] >= cutoff]
+
+print('train:', len(train))
+print('embargoed:', len(embargoed))
+print('test:', len(test))
+print('leak_free:', bool(train['ts'].max() + embargo < test['ts'].min()))`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+
+  const checks=["good: pass |", "bad_schema: fail | missing_column:income", "bad_values: fail | duplicate_keys:customer_id; not_allowed:country; null_rate:income; out_of_range:age"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! The gate blocks exactly what it should.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+const CORRECT={"1": "C", "2": "B", "3": "D", "5": "D"};
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('null_rates=')&&(val.includes('.isna().mean()')||val.includes('.isnull().mean()'));
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! null_rates = df.isna().mean()"
+    :"❌ Not quite. You need something like: null_rates = df.isna().mean()";
+};
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Five pins for reproducibility, canonical fingerprints, leakage vs skew, and why time data needs a time split — the vocabulary that separates "I trained a model" from "I ran a training pipeline." Check the Interview Prep tab, then move on to MLOps 2.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+</body>
+</html>

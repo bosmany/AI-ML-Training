@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DevOps 5: DevOps Python Mock Interview</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS chapter — the FINAL chapter of the
+  5-chapter "Python for DevOps: Day-to-Day" track — NOT part of the 41-chapter core curriculum,
+  same tier as the DSA and Systems Fundamentals bonus modules. It is a mock interview: the
+  coding + reasoning patterns DevOps/SRE/platform interviews use (rate limiting with an injected
+  clock, TTL/LRU caches, config deep-merge, flapping detection, top-N with heapq, dependency
+  ordering with cycle detection, Python gotchas) and a timed 3-problem capstone. Every code block,
+  exercise and capstone is real, runnable, standard-library Python. Like ds04 there is no XP and
+  no localStorage tracking — exercises/capstone/quiz run and grade live but nothing persists.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:460px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.checklist h4{font-size:12px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 4px}
+.checklist h4:first-of-type{margin-top:0}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+.check-item.item-pass{color:var(--green)}
+.check-item.item-pass .check-icon::before{content:'✅'}
+.check-item.item-fail .check-icon::before{content:'⬜'}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.course-complete-card{background:linear-gradient(135deg,rgba(124,92,252,.18),rgba(0,217,166,.1));border:1px solid rgba(124,92,252,.35);border-radius:14px;padding:32px 36px;margin-top:32px;text-align:center}
+.ccc-icon{font-size:48px;margin-bottom:12px}
+.course-complete-card h3{font-size:24px;font-weight:800;margin-bottom:10px}
+.course-complete-card h3 span{color:var(--violet)}
+.course-complete-card p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px;margin:0 auto 18px}
+.ccc-stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.ccc-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12.5px;color:var(--t2)}
+.ccc-stat strong{display:block;font-size:18px;color:var(--violet);font-weight:800}
+.ccc-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 26px;font-size:14px;font-weight:700;text-decoration:none;transition:background .12s}
+.ccc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+.iq-card.open .iq-a{max-height:1200px}
+.mock-timer{display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 18px;margin:16px 0}
+#mock-clock{font-family:var(--mono);font-size:26px;font-weight:800;color:var(--violet);min-width:82px}
+#mock-clock.over{color:var(--red)}
+#mock-status{font-size:12.5px;color:var(--t2);flex:1;min-width:180px}
+.mock-btn{background:var(--violet);color:#fff;border-radius:8px;padding:7px 16px;font-size:12.5px;font-weight:700}
+.mock-btn.alt{background:var(--card2);color:var(--text);border:1px solid var(--border)}
+.mock-btn:hover{background:var(--violet-light)}
+.ref-solutions{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 20px;margin-bottom:20px}
+.ref-solutions summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--violet)}
+.ref-solutions .code-block{margin-top:14px}
+</style>
+</head>
+<body>
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DevOps 5: Python Mock Interview</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for DevOps · 5 of 5</div>
+  </a>
+  <a class="sb-back" href="do04-cloud-and-container-ops.html">← DevOps 4: Cloud &amp; Container Ops</a>
+  <div class="sb-section">DevOps 5 · Python Mock Interview</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🎯</span><span class="sb-step">Mock Interview (3 problems)</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">DevOps Track Complete After This</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='../mlops-practice/mp01-reproducibility-data-validation.html'"><span class="sb-icon">🚀</span><span class="sb-step">Next track: Python for MLOps</span></div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='../index.html'"><span class="sb-icon">🏠</span><span class="sb-step">Back to Course Home</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DevOps 5 of 5</div>
+    <div class="tb-title">Python Mock Interview</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🎯 Mock Interview</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>DevOps Bonus 5:<br/><span>The Python Mock Interview</span></h1>
+    <p>DevOps, SRE and platform interviews rarely ask you to invert a binary tree. They ask you to rate-limit an API, cache with expiry, merge layered config, spot a flapping service, find the slowest endpoints, or work out what order to deploy things in — and then to explain your choices out loud. This chapter builds each of those from scratch in plain Python, shows how to narrate it, covers the Python gotchas interviewers love, and ends with a timed three-problem mock.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🎯 Timed Mock Interview</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">5.1 — How to Approach a Python Interview Problem</div>
+  <p class="lesson-p">Most failed interviews are not failed on algorithms — they are failed on <strong>process</strong>. Interviewers are scoring whether you can be trusted with an ambiguous production problem, and the process below is the same one you use on the job when someone hands you a vague ticket. Use it on every problem in this chapter.</p>
+  <table class="lesson-table">
+    <tr><th>Step</th><th>What you do</th><th>What it buys you</th></tr>
+    <tr><td class="highlight">1. Clarify</td><td>Restate the problem. Ask about input size, duplicates, empty input, ordering, units, what to return on bad input.</td><td>Catches misunderstandings while they are cheap</td></tr>
+    <tr><td class="highlight">2. Example</td><td>Work one tiny example by hand, out loud.</td><td>Proves you understand the expected output</td></tr>
+    <tr><td class="highlight">3. Brute force</td><td>State the obvious approach and its complexity — before improving it.</td><td>A safety net, and it shows you know the baseline</td></tr>
+    <tr><td class="highlight">4. Optimize</td><td>Name the bottleneck, then the data structure that removes it.</td><td>The part interviewers actually grade</td></tr>
+    <tr><td class="highlight">5. Code</td><td>Small named functions, clear variables, no clever one-liners.</td><td>Readable code is reviewable code</td></tr>
+    <tr><td class="highlight">6. Test</td><td>Empty input, one element, duplicates, the boundary case.</td><td>Shows the production instinct</td></tr>
+    <tr><td class="highlight">7. Close</td><td>State time and space complexity and what you would do with more time.</td><td>Signals you have done this before</td></tr>
+  </table>
+  <p class="lesson-p">Here is the whole loop on a deliberately small DevOps problem: <em>"which of the services I plan to deploy are not currently healthy?"</em></p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Brute force, then a set, then edge cases</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scheduled = [<span class="st">"api"</span>, <span class="st">"auth"</span>, <span class="st">"billing"</span>, <span class="st">"cache"</span>, <span class="st">"search"</span>, <span class="st">"web"</span>]
+healthy   = [<span class="st">"web"</span>, <span class="st">"auth"</span>, <span class="st">"db"</span>, <span class="st">"cache"</span>, <span class="st">"queue"</span>]
+
+<span class="cm"># Step 1 - say the brute force out loud, then improve it</span>
+<span class="kw">def</span> <span class="fn">unhealthy_bruteforce</span>(scheduled, healthy):
+    out = []
+    <span class="kw">for</span> s <span class="kw">in</span> scheduled:              <span class="cm"># n iterations</span>
+        found = <span class="bi">False</span>
+        <span class="kw">for</span> h <span class="kw">in</span> healthy:            <span class="cm"># m iterations each -&gt; O(n * m)</span>
+            <span class="kw">if</span> s == h:
+                found = <span class="bi">True</span>
+                <span class="kw">break</span>
+        <span class="kw">if</span> <span class="kw">not</span> found:
+            out.append(s)
+    <span class="kw">return</span> out
+
+<span class="cm"># Step 2 - a set gives O(1) membership -&gt; O(n + m) overall</span>
+<span class="kw">def</span> <span class="fn">unhealthy</span>(scheduled, healthy):
+    healthy_set = <span class="bi">set</span>(healthy)
+    <span class="kw">return</span> [s <span class="kw">for</span> s <span class="kw">in</span> scheduled <span class="kw">if</span> s <span class="kw">not</span> <span class="kw">in</span> healthy_set]
+
+<span class="bi">print</span>(<span class="st">"brute force :"</span>, unhealthy_bruteforce(scheduled, healthy))
+<span class="bi">print</span>(<span class="st">"with a set  :"</span>, unhealthy(scheduled, healthy))
+
+<span class="cm"># Step 3 - prove it on tiny edge cases before claiming you're done</span>
+<span class="bi">print</span>(<span class="st">"empty scheduled:"</span>, unhealthy([], healthy))
+<span class="bi">print</span>(<span class="st">"empty healthy  :"</span>, unhealthy(scheduled, []))
+<span class="bi">print</span>(<span class="st">"duplicates     :"</span>, unhealthy([<span class="st">"api"</span>, <span class="st">"api"</span>], healthy))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🗣️</div><div class="ib-body"><strong>Say out loud:</strong> "The brute force checks every scheduled service against every healthy one, so O(n times m). The repeated work is the membership test, so I will put the healthy list in a set to make that O(1) — O(n + m) overall. Let me check empty input and duplicates."  Notice you named the bottleneck before you named the fix.</div></div>
+
+  <div class="lesson-h2">5.2 — Rate Limiting: the Token Bucket (and Why Clocks Get Injected)</div>
+  <p class="lesson-p">A token bucket holds up to <code>capacity</code> tokens and refills at a steady rate. Each request spends a token; if the bucket is empty the request is denied. That gives you a sustained rate (the refill rate) <strong>and</strong> a controlled burst (the capacity) — which is what API gateways, nginx <code>limit_req</code> and cloud APIs actually implement. The clever part is that you never need a background timer: you refill <em>lazily</em>, computing how many tokens accrued since the last call.</p>
+  <p class="lesson-p">Notice the class takes a <code>clock</code> argument instead of calling <code>time.time()</code> directly. That is the single most useful habit for time-dependent code: in a test (or an interview) you hand it a fake clock and control time exactly, with no <code>sleep()</code> and no flaky tests.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">TokenBucket with an injected clock</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">FakeClock</span>:
+    <span class="st">"""A clock you control - the trick that makes time-based code testable."""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, start=<span class="nm">0.0</span>):
+        <span class="bi">self</span>.t = start
+    <span class="kw">def</span> <span class="fn">__call__</span>(<span class="bi">self</span>):
+        <span class="kw">return</span> <span class="bi">self</span>.t
+    <span class="kw">def</span> <span class="fn">advance</span>(<span class="bi">self</span>, seconds):
+        <span class="bi">self</span>.t += seconds
+
+<span class="kw">class</span> <span class="cls">TokenBucket</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, capacity, refill_per_sec, clock):
+        <span class="bi">self</span>.capacity = capacity
+        <span class="bi">self</span>.refill_per_sec = refill_per_sec
+        <span class="bi">self</span>.clock = clock
+        <span class="bi">self</span>.tokens = <span class="bi">float</span>(capacity)      <span class="cm"># start full: allows an initial burst</span>
+        <span class="bi">self</span>.last = clock()
+
+    <span class="kw">def</span> <span class="fn">allow</span>(<span class="bi">self</span>, cost=<span class="nm">1</span>):
+        now = <span class="bi">self</span>.clock()
+        elapsed = now - <span class="bi">self</span>.last
+        <span class="bi">self</span>.last = now
+        <span class="cm"># refill lazily on each call - no background thread needed</span>
+        <span class="bi">self</span>.tokens = <span class="bi">min</span>(<span class="bi">self</span>.capacity, <span class="bi">self</span>.tokens + elapsed * <span class="bi">self</span>.refill_per_sec)
+        <span class="kw">if</span> <span class="bi">self</span>.tokens &gt;= cost:
+            <span class="bi">self</span>.tokens -= cost
+            <span class="kw">return</span> <span class="bi">True</span>
+        <span class="kw">return</span> <span class="bi">False</span>
+
+clock = FakeClock()
+bucket = TokenBucket(capacity=<span class="nm">3</span>, refill_per_sec=<span class="nm">1</span>, clock=clock)
+
+<span class="bi">print</span>(<span class="st">"burst of 5 at t=0:"</span>, [bucket.allow() <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>)])
+clock.advance(<span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">"after 2 seconds  :"</span>, [bucket.allow() <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>)])
+clock.advance(<span class="nm">0.5</span>)
+<span class="bi">print</span>(<span class="st">"0.5 seconds later:"</span>, bucket.allow(), <span class="st">"(only half a token has refilled)"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Floats and refill:</strong> tokens are floats because half a second at 1 token/sec is half a token. Always cap with <code>min(capacity, ...)</code> — otherwise an idle client accumulates unlimited tokens and can burst without bound after a long pause.</div></div>
+  <p class="lesson-p">Why not just count requests per minute? Because of the <strong>fixed-window boundary problem</strong>: a client can spend its whole allowance at the end of one window and again at the start of the next.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Fixed window: the boundary burst</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">fixed_window_allows</span>(times, limit, window):
+    counts, results = {}, []
+    <span class="kw">for</span> t <span class="kw">in</span> times:
+        w = <span class="bi">int</span>(t // window)                 <span class="cm"># which fixed window this request lands in</span>
+        counts[w] = counts.get(w, <span class="nm">0</span>) + <span class="nm">1</span>
+        results.append(counts[w] &lt;= limit)
+    <span class="kw">return</span> results
+
+<span class="cm"># 5 requests in the last 0.1s of window 0, 5 more in the first 0.1s of window 1</span>
+times = [<span class="nm">9.9</span>] * <span class="nm">5</span> + [<span class="nm">10.0</span>] * <span class="nm">5</span>
+res = fixed_window_allows(times, limit=<span class="nm">5</span>, window=<span class="nm">10</span>)
+<span class="bi">print</span>(<span class="st">"allowed:"</span>, <span class="bi">sum</span>(res), <span class="st">"of"</span>, <span class="bi">len</span>(times), <span class="st">"requests inside 0.1 seconds"</span>)
+<span class="bi">print</span>(<span class="st">"a limit of 5 per 10s just let through a burst of 10"</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The comparison interviewers ask for:</strong> fixed window is simplest but allows 2x bursts at the boundary; sliding window (log or counter) is accurate but costs memory; <em>token bucket</em> allows deliberate bursts up to capacity; <em>leaky bucket</em> smooths output to a constant rate (it queues, it does not burst). In a distributed system the state lives in something shared like Redis, updated atomically.</div></div>
+
+  <div class="lesson-h2">5.3 — A TTL + LRU Cache with <code>OrderedDict</code></div>
+  <p class="lesson-p">Caches show up everywhere in operations tooling: DNS lookups, IAM token exchanges, API results you do not want to re-fetch. Two rules define this one: an entry <strong>expires</strong> after a time-to-live, and when the cache is full the <strong>least recently used</strong> entry is evicted. <code>collections.OrderedDict</code> gives both cheaply — <code>move_to_end()</code> marks a key as most recently used and <code>popitem(last=False)</code> removes the oldest, each in O(1).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">TTLCache: expiry plus LRU eviction</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> OrderedDict
+
+<span class="kw">class</span> <span class="cls">FakeClock</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, start=<span class="nm">0.0</span>):
+        <span class="bi">self</span>.t = start
+    <span class="kw">def</span> <span class="fn">__call__</span>(<span class="bi">self</span>):
+        <span class="kw">return</span> <span class="bi">self</span>.t
+    <span class="kw">def</span> <span class="fn">advance</span>(<span class="bi">self</span>, seconds):
+        <span class="bi">self</span>.t += seconds
+
+<span class="kw">class</span> <span class="cls">TTLCache</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="bi">self</span>, capacity, ttl, clock):
+        <span class="bi">self</span>.capacity, <span class="bi">self</span>.ttl, <span class="bi">self</span>.clock = capacity, ttl, clock
+        <span class="bi">self</span>._data = OrderedDict()           <span class="cm"># key -&gt; (value, expires_at); order = LRU -&gt; MRU</span>
+
+    <span class="kw">def</span> <span class="fn">_purge</span>(<span class="bi">self</span>):
+        now = <span class="bi">self</span>.clock()
+        <span class="kw">for</span> key <span class="kw">in</span> [k <span class="kw">for</span> k, (_, exp) <span class="kw">in</span> <span class="bi">self</span>._data.items() <span class="kw">if</span> exp &lt;= now]:
+            <span class="kw">del</span> <span class="bi">self</span>._data[key]
+
+    <span class="kw">def</span> <span class="fn">get</span>(<span class="bi">self</span>, key):
+        <span class="bi">self</span>._purge()
+        <span class="kw">if</span> key <span class="kw">not</span> <span class="kw">in</span> <span class="bi">self</span>._data:
+            <span class="kw">return</span> <span class="bi">None</span>
+        <span class="bi">self</span>._data.move_to_end(key)          <span class="cm"># touching a key makes it most recently used</span>
+        <span class="kw">return</span> <span class="bi">self</span>._data[key][<span class="nm">0</span>]
+
+    <span class="kw">def</span> <span class="fn">put</span>(<span class="bi">self</span>, key, value):
+        <span class="bi">self</span>._purge()
+        <span class="bi">self</span>._data[key] = (value, <span class="bi">self</span>.clock() + <span class="bi">self</span>.ttl)
+        <span class="bi">self</span>._data.move_to_end(key)
+        <span class="kw">while</span> <span class="bi">len</span>(<span class="bi">self</span>._data) &gt; <span class="bi">self</span>.capacity:
+            <span class="bi">self</span>._data.popitem(last=<span class="bi">False</span>)   <span class="cm"># evict the least recently used</span>
+
+    <span class="kw">def</span> <span class="fn">keys</span>(<span class="bi">self</span>):
+        <span class="bi">self</span>._purge()
+        <span class="kw">return</span> <span class="bi">list</span>(<span class="bi">self</span>._data)
+
+clock = FakeClock()
+cache = TTLCache(capacity=<span class="nm">2</span>, ttl=<span class="nm">10</span>, clock=clock)
+cache.put(<span class="st">"a"</span>, <span class="nm">1</span>)
+cache.put(<span class="st">"b"</span>, <span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">"get a:"</span>, cache.get(<span class="st">"a"</span>))              <span class="cm"># a is now the most recently used</span>
+cache.put(<span class="st">"c"</span>, <span class="nm">3</span>)                            <span class="cm"># over capacity -&gt; evicts b</span>
+<span class="bi">print</span>(<span class="st">"keys after adding c:"</span>, cache.keys())
+clock.advance(<span class="nm">11</span>)
+<span class="bi">print</span>(<span class="st">"get a after 11s:"</span>, cache.get(<span class="st">"a"</span>))
+<span class="bi">print</span>(<span class="st">"keys after expiry:"</span>, cache.keys())</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Trade-off to mention:</strong> this version purges expired keys on every call, which is O(n) per operation — chosen for clarity. In production you would expire lazily inside <code>get()</code> (O(1)) and optionally keep a heap keyed by expiry time for a background sweep. Being able to say <em>why</em> you kept it simple, and what you would change at scale, is exactly what the interviewer is fishing for. Also note that reading a key makes it "recently used" but does <strong>not</strong> extend its TTL — those are different policies, so state which one you chose.</div></div>
+
+  <div class="lesson-h2">5.4 — Deep-Merging Layered Config</div>
+  <p class="lesson-p">Real config is layered: built-in defaults, then an environment file, then a per-service override, then maybe a CLI flag. Helm values, Kubernetes overlays, Ansible variables and most 12-factor apps all work this way. The naive implementation — <code>{**defaults, **override}</code> — is a classic bug, because it replaces a nested dict wholesale and silently drops sibling keys.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Shallow merge loses keys; deep merge does not</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> copy, json
+
+<span class="kw">def</span> <span class="fn">deep_merge</span>(base, override):
+    result = copy.deepcopy(base)                       <span class="cm"># never mutate the caller's data</span>
+    <span class="kw">for</span> key, value <span class="kw">in</span> override.items():
+        <span class="kw">if</span> value <span class="kw">is</span> <span class="bi">None</span>:
+            result.pop(key, <span class="bi">None</span>)                      <span class="cm"># explicit null deletes the key</span>
+        <span class="kw">elif</span> <span class="bi">isinstance</span>(value, <span class="bi">dict</span>) <span class="kw">and</span> <span class="bi">isinstance</span>(result.get(key), <span class="bi">dict</span>):
+            result[key] = deep_merge(result[key], value)   <span class="cm"># recurse into nested dicts</span>
+        <span class="kw">else</span>:
+            result[key] = copy.deepcopy(value)         <span class="cm"># scalars and lists are replaced</span>
+    <span class="kw">return</span> result
+
+defaults = {<span class="st">"replicas"</span>: <span class="nm">2</span>, <span class="st">"resources"</span>: {<span class="st">"cpu"</span>: <span class="st">"250m"</span>, <span class="st">"memory"</span>: <span class="st">"256Mi"</span>},
+            <span class="st">"labels"</span>: {<span class="st">"team"</span>: <span class="st">"platform"</span>}, <span class="st">"debug"</span>: <span class="bi">True</span>}
+prod = {<span class="st">"replicas"</span>: <span class="nm">6</span>, <span class="st">"resources"</span>: {<span class="st">"memory"</span>: <span class="st">"1Gi"</span>}, <span class="st">"debug"</span>: <span class="bi">None</span>}
+
+shallow = {**defaults, **prod}
+<span class="bi">print</span>(<span class="st">"shallow merge resources:"</span>, shallow[<span class="st">"resources"</span>], <span class="st">"&lt;- cpu was silently lost"</span>)
+
+merged = deep_merge(defaults, prod)
+<span class="bi">print</span>(<span class="st">"deep merge:"</span>, json.dumps(merged, sort_keys=<span class="bi">True</span>))
+<span class="bi">print</span>(<span class="st">"defaults untouched:"</span>, defaults[<span class="st">"replicas"</span>] == <span class="nm">2</span> <span class="kw">and</span> <span class="st">"debug"</span> <span class="kw">in</span> defaults)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>State your merge rules, because there is no single right answer:</strong> here nested dicts merge recursively, scalars and lists are <em>replaced</em> (not concatenated), and an explicit <code>None</code> deletes the key. Kubernetes strategic-merge-patch and Helm each make different choices about lists — interviewers like candidates who notice that. And always <code>deepcopy</code>: returning a structure that shares nested objects with the input lets a later mutation corrupt your defaults.</div></div>
+
+  <div class="lesson-h2">5.5 — Detecting a Flapping Service from an Event Stream</div>
+  <p class="lesson-p">A <em>flapping</em> service bounces between up and down. It is worse than a clean outage because alerts fire and resolve repeatedly and people stop trusting them. Detection is a sliding-window problem: record the timestamps of genuine <em>state changes</em>, then ask whether any <code>min_changes</code> of them fit inside one <code>window</code>. Two details trip people up: the first time you see a service is not a change, and a repeated identical status is not a change either.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">find_flapping: state changes inside a sliding window</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+
+events = [  <span class="cm"># (seconds, service, status), already ordered by time</span>
+    (<span class="nm">0</span>, <span class="st">"api"</span>, <span class="st">"up"</span>), (<span class="nm">0</span>, <span class="st">"db"</span>, <span class="st">"up"</span>), (<span class="nm">0</span>, <span class="st">"cache"</span>, <span class="st">"up"</span>),
+    (<span class="nm">60</span>, <span class="st">"api"</span>, <span class="st">"down"</span>), (<span class="nm">90</span>, <span class="st">"api"</span>, <span class="st">"up"</span>), (<span class="nm">100</span>, <span class="st">"cache"</span>, <span class="st">"down"</span>),
+    (<span class="nm">120</span>, <span class="st">"api"</span>, <span class="st">"down"</span>), (<span class="nm">150</span>, <span class="st">"api"</span>, <span class="st">"up"</span>),
+    (<span class="nm">200</span>, <span class="st">"db"</span>, <span class="st">"down"</span>), (<span class="nm">500</span>, <span class="st">"db"</span>, <span class="st">"up"</span>),
+    (<span class="nm">700</span>, <span class="st">"cache"</span>, <span class="st">"up"</span>), (<span class="nm">1500</span>, <span class="st">"cache"</span>, <span class="st">"down"</span>),
+]
+
+<span class="kw">def</span> <span class="fn">find_flapping</span>(events, min_changes=<span class="nm">3</span>, window=<span class="nm">300</span>):
+    last_status, changes = {}, defaultdict(<span class="bi">list</span>)
+    <span class="kw">for</span> ts, service, status <span class="kw">in</span> events:
+        <span class="kw">if</span> service <span class="kw">in</span> last_status <span class="kw">and</span> last_status[service] != status:
+            changes[service].append(ts)              <span class="cm"># a real state change</span>
+        last_status[service] = status                <span class="cm"># first sighting is not a change</span>
+    flapping = []
+    <span class="kw">for</span> service, times <span class="kw">in</span> changes.items():
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(times) - min_changes + <span class="nm">1</span>):
+            <span class="kw">if</span> times[i + min_changes - <span class="nm">1</span>] - times[i] &lt;= window:
+                flapping.append(service)             <span class="cm"># min_changes changes fit in one window</span>
+                <span class="kw">break</span>
+    <span class="kw">return</span> <span class="bi">sorted</span>(flapping), {s: <span class="bi">len</span>(t) <span class="kw">for</span> s, t <span class="kw">in</span> <span class="bi">sorted</span>(changes.items())}
+
+flapping, counts = find_flapping(events)
+<span class="bi">print</span>(<span class="st">"flapping:"</span>, flapping)
+<span class="bi">print</span>(<span class="st">"change counts:"</span>, counts)
+<span class="bi">print</span>(<span class="st">"cache changed 3 times too, but spread over 1400s -&gt; not flapping"</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🗣️</div><div class="ib-body"><strong>Say out loud:</strong> "I only care about transitions, so I remember the last status per service. For each service I keep a list of change times; if the k-th change minus the first of any k consecutive changes is within the window, it is flapping. That is linear in the number of events. For a live stream I would keep a <code>deque</code> per service and drop timestamps older than the window."</div></div>
+
+  <div class="lesson-h2">5.6 — Top-N Slowest Endpoints with <code>heapq</code></div>
+  <p class="lesson-p">"Find the N slowest endpoints" is a daily log-analysis task. Sorting everything is O(n log n); <code>heapq.nlargest(k, ...)</code> does it in O(n log k), which matters when k is small and n is millions. When the data is a <em>stream</em> you cannot hold in memory, keep a <strong>min-heap of size k</strong>: the smallest of your current top k sits at <code>heap[0]</code>, so a new value only matters if it beats that one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">nlargest, and a bounded heap for streams</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> heapq
+<span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+
+requests = [(<span class="st">"/api/search"</span>, <span class="nm">120</span>), (<span class="st">"/api/login"</span>, <span class="nm">45</span>), (<span class="st">"/api/search"</span>, <span class="nm">480</span>),
+            (<span class="st">"/api/report"</span>, <span class="nm">900</span>), (<span class="st">"/api/login"</span>, <span class="nm">55</span>), (<span class="st">"/api/report"</span>, <span class="nm">1100</span>),
+            (<span class="st">"/health"</span>, <span class="nm">3</span>), (<span class="st">"/api/search"</span>, <span class="nm">300</span>), (<span class="st">"/api/upload"</span>, <span class="nm">700</span>),
+            (<span class="st">"/health"</span>, <span class="nm">2</span>), (<span class="st">"/api/upload"</span>, <span class="nm">650</span>), (<span class="st">"/api/report"</span>, <span class="nm">1000</span>)]
+
+totals = defaultdict(<span class="kw">lambda</span>: [<span class="nm">0</span>, <span class="nm">0</span>])                 <span class="cm"># endpoint -&gt; [sum_ms, count]</span>
+<span class="kw">for</span> endpoint, ms <span class="kw">in</span> requests:
+    totals[endpoint][<span class="nm">0</span>] += ms
+    totals[endpoint][<span class="nm">1</span>] += <span class="nm">1</span>
+averages = {ep: s / n <span class="kw">for</span> ep, (s, n) <span class="kw">in</span> totals.items()}
+
+top3 = heapq.nlargest(<span class="nm">3</span>, averages.items(), key=<span class="kw">lambda</span> kv: kv[<span class="nm">1</span>])
+<span class="kw">for</span> ep, avg <span class="kw">in</span> top3:
+    <span class="bi">print</span>(<span class="st">f"{ep:&lt;12} avg {avg:7.1f} ms"</span>)
+
+<span class="cm"># When the data is a stream you can't hold in memory: keep a min-heap of size k</span>
+<span class="kw">def</span> <span class="fn">top_k_streaming</span>(stream, k):
+    heap = []                                        <span class="cm"># heap[0] is the smallest of the current top k</span>
+    <span class="kw">for</span> name, value <span class="kw">in</span> stream:
+        <span class="kw">if</span> <span class="bi">len</span>(heap) &lt; k:
+            heapq.heappush(heap, (value, name))
+        <span class="kw">elif</span> value &gt; heap[<span class="nm">0</span>][<span class="nm">0</span>]:
+            heapq.heapreplace(heap, (value, name))   <span class="cm"># pop smallest, push new, one O(log k) step</span>
+    <span class="kw">return</span> <span class="bi">sorted</span>(heap, reverse=<span class="bi">True</span>)
+
+<span class="bi">print</span>(<span class="st">"streaming top 3:"</span>, top_k_streaming(averages.items(), <span class="nm">3</span>))</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Details worth saying:</strong> average latency hides tail pain — in real life you would rank by p95 or p99, and interviewers may ask you to. <code>heapq</code> is a <em>min</em>-heap, so a top-k uses the smallest element as the gatekeeper. Ties are broken by comparing the next tuple element, so put a stable key (like the endpoint name) second to keep output deterministic.</div></div>
+
+  <div class="lesson-h2">5.7 — Deployment Order: Topological Sort and Cycle Detection</div>
+  <p class="lesson-p">Services depend on each other: the app needs the database, the database needs the network, and so on. Deploying in the wrong order fails; a dependency <em>cycle</em> makes it impossible. This is a topological sort. <strong>Kahn's algorithm</strong> tracks each node's in-degree (how many unmet dependencies it has), repeatedly deploys nodes with zero, and decrements their dependents. If you finish without visiting every node, the leftovers are blocked by a cycle. Using a heap for the ready set gives a deterministic, alphabetical tie-break — useful for reproducible plans.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Kahn's algorithm with cycle detection</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> heapq
+<span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+
+<span class="kw">def</span> <span class="fn">deploy_order</span>(deps):
+    <span class="st">"""deps maps service -&gt; list of services that must be deployed first."""</span>
+    indegree = {s: <span class="nm">0</span> <span class="kw">for</span> s <span class="kw">in</span> deps}
+    dependents = defaultdict(<span class="bi">list</span>)
+    <span class="kw">for</span> service, needs <span class="kw">in</span> deps.items():
+        <span class="kw">for</span> need <span class="kw">in</span> needs:
+            indegree.setdefault(need, <span class="nm">0</span>)             <span class="cm"># a leaf that only appears as a dependency</span>
+            indegree[service] += <span class="nm">1</span>
+            dependents[need].append(service)
+    ready = [s <span class="kw">for</span> s, d <span class="kw">in</span> indegree.items() <span class="kw">if</span> d == <span class="nm">0</span>]
+    heapq.heapify(ready)                             <span class="cm"># heap =&gt; deterministic, alphabetical tie-break</span>
+    order = []
+    <span class="kw">while</span> ready:
+        service = heapq.heappop(ready)
+        order.append(service)
+        <span class="kw">for</span> nxt <span class="kw">in</span> dependents[service]:
+            indegree[nxt] -= <span class="nm">1</span>
+            <span class="kw">if</span> indegree[nxt] == <span class="nm">0</span>:
+                heapq.heappush(ready, nxt)
+    <span class="kw">if</span> <span class="bi">len</span>(order) != <span class="bi">len</span>(indegree):
+        stuck = <span class="bi">sorted</span>(s <span class="kw">for</span> s, d <span class="kw">in</span> indegree.items() <span class="kw">if</span> d &gt; <span class="nm">0</span>)
+        <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">f"cycle detected among: {stuck}"</span>)
+    <span class="kw">return</span> order
+
+deps = {<span class="st">"web"</span>: [<span class="st">"api"</span>, <span class="st">"auth"</span>], <span class="st">"api"</span>: [<span class="st">"db"</span>, <span class="st">"cache"</span>], <span class="st">"auth"</span>: [<span class="st">"db"</span>],
+        <span class="st">"db"</span>: [], <span class="st">"cache"</span>: [], <span class="st">"worker"</span>: [<span class="st">"queue"</span>, <span class="st">"db"</span>]}
+<span class="bi">print</span>(<span class="st">"deploy order:"</span>, deploy_order(deps))
+
+<span class="kw">try</span>:
+    deploy_order({<span class="st">"a"</span>: [<span class="st">"b"</span>], <span class="st">"b"</span>: [<span class="st">"c"</span>], <span class="st">"c"</span>: [<span class="st">"a"</span>], <span class="st">"d"</span>: []})
+<span class="kw">except</span> <span class="bi">ValueError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">"error:"</span>, e)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Precision on the cycle report:</strong> the "stuck" set contains the cycle <em>and everything downstream of it</em>, because those services can never become ready either. If you must print the actual cycle, run a DFS with a "currently on the stack" marker on the stuck nodes. Complexity is O(V + E): each vertex and each edge is processed once.</div></div>
+
+  <div class="lesson-h2">5.8 — Python Gotchas Interviewers Love</div>
+  <p class="lesson-p">Interviewers use small gotchas as a fast proxy for "has this person debugged real Python?". Every one of these has caused a production incident somewhere.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Mutable default arguments</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add_tag_bad</span>(tag, tags=[]):          <span class="cm"># the [] is created ONCE, when def runs</span>
+    tags.append(tag)
+    <span class="kw">return</span> tags
+
+<span class="bi">print</span>(add_tag_bad(<span class="st">"a"</span>), add_tag_bad(<span class="st">"b"</span>))       <span class="cm"># both prints show the SAME shared list</span>
+
+<span class="kw">def</span> <span class="fn">add_tag</span>(tag, tags=<span class="bi">None</span>):
+    <span class="kw">if</span> tags <span class="kw">is</span> <span class="bi">None</span>:
+        tags = []                                <span class="cm"># a fresh list on every call</span>
+    tags.append(tag)
+    <span class="kw">return</span> tags
+
+<span class="bi">print</span>(add_tag(<span class="st">"a"</span>), add_tag(<span class="st">"b"</span>))</div>
+  </div>
+  <p class="lesson-p">A default value is evaluated <strong>once</strong>, when <code>def</code> executes — not on each call. A mutable default (list, dict, set) is therefore shared across every call and quietly accumulates state. The fix is the <code>None</code> sentinel.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Late binding, is vs ==, dict ordering, generators</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">hooks = [<span class="kw">lambda</span>: i <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>)]
+<span class="bi">print</span>(<span class="st">"late binding :"</span>, [h() <span class="kw">for</span> h <span class="kw">in</span> hooks])   <span class="cm"># every lambda sees the final i</span>
+
+hooks = [<span class="kw">lambda</span> i=i: i <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>)]
+<span class="bi">print</span>(<span class="st">"bound early  :"</span>, [h() <span class="kw">for</span> h <span class="kw">in</span> hooks])   <span class="cm"># default argument captures the value now</span>
+
+a, b = [<span class="nm">1</span>, <span class="nm">2</span>], [<span class="nm">1</span>, <span class="nm">2</span>]
+<span class="bi">print</span>(<span class="st">"== vs is     :"</span>, a == b, a <span class="kw">is</span> b)          <span class="cm"># equal values, different objects</span>
+x = <span class="bi">None</span>
+<span class="bi">print</span>(<span class="st">"None check   :"</span>, x <span class="kw">is</span> <span class="bi">None</span>)              <span class="cm"># use `is` for None/True/False singletons</span>
+
+d1 = {<span class="st">"a"</span>: <span class="nm">1</span>, <span class="st">"b"</span>: <span class="nm">2</span>}
+d2 = {<span class="st">"b"</span>: <span class="nm">2</span>, <span class="st">"a"</span>: <span class="nm">1</span>}
+<span class="bi">print</span>(<span class="st">"dict equality:"</span>, d1 == d2, <span class="st">"| key order differs:"</span>, <span class="bi">list</span>(d1) != <span class="bi">list</span>(d2))
+
+lines = (line <span class="kw">for</span> line <span class="kw">in</span> [<span class="st">"a"</span>, <span class="st">"b"</span>, <span class="st">"c"</span>])
+<span class="bi">print</span>(<span class="st">"first pass   :"</span>, <span class="bi">list</span>(lines))
+<span class="bi">print</span>(<span class="st">"second pass  :"</span>, <span class="bi">list</span>(lines), <span class="st">"&lt;- a generator is exhausted after one pass"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>The one-liners to remember:</strong> closures capture the <em>variable</em>, not its value at creation; <code>==</code> compares values while <code>is</code> compares identity (use <code>is</code> only for <code>None</code>); dicts preserve insertion order since Python 3.7 but compare equal regardless of it; a generator can be consumed only once, which is also why it is the right tool for a multi-gigabyte log — it holds one line in memory, not all of them.</div></div>
+  <p class="lesson-p">Finally, the question every DevOps interview eventually reaches: <strong>threads, asyncio, or processes?</strong> The answer hinges on the GIL — in CPython only one thread runs Python bytecode at a time, but the lock is released while a thread waits on I/O.</p>
+  <table class="lesson-table">
+    <tr><th>Workload</th><th>Reach for</th><th>Why</th></tr>
+    <tr><td class="highlight">Health-check 800 hosts</td><td>asyncio (or a thread pool)</td><td>Almost all time is spent waiting on sockets; the GIL is released while waiting</td></tr>
+    <tr><td class="highlight">Blocking SDK calls (boto3, requests)</td><td>ThreadPoolExecutor</td><td>Libraries are not async; threads overlap their waiting</td></tr>
+    <tr><td class="highlight">Hash or compress 50 GB of files</td><td>ProcessPoolExecutor</td><td>CPU-bound; separate processes each get their own interpreter and GIL</td></tr>
+    <tr><td class="highlight">Run 20 shell commands</td><td>subprocess + a pool</td><td>The children do the work in parallel; Python only waits</td></tr>
+  </table>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">asyncio.gather: concurrent waiting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> asyncio
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">check</span>(name, delay):
+    <span class="kw">await</span> asyncio.sleep(delay)          <span class="cm"># stands in for waiting on a network reply</span>
+    <span class="kw">return</span> name
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">main</span>():
+    <span class="cm"># three "health checks" wait concurrently: total time ~ the slowest, not the sum</span>
+    <span class="kw">return</span> <span class="kw">await</span> asyncio.gather(check(<span class="st">"web"</span>, <span class="nm">0.03</span>), check(<span class="st">"db"</span>, <span class="nm">0.01</span>), check(<span class="st">"cache"</span>, <span class="nm">0.02</span>))
+
+<span class="bi">print</span>(<span class="st">"results in call order:"</span>, <span class="kw">await</span> main())   <span class="cm"># in a real script: asyncio.run(main())</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>In a real script you would call <code>asyncio.run(main())</code>.</strong> This browser console already runs an event loop, so bare top-level <code>await</code> is used here instead (the same convention as Chapter 7). And a blocking call inside a coroutine — a plain <code>requests.get()</code>, a <code>time.sleep()</code> — freezes the entire event loop; that is the most common asyncio bug.</div></div>
+
+  <div class="lesson-h2">DevOps 5 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Process beats cleverness:</strong> clarify, work an example, state brute force, name the bottleneck, code small, test edge cases, state complexity.</div></li>
+    <li data-n="2"><div><strong>Inject the clock</strong> (<code>clock()</code> callable or a fake) so time-based code — rate limiters, caches, alert windows — is deterministic to test.</div></li>
+    <li data-n="3"><div><strong>Token bucket</strong> = sustained rate + bounded burst, refilled lazily; fixed windows leak 2x bursts at the boundary.</div></li>
+    <li data-n="4"><div><strong>OrderedDict</strong> gives O(1) LRU via <code>move_to_end</code> / <code>popitem(last=False)</code>; say which TTL policy you chose.</div></li>
+    <li data-n="5"><div><strong>Deep merge</strong> needs explicit rules (recurse dicts, replace lists, None deletes) and a <code>deepcopy</code>.</div></li>
+    <li data-n="6"><div><strong>Flapping</strong> = k state <em>changes</em> inside a window; <strong>top-N</strong> = <code>heapq.nlargest</code> / a size-k min-heap; <strong>deploy order</strong> = Kahn's algorithm, O(V + E), leftovers mean a cycle.</div></li>
+    <li data-n="7"><div><strong>Gotchas:</strong> mutable defaults, late binding, <code>is</code> vs <code>==</code>, exhausted generators; <strong>threads/asyncio for I/O, processes for CPU</strong>.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Inputs are fixed and time is a fake clock, so your printed output can be checked precisely. Solve them the way you would in an interview: say the approach first.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Token Bucket Rate Limiter</div>
+        <div class="ex-desc">Implement TokenBucket with an injected clock and replay a request log against it.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement class TokenBucket(capacity, refill_per_sec, clock) with allow() -&gt; bool:
+  - keep the token count in self.tokens (a float) and start FULL
+  - on each allow(): refill lazily = min(capacity, tokens + elapsed * refill_per_sec)
+  - a request costs 1 token: if tokens &gt;= 1 spend it and return True, else False
+
+Then replay the log below (capacity=2, refill_per_sec=1) and print exactly:
+  f'Results: {results}'
+  f'Allowed: {results.count("ALLOW")}/{len(times)}'
+  f'Tokens left: {bucket.tokens:.2f}'
+(Correct: Results: ['ALLOW', 'ALLOW', 'DENY', 'ALLOW', 'DENY', 'DENY', 'ALLOW'] / Allowed: 4/7 / Tokens left: 1.00)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">class FakeClock:
+    def __init__(self):
+        self.t = 0.0
+    def __call__(self):
+        return self.t
+
+# class TokenBucket:
+#     def __init__(self, capacity, refill_per_sec, clock): ...
+#     def allow(self): ...
+
+clock = FakeClock()
+# bucket = TokenBucket(capacity=2, refill_per_sec=1, clock=clock)
+times = [0, 0.2, 0.4, 1.5, 1.6, 1.7, 4.0]
+results = []
+for t in times:
+    clock.t = t
+    # results.append('ALLOW' if bucket.allow() else 'DENY')
+    pass
+
+# print(f'Results: {results}')
+# print(f'Allowed: {results.count("ALLOW")}/{len(times)}')
+# print(f'Tokens left: {bucket.tokens:.2f}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">TTL + LRU Cache</div>
+        <div class="ex-desc">Build TTLCache(capacity, ttl, clock) and replay a get/put timeline.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement class TTLCache(capacity, ttl, clock) with put(key, value), get(key) and keys():
+  - an entry expires when clock() &gt;= its put-time + ttl (expired = missing)
+  - get() of a live key marks it most recently used (it does NOT extend the TTL)
+  - put() over capacity evicts the least recently used live key
+  - keys() returns live keys ordered least -&gt; most recently used
+  - get() of a missing/expired key returns None
+
+Use the timeline below and print exactly:
+  f'Keys at t=1 (LRU-&gt;MRU): {cache.keys()}'
+  f'Gets: {gets}'
+  f'Keys at t=10.5: {cache.keys()}'
+  f'Keys at t=11.5: {cache.keys()}'
+(Correct: Keys at t=1 (LRU-&gt;MRU): ['c', 'a', 'd'] / Gets: [1, None, 3, None, None, 4] / Keys at t=10.5: ['d'] / Keys at t=11.5: [])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">from collections import OrderedDict
+
+class FakeClock:
+    def __init__(self):
+        self.t = 0.0
+    def __call__(self):
+        return self.t
+    def advance(self, s):
+        self.t += s
+
+# class TTLCache:
+#     def __init__(self, capacity, ttl, clock): ...
+#     def put(self, key, value): ...
+#     def get(self, key): ...
+#     def keys(self): ...
+
+clock = FakeClock()
+# cache = TTLCache(capacity=3, ttl=10, clock=clock)
+# gets = []
+# cache.put('a', 1); cache.put('b', 2); cache.put('c', 3)
+# clock.advance(1);   gets.append(cache.get('a')); cache.put('d', 4)
+# print(f'Keys at t=1 (LRU-&gt;MRU): {cache.keys()}')
+# clock.advance(4);   gets.append(cache.get('b'))
+# clock.advance(4);   gets.append(cache.get('c'))
+# clock.advance(1.5); gets.append(cache.get('a')); gets.append(cache.get('c')); gets.append(cache.get('d'))
+# print(f'Gets: {gets}')
+# print(f'Keys at t=10.5: {cache.keys()}')
+# clock.advance(1)
+# print(f'Keys at t=11.5: {cache.keys()}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Deep-Merge Config Layers</div>
+        <div class="ex-desc">Merge defaults, an environment layer and a user layer without mutating any input.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write deep_merge(base, override) that returns a NEW dict:
+  - nested dicts merge recursively
+  - scalars and lists in override REPLACE the base value
+  - a value of None in override deletes that key
+  - neither input may be mutated
+
+Merge three layers: deep_merge(deep_merge(defaults, env_layer), user_layer)
+and print exactly:
+  f'Merged: {json.dumps(merged, sort_keys=True)}'
+  f'Inputs untouched: {defaults == snapshot}'
+(Correct: Merged: {"labels": {"owner": "alice", "team": "platform"}, "ports": [80, 443], "replicas": 4, "resources": {"cpu": "500m", "memory": "512Mi"}} / Inputs untouched: True)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import copy, json
+
+defaults = {'replicas': 2, 'resources': {'cpu': '250m', 'memory': '256Mi'},
+            'labels': {'team': 'platform', 'tier': 'backend'}, 'debug': True, 'ports': [80]}
+env_layer = {'replicas': 4, 'resources': {'memory': '512Mi'}, 'ports': [80, 443]}
+user_layer = {'labels': {'tier': None, 'owner': 'alice'}, 'debug': None, 'resources': {'cpu': '500m'}}
+snapshot = copy.deepcopy(defaults)
+
+# def deep_merge(base, override): ...
+
+# merged = deep_merge(deep_merge(defaults, env_layer), user_layer)
+# print(f'Merged: {json.dumps(merged, sort_keys=True)}')
+# print(f'Inputs untouched: {defaults == snapshot}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Flapping Service Detector</div>
+        <div class="ex-desc">Find services with 3+ state changes inside a 120-second window.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write find_flapping(events, min_changes, window) -&gt; (flapping_services, change_counts):
+  - events are (seconds, service, status) tuples, already ordered by time
+  - a state CHANGE is a status different from that service's previous status
+    (a service's first event is not a change; a repeated identical status is not a change)
+  - a service flaps if any min_changes consecutive changes fit within `window` seconds
+  - return the flapping services sorted, and a dict of change counts sorted by service
+
+Call it with min_changes=3, window=120 and print exactly:
+  f'Flapping: {flapping}'
+  f'Change counts: {counts}'
+(Correct: Flapping: ['api', 'db'] / Change counts: {'api': 4, 'cache': 3, 'db': 3})</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">from collections import defaultdict
+
+events = [
+    (0, 'api', 'up'), (0, 'db', 'up'), (0, 'cache', 'up'),
+    (30, 'api', 'down'), (50, 'api', 'up'), (70, 'api', 'down'),
+    (600, 'api', 'up'),
+    (610, 'db', 'down'), (620, 'db', 'down'), (640, 'db', 'up'), (660, 'db', 'down'),
+    (700, 'cache', 'down'), (2000, 'cache', 'up'), (4000, 'cache', 'down'),
+]
+
+# def find_flapping(events, min_changes, window): ...
+
+# flapping, counts = find_flapping(events, min_changes=3, window=120)
+# print(f'Flapping: {flapping}')
+# print(f'Change counts: {counts}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Deploy Planner With Cycle Detection</div>
+        <div class="ex-desc">Order services so dependencies deploy first; raise a clear error on a cycle.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write deploy_order(deps) where deps maps service -&gt; list of services it needs first.
+  - use Kahn's algorithm; break ties alphabetically (a heap makes this easy)
+  - services that only appear as a dependency still get deployed
+  - if a cycle blocks progress, raise ValueError(f'cycle detected among: {stuck}')
+    where stuck is the SORTED list of services that never became ready
+
+Print exactly:
+  f'Deploy order: {deploy_order(deps_ok)}'
+  f'Cycle error: {e}'      (caught from deploy_order(deps_bad))
+(Correct: Deploy order: ['db', 'auth', 'metrics', 'queue', 'orders', 'gateway'] / Cycle error: cycle detected among: ['a', 'b', 'c', 'd'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">import heapq
+from collections import defaultdict
+
+deps_ok = {'gateway': ['auth', 'orders'], 'orders': ['db', 'queue'], 'auth': ['db'],
+           'db': [], 'queue': [], 'metrics': []}
+deps_bad = {'a': ['b'], 'b': ['c'], 'c': ['a'], 'd': ['a']}
+
+# def deploy_order(deps): ...
+
+# print(f'Deploy order: {deploy_order(deps_ok)}')
+# try:
+#     deploy_order(deps_bad)
+# except ValueError as e:
+#     print(f'Cycle error: {e}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🎯 Go to the Mock Interview →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🎯 Capstone: <span>Timed Mock Interview</span></h2>
+    <p>Three problems, one editor, framed exactly like a real DevOps/SRE screening round: an easy sliding-window problem, a harder stateful stream problem, and a retry-policy problem that tests whether you understand backoff and budgets. Give yourself <strong>25 minutes</strong>. Each problem is graded independently below.</p>
+    <div class="project-tags">
+      <span class="ptag">easy: sliding window</span>
+      <span class="ptag">medium-hard: watermark + dedupe</span>
+      <span class="ptag">medium: retries &amp; backoff</span>
+    </div>
+  </div>
+
+  <div class="mock-timer">
+    <div id="mock-clock">25:00</div>
+    <div id="mock-status">Optional: start the timer to practise under a real time limit.</div>
+    <button class="mock-btn" onclick="startMock()">▶ Start timer</button>
+    <button class="mock-btn alt" onclick="resetMock()">↺ Reset</button>
+  </div>
+
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>Narrate as you go.</strong> For each problem, say the input and output in your own words, the brute force, the complexity you are about to write, and one edge case you will test — before typing. For problem 2, say what state you keep and what stops it growing forever. For problem 3, say which errors are safe to retry and why (idempotency).</div></div>
+
+  <div class="project-spec">
+    <h3>📋 The Three Problems</h3>
+    <ul class="spec-list">
+      <li><strong>Problem 1 (Easy):</strong> Given per-minute request and error counts, alert when the trailing 3-minute error rate exceeds 5%, and report the worst window.</li>
+      <li><strong>Problem 2 (Medium-Hard):</strong> Process an out-of-order event stream: drop late events behind a watermark, drop duplicate ids, and keep memory bounded by forgetting ids that fall behind the watermark.</li>
+      <li><strong>Problem 3 (Medium):</strong> Simulate a client that retries only retryable statuses with capped exponential backoff, and gives up when its total wait would blow a time budget.</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🎯 Mock Interview — Your Solution (all 3 problems)</div>
+      <button class="pe-run" onclick="runProject()">▶ Run All &amp; Check</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Timed Mock Interview — 3 problems (DevOps Python)
+# Talk through your approach before coding each one. Standard library only.
+# ══════════════════════════════════════════
+
+# ---------------------------------------------------------
+# PROBLEM 1 (Easy): Sliding-window error-rate alert
+# ---------------------------------------------------------
+# Each tuple is (minute, requests, errors). Raise an alert at minute m when, over the
+# trailing 3-minute window ending at m (only once 3 minutes exist), errors/requests
+# EXCEEDS 5%. Compare with integers (errors*100 &gt; 5*requests) to avoid float traps.
+# Also track the highest window error rate seen and the minute it happened.
+minutes = [(0, 100, 1), (1, 120, 2), (2, 110, 1), (3, 130, 9), (4, 100, 12),
+           (5, 90, 10), (6, 120, 2), (7, 110, 1), (8, 100, 0), (9, 105, 1)]
+
+# TODO: compute alerts (list of minutes) and the peak rate/minute, then print exactly:
+#   Alert minutes: [4, 5, 6]
+#   Peak window error rate: 9.69% at minute 5
+
+
+# ---------------------------------------------------------
+# PROBLEM 2 (Medium-Hard): Dedupe events behind a watermark
+# ---------------------------------------------------------
+# Events arrive (id, timestamp) possibly out of order and with duplicates. Process in
+# arrival order. After updating max_ts = max(max_ts, ts), watermark = max_ts - 10.
+#   - ts &lt; watermark          -&gt; LATE: drop it
+#   - id already retained     -&gt; DUPLICATE: drop it
+#   - otherwise               -&gt; accept it and retain the id
+# After each event, forget retained ids whose timestamp is below the watermark
+# (this is what keeps memory bounded on a real stream).
+arrivals = [('e1', 100), ('e2', 102), ('e1', 100), ('e3', 95), ('e4', 88), ('e5', 120),
+            ('e2', 102), ('e6', 115), ('e5', 120), ('e7', 111), ('e6', 115)]
+
+# TODO: then print exactly:
+#   Accepted: ['e1', 'e2', 'e3', 'e5', 'e6', 'e7']
+#   Duplicates dropped: 3
+#   Late dropped: 2
+
+
+# ---------------------------------------------------------
+# PROBLEM 3 (Medium): Retries under a time budget
+# ---------------------------------------------------------
+# run_with_retries(statuses, base=1, factor=2, cap=8, budget=10) simulates a client.
+# Attempt i receives statuses[i] (if the list runs out, the last status repeats).
+#   - 2xx                          -&gt; return ('success', attempts, waited)
+#   - not in {429,500,502,503,504} -&gt; return ('failed_fast', attempts, waited)
+#   - retryable: delay = min(cap, base * factor ** (attempts - 1)); if waited + delay
+#     would exceed budget return ('budget_exhausted', attempts, waited), else wait it out.
+# TODO: implement it, then print one line per scenario in exactly this format:
+#   A -&gt; outcome=success attempts=3 waited=3
+#   B -&gt; outcome=budget_exhausted attempts=3 waited=3
+#   C -&gt; outcome=failed_fast attempts=1 waited=0
+#   D -&gt; outcome=budget_exhausted attempts=5 waited=15
+# Scenarios: A=[503, 503, 200]  B=([500, 502, 503, 504, 200], budget=5)
+#            C=[404]            D=([503] * 10, budget=20)
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <details class="ref-solutions">
+    <summary>👁 Reference solutions — open only after you have tried (or when the timer is up)</summary>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference solution — all three problems</span></div>
+    <div class="cb-code"><span class="cm"># ---------- Problem 1: sliding-window error-rate alert ----------</span>
+minutes = [(<span class="nm">0</span>, <span class="nm">100</span>, <span class="nm">1</span>), (<span class="nm">1</span>, <span class="nm">120</span>, <span class="nm">2</span>), (<span class="nm">2</span>, <span class="nm">110</span>, <span class="nm">1</span>), (<span class="nm">3</span>, <span class="nm">130</span>, <span class="nm">9</span>), (<span class="nm">4</span>, <span class="nm">100</span>, <span class="nm">12</span>),
+           (<span class="nm">5</span>, <span class="nm">90</span>, <span class="nm">10</span>), (<span class="nm">6</span>, <span class="nm">120</span>, <span class="nm">2</span>), (<span class="nm">7</span>, <span class="nm">110</span>, <span class="nm">1</span>), (<span class="nm">8</span>, <span class="nm">100</span>, <span class="nm">0</span>), (<span class="nm">9</span>, <span class="nm">105</span>, <span class="nm">1</span>)]
+
+<span class="kw">def</span> <span class="fn">alert_minutes</span>(minutes, window=<span class="nm">3</span>, threshold_pct=<span class="nm">5</span>):
+    alerts, peak = [], (<span class="nm">0.0</span>, <span class="bi">None</span>)
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(window - <span class="nm">1</span>, <span class="bi">len</span>(minutes)):
+        chunk = minutes[i - window + <span class="nm">1</span>:i + <span class="nm">1</span>]
+        reqs = <span class="bi">sum</span>(m[<span class="nm">1</span>] <span class="kw">for</span> m <span class="kw">in</span> chunk)
+        errs = <span class="bi">sum</span>(m[<span class="nm">2</span>] <span class="kw">for</span> m <span class="kw">in</span> chunk)
+        rate = errs * <span class="nm">100</span> / reqs
+        <span class="kw">if</span> errs * <span class="nm">100</span> &gt; threshold_pct * reqs:
+            alerts.append(minutes[i][<span class="nm">0</span>])
+        <span class="kw">if</span> rate &gt; peak[<span class="nm">0</span>]:
+            peak = (rate, minutes[i][<span class="nm">0</span>])
+    <span class="kw">return</span> alerts, peak
+
+alerts, (peak_rate, peak_minute) = alert_minutes(minutes)
+<span class="bi">print</span>(<span class="st">f'Alert minutes: {alerts}'</span>)
+<span class="bi">print</span>(<span class="st">f'Peak window error rate: {peak_rate:.2f}% at minute {peak_minute}'</span>)
+
+<span class="cm"># ---------- Problem 2: dedupe events with a watermark ----------</span>
+arrivals = [(<span class="st">'e1'</span>, <span class="nm">100</span>), (<span class="st">'e2'</span>, <span class="nm">102</span>), (<span class="st">'e1'</span>, <span class="nm">100</span>), (<span class="st">'e3'</span>, <span class="nm">95</span>), (<span class="st">'e4'</span>, <span class="nm">88</span>), (<span class="st">'e5'</span>, <span class="nm">120</span>),
+            (<span class="st">'e2'</span>, <span class="nm">102</span>), (<span class="st">'e6'</span>, <span class="nm">115</span>), (<span class="st">'e5'</span>, <span class="nm">120</span>), (<span class="st">'e7'</span>, <span class="nm">111</span>), (<span class="st">'e6'</span>, <span class="nm">115</span>)]
+
+<span class="kw">def</span> <span class="fn">process</span>(arrivals, lateness=<span class="nm">10</span>):
+    seen, max_ts = {}, <span class="bi">float</span>(<span class="st">'-inf'</span>)
+    accepted, dupes, late = [], <span class="nm">0</span>, <span class="nm">0</span>
+    <span class="kw">for</span> event_id, ts <span class="kw">in</span> arrivals:
+        max_ts = <span class="bi">max</span>(max_ts, ts)
+        watermark = max_ts - lateness
+        <span class="kw">if</span> ts &lt; watermark:
+            late += <span class="nm">1</span>
+        <span class="kw">elif</span> event_id <span class="kw">in</span> seen:
+            dupes += <span class="nm">1</span>
+        <span class="kw">else</span>:
+            accepted.append(event_id)
+            seen[event_id] = ts
+        seen = {k: v <span class="kw">for</span> k, v <span class="kw">in</span> seen.items() <span class="kw">if</span> v &gt;= watermark}
+    <span class="kw">return</span> accepted, dupes, late
+
+accepted, dupes, late = process(arrivals)
+<span class="bi">print</span>(<span class="st">f'Accepted: {accepted}'</span>)
+<span class="bi">print</span>(<span class="st">f'Duplicates dropped: {dupes}'</span>)
+<span class="bi">print</span>(<span class="st">f'Late dropped: {late}'</span>)
+
+<span class="cm"># ---------- Problem 3: retries under a time budget ----------</span>
+RETRYABLE = {<span class="nm">429</span>, <span class="nm">500</span>, <span class="nm">502</span>, <span class="nm">503</span>, <span class="nm">504</span>}
+
+<span class="kw">def</span> <span class="fn">run_with_retries</span>(statuses, base=<span class="nm">1</span>, factor=<span class="nm">2</span>, cap=<span class="nm">8</span>, budget=<span class="nm">10</span>):
+    waited, attempts = <span class="nm">0</span>, <span class="nm">0</span>
+    <span class="kw">while</span> <span class="bi">True</span>:
+        status = statuses[<span class="bi">min</span>(attempts, <span class="bi">len</span>(statuses) - <span class="nm">1</span>)]
+        attempts += <span class="nm">1</span>
+        <span class="kw">if</span> <span class="nm">200</span> &lt;= status &lt; <span class="nm">300</span>:
+            <span class="kw">return</span> <span class="st">'success'</span>, attempts, waited
+        <span class="kw">if</span> status <span class="kw">not</span> <span class="kw">in</span> RETRYABLE:
+            <span class="kw">return</span> <span class="st">'failed_fast'</span>, attempts, waited
+        delay = <span class="bi">min</span>(cap, base * factor ** (attempts - <span class="nm">1</span>))
+        <span class="kw">if</span> waited + delay &gt; budget:
+            <span class="kw">return</span> <span class="st">'budget_exhausted'</span>, attempts, waited
+        waited += delay
+
+scenarios = {
+    <span class="st">'A'</span>: run_with_retries([<span class="nm">503</span>, <span class="nm">503</span>, <span class="nm">200</span>]),
+    <span class="st">'B'</span>: run_with_retries([<span class="nm">500</span>, <span class="nm">502</span>, <span class="nm">503</span>, <span class="nm">504</span>, <span class="nm">200</span>], budget=<span class="nm">5</span>),
+    <span class="st">'C'</span>: run_with_retries([<span class="nm">404</span>]),
+    <span class="st">'D'</span>: run_with_retries([<span class="nm">503</span>] * <span class="nm">10</span>, budget=<span class="nm">20</span>),
+}
+<span class="kw">for</span> name, (outcome, attempts, waited) <span class="kw">in</span> scenarios.items():
+    <span class="bi">print</span>(<span class="st">f'{name} -&gt; outcome={outcome} attempts={attempts} waited={waited}'</span>)</div>
+  </div>
+    <p class="lesson-p" style="margin-top:12px"><strong>Complexity to state:</strong> Problem 1 is O(n·w) as written (O(n) with running sums); Problem 2 is O(n·s) as written where s is the retained-id count (O(n) with a heap or ordered expiry); Problem 3 is O(attempts). Notice the <em>pruning</em> in problem 2 — without it the dedupe set grows without bound on a real stream, a genuine production bug.</p>
+  </details>
+
+  <div class="checklist">
+    <h3>✅ Mock Interview Checklist — graded per problem</h3>
+    <h4>Problem 1 (Easy)</h4>
+    <div class="check-item" data-check="alert minutes: [4, 5, 6]"><span class="check-icon"></span>Alert minutes: [4, 5, 6]</div>
+    <div class="check-item" data-check="peak window error rate: 9.69% at minute 5"><span class="check-icon"></span>Peak window error rate: 9.69% at minute 5</div>
+    <h4>Problem 2 (Medium-Hard)</h4>
+    <div class="check-item" data-check="accepted: ['e1', 'e2', 'e3', 'e5', 'e6', 'e7']"><span class="check-icon"></span>Accepted: ['e1', 'e2', 'e3', 'e5', 'e6', 'e7']</div>
+    <div class="check-item" data-check="duplicates dropped: 3"><span class="check-icon"></span>Duplicates dropped: 3</div>
+    <div class="check-item" data-check="late dropped: 2"><span class="check-icon"></span>Late dropped: 2</div>
+    <h4>Problem 3 (Medium)</h4>
+    <div class="check-item" data-check="a -&gt; outcome=success attempts=3 waited=3"><span class="check-icon"></span>A -&gt; outcome=success attempts=3 waited=3</div>
+    <div class="check-item" data-check="b -&gt; outcome=budget_exhausted attempts=3 waited=3"><span class="check-icon"></span>B -&gt; outcome=budget_exhausted attempts=3 waited=3</div>
+    <div class="check-item" data-check="c -&gt; outcome=failed_fast attempts=1 waited=0"><span class="check-icon"></span>C -&gt; outcome=failed_fast attempts=1 waited=0</div>
+    <div class="check-item" data-check="d -&gt; outcome=budget_exhausted attempts=5 waited=15"><span class="check-icon"></span>D -&gt; outcome=budget_exhausted attempts=5 waited=15</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DevOps 5 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why do <code>TokenBucket</code> and <code>TTLCache</code> in this chapter take a <code>clock</code> argument instead of calling <code>time.time()</code> internally?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Because <code>time.time()</code> is too slow for a rate limiter</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> So a test (or an interview) can hand in a fake clock and control time exactly — deterministic behaviour with no <code>sleep()</code> and no flaky timing</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Because Python does not allow a class to read the system clock</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It has no real effect; it is just a style preference</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">What is the bug in <code>def add(x, items=[]): items.append(x); return items</code>?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> None — a fresh empty list is created on every call</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> It raises a <code>TypeError</code> the second time it is called</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> The default list is created once when <code>def</code> runs and is shared by every call that omits <code>items</code>, so state leaks between calls; use <code>items=None</code> and create the list inside</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> <code>append</code> cannot be used on a default argument</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A script must health-check 800 hosts over HTTP. Which approach fits best?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> <code>asyncio</code> (or a thread pool): the work is I/O-bound, and the GIL is released while a thread waits on a socket, so the waits overlap</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Spawn 800 processes with <code>multiprocessing</code>, because the GIL prevents any concurrency</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> A plain <code>for</code> loop — Python cannot run things concurrently</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Threads are useless in Python, so the only option is rewriting it in another language</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Kahn's topological sort processes each service (V) once and each dependency (E) once. In Big-O terms using V and E, what is its time complexity? Answer like <code>O(...)</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="O(...)" rows="2"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">Which combination gives an LRU cache O(1) <code>get</code> and O(1) <code>put</code>?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> A list, scanned linearly on every access</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> A sorted list with binary search</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> A heap keyed by last-used time</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> A hash map for lookup plus an ordering structure for recency — in Python, <code>OrderedDict</code> (or a dict + doubly linked list)</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="course-complete-card" id="course-complete-card" style="display:none">
+    <div class="ccc-icon">🎉</div>
+    <h3>DevOps Track <span>Complete</span></h3>
+    <p>You have worked through the day-to-day Python of a DevOps engineer — log parsing, configuration, automation and resilience, cloud and container data, and now the patterns interviewers actually test. Next up is the mirror-image track for MLOps: reproducibility, experiment tracking, pipelines and monitoring.</p>
+    <div class="ccc-stats">
+      <div class="ccc-stat"><strong>5</strong>chapters</div>
+      <div class="ccc-stat"><strong>25</strong>practice exercises</div>
+      <div class="ccc-stat"><strong>1</strong>timed mock interview</div>
+    </div>
+    <a class="ccc-btn" href="../index.html">🏠 Back to Course Home</a>
+    <a class="ccc-btn" href="../mlops-practice/mp01-reproducibility-data-validation.html" style="background:var(--card2);color:var(--text);border:1px solid var(--border);margin-left:10px">🚀 Next: Python for MLOps</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 DevOps Python Interview Prep</h2>
+    <p>10 questions that DevOps, SRE and platform interviewers genuinely ask, each with what a strong answer contains and the common pitfall. Click a question to reveal the answer. Not graded — say each answer out loud before you open it.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A production server is slow. Walk me through how you investigate.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Narrow it first: slow for everyone or one endpoint, host or customer, and <strong>what changed</strong> (deploy, config, traffic, a dependency)? Then apply the <strong>USE method</strong> — Utilization, Saturation, Errors — to each resource. CPU: load average versus core count, run queue. Memory: swap activity, OOM kills in <code>dmesg</code>. Disk: <code>iostat -x</code>, await and %util. Network: retransmits, connection states with <code>ss -s</code>. Then the application: latency percentiles per endpoint, error rate, slow downstream calls, exhausted thread or connection pools, GC pauses. For a Python service, <code>py-spy dump</code>/<code>top</code> shows what it is doing on a live process without a restart, and a sync call inside an async handler blocks the whole event loop. Say your hypothesis, pick the cheapest test, and <strong>mitigate before root-causing</strong> (roll back, scale out). Pitfalls: running tools with no hypothesis, and restarting the service, which destroys the evidence.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Your script works when you run it by hand but fails under cron. Why?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Cron gives a script an almost empty world. <code>PATH</code> is minimal, there is no login shell so your profile never runs, the working directory is usually <code>$HOME</code>, no virtualenv is activated, no <code>AWS_PROFILE</code> or SSH agent variables exist, the shell is <code>/bin/sh</code> rather than bash, and stdout/stderr go to local mail or nowhere. Fixes: use absolute paths for the interpreter and the script (<code>/opt/venv/bin/python /opt/app/job.py</code>), set required environment variables explicitly, <code>cd</code> to a known directory, redirect output (<code>&gt;&gt; /var/log/job.log 2&gt;&amp;1</code>), log inside the script, and wrap it in <code>flock</code> so a slow run cannot overlap the next one. Reproduce it with <code>env -i</code> to see what cron sees. Remember that <code>%</code> is special in crontab lines. Pitfall: assuming it is a permissions problem before checking the environment.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is the GIL, and how does it change how you parallelize DevOps scripts?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">In CPython only one thread executes Python bytecode at a time. Threads still help for <strong>I/O-bound</strong> work because the lock is released while a thread blocks on a socket, file or sleep (and inside many C extensions, such as hashing large buffers). So: many blocking network calls — health checks, paginated API calls, boto3 — use a <code>ThreadPoolExecutor</code> or <code>asyncio</code>; <strong>CPU-bound</strong> work — compressing, hashing or parsing gigabytes — use <code>ProcessPoolExecutor</code>/<code>multiprocessing</code>, where each process has its own interpreter and GIL, or hand it to a native tool. <code>asyncio</code> needs async-aware libraries: one blocking call inside a coroutine freezes the entire event loop. Python 3.13 added an experimental free-threaded build, but it is not the default. Pitfall: saying "Python can't do threads" — it can, and for I/O they work fine.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does idempotent mean, and why does automation care?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">An operation is idempotent if running it once or many times leaves the system in the same final state. Automation cares because networks fail and retries are inevitable: if "create user" fails after the server acted but before the reply arrived, a blind retry either errors or creates a duplicate. Write scripts as <em>desired state</em> ("ensure this directory/user/bucket exists") rather than actions ("create"). Examples: <code>mkdir -p</code>, <code>PUT</code> to a fixed URL, <code>terraform apply</code>, an SQL <code>INSERT ... ON CONFLICT DO NOTHING</code>, and an idempotency key sent with a payment request. In Python: check-then-act with care about races (prefer atomic operations such as <code>os.replace</code> or <code>Path.mkdir(exist_ok=True)</code>), and make deletes tolerate "already gone". Pitfall: claiming an operation is idempotent because it "usually" works twice — name the state it converges to.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Name Python gotchas that have caused production bugs.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Mutable default arguments</strong> (<code>def f(x, items=[])</code> shares one list across calls — use <code>None</code>). <strong>Late-binding closures</strong> (lambdas in a loop all see the final loop variable — bind with <code>lambda i=i: i</code>). <strong><code>is</code> vs <code>==</code></strong> (identity vs equality; use <code>is</code> for <code>None</code> only). <strong>Modifying a list while iterating it</strong> (skips elements — iterate a copy or build a new list). <strong>Exhausted generators</strong> (a second pass yields nothing). <strong><code>except Exception: pass</code></strong> swallowing real failures — catch specific errors and log. <strong>Naive datetimes</strong> compared with aware ones, and timezone-less timestamps in logs. <strong><code>subprocess</code> with <code>shell=True</code></strong> on untrusted input (command injection). Pitfall: listing them without the fix — each gotcha should come with the one-line remedy.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Compare rate-limiting algorithms. Which would you pick for an API gateway?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Fixed window</strong> counts requests per calendar window: trivial, but a client can burst 2x its limit across a boundary. <strong>Sliding window</strong> (log or weighted counter) is accurate at the cost of memory or approximation. <strong>Token bucket</strong> refills at a steady rate up to a capacity: it permits controlled bursts and is cheap (two numbers per client), which is why it is the usual choice for gateways and cloud APIs. <strong>Leaky bucket</strong> drains at a constant rate through a queue, smoothing traffic instead of allowing bursts. For a gateway I would choose token bucket, keyed per API key or client, with the state in Redis updated atomically (a Lua script) so all gateway nodes share one view. Also mention the response: HTTP 429 with a <code>Retry-After</code> header, and that clients should back off. Pitfall: forgetting that in-process counters do not work across multiple replicas.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How should a client retry failed requests?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retry only errors that can succeed later: timeouts, connection resets, HTTP 429 and 5xx (502/503/504). Fail fast on 4xx like 400, 401 or 404 — retrying cannot fix them. Use <strong>exponential backoff with a cap and jitter</strong>: delays grow (1s, 2s, 4s, capped at, say, 30s) and each is randomized so a thousand clients that failed together do not all retry together (the thundering herd). Bound retries by a maximum attempt count <em>and</em> a total time budget, and honor <code>Retry-After</code>. Retries multiply load on a struggling dependency, so mature systems add a <strong>retry budget</strong> (retries may be at most ~10% of traffic) and circuit breakers. Only retry operations that are <strong>idempotent</strong>, or send an idempotency key. Pitfall: unbounded immediate retries, which turn a small outage into a big one.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you make a Python script safe to run from CI?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">No interactive prompts — take everything from arguments or environment variables. Return meaningful <strong>exit codes</strong> (0 success, non-zero failure) so the pipeline can fail; do not swallow exceptions at top level. Log to stdout/stderr with timestamps and levels, never secrets. Read secrets from environment variables or a secret manager, and mask them. Pin dependencies (a lock file or hashes) so a build is reproducible. Put <strong>timeouts</strong> on every network call and subprocess. Offer a <code>--dry-run</code> mode for anything destructive, make the operation idempotent, and clean up temporary files in <code>finally</code> or with context managers. Keep the logic in importable functions with a thin <code>if __name__ == "__main__":</code> entry point so you can unit-test it. Pitfall: a script that prints "done" and exits 0 even after a step failed.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You must process a 20 GB log file on a small machine. How?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Stream it. Iterate the file object line by line (<code>for line in f</code>) or use a generator pipeline (read, then parse, then filter, then aggregate) so only one line is in memory at a time; never <code>f.read()</code> or <code>readlines()</code> the whole thing. Aggregate into a compact structure — a <code>Counter</code> or a running total — rather than storing rows. Compile regexes once outside the loop and prefer <code>str</code> methods when they suffice. If it is still too slow and CPU-bound, split the file into byte ranges and use a <code>ProcessPoolExecutor</code>, or use <code>grep</code>/<code>awk</code> for the first filtering pass. Remember a generator can be consumed once, so do not iterate it twice. Pitfall: building a list of all parsed records "for convenience" and running out of memory.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Your deployment plan has a circular dependency. How do you detect and handle it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Model services as a directed graph (edge from dependency to dependent) and run a <strong>topological sort</strong>. With Kahn's algorithm, if you finish without visiting every node, the leftover nodes are blocked by a cycle — but that set also includes everything downstream of the cycle. To report the actual cycle, run a DFS with three colors (unvisited, on the current path, done): meeting a node that is on the current path means you found one, and the path segment is the cycle. Both approaches are O(V + E). In a pipeline I would fail the plan early with the cycle printed, because no deploy order exists. Real fixes are architectural: break the loop by removing a needless dependency, introducing a shared third component, or making one direction asynchronous (events or retries) so the services can start independently. Pitfall: "solving" it by deploying in an arbitrary order and hoping health checks eventually pass.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Standard library only — try the snippets, then break them on purpose','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["results: ['allow', 'allow', 'deny', 'allow', 'deny', 'deny', 'allow']",
+    "allowed: 4/7",
+    "tokens left: 1.00"],
+    hint:"refill = min(capacity, tokens + (now - last) * rate); update self.last = now every call; spend 1 token only if tokens >= 1",
+    solution:`class FakeClock:
+    def __init__(self):
+        self.t = 0.0
+    def __call__(self):
+        return self.t
+
+class TokenBucket:
+    def __init__(self, capacity, refill_per_sec, clock):
+        self.capacity = capacity
+        self.refill_per_sec = refill_per_sec
+        self.clock = clock
+        self.tokens = float(capacity)
+        self.last = clock()
+
+    def allow(self):
+        now = self.clock()
+        self.tokens = min(self.capacity, self.tokens + (now - self.last) * self.refill_per_sec)
+        self.last = now
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
+
+clock = FakeClock()
+bucket = TokenBucket(capacity=2, refill_per_sec=1, clock=clock)
+times = [0, 0.2, 0.4, 1.5, 1.6, 1.7, 4.0]
+results = []
+for t in times:
+    clock.t = t
+    results.append('ALLOW' if bucket.allow() else 'DENY')
+print(f'Results: {results}')
+print(f'Allowed: {results.count("ALLOW")}/{len(times)}')
+print(f'Tokens left: {bucket.tokens:.2f}')`
+  },
+  2:{
+    checks:["keys at t=1 (lru->mru): ['c', 'a', 'd']",
+    "gets: [1, none, 3, none, none, 4]",
+    "keys at t=10.5: ['d']",
+    "keys at t=11.5: []"],
+    hint:"OrderedDict of key -> (value, expires_at); purge entries with expires_at <= now first; move_to_end on get/put; popitem(last=False) evicts the LRU",
+    solution:`from collections import OrderedDict
+
+class FakeClock:
+    def __init__(self):
+        self.t = 0.0
+    def __call__(self):
+        return self.t
+    def advance(self, s):
+        self.t += s
+
+class TTLCache:
+    def __init__(self, capacity, ttl, clock):
+        self.capacity, self.ttl, self.clock = capacity, ttl, clock
+        self._data = OrderedDict()
+
+    def _purge(self):
+        now = self.clock()
+        for k in [k for k, (_, exp) in self._data.items() if exp <= now]:
+            del self._data[k]
+
+    def get(self, key):
+        self._purge()
+        if key not in self._data:
+            return None
+        self._data.move_to_end(key)
+        return self._data[key][0]
+
+    def put(self, key, value):
+        self._purge()
+        self._data[key] = (value, self.clock() + self.ttl)
+        self._data.move_to_end(key)
+        while len(self._data) > self.capacity:
+            self._data.popitem(last=False)
+
+    def keys(self):
+        self._purge()
+        return list(self._data)
+
+clock = FakeClock()
+cache = TTLCache(capacity=3, ttl=10, clock=clock)
+gets = []
+cache.put('a', 1); cache.put('b', 2); cache.put('c', 3)
+clock.advance(1);   gets.append(cache.get('a')); cache.put('d', 4)
+print(f'Keys at t=1 (LRU->MRU): {cache.keys()}')
+clock.advance(4);   gets.append(cache.get('b'))
+clock.advance(4);   gets.append(cache.get('c'))
+clock.advance(1.5); gets.append(cache.get('a')); gets.append(cache.get('c')); gets.append(cache.get('d'))
+print(f'Gets: {gets}')
+print(f'Keys at t=10.5: {cache.keys()}')
+clock.advance(1)
+print(f'Keys at t=11.5: {cache.keys()}')`
+  },
+  3:{
+    checks:["merged: {\"labels\": {\"owner\": \"alice\", \"team\": \"platform\"}, \"ports\": [80, 443], \"replicas\": 4, \"resources\": {\"cpu\": \"500m\", \"memory\": \"512mi\"}}",
+    "inputs untouched: true"],
+    hint:"result = copy.deepcopy(base); for each key: None -> pop; both dicts -> recurse; else deepcopy the override value",
+    solution:`import copy, json
+
+def deep_merge(base, override):
+    result = copy.deepcopy(base)
+    for key, value in override.items():
+        if value is None:
+            result.pop(key, None)
+        elif isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = deep_merge(result[key], value)
+        else:
+            result[key] = copy.deepcopy(value)
+    return result
+
+defaults = {'replicas': 2, 'resources': {'cpu': '250m', 'memory': '256Mi'},
+            'labels': {'team': 'platform', 'tier': 'backend'}, 'debug': True, 'ports': [80]}
+env_layer = {'replicas': 4, 'resources': {'memory': '512Mi'}, 'ports': [80, 443]}
+user_layer = {'labels': {'tier': None, 'owner': 'alice'}, 'debug': None, 'resources': {'cpu': '500m'}}
+snapshot = copy.deepcopy(defaults)
+
+merged = deep_merge(deep_merge(defaults, env_layer), user_layer)
+print(f'Merged: {json.dumps(merged, sort_keys=True)}')
+print(f'Inputs untouched: {defaults == snapshot}')`
+  },
+  4:{
+    checks:["flapping: ['api', 'db']",
+    "change counts: {'api': 4, 'cache': 3, 'db': 3}"],
+    hint:"keep last_status per service and a list of change timestamps; then check times[i + min_changes - 1] - times[i] <= window",
+    solution:`from collections import defaultdict
+
+def find_flapping(events, min_changes=3, window=300):
+    last_status, changes = {}, defaultdict(list)
+    for ts, service, status in events:
+        if service in last_status and last_status[service] != status:
+            changes[service].append(ts)
+        last_status[service] = status
+    flapping = []
+    for service, times in changes.items():
+        for i in range(len(times) - min_changes + 1):
+            if times[i + min_changes - 1] - times[i] <= window:
+                flapping.append(service)
+                break
+    return sorted(flapping), {s: len(t) for s, t in sorted(changes.items())}
+
+events = [
+    (0, 'api', 'up'), (0, 'db', 'up'), (0, 'cache', 'up'),
+    (30, 'api', 'down'), (50, 'api', 'up'), (70, 'api', 'down'),
+    (600, 'api', 'up'),
+    (610, 'db', 'down'), (620, 'db', 'down'), (640, 'db', 'up'), (660, 'db', 'down'),
+    (700, 'cache', 'down'), (2000, 'cache', 'up'), (4000, 'cache', 'down'),
+]
+flapping, counts = find_flapping(events, min_changes=3, window=120)
+print(f'Flapping: {flapping}')
+print(f'Change counts: {counts}')`
+  },
+  5:{
+    checks:["deploy order: ['db', 'auth', 'metrics', 'queue', 'orders', 'gateway']",
+    "cycle error: cycle detected among: ['a', 'b', 'c', 'd']"],
+    hint:"indegree per service (setdefault for leaf deps) + dependents map; heap of zero-indegree nodes; if len(order) != len(indegree) raise",
+    solution:`import heapq
+from collections import defaultdict
+
+def deploy_order(deps):
+    indegree = {s: 0 for s in deps}
+    dependents = defaultdict(list)
+    for service, needs in deps.items():
+        for need in needs:
+            indegree.setdefault(need, 0)
+            indegree[service] += 1
+            dependents[need].append(service)
+    ready = [s for s, d in indegree.items() if d == 0]
+    heapq.heapify(ready)
+    order = []
+    while ready:
+        service = heapq.heappop(ready)
+        order.append(service)
+        for nxt in dependents[service]:
+            indegree[nxt] -= 1
+            if indegree[nxt] == 0:
+                heapq.heappush(ready, nxt)
+    if len(order) != len(indegree):
+        stuck = sorted(s for s, d in indegree.items() if d > 0)
+        raise ValueError(f'cycle detected among: {stuck}')
+    return order
+
+deps_ok = {'gateway': ['auth', 'orders'], 'orders': ['db', 'queue'], 'auth': ['db'],
+           'db': [], 'queue': [], 'metrics': []}
+deps_bad = {'a': ['b'], 'b': ['c'], 'c': ['a'], 'd': ['a']}
+
+print(f'Deploy order: {deploy_order(deps_ok)}')
+try:
+    deploy_order(deps_bad)
+except ValueError as e:
+    print(f'Cycle error: {e}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+  const lower=full.toLowerCase();
+
+  // grade each checklist item independently and update its icon
+  document.querySelectorAll('.check-item[data-check]').forEach(item=>{
+    const c=item.getAttribute('data-check');
+    const ok2=lower.includes(c);
+    item.classList.toggle('item-pass', ok2);
+    item.classList.toggle('item-fail', !ok2);
+  });
+
+  const checks=[...document.querySelectorAll('.check-item[data-check]')].map(el=>el.getAttribute('data-check'));
+  const passed=ok&&checks.every(c=>lower.includes(c));
+  const passedCount=checks.filter(c=>lower.includes(c)).length;
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ All 3 problems solved correctly! Full mock interview passed.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent=`❌ ${passedCount}/${checks.length} checklist items passing — check the checklist above (each problem is graded independently)`;
+  }
+};
+
+
+const CORRECT={1:'B',2:'C',3:'A',5:'D'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val==='o(v+e)'||val==='o(e+v)';
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! O(V + E) — every vertex and every edge is processed once'
+    :'❌ Not quite. Each vertex is dequeued once and each edge is relaxed once, so it is O(V + E).';
+};
+
+function revealNextChapter(){
+  document.getElementById('course-complete-card').style.display='block';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Injected clocks, token buckets, TTL/LRU caches, config merging, flapping detection, heaps, topological ordering and the Python gotchas — that is the core of a DevOps Python interview. Read the Interview Prep tab, then you have finished the DevOps track.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+let mockTimer=null, mockLeft=25*60;
+function fmtClock(s){
+  return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+}
+window.startMock=function(){
+  if(mockTimer)return;
+  document.getElementById('mock-status').textContent='Timer running — talk through your approach out loud.';
+  mockTimer=setInterval(()=>{
+    mockLeft--;
+    document.getElementById('mock-clock').textContent=fmtClock(Math.max(mockLeft,0));
+    if(mockLeft<=0){
+      clearInterval(mockTimer);mockTimer=null;
+      document.getElementById('mock-clock').classList.add('over');
+      document.getElementById('mock-status').textContent="Time's up — in a real round you would stop here. Note what you would cut, then finish and review.";
+    }
+  },1000);
+};
+window.resetMock=function(){
+  clearInterval(mockTimer);mockTimer=null;mockLeft=25*60;
+  document.getElementById('mock-clock').textContent=fmtClock(mockLeft);
+  document.getElementById('mock-clock').classList.remove('over');
+  document.getElementById('mock-status').textContent='Optional: start the timer to practise under a real time limit.';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

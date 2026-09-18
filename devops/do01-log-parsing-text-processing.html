@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DevOps Python 1: Log Parsing &amp; Text Processing</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module - the 5-chapter "Python for
+  DevOps: Day-to-Day" track - NOT part of the 41-chapter core curriculum, same tier as the
+  systems/ and dsa/ tracks. Everything runnable here is pure standard-library Python (re,
+  collections, datetime, dataclasses, statistics) on realistic nginx and sshd log samples.
+  Blocks that need a real growing file, a real clock or a real process (tail -f, gzip on disk)
+  are reference-only with no Run button. No XP, no localStorage progress tracking - exercises,
+  the capstone and the quiz still run and grade live in the browser, but nothing persists.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DO 1: Log Parsing &amp; Text Processing</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for DevOps · 1 of 5</div>
+  </a>
+  <a class="sb-back" href="../index.html">← Back to Course Home</a>
+  <div class="sb-section">DO 1 · Log Parsing &amp; Text Processing</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Python for DevOps</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='do02-config-yaml-json-toml.html'"><span class="sb-icon">🧩</span><span class="sb-step">DO 2: Config &amp; Data Formats</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DevOps Python 1 of 5</div>
+    <div class="tb-title">Log Parsing &amp; Text Processing</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>DevOps Python 1:<br/><span>Log Parsing &amp; Text Processing</span></h1>
+    <p>Every production incident starts the same way: someone opens a log and asks "what changed?" Log parsing is the single most common thing DevOps and SRE engineers write Python for, and "find the top 10 IPs in this access log" is one of the most repeated interview questions in the field. This chapter builds the whole toolkit on realistic nginx and sshd logs: reading huge files lazily, regexes with named groups, typed records that survive garbage lines, <code>Counter</code> top-N, per-hour error rates, latency percentiles, and a sliding-window brute-force detector.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~75 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">1.1 — Reading Logs Lazily: Generators, Not <code>.read()</code></div>
+  <p class="lesson-p">A production access log is routinely several gigabytes. <code>open(path).read()</code> loads all of it into memory, and <code>.readlines()</code> builds a list of every line: either one can get your script OOM-killed on the very box that is already in trouble. A Python file object is already a <strong>lazy iterator</strong>: <code>for line in f</code> reads one line at a time, so memory stays roughly constant no matter how large the file is. A <strong>generator function</strong> (any function with <code>yield</code>) lets you build a pipeline of small lazy steps &mdash; read, parse, filter, aggregate &mdash; without ever holding the whole file.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Lazy reading: a generator over a file-like object</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> io
+
+<span class="cm"># io.StringIO stands in for open('/var/log/nginx/access.log') - same iteration API</span>
+fake_file = io.StringIO(<span class="st">"line one\nline two\nline three\nline four\n"</span>)
+
+<span class="kw">def</span> <span class="fn">read_lines</span>(f):
+    <span class="kw">for</span> line <span class="kw">in</span> f:                 <span class="cm"># the file object yields ONE line at a time</span>
+        <span class="kw">yield</span> line.rstrip(<span class="st">"\n"</span>)
+
+gen = read_lines(fake_file)
+<span class="bi">print</span>(<span class="bi">next</span>(gen))                   <span class="cm"># only the first line has been read so far</span>
+<span class="bi">print</span>(<span class="bi">next</span>(gen))
+<span class="bi">print</span>(<span class="st">"remaining:"</span>, <span class="bi">list</span>(gen))     <span class="cm"># drains the rest - and now the generator is spent</span>
+<span class="bi">print</span>(<span class="st">"again:"</span>, <span class="bi">list</span>(gen))         <span class="cm"># [] - a generator can only be consumed once</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>A generator is single-use.</strong> After it is exhausted it silently yields nothing, so a second <code>list(gen)</code> returns <code>[]</code>, not an error. If you need two passes (say a total and then percentages), either re-open the file or aggregate everything you need in ONE pass. This bug regularly makes a report show "0 requests".</div></div>
+  <p class="lesson-p">Following a log as it grows (<code>tail -f</code>) is the same idea with a loop that waits for new data. It needs a real file that is being appended to and a real clock, so it is shown as reference only.</p>
+  <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code &mdash; not runnable in this browser.</strong> The sandbox has no real growing log file and no real clock, so there is no &#9654; Run button on the next block. Copy it to a real machine to try it.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only &mdash; a tail -f in Python</span></div>
+    <div class="cb-code"><span class="kw">import</span> os, time
+
+<span class="kw">def</span> <span class="fn">follow</span>(path):                        <span class="cm"># what `tail -f` does</span>
+    <span class="kw">with</span> <span class="bi">open</span>(path) <span class="kw">as</span> f:
+        f.seek(<span class="nm">0</span>, os.SEEK_END)           <span class="cm"># start at the END of the file</span>
+        <span class="kw">while</span> <span class="kw">True</span>:
+            line = f.readline()
+            <span class="kw">if</span> <span class="kw">not</span> line:                 <span class="cm"># nothing new yet</span>
+                time.sleep(<span class="nm">0.5</span>)
+                <span class="kw">continue</span>
+            <span class="kw">yield</span> line
+
+<span class="kw">for</span> line <span class="kw">in</span> follow(<span class="st">"/var/log/nginx/access.log"</span>):
+    <span class="bi">print</span>(line, end=<span class="st">""</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Log rotation breaks naive followers.</strong> When <code>logrotate</code> renames the file and creates a new one, the loop above keeps reading the OLD (now idle) file forever. <code>tail -F</code> (capital F) handles this by re-opening on inode change or truncation. In an interview, say that you would use <code>tail -F</code> or a library rather than hand-roll rotation handling.</div></div>
+
+  <div class="lesson-h2">1.2 — Regex for Log Lines: Named Groups and the Greedy Trap</div>
+  <p class="lesson-p"><code>str.split()</code> is enough for simple whitespace-separated formats, but the nginx/Apache <strong>combined</strong> format has quoted fields that contain spaces (the request line and the user agent), so <code>split()</code> breaks on them. That is where <code>re</code> earns its place. Three habits matter: <strong>compile once</strong> outside the loop; use <strong>named groups</strong> <code>(?P&lt;ip&gt;...)</code> so the code reads like the log format; and use <code>re.VERBOSE</code> so you can lay the pattern out on several lines and comment it. Remember that <code>match()</code> anchors at the start of the string, <code>search()</code> looks anywhere, and <code>fullmatch()</code> must consume the whole string.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A named-group regex for the combined log format</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+
+LOG_RE = re.compile(<span class="st">r'''
+    (?P&lt;ip&gt;\S+)\s+\S+\s+\S+\s+          # client ip, ident, user
+    \[(?P&lt;ts&gt;[^\]]+)\]\s+                 # [12/Mar/2026:10:15:32 +0000]
+    "(?P&lt;method&gt;[A-Z]+)\s+(?P&lt;path&gt;\S+)\s+[^"]+"\s+   # "GET /path HTTP/1.1"
+    (?P&lt;status&gt;\d{3})\s+(?P&lt;size&gt;\d+|-)\s+
+    "(?P&lt;referrer&gt;[^"]*)"\s+"(?P&lt;ua&gt;[^"]*)"
+    (?:\s+(?P&lt;rt&gt;\d+\.\d+))?                # optional request_time
+'''</span>, re.VERBOSE)
+
+line = <span class="st">'203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET /api/v1/orders?id=42 HTTP/1.1" 200 1532 "-" "Mozilla/5.0" 0.128'</span>
+m = LOG_RE.match(line)
+<span class="bi">print</span>(m.group(<span class="st">"ip"</span>), m.group(<span class="st">"method"</span>), m.group(<span class="st">"path"</span>), m.group(<span class="st">"status"</span>), m.group(<span class="st">"rt"</span>))
+<span class="bi">print</span>(m.groupdict()[<span class="st">"ts"</span>])</div>
+  </div>
+  <p class="lesson-p">The single most common regex bug in log parsing is <strong>greediness</strong>. <code>.*</code> takes as much as it can, so <code>".*"</code> on a line with two quoted fields matches from the first quote to the last. Either make it lazy (<code>.*?</code>) or, better, say exactly what you mean: <code>[^"]*</code>, "anything that is not a quote".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Greedy vs. non-greedy: the classic log-parsing bug</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+
+line = <span class="st">'GET /a "Mozilla/5.0" "https://example.com/x" 200'</span>
+
+<span class="bi">print</span>(re.search(<span class="st">r'".*"'</span>, line).group())     <span class="cm"># greedy: first quote ... LAST quote</span>
+<span class="bi">print</span>(re.search(<span class="st">r'".*?"'</span>, line).group())    <span class="cm"># lazy: stops at the next quote</span>
+<span class="bi">print</span>(re.findall(<span class="st">r'"([^"]*)"'</span>, line))       <span class="cm"># best: "anything that is not a quote"</span></div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚨</div><div class="ib-body"><strong>Catastrophic backtracking is a real outage cause.</strong> A pattern with nested quantifiers such as <code>(a+)+$</code> can take exponential time on a line that almost matches, and one crafted or corrupted log line can pin a CPU (this is "ReDoS"). Prefer negated character classes (<code>[^"]*</code>) over <code>.*</code>, anchor your patterns, and note that Python 3.11+ adds possessive quantifiers (<code>a++</code>) and atomic groups (<code>(?&gt;...)</code>) that forbid backtracking.</div></div>
+
+  <div class="lesson-h2">1.3 — From Text to Typed Records (Without Crashing on Bad Lines)</div>
+  <p class="lesson-p">Raw strings are hard to work with; a <code>dataclass</code> with real types (an <code>int</code> status, a <code>float</code> latency, a timezone-aware <code>datetime</code>) is not. But real logs contain garbage: lines truncated when a disk filled up, output from another program writing to the same file, half-written records from a crashed process. A parser that raises on the first bad line is useless in production. The robust pattern is: <strong>return <code>None</code> for a line you cannot parse, count it, and carry on</strong>. The caller decides what "too many skipped" means.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parse into a typed record, and tolerate garbage lines</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+LOG_RE = re.compile(<span class="st">r'''
+    (?P&lt;ip&gt;\S+)\s+\S+\s+\S+\s+          # client ip, ident, user
+    \[(?P&lt;ts&gt;[^\]]+)\]\s+                 # [12/Mar/2026:10:15:32 +0000]
+    "(?P&lt;method&gt;[A-Z]+)\s+(?P&lt;path&gt;\S+)\s+[^"]+"\s+   # "GET /path HTTP/1.1"
+    (?P&lt;status&gt;\d{3})\s+(?P&lt;size&gt;\d+|-)\s+
+    "(?P&lt;referrer&gt;[^"]*)"\s+"(?P&lt;ua&gt;[^"]*)"
+    (?:\s+(?P&lt;rt&gt;\d+\.\d+))?                # optional request_time
+'''</span>, re.VERBOSE)
+
+@dataclass
+<span class="kw">class</span> <span class="cls">Entry</span>:
+    ip: <span class="bi">str</span>
+    ts: datetime
+    method: <span class="bi">str</span>
+    path: <span class="bi">str</span>
+    status: <span class="bi">int</span>
+    size: <span class="bi">int</span>
+    rt: <span class="bi">float</span>
+
+<span class="kw">def</span> <span class="fn">parse_line</span>(line):
+    m = LOG_RE.match(line)
+    <span class="kw">if</span> <span class="kw">not</span> m:
+        <span class="kw">return</span> <span class="kw">None</span>                                   <span class="cm"># caller decides what "unparseable" means</span>
+    d = m.groupdict()
+    <span class="kw">return</span> Entry(
+        ip=d[<span class="st">"ip"</span>],
+        ts=datetime.strptime(d[<span class="st">"ts"</span>], <span class="st">"%d/%b/%Y:%H:%M:%S %z"</span>),
+        method=d[<span class="st">"method"</span>],
+        path=d[<span class="st">"path"</span>],
+        status=<span class="bi">int</span>(d[<span class="st">"status"</span>]),
+        size=<span class="nm">0</span> <span class="kw">if</span> d[<span class="st">"size"</span>] == <span class="st">"-"</span> <span class="kw">else</span> <span class="bi">int</span>(d[<span class="st">"size"</span>]),
+        rt=<span class="bi">float</span>(d[<span class="st">"rt"</span>]) <span class="kw">if</span> d[<span class="st">"rt"</span>] <span class="kw">else</span> <span class="nm">0.0</span>,
+    )
+
+lines = [
+    <span class="st">'203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET /api/v1/orders?id=42 HTTP/1.1" 200 1532 "-" "Mozilla/5.0" 0.128'</span>,
+    <span class="st">'this line is a truncated write from a crashed process'</span>,
+    <span class="st">'198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.045'</span>,
+]
+entries, skipped = [], <span class="nm">0</span>
+<span class="kw">for</span> ln <span class="kw">in</span> lines:
+    e = parse_line(ln)
+    <span class="kw">if</span> e <span class="kw">is</span> <span class="kw">None</span>:
+        skipped += <span class="nm">1</span>
+    <span class="kw">else</span>:
+        entries.append(e)
+<span class="bi">print</span>(<span class="bi">len</span>(entries), <span class="st">"parsed,"</span>, skipped, <span class="st">"skipped"</span>)
+<span class="bi">print</span>(entries[<span class="nm">0</span>])
+<span class="bi">print</span>(entries[<span class="nm">0</span>].ts.isoformat())</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The skipped count is a signal, not just noise.</strong> If unparseable lines jump from 0.01% to 30% right after a deploy, the log <em>format</em> changed. Alert on the skip ratio. Also note that <code>-</code> is the log format's way of writing "no value" (a size of <code>-</code> on a 304, an unknown user), so convert it deliberately rather than letting <code>int("-")</code> blow up.</div></div>
+
+  <div class="lesson-h2">1.4 — <code>Counter</code>: Top-N Anything</div>
+  <p class="lesson-p">"Top 10 IPs", "most requested endpoints", "status code distribution", "busiest user agents": these are all the same operation. <code>collections.Counter</code> is a <code>dict</code> subclass that counts hashable items, and <code>.most_common(n)</code> returns the top <em>n</em> as <code>(item, count)</code> pairs. Two habits separate a good answer from a sloppy one: <strong>normalise before you count</strong> (drop the <code>?query</code> so <code>/orders?id=1</code> and <code>/orders?id=2</code> are one endpoint), and remember that memory grows with the number of <strong>distinct keys</strong>, not with the number of lines.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Counter: the top-N tool you will use daily</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+<span class="kw">from</span> urllib.parse <span class="kw">import</span> urlsplit
+
+LOG = <span class="st">"""203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET /api/v1/orders?id=42 HTTP/1.1" 200 1532 "-" "Mozilla/5.0" 0.128
+203.0.113.7 - - [12/Mar/2026:10:15:33 +0000] "GET /api/v1/orders?id=43 HTTP/1.1" 200 1498 "-" "Mozilla/5.0" 0.131
+198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.045
+198.51.100.23 - - [12/Mar/2026:10:16:02 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.044
+192.0.2.55 - - [12/Mar/2026:10:17:45 +0000] "GET /static/app.js HTTP/1.1" 200 48211 "https://shop.example.com/" "Mozilla/5.0" 0.009
+203.0.113.7 - - [12/Mar/2026:10:59:58 +0000] "POST /api/v1/checkout HTTP/1.1" 502 157 "-" "Mozilla/5.0" 3.204
+192.0.2.55 - - [12/Mar/2026:11:02:10 +0000] "GET /api/v1/orders?id=7 HTTP/1.1" 200 1611 "-" "Mozilla/5.0" 0.140
+10.0.0.9 - - [12/Mar/2026:11:03:00 +0000] "GET /health HTTP/1.1" 200 2 "-" "kube-probe/1.29" 0.001
+198.51.100.23 - - [12/Mar/2026:11:04:12 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.046
+203.0.113.7 - - [12/Mar/2026:11:05:40 +0000] "POST /api/v1/checkout HTTP/1.1" 500 212 "-" "Mozilla/5.0" 2.871"""</span>
+
+ips, paths, statuses = Counter(), Counter(), Counter()
+<span class="kw">for</span> line <span class="kw">in</span> LOG.splitlines():
+    parts = line.split()
+    ips[parts[<span class="nm">0</span>]] += <span class="nm">1</span>
+    path = urlsplit(parts[<span class="nm">6</span>]).path          <span class="cm"># drop the ?query so /orders?id=1 and ?id=2 group together</span>
+    paths[path] += <span class="nm">1</span>
+    statuses[parts[<span class="nm">8</span>]] += <span class="nm">1</span>
+
+<span class="bi">print</span>(<span class="st">"top IPs    :"</span>, ips.most_common(<span class="nm">2</span>))
+<span class="bi">print</span>(<span class="st">"top paths  :"</span>, paths.most_common(<span class="nm">3</span>))
+<span class="bi">print</span>(<span class="st">"status mix :"</span>, <span class="bi">dict</span>(statuses))
+<span class="bi">print</span>(<span class="st">"unique IPs :"</span>, <span class="bi">len</span>(ips))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Cardinality is the hidden cost.</strong> A <code>Counter</code> of 50 million lines from 200,000 distinct IPs is small; a <code>Counter</code> of full URLs including unique query strings or session IDs can hold tens of millions of keys and exhaust memory. Normalise keys first, and for truly huge cardinality say that you would fall back to <code>sort | uniq -c</code> (external sort on disk) or an approximate structure such as a Count-Min Sketch.</div></div>
+
+  <div class="lesson-h2">1.5 — Time: Parsing Timestamps, Bucketing, and Error Rates</div>
+  <p class="lesson-p">To answer "when did the errors start?" you bucket requests by time. Parse the stamp with <code>datetime.strptime</code> using <code>%z</code> to capture the UTC offset, convert to UTC, and build a sortable key with <code>strftime("%Y-%m-%d %H:00")</code> (per hour) or <code>"%H:%M"</code> (per minute). Then compute a <strong>rate</strong>, <code>5xx / total</code>, not a raw count: during an outage traffic often drops, so the count of errors can fall while the percentage skyrockets. Only 5xx are <em>server</em> errors; a wave of 404s or 401s is a different problem.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Bucket by hour and compute the 5xx error rate</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+<span class="kw">from</span> collections <span class="kw">import</span> defaultdict
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone
+
+LOG = <span class="st">"""203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET /api/v1/orders?id=42 HTTP/1.1" 200 1532 "-" "Mozilla/5.0" 0.128
+203.0.113.7 - - [12/Mar/2026:10:15:33 +0000] "GET /api/v1/orders?id=43 HTTP/1.1" 200 1498 "-" "Mozilla/5.0" 0.131
+198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.045
+198.51.100.23 - - [12/Mar/2026:10:16:02 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.044
+192.0.2.55 - - [12/Mar/2026:10:17:45 +0000] "GET /static/app.js HTTP/1.1" 200 48211 "https://shop.example.com/" "Mozilla/5.0" 0.009
+203.0.113.7 - - [12/Mar/2026:10:59:58 +0000] "POST /api/v1/checkout HTTP/1.1" 502 157 "-" "Mozilla/5.0" 3.204
+192.0.2.55 - - [12/Mar/2026:11:02:10 +0000] "GET /api/v1/orders?id=7 HTTP/1.1" 200 1611 "-" "Mozilla/5.0" 0.140
+10.0.0.9 - - [12/Mar/2026:11:03:00 +0000] "GET /health HTTP/1.1" 200 2 "-" "kube-probe/1.29" 0.001
+198.51.100.23 - - [12/Mar/2026:11:04:12 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.046
+203.0.113.7 - - [12/Mar/2026:11:05:40 +0000] "POST /api/v1/checkout HTTP/1.1" 500 212 "-" "Mozilla/5.0" 2.871"""</span>
+
+total = defaultdict(<span class="bi">int</span>)
+errors = defaultdict(<span class="bi">int</span>)
+<span class="kw">for</span> line <span class="kw">in</span> LOG.splitlines():
+    parts = line.split()
+    stamp = <span class="st">" "</span>.join(parts[<span class="nm">3</span>:<span class="nm">5</span>]).strip(<span class="st">"[]"</span>)            <span class="cm"># "12/Mar/2026:10:15:32 +0000"</span>
+    ts = datetime.strptime(stamp, <span class="st">"%d/%b/%Y:%H:%M:%S %z"</span>).astimezone(timezone.utc)
+    bucket = ts.strftime(<span class="st">"%Y-%m-%d %H:00"</span>)             <span class="cm"># normalise to UTC before bucketing</span>
+    total[bucket] += <span class="nm">1</span>
+    <span class="kw">if</span> parts[<span class="nm">8</span>].startswith(<span class="st">"5"</span>):
+        errors[bucket] += <span class="nm">1</span>
+
+<span class="kw">for</span> bucket <span class="kw">in</span> <span class="bi">sorted</span>(total):                 <span class="cm"># sorted(): dict order is arrival order, not time order</span>
+    rate = errors[bucket] / total[bucket] * <span class="nm">100</span>
+    <span class="bi">print</span>(<span class="st">f"{bucket}  {errors[bucket]}/{total[bucket]} = {rate:.1f}% 5xx"</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Time is where log analysis goes wrong.</strong> nginx writes local time plus an offset; <code>syslog</code>/<code>auth.log</code> lines have <strong>no year and no timezone</strong> at all; and during a daylight-saving change "01:30" happens twice. Normalise everything to UTC as early as possible, supply the year explicitly for syslog data, and always iterate <code>sorted(buckets)</code> (dictionaries keep arrival order, not time order).</div></div>
+
+  <div class="lesson-h2">1.6 — Latency Percentiles: Why the Average Lies</div>
+  <p class="lesson-p">If 99 requests take 10 ms and one takes 10 seconds, the mean is about 110 ms, a number that describes nobody. Latency has a <strong>long tail</strong>, so SLOs are written in percentiles: <strong>p50</strong> is the typical request, <strong>p95</strong> and <strong>p99</strong> are what your slowest users feel. The <strong>nearest-rank</strong> method is the simplest: sort, take rank <code>ceil(p/100 &times; n)</code>. Be aware that other tools <em>interpolate</em> between neighbouring samples, so <code>statistics.quantiles</code> and numpy give slightly different p95s for the same data. Pick one definition and say which.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Percentiles: nearest-rank by hand, and why methods disagree</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math, statistics
+
+latencies = [<span class="nm">0.011</span>, <span class="nm">0.012</span>, <span class="nm">0.012</span>, <span class="nm">0.013</span>, <span class="nm">0.014</span>, <span class="nm">0.015</span>, <span class="nm">0.016</span>, <span class="nm">0.018</span>, <span class="nm">0.021</span>, <span class="nm">0.024</span>,
+             <span class="nm">0.027</span>, <span class="nm">0.031</span>, <span class="nm">0.036</span>, <span class="nm">0.044</span>, <span class="nm">0.052</span>, <span class="nm">0.071</span>, <span class="nm">0.098</span>, <span class="nm">0.412</span>, <span class="nm">1.905</span>, <span class="nm">4.310</span>]
+
+<span class="kw">def</span> <span class="fn">nearest_rank</span>(data, p):
+    ordered = <span class="bi">sorted</span>(data)
+    k = math.ceil(p / <span class="nm">100</span> * <span class="bi">len</span>(ordered))     <span class="cm"># rank, 1-based</span>
+    <span class="kw">return</span> ordered[k - <span class="nm">1</span>]
+
+<span class="bi">print</span>(<span class="st">"mean :"</span>, <span class="bi">round</span>(<span class="bi">sum</span>(latencies) / <span class="bi">len</span>(latencies), <span class="nm">3</span>))
+<span class="bi">print</span>(<span class="st">"p50  :"</span>, nearest_rank(latencies, <span class="nm">50</span>))
+<span class="bi">print</span>(<span class="st">"p95  :"</span>, nearest_rank(latencies, <span class="nm">95</span>))
+<span class="bi">print</span>(<span class="st">"p99  :"</span>, nearest_rank(latencies, <span class="nm">99</span>))
+
+q = statistics.quantiles(latencies, n=<span class="nm">100</span>, method=<span class="st">"inclusive"</span>)   <span class="cm"># 99 cut points, interpolated</span>
+<span class="bi">print</span>(<span class="st">"stdlib p95 (interpolated):"</span>, <span class="bi">round</span>(q[<span class="nm">94</span>], <span class="nm">3</span>))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>You cannot average percentiles.</strong> The p95 of server A and the p95 of server B do not combine into the fleet p95: the average of two p95s is not a p95. To aggregate correctly you must merge the raw samples or, at scale, merge <strong>histograms</strong> (which is exactly why Prometheus records latency as histogram buckets rather than pre-computed percentiles). This is a favourite senior-level interview follow-up.</div></div>
+
+  <div class="lesson-h2">1.7 — Detecting Brute Force: The Sliding Window</div>
+  <p class="lesson-p">"Flag any IP with 5 failed SSH logins in 10 seconds" sounds simple, but the naive approach, counting failures per fixed calendar minute, has a hole: an attacker who sends 5 attempts at 10:00:58 and 5 more at 10:01:02 is never caught, because each bucket only holds 5 spread across a boundary. The correct tool is a <strong>sliding window</strong>: keep a <code>deque</code> of recent timestamps per IP, and on each new event push it and pop from the left everything that has fallen out of the window. <code>deque.popleft()</code> is O(1), while <code>list.pop(0)</code> is O(n). Each event is added once and removed once, so the whole pass is linear.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Sliding window with a deque: detect brute force from auth.log</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+<span class="kw">from</span> collections <span class="kw">import</span> defaultdict, deque
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+AUTH = <span class="st">"""Mar 12 10:15:31 web01 sshd[2201]: Failed password for invalid user admin from 198.51.100.23 port 51122 ssh2
+Mar 12 10:15:33 web01 sshd[2203]: Failed password for invalid user admin from 198.51.100.23 port 51130 ssh2
+Mar 12 10:15:34 web01 sshd[2205]: Failed password for root from 198.51.100.23 port 51138 ssh2
+Mar 12 10:15:36 web01 sshd[2207]: Failed password for root from 198.51.100.23 port 51144 ssh2
+Mar 12 10:15:38 web01 sshd[2209]: Failed password for root from 198.51.100.23 port 51150 ssh2
+Mar 12 10:16:02 web01 sshd[2301]: Accepted publickey for deploy from 192.0.2.55 port 40222 ssh2
+Mar 12 10:20:00 web01 sshd[2410]: Failed password for alice from 203.0.113.7 port 60001 ssh2
+Mar 12 10:25:00 web01 sshd[2411]: Failed password for alice from 203.0.113.7 port 60002 ssh2"""</span>
+
+FAIL_RE = re.compile(<span class="st">r"^(?P&lt;ts&gt;\w{3}\s+\d+ [\d:]{8}) \S+ sshd\[\d+\]: Failed password for (?:invalid user )?(?P&lt;user&gt;\S+) from (?P&lt;ip&gt;\S+)"</span>)
+WINDOW, LIMIT = <span class="nm">10</span>, <span class="nm">5</span>            <span class="cm"># 5 failures inside any 10-second window</span>
+
+recent = defaultdict(deque)      <span class="cm"># ip -&gt; timestamps still inside the window</span>
+flagged = <span class="bi">set</span>()
+<span class="kw">for</span> line <span class="kw">in</span> AUTH.splitlines():
+    m = FAIL_RE.match(line)
+    <span class="kw">if</span> <span class="kw">not</span> m:
+        <span class="kw">continue</span>                 <span class="cm"># Accepted logins etc. are not failures</span>
+    <span class="cm"># syslog timestamps carry NO year - you must supply one yourself</span>
+    t = datetime.strptime(<span class="st">"2026 "</span> + m[<span class="st">"ts"</span>], <span class="st">"%Y %b %d %H:%M:%S"</span>).timestamp()
+    q = recent[m[<span class="st">"ip"</span>]]
+    q.append(t)
+    <span class="kw">while</span> t - q[<span class="nm">0</span>] &gt;= WINDOW:    <span class="cm"># evict everything that fell out of the window</span>
+        q.popleft()
+    <span class="kw">if</span> <span class="bi">len</span>(q) &gt;= LIMIT:
+        flagged.add(m[<span class="st">"ip"</span>])
+
+<span class="bi">print</span>(<span class="st">"flagged:"</span>, <span class="bi">sorted</span>(flagged))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Detection is not the same as blocking.</strong> A whole office or university often shares one NAT address and can trip a per-IP threshold with perfectly legitimate typos, so allow-list known ranges before you auto-ban anything. Also note that a distributed attack (thousands of IPs, one guess each) never trips a per-IP counter; you catch that by aggregating per <em>username</em>. Tools such as <code>fail2ban</code> implement exactly this pattern.</div></div>
+
+  <div class="lesson-h2">1.8 — <code>grep</code> / <code>awk</code> / <code>sort | uniq -c</code>, and When the Shell Wins</div>
+  <p class="lesson-p">Every Python idea above has a classic shell one-liner, and a good engineer knows both and picks deliberately.</p>
+  <table class="lesson-table"><tr><th>Shell</th><th>Python equivalent</th></tr><tr><td><code>grep ' 500 ' access.log</code></td><td><code>[l for l in f if ' 500 ' in l]</code></td></tr><tr><td><code>awk '{print $1}' f | sort | uniq -c | sort -rn | head</code></td><td><code>Counter(l.split()[0] for l in f).most_common(10)</code></td></tr><tr><td><code>cut -d' ' -f9 f | sort | uniq -c</code></td><td><code>Counter(l.split()[8] for l in f)</code></td></tr><tr><td><code>zcat access.log.2.gz | ...</code></td><td><code>gzip.open(path, 'rt')</code></td></tr><tr><td><code>tail -F access.log</code></td><td>a <code>follow()</code> generator (section 1.1)</td></tr></table>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The shell one-liner and its Python twin</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+<span class="cm"># awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -3</span>
+lines = [
+    <span class="st">'203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET / HTTP/1.1" 200 5'</span>,
+    <span class="st">'198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] "POST /login HTTP/1.1" 401 87'</span>,
+    <span class="st">'203.0.113.7 - - [12/Mar/2026:10:16:05 +0000] "GET /a HTTP/1.1" 200 9'</span>,
+    <span class="st">'203.0.113.7 - - [12/Mar/2026:10:16:09 +0000] "GET /b HTTP/1.1" 200 9'</span>,
+    <span class="st">'192.0.2.55 - - [12/Mar/2026:10:17:45 +0000] "GET /c HTTP/1.1" 200 3'</span>,
+    <span class="st">'198.51.100.23 - - [12/Mar/2026:10:17:50 +0000] "POST /login HTTP/1.1" 401 87'</span>,
+]
+<span class="kw">for</span> ip, n <span class="kw">in</span> Counter(l.split()[<span class="nm">0</span>] <span class="kw">for</span> l <span class="kw">in</span> lines).most_common(<span class="nm">3</span>):
+    <span class="bi">print</span>(<span class="st">f"{n:&gt;4} {ip}"</span>)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only &mdash; streaming a rotated .gz log</span></div>
+    <div class="cb-code"><span class="kw">import</span> gzip
+
+<span class="cm"># Rotated logs are usually gzipped. "rt" = read as text, and it STREAMS - no full decompress in memory.</span>
+<span class="kw">with</span> gzip.<span class="bi">open</span>(<span class="st">"/var/log/nginx/access.log.2.gz"</span>, <span class="st">"rt"</span>, errors=<span class="st">"replace"</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> line <span class="kw">in</span> f:
+        ...</div>
+  </div>
+  <p class="lesson-p"><strong>Reach for the shell</strong> for one-off exploration on a live box: the GNU tools are written in C, stream, and are very fast. <strong>Reach for Python</strong> when you need logic the shell makes painful (sliding windows, percentiles, joins between sources), when the code will be reused or tested, or when the output must be structured (JSON, an alert, a metric). In an interview, saying "I would start with a one-liner to look, then write a script once it needs to be repeatable" is exactly the right instinct.</p>
+
+  <div class="lesson-h2">Key Takeaways</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Stream, don't slurp</strong> &mdash; iterate the file / use generators; remember generators are single-use.</div></li>
+    <li data-n="2"><div><strong>Named groups + compile once + non-greedy or negated classes</strong> &mdash; and watch for catastrophic backtracking.</div></li>
+    <li data-n="3"><div><strong>Never crash on a bad line</strong> &mdash; return <code>None</code>, count skips, and alert on the skip ratio.</div></li>
+    <li data-n="4"><div><strong>Normalise, then count</strong> &mdash; UTC timestamps, query-stripped paths; <code>Counter</code> memory scales with distinct keys.</div></li>
+    <li data-n="5"><div><strong>Percentiles over averages, sliding windows over fixed buckets</strong> &mdash; and know why you cannot average percentiles.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:32px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises on realistic log data. Inputs are fixed, so your printed output is checked exactly. Each editor already contains the data; you write the logic (TODO comments show the steps).</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Top Talkers: The 3 Busiest Client IPs</div>
+        <div class="ex-desc">The classic first question in a log-analysis interview: who is hitting us the most?</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given the 12 access-log lines below (the client IP is the first field):
+  1. Count requests per IP with collections.Counter
+  2. Take the 3 most common as a list of (ip, count) tuples called top3
+  3. Print exactly:
+       f'Top 3: {top3}'
+       f'Unique IPs: {len(counts)}'
+(Correct: Top 3: [('203.0.113.7', 5), ('198.51.100.23', 3), ('192.0.2.55', 2)] / Unique IPs: 5)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code" rows="23">from collections import Counter
+
+lines = [
+    '203.0.113.7 - - [12/Mar/2026:09:00:01 +0000] "GET / HTTP/1.1" 200 512',
+    '198.51.100.23 - - [12/Mar/2026:09:00:02 +0000] "POST /login HTTP/1.1" 401 87',
+    '203.0.113.7 - - [12/Mar/2026:09:00:04 +0000] "GET /a HTTP/1.1" 200 90',
+    '192.0.2.55 - - [12/Mar/2026:09:00:05 +0000] "GET /b HTTP/1.1" 200 90',
+    '203.0.113.7 - - [12/Mar/2026:09:00:06 +0000] "GET /c HTTP/1.1" 200 90',
+    '198.51.100.23 - - [12/Mar/2026:09:00:07 +0000] "POST /login HTTP/1.1" 401 87',
+    '10.0.0.9 - - [12/Mar/2026:09:00:08 +0000] "GET /health HTTP/1.1" 200 2',
+    '203.0.113.7 - - [12/Mar/2026:09:00:09 +0000] "GET /d HTTP/1.1" 200 90',
+    '198.51.100.23 - - [12/Mar/2026:09:00:10 +0000] "POST /login HTTP/1.1" 401 87',
+    '192.0.2.55 - - [12/Mar/2026:09:00:11 +0000] "GET /e HTTP/1.1" 200 90',
+    '203.0.113.7 - - [12/Mar/2026:09:00:12 +0000] "GET /f HTTP/1.1" 200 90',
+    '172.16.4.4 - - [12/Mar/2026:09:00:13 +0000] "GET /g HTTP/1.1" 200 90',
+]
+
+# TODO 1: counts = a Counter of the first whitespace-separated field of every line
+# TODO 2: top3 = the 3 most common (ip, count) pairs
+# TODO 3: print the two required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">5xx Error Rate Per Hour</div>
+        <div class="ex-desc">Bucket requests by hour and compute the server-error percentage - the number an on-call engineer checks first.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+The 12 lines below are NOT in time order. For each hour bucket:
+  - key = the timestamp truncated to the hour, formatted '%Y-%m-%d %H:00' (parse it with datetime.strptime)
+  - count total requests and 5xx responses (4xx are NOT server errors)
+Print one line per hour, in chronological order, exactly:
+  f'{key}  {errors}/{total} = {rate:.2f}%'
+Then print the hour with the highest rate:  f'Worst hour: {worst_key}'
+(Correct: 2026-03-12 09:00  1/5 = 20.00% / 2026-03-12 10:00  2/4 = 50.00% / 2026-03-12 11:00  0/3 = 0.00% / Worst hour: 2026-03-12 10:00)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code" rows="27">import re
+from collections import defaultdict
+from datetime import datetime
+
+lines = [
+    '203.0.113.7 - - [12/Mar/2026:09:01:10 +0000] "GET / HTTP/1.1" 200 512',
+    '203.0.113.7 - - [12/Mar/2026:09:12:44 +0000] "GET /a HTTP/1.1" 200 90',
+    '192.0.2.55 - - [12/Mar/2026:10:03:01 +0000] "POST /pay HTTP/1.1" 502 157',
+    '198.51.100.23 - - [12/Mar/2026:09:20:02 +0000] "GET /missing HTTP/1.1" 404 30',
+    '203.0.113.7 - - [12/Mar/2026:09:41:19 +0000] "GET /b HTTP/1.1" 200 90',
+    '192.0.2.55 - - [12/Mar/2026:10:15:30 +0000] "POST /pay HTTP/1.1" 503 157',
+    '10.0.0.9 - - [12/Mar/2026:10:30:00 +0000] "GET /health HTTP/1.1" 200 2',
+    '203.0.113.7 - - [12/Mar/2026:09:55:00 +0000] "GET /c HTTP/1.1" 500 212',
+    '192.0.2.55 - - [12/Mar/2026:10:59:59 +0000] "GET /d HTTP/1.1" 200 90',
+    '10.0.0.9 - - [12/Mar/2026:11:00:00 +0000] "GET /health HTTP/1.1" 200 2',
+    '203.0.113.7 - - [12/Mar/2026:11:20:00 +0000] "GET /e HTTP/1.1" 301 0',
+    '203.0.113.7 - - [12/Mar/2026:11:40:00 +0000] "GET /f HTTP/1.1" 200 90',
+]
+pat = re.compile(r'\[([^\]]+)\] "[A-Z]+ \S+ [^"]+" (\d{3})')
+
+# `pat` already extracts (timestamp, status) from a line.
+# TODO 1: loop over lines; turn the timestamp into a sortable hour key
+# TODO 2: keep total and 5xx counts per key (defaultdict(int) works well)
+# TODO 3: print each hour in chronological order, then the worst hour
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">p50 / p95 / p99 Latency (and Why the Mean Lies)</div>
+        <div class="ex-desc">Implement nearest-rank percentiles and compare them to the average.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write percentile(data, p) using the NEAREST-RANK method: sort the data, rank = ceil(p/100 * n), return ordered[rank-1].
+For the 20 request times below compute p50, p95, p99 and the mean, then print exactly:
+  f'p50={p50} p95={p95} p99={p99} mean={mean:.3f}'
+  f'SLO p95&lt;=0.5s met: {p95 &lt;= 0.5}'
+(Correct: p50=0.13 p95=1.2 p99=2.6 mean=0.338 / SLO p95&lt;=0.5s met: False)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code" rows="11">import math
+
+latencies = [0.08, 0.09, 0.09, 0.10, 0.10, 0.11, 0.11, 0.12, 0.12, 0.13,
+             0.14, 0.15, 0.16, 0.18, 0.21, 0.25, 0.33, 0.48, 1.20, 2.60]
+
+# TODO 1: def percentile(data, p): sort, compute the 1-based rank with math.ceil, return that element
+# TODO 2: p50, p95, p99 and the mean
+# TODO 3: print the two required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Brute-Force Detector With a Sliding Window</div>
+        <div class="ex-desc">Flag IPs with too many failed logins inside ANY 10-second window - not just inside one fixed calendar bucket.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+`events` is a time-sorted list of (epoch_seconds, ip) FAILED-login events. An IP is suspicious if it has
+LIMIT (5) or more failures inside any window of WINDOW (10) seconds, where two events are in the same window
+only when t_new - t_old &lt; WINDOW (exactly 10 seconds apart is NOT inside the window).
+Use one deque per IP. Track each IP's peak count (the most failures ever held in its window at once), then print:
+  f'Flagged: {flagged}'                       (sorted list of flagged IPs)
+  and for every IP, sorted by IP:  f'{ip}: peak {peak[ip]} in {WINDOW}s'
+(Correct: Flagged: ['10.9.9.9', '198.51.100.23'] / 10.9.9.9: peak 7 in 10s / 172.16.4.4: peak 4 in 10s / ...)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code" rows="18">from collections import defaultdict, deque
+
+events = [(100, '198.51.100.23'), (100, '10.9.9.9'), (101, '10.9.9.9'), (102, '198.51.100.23'),
+          (102, '10.9.9.9'), (103, '10.9.9.9'), (103, '192.0.2.55'), (104, '10.9.9.9'),
+          (104, '192.0.2.55'), (105, '198.51.100.23'), (105, '192.0.2.55'), (106, '10.9.9.9'),
+          (107, '198.51.100.23'), (107, '192.0.2.55'), (108, '10.9.9.9'), (110, '198.51.100.23'),
+          (111, '198.51.100.23'), (160, '203.0.113.7'), (220, '203.0.113.7'), (280, '203.0.113.7'),
+          (300, '172.16.4.4'), (302, '172.16.4.4'), (304, '172.16.4.4'), (306, '172.16.4.4'),
+          (310, '172.16.4.4'), (340, '203.0.113.7'), (400, '203.0.113.7')]
+WINDOW, LIMIT = 10, 5
+
+# TODO 1: recent = defaultdict(deque)   # ip -&gt; timestamps still inside the window
+#         peak   = defaultdict(int)     # ip -&gt; largest window size ever seen
+# TODO 2: for each (t, ip): append t, then popleft() while t - oldest &gt;= WINDOW, then update peak[ip]
+# TODO 3: flagged = sorted IPs whose peak &gt;= LIMIT; print the required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">A Parser That Survives Garbage Lines</div>
+        <div class="ex-desc">Real logs contain truncated writes and blank lines. Parse what you can and report exactly what you skipped.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+`pat` matches a full combined-format line (named groups: ip, status, size). For each entry in `lines`:
+  - blank / whitespace-only lines are ignored silently (NOT counted as skipped)
+  - a non-blank line that does not match pat counts as skipped
+  - matching lines go into `parsed` (use m.groupdict())
+A size of '-' (e.g. a 304 response) means 0 bytes. Print exactly:
+  f'Parsed: {len(parsed)}, Skipped: {skipped}'
+  f'Total bytes: {total_bytes}'
+  f'Statuses: {sorted(r["status"] for r in parsed)}'
+(Correct: Parsed: 6, Skipped: 2 / Total bytes: 1837 / Statuses: ['200', '200', '200', '304', '401', '500'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code" rows="21">import re
+
+lines = [
+    '203.0.113.7 - - [12/Mar/2026:09:00:01 +0000] "GET / HTTP/1.1" 200 512 "-" "Mozilla/5.0"',
+    'garbage: disk full while writing this l',
+    '198.51.100.23 - - [12/Mar/2026:09:00:02 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0"',
+    '',
+    '192.0.2.55 - - [12/Mar/2026:09:00:05 +0000] "GET /b HTTP/1.1" 304 - "-" "Mozilla/5.0"',
+    '203.0.113.7 - - [12/Mar/2026:09:00:06 +0000] "GET /c HTTP/1.1" 200 1024 "-" "Mozilla/5.0"',
+    '10.0.0.9 - - [12/Mar/2026:09:00:08 +0000] "GET /health HTTP/1.1" 200 2 "-" "kube-probe/1.29"',
+    '203.0.113.7 - - [12/Mar/2026:09:00:09 +0000] "GET /d HTT',
+    '203.0.113.7 - - [12/Mar/2026:09:00:12 +0000] "GET /f HTTP/1.1" 500 212 "-" "Mozilla/5.0"',
+]
+pat = re.compile(r'^(?P&lt;ip&gt;\S+) \S+ \S+ \[[^\]]+\] "[A-Z]+ \S+ [^"]+" (?P&lt;status&gt;\d{3}) (?P&lt;size&gt;\d+|-) "[^"]*" "[^"]*"$')
+
+# TODO 1: parsed = [], skipped = 0
+# TODO 2: loop: ignore blank lines, count non-matching lines as skipped, keep m.groupdict() for matches
+# TODO 3: total_bytes (treat '-' as 0), then print the three required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>LogReport &mdash; a Log Summary Tool</span></h2>
+    <p>This is the core of the "quick report" script every on-call engineer eventually writes: feed it an access log, get back the numbers that matter. It is small enough to finish in one sitting and it uses everything from this chapter: a tolerant regex parser, a <code>Counter</code>, error rates, percentiles and a simple abuse heuristic.</p>
+    <div class="project-tags">
+      <span class="ptag">regex</span>
+      <span class="ptag">Counter</span>
+      <span class="ptag">percentiles</span>
+      <span class="ptag">error handling</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A <code>LogReport</code> class that parses the embedded log text (17 good lines, 2 corrupt ones) with the given <code>PATTERN</code>, skipping and counting bad lines</li>
+      <li>Methods: <code>error_rate</code> (5xx percentage), <code>top_ips</code>, <code>slowest_endpoints</code> (average request time per path, query string removed), <code>p95</code> (nearest-rank), <code>suspicious_ips</code> (3+ responses with 401/403)</li>
+      <li>The <code>summary()</code> printer is provided; your methods must make its output match the checklist below exactly</li>
+      <li>Stuck? The <strong>Reference solution</strong> button loads a complete version into the editor</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ LogReport &mdash; Your Solution</div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="ex-solution" onclick="showProjectSolution()">👁 Reference solution</button>
+        <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+      </div>
+    </div>
+    <textarea id="project-editor">import re
+import math
+from collections import Counter, defaultdict
+from urllib.parse import urlsplit
+
+LOG = """203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] "GET /api/v1/orders?id=42 HTTP/1.1" 200 1532 "-" "Mozilla/5.0" 0.128
+203.0.113.7 - - [12/Mar/2026:10:15:33 +0000] "GET /api/v1/orders?id=43 HTTP/1.1" 200 1498 "-" "Mozilla/5.0" 0.131
+198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.045
+198.51.100.23 - - [12/Mar/2026:10:16:02 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.044
+198.51.100.23 - - [12/Mar/2026:10:16:03 +0000] "POST /login HTTP/1.1" 403 87 "-" "curl/8.5.0" 0.046
+truncated line from a crashed writer
+192.0.2.55 - - [12/Mar/2026:10:17:45 +0000] "GET /static/app.js HTTP/1.1" 200 48211 "-" "Mozilla/5.0" 0.009
+203.0.113.7 - - [12/Mar/2026:10:59:58 +0000] "POST /api/v1/checkout HTTP/1.1" 502 157 "-" "Mozilla/5.0" 3.204
+192.0.2.55 - - [12/Mar/2026:11:02:10 +0000] "GET /api/v1/orders?id=7 HTTP/1.1" 200 1611 "-" "Mozilla/5.0" 0.140
+10.0.0.9 - - [12/Mar/2026:11:03:00 +0000] "GET /health HTTP/1.1" 200 2 "-" "kube-probe/1.29" 0.001
+198.51.100.23 - - [12/Mar/2026:11:04:12 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.047
+203.0.113.7 - - [12/Mar/2026:11:05:40 +0000] "POST /api/v1/checkout HTTP/1.1" 500 212 "-" "Mozilla/5.0" 2.871
+10.0.0.9 - - [12/Mar/2026:11:06:00 +0000] "GET /health HTTP/1.1" 200 2 "-" "kube-probe/1.29" 0.002
+192.0.2.55 - - [12/Mar/2026:11:07:15 +0000] "GET /api/v1/orders?id=9 HTTP/1.1" 200 1602 "-" "Mozilla/5.0" 0.152
+203.0.113.7 - - [12/Mar/2026:11:08:01 +0000] "GET /api/v1/orders?id=10 HTTP/1.1" 200 1590 "-" "Mozilla/5.0" 0.133
+198.51.100.23 - - [12/Mar/2026:11:09:00 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.047
+[12/Mar/2026:11:10:00 +0000] incomplete record
+192.0.2.55 - - [12/Mar/2026:11:11:30 +0000] "GET /api/v1/orders?id=11 HTTP/1.1" 200 1620 "-" "Mozilla/5.0" 0.149
+198.51.100.23 - - [12/Mar/2026:11:12:00 +0000] "POST /login HTTP/1.1" 401 87 "-" "curl/8.5.0" 0.045"""
+
+PATTERN = re.compile(r'^(?P&lt;ip&gt;\S+) \S+ \S+ \[[^\]]+\] "(?P&lt;method&gt;[A-Z]+) (?P&lt;path&gt;\S+) [^"]+" (?P&lt;status&gt;\d{3}) (?P&lt;size&gt;\d+|-) "[^"]*" "[^"]*" (?P&lt;rt&gt;\d+\.\d+)$')
+
+class LogReport:
+    def __init__(self, text):
+        self.records, self.skipped = [], 0
+        # TODO 1: parse every non-blank line with PATTERN.
+        #   - lines that do not match: self.skipped += 1
+        #   - matches: groupdict(); status -&gt; int, rt -&gt; float, path -&gt; urlsplit(path).path (drop the ?query)
+        #   - append each dict to self.records
+
+    def error_rate(self):
+        # TODO 2: percentage of records with status &gt;= 500
+        ...
+
+    def top_ips(self, n=3):
+        # TODO 3: n most common (ip, count) pairs
+        ...
+
+    def slowest_endpoints(self, n=2):
+        # TODO 4: average rt per path, highest first, top n as (path, avg) pairs
+        ...
+
+    def p95(self):
+        # TODO 5: nearest-rank p95 of rt: ordered[ceil(0.95 * len) - 1]
+        ...
+
+    def suspicious_ips(self, threshold=3):
+        # TODO 6: sorted list of IPs with &gt;= threshold responses of status 401 or 403
+        ...
+
+    def summary(self):
+        print(f'Total requests: {len(self.records)} ({self.skipped} lines skipped)')
+        print(f'Error rate (5xx): {self.error_rate():.2f}%')
+        print(f'Top IPs: {self.top_ips()}')
+        for path, avg in self.slowest_endpoints():
+            print(f'Slow: {path} avg {avg:.3f}s')
+        print(f'p95 latency: {self.p95():.3f}s')
+        print(f'Suspicious IPs: {self.suspicious_ips()}')
+
+LogReport(LOG).summary()
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist &mdash; did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📊</span>Total requests: 17 (2 lines skipped)</div>
+    <div class="check-item"><span class="check-icon">🔥</span>Error rate (5xx): 11.76%</div>
+    <div class="check-item"><span class="check-icon">🌐</span>Top IPs: [('198.51.100.23', 6), ('203.0.113.7', 5), ('192.0.2.55', 4)]</div>
+    <div class="check-item"><span class="check-icon">🐢</span>Slow: /api/v1/checkout avg 3.038s, then /api/v1/orders avg 0.139s</div>
+    <div class="check-item"><span class="check-icon">⏱️</span>p95 latency: 3.204s</div>
+    <div class="check-item"><span class="check-icon">🚨</span>Suspicious IPs: ['198.51.100.23']</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DevOps Python 1 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want &mdash; nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">You must analyse a 5 GB access log on a server with 2 GB of free RAM. Which approach is right, and why?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Iterate the file with <code>for line in f</code> (or a generator) and aggregate as you go &mdash; memory stays roughly constant regardless of file size</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> <code>f.read().splitlines()</code>, because a list is faster to loop over</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> <code>f.readlines()</code> and then delete lines you do not need</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It is impossible in Python; you must use <code>awk</code></button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">On the line <code>GET /a "Mozilla/5.0" "https://x.com/y" 200</code>, what does the greedy pattern <code>".*"</code> match?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Only <code>"Mozilla/5.0"</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> From the first quote to the LAST quote: <code>"Mozilla/5.0" "https://x.com/y"</code>, because <code>.*</code> is greedy</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Nothing &mdash; quotes must be escaped</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Only <code>"https://x.com/y"</code></button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Your dashboard shows a mean latency of 120 ms, but your p99 is 4 seconds. What does that tell you?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> A small fraction of requests (the tail) is very slow even though the average looks healthy &mdash; averages hide tail latency, which is why SLOs use percentiles</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> The p99 is probably a measurement bug and can be ignored</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> The service is healthy because the mean is low</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Latency is normally distributed, so the mean is the best summary</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">You have a list <code>ips</code> of client IPs. Write the one expression, using <code>Counter</code>, that returns the 3 most frequent IPs as <code>(ip, count)</code> pairs.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="Counter(...)..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">You count failed logins per IP in fixed one-minute buckets. An attacker sends 5 attempts at 10:00:58 and 5 more at 10:01:02. What goes wrong, and what is the fix?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Nothing &mdash; fixed buckets are exact</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Neither bucket reaches a threshold of 10, so the 10 attempts in 4 seconds go unnoticed; a sliding window (a deque of recent timestamps per IP) catches bursts that straddle a boundary</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> The attacker is caught twice; deduplicate the alerts</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> You should use a bigger bucket such as one day</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🧩</div>
+    <div class="ncc-info">
+      <h3>DevOps Python 2: Config &amp; Data Formats (YAML, JSON, TOML)</h3>
+      <p>Next up: the safe way to load YAML (and the classic "Norway problem"), layering config from files, environment variables and CLI flags, validating config with pydantic, and finding risky settings in Kubernetes and docker-compose manifests.</p>
+    </div>
+    <a class="ncc-btn" href="do02-config-yaml-json-toml.html">Start DevOps 2 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Log Parsing &amp; Text Processing &mdash; Interview Prep</h2>
+    <p>10 questions that come up for DevOps, SRE and platform roles, with the answer a strong candidate gives (including the pitfall interviewers listen for). Click a question to reveal the answer.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you find the top 10 client IPs in a 50 GB access log?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Stream it: read line by line, pull the IP from the first field, and feed a <code>Counter</code>; then call <code>.most_common(10)</code>. Memory depends on the number of <em>distinct</em> IPs, not the 50 GB, so it is usually tiny. If cardinality were enormous I would say so and fall back to <code>awk '{print $1}' | sort | uniq -c | sort -rn | head</code> (external sort spills to disk) or an approximate structure such as a Count-Min Sketch. To go faster, split the file (or the rotated files) across processes, build a <code>Counter</code> per shard, then merge them with <code>+</code>. Also mention that you would sanity-check that the log format is what you assume before trusting the answer.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Count the number of 5xx responses per hour. What can go wrong?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Parse the timestamp with <code>strptime</code> and <code>%z</code>, convert to UTC, bucket by <code>strftime('%Y-%m-%d %H:00')</code>, and count with a <code>defaultdict(int)</code>. What goes wrong: mixed timezones or missing offsets, syslog lines with no year, unparseable lines silently dropped (so your denominator is wrong), iterating a dict in arrival order instead of <code>sorted()</code>, counting 4xx as errors, and reporting a raw count instead of a rate (traffic drops during an outage). I would also emit the number of skipped lines so the reader can judge how trustworthy the figure is.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you implement <code>tail -f</code> in Python, and where does it break?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Open the file, <code>seek(0, os.SEEK_END)</code>, then loop: <code>readline()</code>; if it returns an empty string sleep briefly and try again; otherwise yield the line. It breaks on log rotation (the file is renamed, and the loop keeps reading the old inode), on truncation (<code>copytruncate</code>), and on partial lines (a writer flushed half a line). Production answer: use <code>tail -F</code>, or inotify/<code>watchdog</code>, or better, do not tail files at all &mdash; ship logs with an agent (Fluent Bit, Vector, Promtail) to a central store.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is catastrophic backtracking in a regex, and how do you avoid it in log parsing?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Some patterns, typically nested quantifiers such as <code>(a+)+$</code> or overlapping alternations, force the engine to try an exponential number of ways to match a line that <em>almost</em> matches. One malformed or attacker-controlled log line can then consume a CPU for minutes (ReDoS). Avoid it with negated character classes (<code>[^"]*</code> instead of <code>.*</code>), anchors, specific tokens instead of nested wildcards, possessive quantifiers/atomic groups (Python 3.11+), limiting line length before matching, and by not using a regex at all when <code>split()</code> or structured (JSON) logs will do.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Generator versus list when processing a large file: trade-offs?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A generator produces items lazily, so memory is O(1) and you can start processing immediately; a list holds everything, so memory is O(n) but you get random access, <code>len()</code>, sorting and multiple passes. The gotchas with generators: they are <strong>single-use</strong> (a second loop yields nothing, silently), you cannot index or take <code>len()</code>, and exceptions surface late, at consumption time. Rule of thumb: stream for one-pass aggregation, materialise only the reduced result (a <code>Counter</code>, a summary), not the raw data.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why are p95/p99 more useful than the average latency, and how do you aggregate them across servers?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Latency is long-tailed: a few slow requests barely move the mean but define the experience of your unluckiest users, and in a fan-out architecture the tail dominates. SLOs are therefore written as percentiles (for example p99 &lt; 500 ms). Aggregation is the trap: you <strong>cannot average percentiles</strong>. To get a fleet percentile, merge the raw samples or merge histograms (Prometheus histogram buckets, HDR histograms), then compute the percentile from the merged distribution. Also state which percentile definition you use (nearest-rank vs interpolated) because tools disagree slightly.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you detect an SSH brute-force attack from <code>auth.log</code>?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Extract failed-login events (regex on <code>Failed password for ... from &lt;ip&gt;</code>), then run a sliding window per IP: keep a deque of timestamps, append the new one, pop from the left while it is outside the window, and flag if the length reaches the threshold. Fixed buckets miss bursts that straddle a boundary. Caveats I would raise: syslog has no year/timezone, shared NAT addresses cause false positives (allow-list them), and distributed attacks need aggregation per username. In real life I would deploy <code>fail2ban</code> or rate-limit at the edge instead of hand-rolling enforcement.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why do many teams prefer structured (JSON) logs, and how does that change parsing?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">One JSON object per line removes the regex from the critical path: <code>json.loads(line)</code> gives typed fields, adding a field does not break existing parsers, and log platforms (Loki, Elasticsearch, CloudWatch Logs Insights) can index and query fields directly. You should still wrap <code>json.loads</code> in try/except for truncated lines and count failures. Good fields to include: a UTC ISO-8601 timestamp, level, service name, a request/trace ID for correlating across services, and the duration. The cost is verbosity and a bit more CPU to serialise.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What are the timezone pitfalls when analysing logs from many servers?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Servers may log in local time; nginx includes an offset, but syslog lines have neither year nor timezone; and daylight saving makes an hour repeat or vanish. The rules I follow: configure servers to log UTC (or ISO-8601 with offset), parse with <code>%z</code> and convert to UTC immediately, supply the year explicitly when parsing syslog (and handle the December/January rollover), sort by real timestamps rather than file order, and never compare a naive datetime to an aware one (Python raises <code>TypeError</code>).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When do you use a shell one-liner and when do you write a Python script for log analysis?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">For quick, one-off exploration on a live machine I use <code>grep</code>/<code>awk</code>/<code>sort | uniq -c</code>: they stream, they are C-fast and they need no setup. I switch to Python when the logic gets stateful or non-trivial (sliding windows, percentiles, joins across files), when the result must be structured or tested, or when the script will be rerun or scheduled. For continuous, fleet-wide analysis neither is the answer: I would use a log pipeline (Loki/ELK/CloudWatch) with alerting, and use Python for glue and ad-hoc investigation.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Standard library only in this chapter — no extra packages to load','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["top 3: [('203.0.113.7', 5), ('198.51.100.23', 3), ('192.0.2.55', 2)]", "unique ips: 5"],
+    hint:"Counter(line.split()[0] for line in lines) builds the counts in one pass; counts.most_common(3) returns the list of (ip, count) tuples.",
+    solution:"from collections import Counter\n\nlines = [\n    '203.0.113.7 - - [12/Mar/2026:09:00:01 +0000] \"GET / HTTP/1.1\" 200 512',\n    '198.51.100.23 - - [12/Mar/2026:09:00:02 +0000] \"POST /login HTTP/1.1\" 401 87',\n    '203.0.113.7 - - [12/Mar/2026:09:00:04 +0000] \"GET /a HTTP/1.1\" 200 90',\n    '192.0.2.55 - - [12/Mar/2026:09:00:05 +0000] \"GET /b HTTP/1.1\" 200 90',\n    '203.0.113.7 - - [12/Mar/2026:09:00:06 +0000] \"GET /c HTTP/1.1\" 200 90',\n    '198.51.100.23 - - [12/Mar/2026:09:00:07 +0000] \"POST /login HTTP/1.1\" 401 87',\n    '10.0.0.9 - - [12/Mar/2026:09:00:08 +0000] \"GET /health HTTP/1.1\" 200 2',\n    '203.0.113.7 - - [12/Mar/2026:09:00:09 +0000] \"GET /d HTTP/1.1\" 200 90',\n    '198.51.100.23 - - [12/Mar/2026:09:00:10 +0000] \"POST /login HTTP/1.1\" 401 87',\n    '192.0.2.55 - - [12/Mar/2026:09:00:11 +0000] \"GET /e HTTP/1.1\" 200 90',\n    '203.0.113.7 - - [12/Mar/2026:09:00:12 +0000] \"GET /f HTTP/1.1\" 200 90',\n    '172.16.4.4 - - [12/Mar/2026:09:00:13 +0000] \"GET /g HTTP/1.1\" 200 90',\n]\ncounts = Counter(line.split()[0] for line in lines)\ntop3 = counts.most_common(3)\nprint(f'Top 3: {top3}')\nprint(f'Unique IPs: {len(counts)}')"
+  },
+  2:{
+    checks:["2026-03-12 09:00  1/5 = 20.00%", "2026-03-12 10:00  2/4 = 50.00%", "2026-03-12 11:00  0/3 = 0.00%", "worst hour: 2026-03-12 10:00"],
+    hint:"key = datetime.strptime(stamp, '%d/%b/%Y:%H:%M:%S %z').strftime('%Y-%m-%d %H:00'). Iterate sorted(total) - dict order is arrival order, not time order. status.startswith('5') selects server errors.",
+    solution:"import re\nfrom collections import defaultdict\nfrom datetime import datetime\n\nlines = [\n    '203.0.113.7 - - [12/Mar/2026:09:01:10 +0000] \"GET / HTTP/1.1\" 200 512',\n    '203.0.113.7 - - [12/Mar/2026:09:12:44 +0000] \"GET /a HTTP/1.1\" 200 90',\n    '192.0.2.55 - - [12/Mar/2026:10:03:01 +0000] \"POST /pay HTTP/1.1\" 502 157',\n    '198.51.100.23 - - [12/Mar/2026:09:20:02 +0000] \"GET /missing HTTP/1.1\" 404 30',\n    '203.0.113.7 - - [12/Mar/2026:09:41:19 +0000] \"GET /b HTTP/1.1\" 200 90',\n    '192.0.2.55 - - [12/Mar/2026:10:15:30 +0000] \"POST /pay HTTP/1.1\" 503 157',\n    '10.0.0.9 - - [12/Mar/2026:10:30:00 +0000] \"GET /health HTTP/1.1\" 200 2',\n    '203.0.113.7 - - [12/Mar/2026:09:55:00 +0000] \"GET /c HTTP/1.1\" 500 212',\n    '192.0.2.55 - - [12/Mar/2026:10:59:59 +0000] \"GET /d HTTP/1.1\" 200 90',\n    '10.0.0.9 - - [12/Mar/2026:11:00:00 +0000] \"GET /health HTTP/1.1\" 200 2',\n    '203.0.113.7 - - [12/Mar/2026:11:20:00 +0000] \"GET /e HTTP/1.1\" 301 0',\n    '203.0.113.7 - - [12/Mar/2026:11:40:00 +0000] \"GET /f HTTP/1.1\" 200 90',\n]\npat = re.compile(r'\\[([^\\]]+)\\] \"[A-Z]+ \\S+ [^\"]+\" (\\d{3})')\ntotal = defaultdict(int)\nerrors = defaultdict(int)\nfor line in lines:\n    stamp, status = pat.search(line).groups()\n    key = datetime.strptime(stamp, '%d/%b/%Y:%H:%M:%S %z').strftime('%Y-%m-%d %H:00')\n    total[key] += 1\n    if status.startswith('5'):\n        errors[key] += 1\nworst_key, worst_rate = None, -1.0\nfor key in sorted(total):\n    rate = errors[key] / total[key] * 100\n    print(f'{key}  {errors[key]}/{total[key]} = {rate:.2f}%')\n    if rate > worst_rate:\n        worst_key, worst_rate = key, rate\nprint(f'Worst hour: {worst_key}')"
+  },
+  3:{
+    checks:["p50=0.13 p95=1.2 p99=2.6 mean=0.338", "slo p95<=0.5s met: false"],
+    hint:"rank = math.ceil(p / 100 * len(ordered)); the answer is ordered[rank - 1] (ranks are 1-based, lists are 0-based). For n=20, p95 -> rank 19.",
+    solution:"import math\n\nlatencies = [0.08, 0.09, 0.09, 0.10, 0.10, 0.11, 0.11, 0.12, 0.12, 0.13,\n             0.14, 0.15, 0.16, 0.18, 0.21, 0.25, 0.33, 0.48, 1.20, 2.60]\ndef percentile(data, p):\n    ordered = sorted(data)\n    rank = math.ceil(p / 100 * len(ordered))\n    return ordered[rank - 1]\n\np50 = percentile(latencies, 50)\np95 = percentile(latencies, 95)\np99 = percentile(latencies, 99)\nmean = sum(latencies) / len(latencies)\nprint(f'p50={p50} p95={p95} p99={p99} mean={mean:.3f}')\nprint(f'SLO p95<=0.5s met: {p95 <= 0.5}')"
+  },
+  4:{
+    checks:["flagged: ['10.9.9.9', '198.51.100.23']", "10.9.9.9: peak 7 in 10s", "172.16.4.4: peak 4 in 10s", "192.0.2.55: peak 4 in 10s", "198.51.100.23: peak 5 in 10s", "203.0.113.7: peak 1 in 10s"],
+    hint:"After q.append(t): `while t - q[0] >= WINDOW: q.popleft()`. len(q) is then the count inside the window. The >= is what makes 'exactly 10 seconds apart' fall OUTSIDE the window (172.16.4.4 must peak at 4, not 5).",
+    solution:"from collections import defaultdict, deque\n\nevents = [(100, '198.51.100.23'), (100, '10.9.9.9'), (101, '10.9.9.9'), (102, '198.51.100.23'),\n          (102, '10.9.9.9'), (103, '10.9.9.9'), (103, '192.0.2.55'), (104, '10.9.9.9'),\n          (104, '192.0.2.55'), (105, '198.51.100.23'), (105, '192.0.2.55'), (106, '10.9.9.9'),\n          (107, '198.51.100.23'), (107, '192.0.2.55'), (108, '10.9.9.9'), (110, '198.51.100.23'),\n          (111, '198.51.100.23'), (160, '203.0.113.7'), (220, '203.0.113.7'), (280, '203.0.113.7'),\n          (300, '172.16.4.4'), (302, '172.16.4.4'), (304, '172.16.4.4'), (306, '172.16.4.4'),\n          (310, '172.16.4.4'), (340, '203.0.113.7'), (400, '203.0.113.7')]\nWINDOW, LIMIT = 10, 5\nrecent = defaultdict(deque)\npeak = defaultdict(int)\nfor t, ip in events:\n    q = recent[ip]\n    q.append(t)\n    while t - q[0] >= WINDOW:\n        q.popleft()\n    peak[ip] = max(peak[ip], len(q))\nflagged = sorted(ip for ip, n in peak.items() if n >= LIMIT)\nprint(f'Flagged: {flagged}')\nfor ip in sorted(peak):\n    print(f'{ip}: peak {peak[ip]} in {WINDOW}s')"
+  },
+  5:{
+    checks:["parsed: 6, skipped: 2", "total bytes: 1837", "statuses: ['200', '200', '200', '304', '401', '500']"],
+    hint:"`if not line.strip(): continue` ignores blanks. `m = pat.match(line)`; when m is None increment skipped. groupdict() gives strings, so int(r['size']) after checking for '-'.",
+    solution:"import re\n\nlines = [\n    '203.0.113.7 - - [12/Mar/2026:09:00:01 +0000] \"GET / HTTP/1.1\" 200 512 \"-\" \"Mozilla/5.0\"',\n    'garbage: disk full while writing this l',\n    '198.51.100.23 - - [12/Mar/2026:09:00:02 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\"',\n    '',\n    '192.0.2.55 - - [12/Mar/2026:09:00:05 +0000] \"GET /b HTTP/1.1\" 304 - \"-\" \"Mozilla/5.0\"',\n    '203.0.113.7 - - [12/Mar/2026:09:00:06 +0000] \"GET /c HTTP/1.1\" 200 1024 \"-\" \"Mozilla/5.0\"',\n    '10.0.0.9 - - [12/Mar/2026:09:00:08 +0000] \"GET /health HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.29\"',\n    '203.0.113.7 - - [12/Mar/2026:09:00:09 +0000] \"GET /d HTT',\n    '203.0.113.7 - - [12/Mar/2026:09:00:12 +0000] \"GET /f HTTP/1.1\" 500 212 \"-\" \"Mozilla/5.0\"',\n]\npat = re.compile(r'^(?P<ip>\\S+) \\S+ \\S+ \\[[^\\]]+\\] \"[A-Z]+ \\S+ [^\"]+\" (?P<status>\\d{3}) (?P<size>\\d+|-) \"[^\"]*\" \"[^\"]*\"$')\nparsed, skipped = [], 0\nfor line in lines:\n    if not line.strip():\n        continue\n    m = pat.match(line)\n    if m is None:\n        skipped += 1\n        continue\n    parsed.append(m.groupdict())\ntotal_bytes = sum(0 if r['size'] == '-' else int(r['size']) for r in parsed)\nprint(f'Parsed: {len(parsed)}, Skipped: {skipped}')\nprint(f'Total bytes: {total_bytes}')\nprint(f'Statuses: {sorted(r[\"status\"] for r in parsed)}')"
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+const PROJECT_SOLUTION = "import re\nimport math\nfrom collections import Counter, defaultdict\nfrom urllib.parse import urlsplit\n\nLOG = \"\"\"203.0.113.7 - - [12/Mar/2026:10:15:32 +0000] \"GET /api/v1/orders?id=42 HTTP/1.1\" 200 1532 \"-\" \"Mozilla/5.0\" 0.128\n203.0.113.7 - - [12/Mar/2026:10:15:33 +0000] \"GET /api/v1/orders?id=43 HTTP/1.1\" 200 1498 \"-\" \"Mozilla/5.0\" 0.131\n198.51.100.23 - - [12/Mar/2026:10:16:01 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\" 0.045\n198.51.100.23 - - [12/Mar/2026:10:16:02 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\" 0.044\n198.51.100.23 - - [12/Mar/2026:10:16:03 +0000] \"POST /login HTTP/1.1\" 403 87 \"-\" \"curl/8.5.0\" 0.046\ntruncated line from a crashed writer\n192.0.2.55 - - [12/Mar/2026:10:17:45 +0000] \"GET /static/app.js HTTP/1.1\" 200 48211 \"-\" \"Mozilla/5.0\" 0.009\n203.0.113.7 - - [12/Mar/2026:10:59:58 +0000] \"POST /api/v1/checkout HTTP/1.1\" 502 157 \"-\" \"Mozilla/5.0\" 3.204\n192.0.2.55 - - [12/Mar/2026:11:02:10 +0000] \"GET /api/v1/orders?id=7 HTTP/1.1\" 200 1611 \"-\" \"Mozilla/5.0\" 0.140\n10.0.0.9 - - [12/Mar/2026:11:03:00 +0000] \"GET /health HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.29\" 0.001\n198.51.100.23 - - [12/Mar/2026:11:04:12 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\" 0.047\n203.0.113.7 - - [12/Mar/2026:11:05:40 +0000] \"POST /api/v1/checkout HTTP/1.1\" 500 212 \"-\" \"Mozilla/5.0\" 2.871\n10.0.0.9 - - [12/Mar/2026:11:06:00 +0000] \"GET /health HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.29\" 0.002\n192.0.2.55 - - [12/Mar/2026:11:07:15 +0000] \"GET /api/v1/orders?id=9 HTTP/1.1\" 200 1602 \"-\" \"Mozilla/5.0\" 0.152\n203.0.113.7 - - [12/Mar/2026:11:08:01 +0000] \"GET /api/v1/orders?id=10 HTTP/1.1\" 200 1590 \"-\" \"Mozilla/5.0\" 0.133\n198.51.100.23 - - [12/Mar/2026:11:09:00 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\" 0.047\n[12/Mar/2026:11:10:00 +0000] incomplete record\n192.0.2.55 - - [12/Mar/2026:11:11:30 +0000] \"GET /api/v1/orders?id=11 HTTP/1.1\" 200 1620 \"-\" \"Mozilla/5.0\" 0.149\n198.51.100.23 - - [12/Mar/2026:11:12:00 +0000] \"POST /login HTTP/1.1\" 401 87 \"-\" \"curl/8.5.0\" 0.045\"\"\"\n\nPATTERN = re.compile(r'^(?P<ip>\\S+) \\S+ \\S+ \\[[^\\]]+\\] \"(?P<method>[A-Z]+) (?P<path>\\S+) [^\"]+\" (?P<status>\\d{3}) (?P<size>\\d+|-) \"[^\"]*\" \"[^\"]*\" (?P<rt>\\d+\\.\\d+)$')\n\nclass LogReport:\n    def __init__(self, text):\n        self.records, self.skipped = [], 0\n        for line in text.splitlines():\n            if not line.strip():\n                continue\n            m = PATTERN.match(line)\n            if m is None:\n                self.skipped += 1\n                continue\n            d = m.groupdict()\n            d['status'] = int(d['status'])\n            d['rt'] = float(d['rt'])\n            d['path'] = urlsplit(d['path']).path\n            self.records.append(d)\n\n    def error_rate(self):\n        errors = sum(1 for r in self.records if r['status'] >= 500)\n        return errors / len(self.records) * 100\n\n    def top_ips(self, n=3):\n        return Counter(r['ip'] for r in self.records).most_common(n)\n\n    def slowest_endpoints(self, n=2):\n        by_path = defaultdict(list)\n        for r in self.records:\n            by_path[r['path']].append(r['rt'])\n        avg = {p: sum(v) / len(v) for p, v in by_path.items()}\n        return sorted(avg.items(), key=lambda kv: kv[1], reverse=True)[:n]\n\n    def p95(self):\n        ordered = sorted(r['rt'] for r in self.records)\n        return ordered[math.ceil(0.95 * len(ordered)) - 1]\n\n    def suspicious_ips(self, threshold=3):\n        denied = Counter(r['ip'] for r in self.records if r['status'] in (401, 403))\n        return sorted(ip for ip, n in denied.items() if n >= threshold)\n\n    def summary(self):\n        print(f'Total requests: {len(self.records)} ({self.skipped} lines skipped)')\n        print(f'Error rate (5xx): {self.error_rate():.2f}%')\n        print(f'Top IPs: {self.top_ips()}')\n        for path, avg in self.slowest_endpoints():\n            print(f'Slow: {path} avg {avg:.3f}s')\n        print(f'p95 latency: {self.p95():.3f}s')\n        print(f'Suspicious IPs: {self.suspicious_ips()}')\n\nLogReport(LOG).summary()";
+
+window.showProjectSolution=function(){
+  if(confirm('Load the reference solution? Try the TODOs yourself first! 😊')){
+    document.getElementById('project-editor').value=PROJECT_SOLUTION;
+  }
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["total requests: 17 (2 lines skipped)", "error rate (5xx): 11.76%", "top ips: [('198.51.100.23', 6), ('203.0.113.7', 5), ('192.0.2.55', 4)]", "slow: /api/v1/checkout avg 3.038s", "slow: /api/v1/orders avg 0.139s", "p95 latency: 3.204s", "suspicious ips: ['198.51.100.23']"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'A',2:'B',3:'A',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('counter(ips).most_common(3)');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! Counter(ips).most_common(3)"
+    :"❌ Not quite. You need something like: Counter(ips).most_common(3)";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Lazy reading, regex named groups, tolerant parsing, Counter top-N, UTC bucketing, percentiles and sliding windows: the toolkit behind most day-to-day DevOps log scripts. Check the Interview Prep tab, then move on to DO 2.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+</script>
+
+</body>
+</html>

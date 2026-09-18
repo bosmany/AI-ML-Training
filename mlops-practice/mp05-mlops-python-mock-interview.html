@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus MLOps 5: Python Mock Interview</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly); the pandas and scipy examples fetch those packages on
+  first use. This is a BONUS module — the 5-chapter "Python for MLOps: Day-to-Day Practice" track
+  (mlops-practice/) — NOT part of the 41-chapter core curriculum. This is the FINAL MLOps chapter:
+  the coding and reasoning problems ML-platform interviews use (point-in-time joins, train/serve
+  skew, batch vs online, A/B tests, watermark dedupe, rollout gates, feature hashing) plus a timed
+  3-problem mock. Every block, exercise and capstone is real, runnable Python with fixed inputs and
+  no randomness. No XP, no localStorage progress tracking — everything still grades live in the
+  browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:460px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.checklist h4{font-size:12px;font-weight:700;color:var(--violet);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 4px}
+.checklist h4:first-of-type{margin-top:0}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+.check-item.item-pass{color:var(--green)}
+.check-item.item-pass .check-icon::before{content:'✅'}
+.check-item.item-fail .check-icon::before{content:'⬜'}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.course-complete-card{background:linear-gradient(135deg,rgba(124,92,252,.18),rgba(0,217,166,.1));border:1px solid rgba(124,92,252,.35);border-radius:14px;padding:32px 36px;margin-top:32px;text-align:center}
+.ccc-icon{font-size:48px;margin-bottom:12px}
+.course-complete-card h3{font-size:24px;font-weight:800;margin-bottom:10px}
+.course-complete-card h3 span{color:var(--violet)}
+.course-complete-card p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px;margin:0 auto 18px}
+.ccc-stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.ccc-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12.5px;color:var(--t2)}
+.ccc-stat strong{display:block;font-size:18px;color:var(--violet);font-weight:800}
+.ccc-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 26px;font-size:14px;font-weight:700;text-decoration:none;transition:background .12s}
+.ccc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">MLOps 5: Python Mock Interview</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for MLOps · 5 of 5</div>
+  </a>
+  <a class="sb-back" href="mp04-monitoring-and-drift.html">← MLOps 4: Monitoring &amp; Drift</a>
+  <div class="sb-section">MLOps 5 · Python Mock Interview</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🎯</span><span class="sb-step">Mock Interview (3 problems)</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">MLOps Track Complete After This</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='../index.html'"><span class="sb-icon">🏠</span><span class="sb-step">Back to Course Home</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus MLOps 5 of 5</div>
+    <div class="tb-title">Python Mock Interview</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🎯 Mock Interview</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>MLOps Python Bonus 5:<br/><span>The Mock Interview</span></h1>
+    <p>The last chapter of the MLOps track is the one interviews actually feel like. ML-platform and MLOps loops mix a pandas round with a systems-flavoured round — and in both, the trap is almost never the algorithm. It's a <strong>data problem</strong>: a join that leaks the future, a feature that means something different in production, an A/B test read too early, a stream that delivers the same event twice. This chapter works through the eight problems that come up again and again, each as real, runnable code you can narrate out loud, then closes with a timed 3-problem mock.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🎯 Timed Mock Interview</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">5.1 — How to Attack an ML-Systems Coding Question</div>
+  <p class="lesson-p">Interviewers grade the <strong>process</strong> at least as much as the final code: did you clarify the inputs, name the failure modes, test before you trusted it, and state the complexity out loud? A repeatable routine is what keeps you calm when the problem is unfamiliar.</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Restate and clarify.</strong> Units, ordering, nulls, time zones, scale — and what "late" or "duplicate" actually means in this system.</div></li>
+    <li data-n="2"><div><strong>Name the failure modes first.</strong> Leakage, duplicates, out-of-order data, skew, thin samples. In ML questions the bug is usually in the <em>data</em>, not the model.</div></li>
+    <li data-n="3"><div><strong>Write three tiny tests before the code:</strong> empty, ordinary, and the nasty case.</div></li>
+    <li data-n="4"><div><strong>Say the brute force out loud,</strong> with its complexity, then improve on it.</div></li>
+    <li data-n="5"><div><strong>Code in small verified steps.</strong> Run after each function, not once at the end.</div></li>
+    <li data-n="6"><div><strong>Close the loop:</strong> final complexity, edge cases handled (and deliberately not handled), and what you would monitor in production.</div></li>
+  </ul>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A tiny test harness — write the cases BEFORE the function</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">check</span>(name, got, want):
+    status = <span class="st">'PASS'</span> <span class="kw">if</span> got == want <span class="kw">else</span> <span class="st">f'FAIL (got {got!r}, want {want!r})'</span>
+    <span class="bi">print</span>(<span class="st">f'{name}: {status}'</span>)
+
+<span class="kw">def</span> <span class="fn">dedupe_keep_order</span>(items):
+    seen = <span class="bi">set</span>()
+    out = []
+    <span class="kw">for</span> x <span class="kw">in</span> items:
+        <span class="kw">if</span> x <span class="kw">not</span> <span class="kw">in</span> seen:
+            seen.add(x)
+            out.append(x)
+    <span class="kw">return</span> out
+
+<span class="cm"># Write the tiny cases BEFORE the code: empty, typical, adversarial.</span>
+check(<span class="st">'empty input'</span>, dedupe_keep_order([]), [])
+check(<span class="st">'no duplicates'</span>, dedupe_keep_order([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]), [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])
+check(<span class="st">'keeps FIRST occurrence'</span>, dedupe_keep_order([<span class="nm">3</span>, <span class="nm">1</span>, <span class="nm">3</span>, <span class="nm">2</span>, <span class="nm">1</span>]), [<span class="nm">3</span>, <span class="nm">1</span>, <span class="nm">2</span>])</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "Before I write anything, here are three cases I want this to pass: empty input, an ordinary case, and the nasty one — duplicates that arrive after my state has been evicted." Interviewers hear that as someone who has shipped this before.</div></div>
+
+  <div class="lesson-h2">5.2 — Point-in-Time Correct Joins (and the Leak Everyone Introduces Once)</div>
+  <p class="lesson-p">A model trained on feature values that were computed <strong>after</strong> the label event learns from the future. In production that information doesn't exist yet, so offline metrics look superb and online performance collapses. It is the single most common silent bug in tabular ML, and it is exactly what feature stores exist to prevent. The fix is an <strong>as-of join</strong>: for each label row, take the most recent feature value with a timestamp <em>at or before</em> the label time.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Naive "latest value" join vs a point-in-time join with merge_asof</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># LABEL side: one row per loan application, and whether the customer later defaulted.</span>
+labels = pd.DataFrame({
+    <span class="st">'customer_id'</span>: [<span class="st">'c1'</span>, <span class="st">'c1'</span>, <span class="st">'c2'</span>, <span class="st">'c3'</span>],
+    <span class="st">'applied_at'</span>:  pd.to_datetime([<span class="st">'2024-03-01'</span>, <span class="st">'2024-06-01'</span>, <span class="st">'2024-04-15'</span>, <span class="st">'2024-05-10'</span>]),
+    <span class="st">'defaulted'</span>:   [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>],
+})
+
+<span class="cm"># FEATURE side: snapshots of a feature over time (history, not just the latest value).</span>
+features = pd.DataFrame({
+    <span class="st">'customer_id'</span>: [<span class="st">'c1'</span>, <span class="st">'c1'</span>, <span class="st">'c1'</span>, <span class="st">'c2'</span>, <span class="st">'c3'</span>],
+    <span class="st">'computed_at'</span>: pd.to_datetime([<span class="st">'2024-02-20'</span>, <span class="st">'2024-05-20'</span>, <span class="st">'2024-07-01'</span>, <span class="st">'2024-04-01'</span>, <span class="st">'2024-06-15'</span>]),
+    <span class="st">'avg_txn_30d'</span>: [<span class="nm">120.0</span>, <span class="nm">340.0</span>, <span class="nm">910.0</span>, <span class="nm">75.0</span>, <span class="nm">500.0</span>],
+})
+
+<span class="cm"># NAIVE: join the LATEST feature value per customer -&gt; silently uses the future.</span>
+latest = features.sort_values(<span class="st">'computed_at'</span>).groupby(<span class="st">'customer_id'</span>, as_index=<span class="kw">False</span>).last()
+naive = labels.sort_values(<span class="st">'applied_at'</span>).merge(latest, on=<span class="st">'customer_id'</span>, how=<span class="st">'left'</span>)
+
+<span class="cm"># POINT-IN-TIME: for each label, the most recent feature computed at or before applied_at.</span>
+pit = pd.merge_asof(
+    labels.sort_values(<span class="st">'applied_at'</span>),
+    features.sort_values(<span class="st">'computed_at'</span>),
+    left_on=<span class="st">'applied_at'</span>, right_on=<span class="st">'computed_at'</span>,
+    by=<span class="st">'customer_id'</span>, direction=<span class="st">'backward'</span>,
+)
+
+<span class="bi">print</span>(<span class="st">'customer  applied_at  naive   point-in-time'</span>)
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(pit)):
+    n_val = naive[<span class="st">'avg_txn_30d'</span>].iloc[i]
+    p_val = pit[<span class="st">'avg_txn_30d'</span>].iloc[i]
+    p_txt = <span class="st">'no feature yet'</span> <span class="kw">if</span> pd.isna(p_val) <span class="kw">else</span> <span class="st">f'{p_val:.0f}'</span>
+    <span class="bi">print</span>(<span class="st">f"{pit['customer_id'].iloc[i]:&lt;9} {pit['applied_at'].iloc[i].date()}  {n_val:&gt;5.0f}   {p_txt}"</span>)
+
+leaky = <span class="bi">int</span>((naive[<span class="st">'avg_txn_30d'</span>].to_numpy() != pit[<span class="st">'avg_txn_30d'</span>].fillna(-<span class="nm">1</span>).to_numpy()).<span class="bi">sum</span>())
+<span class="bi">print</span>(<span class="st">f'Rows where the naive join used future data: {leaky} of {len(pit)}'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📖</div><div class="ib-body"><strong>Read the output:</strong> customer c1 applied on 2024-03-01, but the naive join gave them 910 — a value computed on 2024-07-01, four months <em>after</em> the application. Customer c3 had no feature at all when they applied, yet the naive join invented one. The point-in-time join returns the honest answer: 120 for c1, and "no feature yet" for c3.</div></div>
+  <p class="lesson-p">Real features go stale, so a good join also bounds how old a matched value may be with <code>tolerance</code>:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">tolerance, and the sortedness gotcha</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+labels = pd.DataFrame({
+    <span class="st">'customer_id'</span>: [<span class="st">'c1'</span>, <span class="st">'c1'</span>, <span class="st">'c2'</span>],
+    <span class="st">'applied_at'</span>:  pd.to_datetime([<span class="st">'2024-03-01'</span>, <span class="st">'2024-06-01'</span>, <span class="st">'2024-04-15'</span>]),
+})
+features = pd.DataFrame({
+    <span class="st">'customer_id'</span>: [<span class="st">'c1'</span>, <span class="st">'c1'</span>, <span class="st">'c2'</span>],
+    <span class="st">'computed_at'</span>: pd.to_datetime([<span class="st">'2024-02-20'</span>, <span class="st">'2024-05-20'</span>, <span class="st">'2024-04-01'</span>]),
+    <span class="st">'avg_txn_30d'</span>: [<span class="nm">120.0</span>, <span class="nm">340.0</span>, <span class="nm">75.0</span>],
+})
+
+<span class="kw">def</span> <span class="fn">pit_join</span>(tolerance):
+    <span class="kw">return</span> pd.merge_asof(
+        labels.sort_values(<span class="st">'applied_at'</span>), features.sort_values(<span class="st">'computed_at'</span>),
+        left_on=<span class="st">'applied_at'</span>, right_on=<span class="st">'computed_at'</span>,
+        by=<span class="st">'customer_id'</span>, direction=<span class="st">'backward'</span>, tolerance=tolerance,
+    )
+
+<span class="bi">print</span>(<span class="st">'no tolerance      :'</span>, pit_join(<span class="kw">None</span>)[<span class="st">'avg_txn_30d'</span>].fillna(-<span class="nm">1</span>).tolist())
+<span class="bi">print</span>(<span class="st">'tolerance 30 days :'</span>, pit_join(pd.Timedelta(days=<span class="nm">30</span>))[<span class="st">'avg_txn_30d'</span>].fillna(-<span class="nm">1</span>).tolist())
+<span class="bi">print</span>(<span class="st">'tolerance 11 days :'</span>, pit_join(pd.Timedelta(days=<span class="nm">11</span>))[<span class="st">'avg_txn_30d'</span>].fillna(-<span class="nm">1</span>).tolist())
+
+<span class="cm"># The classic gotcha: merge_asof needs BOTH sides sorted by the time key.</span>
+<span class="kw">try</span>:
+    pd.merge_asof(labels.sort_values(<span class="st">'customer_id'</span>, ascending=<span class="kw">False</span>),
+                  features.sort_values(<span class="st">'computed_at'</span>),
+                  left_on=<span class="st">'applied_at'</span>, right_on=<span class="st">'computed_at'</span>, by=<span class="st">'customer_id'</span>)
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'unsorted left side -&gt;'</span>, <span class="bi">type</span>(e).__name__)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Three things interviewers probe here:</strong> (1) <code>merge_asof</code> requires <em>both</em> frames sorted by the time key or it raises. (2) <code>by=</code> keeps the match within the same entity — without it you would match customer A's label to customer B's feature. (3) <code>direction='nearest'</code> is almost always wrong for training data because it can pick a row from the future; use <code>'backward'</code>. Also mention an <strong>availability lag</strong>: a value "computed at" 10:00 may not reach the store until 10:20.</div></div>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "I'll join on entity and time, not just entity, taking the latest feature at or before the label timestamp. I'll add a test that asserts <code>max(feature_ts) &lt;= label_ts</code> for every row, and I'll split train and validation by time, not randomly."</div></div>
+
+  <div class="lesson-h2">5.3 — Training/Serving Skew: A Detector You Can Write in 20 Lines</div>
+  <p class="lesson-p"><strong>Skew</strong> means the model receives different inputs in production than it was trained on <em>at the same point in time</em>. Typical causes: different code paths for offline and online features (pandas here, SQL or Java there), a units mismatch, stale online features, categories never seen in training, and different null handling. It is distinct from <strong>drift</strong>, which is the world changing gradually over time — skew is usually a step change and almost always a bug. A cheap detector that compares summary statistics per feature catches most of it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Compare serving to training: mean ratio, unseen categories, new nulls</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+train = pd.DataFrame({
+    <span class="st">'age'</span>:       [<span class="nm">23</span>, <span class="nm">35</span>, <span class="nm">41</span>, <span class="nm">29</span>, <span class="nm">52</span>, <span class="nm">38</span>, <span class="nm">45</span>, <span class="nm">31</span>],
+    <span class="st">'income'</span>:    [<span class="nm">42.0</span>, <span class="nm">61.5</span>, <span class="nm">75.0</span>, <span class="nm">52.0</span>, <span class="nm">98.0</span>, <span class="nm">66.0</span>, <span class="nm">80.0</span>, <span class="nm">58.0</span>],      <span class="cm"># $ thousands</span>
+    <span class="st">'country'</span>:   [<span class="st">'US'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>, <span class="st">'IN'</span>, <span class="st">'US'</span>, <span class="st">'DE'</span>, <span class="st">'IN'</span>, <span class="st">'US'</span>],
+    <span class="st">'clicks_7d'</span>: [<span class="nm">3</span>, <span class="nm">8</span>, <span class="nm">5</span>, <span class="nm">2</span>, <span class="nm">9</span>, <span class="nm">4</span>, <span class="nm">6</span>, <span class="nm">3</span>],
+})
+serve = pd.DataFrame({
+    <span class="st">'age'</span>:       [<span class="nm">27</span>, <span class="nm">44</span>, <span class="nm">33</span>, <span class="nm">39</span>, <span class="nm">50</span>, <span class="nm">36</span>],
+    <span class="st">'income'</span>:    [<span class="nm">51000.0</span>, <span class="nm">72000.0</span>, <span class="nm">64000.0</span>, <span class="nm">88000.0</span>, <span class="nm">91000.0</span>, <span class="nm">59000.0</span>],  <span class="cm"># BUG: raw dollars</span>
+    <span class="st">'country'</span>:   [<span class="st">'US'</span>, <span class="st">'BR'</span>, <span class="st">'DE'</span>, <span class="st">'US'</span>, <span class="st">'BR'</span>, <span class="st">'IN'</span>],                    <span class="cm"># BR never seen in training</span>
+    <span class="st">'clicks_7d'</span>: [<span class="nm">4</span>, <span class="kw">None</span>, <span class="nm">6</span>, <span class="kw">None</span>, <span class="nm">7</span>, <span class="nm">3</span>],                                <span class="cm"># nulls appear only at serving</span>
+})
+
+<span class="kw">def</span> <span class="fn">skew_report</span>(train, serve, mean_tol=<span class="nm">0.25</span>, null_tol=<span class="nm">0.10</span>):
+    flagged = {}
+    <span class="kw">for</span> col <span class="kw">in</span> train.columns:
+        reasons = []
+        <span class="kw">if</span> pd.api.types.is_numeric_dtype(train[col]):
+            t_mean, s_mean = train[col].mean(), serve[col].mean()
+            ratio = s_mean / t_mean
+            <span class="kw">if</span> <span class="bi">abs</span>(ratio - <span class="nm">1</span>) &gt; mean_tol:
+                reasons.append(<span class="st">f'mean ratio {ratio:.2f} (train {t_mean:.2f}, serve {s_mean:.2f})'</span>)
+        <span class="kw">else</span>:
+            unseen = <span class="bi">sorted</span>(<span class="bi">set</span>(serve[col].dropna()) - <span class="bi">set</span>(train[col].dropna()))
+            <span class="kw">if</span> unseen:
+                reasons.append(<span class="st">f'unseen categories {unseen}'</span>)
+        null_gap = serve[col].isna().mean() - train[col].isna().mean()
+        <span class="kw">if</span> null_gap &gt; null_tol:
+            reasons.append(<span class="st">f'null rate up {null_gap:.0%}'</span>)
+        <span class="kw">if</span> reasons:
+            flagged[col] = reasons
+    <span class="kw">return</span> flagged
+
+report = skew_report(train, serve)
+<span class="bi">print</span>(<span class="st">'Flagged features:'</span>, <span class="bi">list</span>(report))
+<span class="kw">for</span> col, reasons <span class="kw">in</span> report.items():
+    <span class="kw">for</span> r <span class="kw">in</span> reasons:
+        <span class="bi">print</span>(<span class="st">f'  {col}: {r}'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>A mean ratio of 1064 is not drift — it is a units bug</strong> (thousands of dollars in training, raw dollars in serving). Say that distinction out loud: gradual movement suggests drift, an instant order-of-magnitude jump suggests a pipeline bug. The strongest prevention is <strong>"log and wait"</strong>: log the exact features you served, and train on those logged values.</div></div>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "I'd compute per-feature mean, null rate and category set on both sides, alert on step changes, and add a golden-row integration test that pushes one raw record through both the training and serving paths and asserts identical feature vectors."</div></div>
+
+  <div class="lesson-h2">5.4 — Batch vs Online Inference: Put Numbers on the Decision</div>
+  <p class="lesson-p">The batch-vs-online question is really <strong>"who is waiting, and how fresh must the answer be?"</strong> Nobody waiting and hours-old scores acceptable? Batch. A user or transaction waiting? Online. Strong candidates back the choice with arithmetic, not adjectives. Online capacity comes from <strong>Little's law</strong>: requests in flight = arrival rate × time in system.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A small latency and cost calculator</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+
+<span class="kw">def</span> <span class="fn">online_cost</span>(peak_qps, p95_latency_s, concurrency_per_replica, target_util, replica_hourly_usd):
+    in_flight = peak_qps * p95_latency_s                 <span class="cm"># Little's law: L = arrival rate x time in system</span>
+    replicas = math.ceil(in_flight / (concurrency_per_replica * target_util))
+    replicas = <span class="bi">max</span>(replicas, <span class="nm">2</span>)                          <span class="cm"># one replica is an outage waiting to happen</span>
+    <span class="kw">return</span> replicas, replicas * replica_hourly_usd * <span class="nm">730</span>
+
+<span class="kw">def</span> <span class="fn">batch_cost</span>(rows, rows_per_node_hour, nodes, node_hourly_usd, runs_per_month):
+    hours = math.ceil(rows / (rows_per_node_hour * nodes))
+    <span class="kw">return</span> hours, hours * nodes * node_hourly_usd * runs_per_month
+
+<span class="kw">def</span> <span class="fn">choose</span>(max_latency_ms, freshness_hours):
+    <span class="kw">if</span> max_latency_ms &lt; <span class="nm">1000</span>:
+        <span class="kw">return</span> <span class="st">'online'</span>                                  <span class="cm"># a human/transaction is waiting</span>
+    <span class="kw">if</span> freshness_hours &gt;= <span class="nm">6</span>:
+        <span class="kw">return</span> <span class="st">'batch'</span>                                   <span class="cm"># scores can be precomputed and looked up</span>
+    <span class="kw">return</span> <span class="st">'online'</span>
+
+replicas, online_month = online_cost(peak_qps=<span class="nm">400</span>, p95_latency_s=<span class="nm">0.12</span>,
+                                     concurrency_per_replica=<span class="nm">8</span>, target_util=<span class="nm">0.6</span>,
+                                     replica_hourly_usd=<span class="nm">0.40</span>)
+hours, batch_month = batch_cost(rows=<span class="nm">20_000_000</span>, rows_per_node_hour=<span class="nm">2_500_000</span>,
+                                nodes=<span class="nm">4</span>, node_hourly_usd=<span class="nm">0.80</span>, runs_per_month=<span class="nm">30</span>)
+<span class="bi">print</span>(<span class="st">f'Churn scores for 20M users: online {replicas} replicas = ${online_month:,.2f}/mo, '</span>
+      <span class="st">f'batch {hours}h nightly = ${batch_month:,.2f}/mo'</span>)
+<span class="bi">print</span>(<span class="st">'Nightly churn scores  -&gt;'</span>, choose(max_latency_ms=<span class="nm">60_000</span>, freshness_hours=<span class="nm">24</span>))
+<span class="bi">print</span>(<span class="st">'Card-fraud check      -&gt;'</span>, choose(max_latency_ms=<span class="nm">150</span>, freshness_hours=<span class="nm">0</span>))
+<span class="bi">print</span>(<span class="st">'Homepage recs (hourly)-&gt;'</span>, choose(max_latency_ms=<span class="nm">300</span>, freshness_hours=<span class="nm">1</span>))</div>
+  </div>
+  <table class="lesson-table">
+    <tr><th>Factor</th><th>Batch</th><th>Online</th></tr>
+    <tr><td class="highlight">Latency need</td><td>Minutes to hours is fine</td><td>Milliseconds to a second; someone is waiting</td></tr>
+    <tr><td class="highlight">Freshness</td><td>As fresh as the last run</td><td>As fresh as the online feature store</td></tr>
+    <tr><td class="highlight">Cost shape</td><td>Pay for the hours the job runs</td><td>Pay for capacity 24/7, including idle time</td></tr>
+    <tr><td class="highlight">Failure mode</td><td>Rerun the job</td><td>User-visible outage; needs redundancy and an SLO</td></tr>
+    <tr><td class="highlight">Features</td><td>Any warehouse join</td><td>Low-latency key-value lookups only</td></tr>
+  </table>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Hybrid is the answer interviewers like:</strong> precompute the expensive scores in batch, write them to a key-value store, and only compute the fresh signal online. You get online latency at close to batch cost.</div></div>
+
+  <div class="lesson-h2">5.5 — A/B Test Significance, Sample Size and the Peeking Trap</div>
+  <p class="lesson-p">You will be asked to decide whether a model change "won". For a conversion metric that is a <strong>two-proportion z-test</strong>: pool the two rates, compute the standard error, divide the difference by it, and turn the z-score into a two-sided p-value. Implement it by hand, then cross-check against <code>scipy</code> — the two ways to check are worth knowing because a z-test on two proportions is the same thing as a chi-square test on the 2×2 table (<code>z² = χ²</code>).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two-proportion z-test by hand, cross-checked with scipy, plus sample size</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+<span class="kw">def</span> <span class="fn">two_prop_ztest</span>(n_a, x_a, n_b, x_b):
+    p_a, p_b = x_a / n_a, x_b / n_b
+    p_pool = (x_a + x_b) / (n_a + n_b)
+    se = math.sqrt(p_pool * (<span class="nm">1</span> - p_pool) * (<span class="nm">1</span> / n_a + <span class="nm">1</span> / n_b))
+    z = (p_b - p_a) / se
+    p_value = math.erfc(<span class="bi">abs</span>(z) / math.sqrt(<span class="nm">2</span>))           <span class="cm"># two-sided, standard normal</span>
+    <span class="kw">return</span> p_a, p_b, z, p_value
+
+p_a, p_b, z, p = two_prop_ztest(<span class="nm">10_000</span>, <span class="nm">1_000</span>, <span class="nm">10_000</span>, <span class="nm">1_090</span>)
+<span class="bi">print</span>(<span class="st">f'A={p_a:.2%}  B={p_b:.2%}  lift={(p_b - p_a) / p_a:+.1%}'</span>)
+<span class="bi">print</span>(<span class="st">f'by hand : z={z:.4f}  p={p:.4f}'</span>)
+
+<span class="cm"># Cross-check two ways with scipy: the normal tail, and a chi-square test (z**2 == chi2).</span>
+<span class="bi">print</span>(<span class="st">f'norm.sf : p={2 * stats.norm.sf(abs(z)):.4f}'</span>)
+chi2, p_chi = stats.chi2_contingency([[<span class="nm">1_000</span>, <span class="nm">9_000</span>], [<span class="nm">1_090</span>, <span class="nm">8_910</span>]], correction=<span class="kw">False</span>)[:<span class="nm">2</span>]
+<span class="bi">print</span>(<span class="st">f'chi2    : chi2={chi2:.4f} (z**2={z**2:.4f})  p={p_chi:.4f}'</span>)
+
+<span class="cm"># Sample size per arm to detect 10% -&gt; 11% at alpha=0.05, power=0.80.</span>
+z_a, z_b = stats.norm.ppf(<span class="nm">0.975</span>), stats.norm.ppf(<span class="nm">0.80</span>)
+p1, p2 = <span class="nm">0.10</span>, <span class="nm">0.11</span>
+n_exact = (z_a + z_b) ** <span class="nm">2</span> * (p1 * (<span class="nm">1</span> - p1) + p2 * (<span class="nm">1</span> - p2)) / (p2 - p1) ** <span class="nm">2</span>
+n_rule = <span class="nm">16</span> * <span class="nm">0.10</span> * <span class="nm">0.90</span> / <span class="nm">0.01</span> ** <span class="nm">2</span>                    <span class="cm"># rule of thumb: 16 * p(1-p) / delta^2</span>
+<span class="bi">print</span>(<span class="st">f'n per arm: exact {math.ceil(n_exact):,}  rule-of-thumb {math.ceil(n_rule):,}'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📐</div><div class="ib-body"><strong>Sample size before you start.</strong> Detecting a lift from 10% to 11% at α = 0.05 with 80% power needs about 14,750 users <em>per arm</em>. The quick rule of thumb <code>n ≈ 16·p(1−p)/δ²</code> lands within a few percent, which is enough to say in an interview. If someone proposes a test that will only collect 2,000 users, the right answer is "it can't detect that effect".</div></div>
+  <p class="lesson-p">The other classic trap is <strong>peeking</strong>: checking the dashboard repeatedly and stopping the first time p &lt; 0.05.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Five looks at the same experiment — only the first crosses 1.96</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+
+<span class="kw">def</span> <span class="fn">z_stat</span>(n_a, x_a, n_b, x_b):
+    p_pool = (x_a + x_b) / (n_a + n_b)
+    se = math.sqrt(p_pool * (<span class="nm">1</span> - p_pool) * (<span class="nm">2</span> / n_a))     <span class="cm"># equal arm sizes</span>
+    <span class="kw">return</span> (x_b / n_b - x_a / n_a) / se
+
+<span class="cm"># Cumulative results at five planned looks (users per arm, conversions A, conversions B).</span>
+looks = [(<span class="nm">2000</span>, <span class="nm">200</span>, <span class="nm">252</span>), (<span class="nm">4000</span>, <span class="nm">404</span>, <span class="nm">452</span>), (<span class="nm">6000</span>, <span class="nm">596</span>, <span class="nm">650</span>), (<span class="nm">8000</span>, <span class="nm">804</span>, <span class="nm">852</span>), (<span class="nm">10000</span>, <span class="nm">1000</span>, <span class="nm">1049</span>)]
+<span class="kw">for</span> i, (n, a, b) <span class="kw">in</span> <span class="bi">enumerate</span>(looks, start=<span class="nm">1</span>):
+    z = z_stat(n, a, n, b)
+    flag = <span class="st">'  &lt;-- "significant!" (a peeker stops here)'</span> <span class="kw">if</span> <span class="bi">abs</span>(z) &gt; <span class="nm">1.96</span> <span class="kw">else</span> <span class="st">''</span>
+    <span class="bi">print</span>(<span class="st">f'look {i}: n/arm={n:&gt;6,}  z={z:5.2f}{flag}'</span>)
+<span class="bi">print</span>(<span class="st">'Planned-horizon verdict at look 5: not significant'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Repeated looks inflate false positives.</strong> A fixed-horizon test assumes one look; with five equally spaced looks and stop-at-first-significant, the true false-positive rate is about 14%, not 5%. Fix it by fixing the horizon and sample size in advance, or by using a method built for continuous monitoring (sequential testing, alpha-spending such as O'Brien–Fleming, or mSPRT). Also check for <strong>sample ratio mismatch</strong> first — if a 50/50 split delivered 52/48 traffic, distrust the lift before you celebrate it.</div></div>
+
+  <div class="lesson-h2">5.6 — Deduplicating a Prediction-Event Stream With a Watermark</div>
+  <p class="lesson-p">Queues such as Kafka and SQS deliver <strong>at least once</strong>, so duplicates are normal, and events arrive out of order. The naive fix — remember every event id forever — leaks memory until the job falls over. A <strong>watermark</strong> bounds the state: it is the newest event time seen minus an allowed lateness, and anything older than it is either forgotten (state) or rejected (late arrivals).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A watermark deduper: emit once, drop the hopelessly late, keep state bounded</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">WatermarkDeduper</span>:
+    <span class="st">"""Emit each event_id once. Drop events older than the watermark. Keep state bounded."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, allowed_lateness):
+        self.allowed_lateness = allowed_lateness
+        self.max_ts = <span class="kw">None</span>
+        self.seen = {}                                    <span class="cm"># event_id -&gt; event time</span>
+
+    <span class="kw">def</span> <span class="fn">process</span>(self, event_id, ts):
+        <span class="kw">if</span> self.max_ts <span class="kw">is</span> <span class="kw">None</span> <span class="kw">or</span> ts &gt; self.max_ts:
+            self.max_ts = ts
+        watermark = self.max_ts - self.allowed_lateness
+        <span class="kw">for</span> old <span class="kw">in</span> [k <span class="kw">for</span> k, t <span class="kw">in</span> self.seen.items() <span class="kw">if</span> t &lt; watermark]:
+            <span class="kw">del</span> self.seen[old]                            <span class="cm"># state older than the watermark is safe to forget</span>
+        <span class="kw">if</span> ts &lt; watermark:
+            <span class="kw">return</span> <span class="st">'late'</span>
+        <span class="kw">if</span> event_id <span class="kw">in</span> self.seen:
+            <span class="kw">return</span> <span class="st">'duplicate'</span>
+        self.seen[event_id] = ts
+        <span class="kw">return</span> <span class="st">'emit'</span>
+
+events = [(<span class="st">'a'</span>, <span class="nm">100</span>), (<span class="st">'b'</span>, <span class="nm">103</span>), (<span class="st">'a'</span>, <span class="nm">100</span>), (<span class="st">'c'</span>, <span class="nm">108</span>), (<span class="st">'d'</span>, <span class="nm">95</span>),
+          (<span class="st">'b'</span>, <span class="nm">103</span>), (<span class="st">'e'</span>, <span class="nm">125</span>), (<span class="st">'c'</span>, <span class="nm">108</span>), (<span class="st">'f'</span>, <span class="nm">118</span>), (<span class="st">'g'</span>, <span class="nm">112</span>)]
+dedupe = WatermarkDeduper(allowed_lateness=<span class="nm">10</span>)
+<span class="kw">for</span> event_id, ts <span class="kw">in</span> events:
+    <span class="bi">print</span>(<span class="st">f'{event_id}@{ts:&lt;3} -&gt; {dedupe.process(event_id, ts):&lt;9} state size {len(dedupe.seen)}'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📖</div><div class="ib-body"><strong>Read the trace:</strong> the second <code>b@103</code> is a <em>duplicate</em> because <code>b</code> is still remembered. But when <code>e@125</code> arrives, the watermark jumps to 115 and the deduper forgets <code>a</code>, <code>b</code> and <code>c</code> — so the later <code>c@108</code> is rejected as <em>late</em> rather than recognised as a duplicate. That is the deliberate trade: bounded memory in exchange for a lateness cut-off.</div></div>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "Exactly-once processing is really at-least-once delivery plus an idempotent consumer. I'll key on event id, bound the state with a watermark, and tell you what lateness I'm assuming — and I'd emit a metric for late and duplicate counts so we can tune it."</div></div>
+
+  <div class="lesson-h2">5.7 — A Rollout Decision: Promote, Hold or Roll Back</div>
+  <p class="lesson-p">Deploying a new model is a decision under uncertainty, and interviewers like it because it forces you to encode judgement as code. The structure that scales: <strong>enough traffic first</strong> (a 0% error rate on 300 requests proves nothing), then <strong>hard guardrails</strong> — errors and latency — that trigger rollback, and only then the softer <strong>quality</strong> check that triggers a hold.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Canary metrics in, decision and reasons out</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">rollout_decision</span>(baseline, canary, min_requests=<span class="nm">1000</span>, max_err_delta=<span class="nm">0.005</span>,
+                     max_latency_ratio=<span class="nm">1.25</span>, min_conv_ratio=<span class="nm">0.98</span>):
+    <span class="kw">if</span> canary[<span class="st">'requests'</span>] &lt; min_requests:
+        <span class="kw">return</span> <span class="st">'hold'</span>, [<span class="st">f"only {canary['requests']} requests, below the {min_requests} minimum"</span>]
+    b_err = baseline[<span class="st">'errors'</span>] / baseline[<span class="st">'requests'</span>]
+    c_err = canary[<span class="st">'errors'</span>] / canary[<span class="st">'requests'</span>]
+    reasons = []
+    <span class="kw">if</span> c_err - b_err &gt; max_err_delta:
+        reasons.append(<span class="st">f'error rate {c_err:.2%} vs baseline {b_err:.2%}'</span>)
+    <span class="kw">if</span> canary[<span class="st">'p95_ms'</span>] &gt; baseline[<span class="st">'p95_ms'</span>] * max_latency_ratio:
+        reasons.append(<span class="st">f"p95 {canary['p95_ms']}ms vs baseline {baseline['p95_ms']}ms"</span>)
+    <span class="kw">if</span> reasons:
+        <span class="kw">return</span> <span class="st">'rollback'</span>, reasons                        <span class="cm"># hard guardrails: never trade safety for quality</span>
+    <span class="kw">if</span> canary[<span class="st">'conversion'</span>] &lt; baseline[<span class="st">'conversion'</span>] * min_conv_ratio:
+        <span class="kw">return</span> <span class="st">'hold'</span>, [<span class="st">f"conversion {canary['conversion']:.3f} &lt; {baseline['conversion'] * min_conv_ratio:.4f}"</span>]
+    <span class="kw">return</span> <span class="st">'promote'</span>, [<span class="st">'all guardrails healthy'</span>]
+
+baseline = {<span class="st">'requests'</span>: <span class="nm">50_000</span>, <span class="st">'errors'</span>: <span class="nm">100</span>, <span class="st">'p95_ms'</span>: <span class="nm">180</span>, <span class="st">'conversion'</span>: <span class="nm">0.120</span>}
+scenarios = {
+    <span class="st">'healthy'</span>:        {<span class="st">'requests'</span>: <span class="nm">5_000</span>, <span class="st">'errors'</span>: <span class="nm">12</span>, <span class="st">'p95_ms'</span>: <span class="nm">190</span>, <span class="st">'conversion'</span>: <span class="nm">0.121</span>},
+    <span class="st">'thin traffic'</span>:   {<span class="st">'requests'</span>: <span class="nm">300</span>,   <span class="st">'errors'</span>: <span class="nm">0</span>,  <span class="st">'p95_ms'</span>: <span class="nm">170</span>, <span class="st">'conversion'</span>: <span class="nm">0.130</span>},
+    <span class="st">'error spike'</span>:    {<span class="st">'requests'</span>: <span class="nm">5_000</span>, <span class="st">'errors'</span>: <span class="nm">80</span>, <span class="st">'p95_ms'</span>: <span class="nm">185</span>, <span class="st">'conversion'</span>: <span class="nm">0.121</span>},
+    <span class="st">'quality dip'</span>:    {<span class="st">'requests'</span>: <span class="nm">5_000</span>, <span class="st">'errors'</span>: <span class="nm">9</span>,  <span class="st">'p95_ms'</span>: <span class="nm">185</span>, <span class="st">'conversion'</span>: <span class="nm">0.110</span>},
+}
+<span class="kw">for</span> name, canary <span class="kw">in</span> scenarios.items():
+    decision, reasons = rollout_decision(baseline, canary)
+    <span class="bi">print</span>(<span class="st">f"{name:&lt;13} -&gt; {decision.upper():&lt;8} ({'; '.join(reasons)})"</span>)</div>
+  </div>
+  <table class="lesson-table">
+    <tr><th>Strategy</th><th>Users see it?</th><th>What it tells you</th><th>Main limit</th></tr>
+    <tr><td class="highlight">Shadow</td><td>No — traffic is copied, output discarded</td><td>Real latency, errors, disagreement with prod</td><td>Costs 2x compute; no business-impact signal</td></tr>
+    <tr><td class="highlight">Canary</td><td>Yes — 1 to 5% of traffic</td><td>Errors, latency and early quality under real serving</td><td>Small sample; slow to detect small quality changes</td></tr>
+    <tr><td class="highlight">A/B test</td><td>Yes — a randomised split</td><td>Whether the business metric actually improved</td><td>Needs a sample size and a fixed horizon</td></tr>
+  </table>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "Safety metrics are asymmetric — I never trade a latency or error regression for a quality gain, so they roll back automatically. A quality dip on its own only holds the rollout for a human to look at."</div></div>
+
+  <div class="lesson-h2">5.8 — Feature Hashing, Unseen Categories and Serving-Time Surprises</div>
+  <p class="lesson-p">High-cardinality categoricals (user agents, product ids) are often <strong>hashed</strong> into a fixed number of buckets so the model input size never grows. Two decisions decide whether that works in production: which hash function you use, and what happens on values the encoder has never seen.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A stable hash bucket, a vocabulary with an UNK slot, and a collision check</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib
+
+<span class="kw">def</span> <span class="fn">bucket</span>(value, n_buckets=<span class="nm">8</span>, salt=<span class="st">'device_type'</span>):
+    digest = hashlib.md5(<span class="st">f'{salt}:{value}'</span>.encode()).hexdigest()   <span class="cm"># stable across processes and machines</span>
+    <span class="kw">return</span> <span class="bi">int</span>(digest, <span class="nm">16</span>) % n_buckets
+
+devices = [<span class="st">'ios'</span>, <span class="st">'android'</span>, <span class="st">'web'</span>, <span class="st">'tv'</span>, <span class="st">'watch'</span>, <span class="st">'kiosk'</span>, <span class="st">'car'</span>, <span class="st">'toaster'</span>]
+<span class="bi">print</span>(<span class="st">'hashed buckets :'</span>, {d: bucket(d) <span class="kw">for</span> d <span class="kw">in</span> devices})
+<span class="bi">print</span>(<span class="st">'same call twice:'</span>, bucket(<span class="st">'ios'</span>) == bucket(<span class="st">'ios'</span>))
+
+<span class="cm"># A vocabulary encoder needs an explicit answer for values it has never seen.</span>
+vocab = {<span class="st">'ios'</span>: <span class="nm">0</span>, <span class="st">'android'</span>: <span class="nm">1</span>, <span class="st">'web'</span>: <span class="nm">2</span>}
+UNK = <span class="bi">len</span>(vocab)                                                   <span class="cm"># reserved index for "unseen"</span>
+encode = <span class="kw">lambda</span> v: vocab.get(v, UNK)
+<span class="bi">print</span>(<span class="st">'vocab encoding :'</span>, [encode(d) <span class="kw">for</span> d <span class="kw">in</span> [<span class="st">'ios'</span>, <span class="st">'web'</span>, <span class="st">'toaster'</span>, <span class="st">'tv'</span>]])
+
+<span class="cm"># Collisions are the price of a fixed-size table: measure them, don't guess.</span>
+<span class="kw">for</span> n <span class="kw">in</span> (<span class="nm">4</span>, <span class="nm">8</span>, <span class="nm">64</span>):
+    used = <span class="bi">len</span>({bucket(d, n) <span class="kw">for</span> d <span class="kw">in</span> devices})
+    <span class="bi">print</span>(<span class="st">f'{n:&gt;2} buckets -&gt; {used} distinct buckets for {len(devices)} values'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Never use Python's built-in <code>hash()</code> for strings here.</strong> It is salted per process (see <code>PYTHONHASHSEED</code>): run <code>python -c "print(hash('ios'))"</code> twice in a terminal and you get two different numbers. A training job and a serving container would then send the same value to different buckets — training/serving skew you cannot see. Use a stable hash such as <code>hashlib.md5</code> or <code>zlib.crc32</code>.</div></div>
+  <div class="info-box tip"><div class="ib-icon">🗣</div><div class="ib-body"><strong>How to narrate it:</strong> "I'd define behaviour for unseen values up front — a reserved UNK index or hashing — and log the unseen rate as a monitor, because a sudden rise usually means an upstream schema change, not a real new category."</div></div>
+
+  <div class="lesson-h2">MLOps 5 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div>A repeatable routine — clarify, name the failure modes, test first, brute force then improve, verify in small steps, close the loop — matters as much as the code.</div></li>
+    <li data-n="2"><div><strong>Point-in-time joins</strong> (<code>merge_asof</code>, <code>direction='backward'</code>, <code>tolerance</code>, <code>by=</code>) prevent label leakage; a naive "latest value" join uses the future.</div></li>
+    <li data-n="3"><div><strong>Skew</strong> (train vs serve, same time, usually a bug) is different from <strong>drift</strong> (the world moving); detect it with per-feature summary statistics and prevent it with one shared feature definition.</div></li>
+    <li data-n="4"><div><strong>Batch vs online</strong> is decided by who is waiting; back it with Little's law and a cost comparison, and consider the hybrid.</div></li>
+    <li data-n="5"><div><strong>A/B tests</strong> need a sample size and a fixed horizon; peeking inflates false positives (about 14% with five looks); check sample ratio mismatch first.</div></li>
+    <li data-n="6"><div><strong>Watermarks</strong> bound dedupe state; <strong>rollout gates</strong> check traffic, then hard guardrails, then quality; <strong>stable hashes</strong> keep training and serving consistent.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. The first two use pandas and load in a few seconds the first time.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Point-in-Time Join: Stop the Leak</div>
+        <div class="ex-desc">Build a leaky "latest feature" join and a point-in-time-correct merge_asof, then count the rows that leaked.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given below (fixed data): labels (when each user was scored) and features (history of sessions_7d).
+
+1. naive = labels sorted by scored_at, merged (how='left') with the LATEST features row per user
+   (sort features by computed_at, groupby user_id, last).
+2. pit = pd.merge_asof on scored_at/computed_at, by='user_id', direction='backward',
+   tolerance=pd.Timedelta(days=30), both sides sorted by their time key.
+3. Compare the sessions_7d columns after fillna(-1).astype(int).
+
+Print exactly:
+  f'PIT sessions_7d (missing=-1): {pit_values}'
+  f'Naive sessions_7d (missing=-1): {naive_values}'
+  f'Leaky rows (naive != PIT): {leaky}'
+where pit_values / naive_values are Python lists (use .tolist()).</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import pandas as pd
+
+labels = pd.DataFrame({
+    'user_id':   ['u1', 'u2', 'u1', 'u3'],
+    'scored_at': pd.to_datetime(['2024-02-10', '2024-02-12', '2024-03-05', '2024-02-20']),
+    'churned':   [0, 1, 1, 0],
+})
+features = pd.DataFrame({
+    'user_id':     ['u1', 'u1', 'u2', 'u2', 'u3'],
+    'computed_at': pd.to_datetime(['2024-02-01', '2024-03-01', '2024-01-15', '2024-02-15', '2024-03-10']),
+    'sessions_7d': [12, 3, 9, 1, 15],
+})
+# latest = ...
+# naive = ...
+# pit = pd.merge_asof(...)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Train/Serve Skew Detector</div>
+        <div class="ex-desc">Compare a serving log to the training set and flag units bugs, unseen categories and new nulls.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write skew_report(train, serve, mean_tol=0.25, null_tol=0.10) returning {column: [reasons]} for flagged columns only (keep column order).
+For each column of train:
+  - numeric: ratio = serve mean / train mean; if abs(ratio - 1) &gt; mean_tol add
+      f'mean ratio {ratio:.2f}'
+  - non-numeric: unseen = sorted(set(serve values) - set(train values)) ignoring nulls; if any add
+      f'unseen categories {unseen}'
+  - any column: null_gap = serve null rate - train null rate; if null_gap &gt; null_tol add
+      f'null rate up {null_gap:.0%}'
+
+Print exactly:
+  f'Flagged features: {list(report)}'
+  then one line per reason:  f'  {col}: {reason}'
+(The given data has a units bug, a category never seen in training, and nulls that only appear at serving.)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import pandas as pd
+
+train = pd.DataFrame({
+    'price':  [10.0, 12.5, 9.0, 11.0, 13.5],
+    'device': ['ios', 'android', 'ios', 'web', 'android'],
+    'rating': [4.5, 3.9, 4.1, 4.8, 4.0],
+})
+serve = pd.DataFrame({
+    'price':  [1000.0, 1250.0, 900.0, 1100.0],
+    'device': ['ios', 'tv', 'web', 'tv'],
+    'rating': [4.4, None, 4.2, None],
+})
+# def skew_report(train, serve, mean_tol=0.25, null_tol=0.10): ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">A/B Test Verdict</div>
+        <div class="ex-desc">Implement a two-proportion z-test and turn it into a ship / keep / need-more-data decision.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write ab_verdict(n_a, x_a, n_b, x_b, alpha=0.05) using a pooled two-proportion z-test:
+  p_a=x_a/n_a, p_b=x_b/n_b, p_pool=(x_a+x_b)/(n_a+n_b)
+  se = sqrt(p_pool*(1-p_pool)*(1/n_a+1/n_b));  z = (p_b-p_a)/se
+  p_value = math.erfc(abs(z)/math.sqrt(2))      (two-sided)
+  lift = (p_b - p_a) / p_a
+Verdict: p_value &lt; alpha and z &gt; 0 -&gt; 'SHIP B';  p_value &lt; alpha and z &lt; 0 -&gt; 'KEEP A (B is worse)';
+otherwise 'NO DECISION (need more data)'.
+
+Run it for experiment 1 = (12000, 1236, 12000, 1332) and experiment 2 = (5000, 510, 5000, 531).
+Print exactly, one line each:
+  f'Experiment {i}: z={z:.4f} p={p_value:.4f} lift={lift:+.1%} -&gt; {verdict}'</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import math
+
+experiments = [(12000, 1236, 12000, 1332), (5000, 510, 5000, 531)]
+# def ab_verdict(n_a, x_a, n_b, x_b, alpha=0.05): ...
+# for i, args in enumerate(experiments, start=1): ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Deduplicate Events With a Watermark</div>
+        <div class="ex-desc">Emit each prediction event once, drop hopelessly late events, and keep the dedupe state bounded.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write dedupe_stream(events, allowed_lateness) where events is a list of (event_id, ts) in ARRIVAL order.
+For each event, in this order:
+  1. max_ts = max(max_ts, ts)          watermark = max_ts - allowed_lateness
+  2. forget every remembered id whose remembered ts &lt; watermark   (bounded state)
+  3. if ts &lt; watermark          -&gt; 'late'       (dropped, even if the id was never seen)
+     elif id already remembered -&gt; 'duplicate'
+     else                       -&gt; 'emit' and remember id -&gt; ts
+Return (emitted_ids, duplicates, late, state_size) where state_size = number of remembered ids at the end.
+
+Print exactly:
+  f'Emitted: {emitted}'
+  f'Duplicates: {dups}'
+  f'Late: {late}'
+  f'State size at end: {state}'
+(Counts, not lists, for Duplicates and Late.)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">events = [('r1', 10), ('r2', 12), ('r1', 10), ('r3', 20), ('r2', 12),
+          ('r4', 16), ('r5', 30), ('r3', 20), ('r6', 26), ('r7', 31)]
+# def dedupe_stream(events, allowed_lateness): ...
+# emitted, dups, late, state = dedupe_stream(events, allowed_lateness=5)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Canary Rollout Decision</div>
+        <div class="ex-desc">Turn canary metrics into promote / hold / rollback, with hard guardrails checked before quality.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write rollout_decision(baseline, canary) returning (decision, reason) where decision is 'promote', 'hold' or 'rollback'. Rules IN THIS ORDER:
+  1. canary['requests'] &lt; 1000                         -&gt; 'hold',     reason 'not enough traffic'
+  2. canary error rate - baseline error rate &gt; 0.005   -&gt; 'rollback', reason 'error rate regression'
+  3. canary['p95_ms'] &gt; baseline['p95_ms'] * 1.25      -&gt; 'rollback', reason 'latency regression'
+  4. canary['conversion'] &lt; baseline['conversion']*0.98 -&gt; 'hold',    reason 'quality dip'
+  5. otherwise                                          -&gt; 'promote',  reason 'healthy'
+(error rate = errors / requests)
+
+Print one line per scenario, exactly:
+  f'{name}: {decision} ({reason})'
+for the four scenarios given.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">baseline = {'requests': 50000, 'errors': 100, 'p95_ms': 180, 'conversion': 0.120}
+scenarios = {
+    'A': {'requests': 5000, 'errors': 12, 'p95_ms': 190, 'conversion': 0.121},
+    'B': {'requests': 400,  'errors': 0,  'p95_ms': 170, 'conversion': 0.130},
+    'C': {'requests': 5000, 'errors': 80, 'p95_ms': 185, 'conversion': 0.121},
+    'D': {'requests': 5000, 'errors': 10, 'p95_ms': 260, 'conversion': 0.121},
+}
+# def rollout_decision(baseline, canary): ...
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🎯 Go to the Mock Interview →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🎯 Capstone: <span>Timed Mock MLOps Interview</span></h2>
+    <p>Three problems of increasing difficulty in one editor, framed like a real ML-platform round — an easy sliding-window alert, a medium drift-ranking problem, and a hard retry-budget simulation. Give yourself <strong>25 minutes</strong> before you open the reference solutions. Each problem is graded independently below.</p>
+    <div class="project-tags">
+      <span class="ptag">easy: sliding window</span>
+      <span class="ptag">medium: PSI drift ranking</span>
+      <span class="ptag">hard: retry budget</span>
+    </div>
+  </div>
+
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>Narrate before you type.</strong> For each problem: restate the input and output in your own words, name a brute-force approach, say the complexity of what you're about to write, then code in small steps and print as you go. The problems below are the shape interviewers use, so practise the routine from 5.1, not just the answer.</div></div>
+
+  <div class="project-spec">
+    <h3>📋 The Three Problems</h3>
+    <ul class="spec-list">
+      <li><strong>Problem 1 (Easy — sliding window):</strong> Given per-minute (correct, total) prediction counts, alert on every 3-minute window whose accuracy falls below 0.90, and report the worst window.</li>
+      <li><strong>Problem 2 (Medium — drift):</strong> Given reference and current bin shares per feature, compute the Population Stability Index and print the top 3 most drifted features with a stable / moderate / significant label.</li>
+      <li><strong>Problem 3 (Hard — resilience):</strong> Simulate an inference client whose retries are limited by a shared token budget, and report successes, failures, retries used and denied, and the retry amplification.</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🎯 Mock Interview — Your Solution (all 3 problems)</div>
+      <button class="pe-run" onclick="runProject()">▶ Run All &amp; Check</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Timed Mock Interview — 3 problems
+# Talk through your approach before coding each one.
+# ══════════════════════════════════════════
+
+# ---------------------------------------------------------
+# PROBLEM 1 (Easy): Sliding-window prediction-quality alert
+# One (correct, total) pair per minute. A window is 3 consecutive minutes.
+# Alert when window accuracy (sum correct / sum total) &lt; 0.90.
+# ---------------------------------------------------------
+stream = [(58, 60), (57, 60), (55, 60), (48, 60), (45, 60), (50, 60), (57, 60), (58, 60)]
+window = 3
+# Print exactly:
+#   f'Alert windows (start minute): {alert_starts}'
+#   f'Alert count: {len(alert_starts)}'
+#   f'Worst window: start={worst_start} accuracy={worst_acc:.4f}'
+
+
+# ---------------------------------------------------------
+# PROBLEM 2 (Medium): Top-K most drifted features by PSI
+# Per feature: share of rows in each of 4 bins at training time (ref) vs now (cur).
+# PSI = sum((cur - ref) * ln(cur / ref)).  &lt;0.10 stable, &lt;0.25 moderate, else significant.
+# ---------------------------------------------------------
+import math
+ref = {'age': [0.20, 0.30, 0.30, 0.20], 'income': [0.25, 0.25, 0.25, 0.25],
+       'clicks': [0.50, 0.30, 0.15, 0.05], 'tenure': [0.40, 0.30, 0.20, 0.10]}
+cur = {'age': [0.19, 0.31, 0.29, 0.21], 'income': [0.05, 0.15, 0.30, 0.50],
+       'clicks': [0.40, 0.30, 0.20, 0.10], 'tenure': [0.42, 0.28, 0.20, 0.10]}
+# Print the top 3 features, most drifted first, exactly:
+#   f'{rank}. {feature}: PSI={psi:.4f} ({label})'
+
+
+# ---------------------------------------------------------
+# PROBLEM 3 (Hard): Retry budget for an inference client
+# Each call lists what each ATTEMPT would return, in order. At most 3 attempts per call.
+# A retry costs one token from a shared budget, so retries can never exceed ~20% of traffic:
+#   integer tokens: start 10, +2 for every call's FIRST attempt (cap 20), a retry costs 10.
+#   A failed attempt is retried only if attempts &lt; 3 AND tokens &gt;= 10; otherwise the call fails.
+#   "Denied" = a failed attempt that still had attempts left but no budget (not the attempt cap).
+# ---------------------------------------------------------
+calls = [['ok'], ['timeout', 'ok'], ['ok'], ['timeout', 'timeout', 'ok'], ['ok'],
+         ['429', '429', '429'], ['ok'], ['timeout', 'ok'], ['ok'], ['ok']]
+# Print exactly:
+#   f'Successes: {ok}  Failures: {failed}'
+#   f'Retries used: {retries}  Retries denied: {denied}'
+#   f'Attempts made: {attempts} (amplification {attempts / len(calls):.2f}x)'
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Mock Interview Checklist — graded per problem</h3>
+    <h4>Problem 1 (Easy)</h4>
+    <div class="check-item" data-check="alert windows (start minute): [1, 2, 3, 4]"><span class="check-icon"></span>Alert windows (start minute): [1, 2, 3, 4]</div>
+    <div class="check-item" data-check="alert count: 4"><span class="check-icon"></span>Alert count: 4</div>
+    <div class="check-item" data-check="worst window: start=3 accuracy=0.7944"><span class="check-icon"></span>Worst window: start=3 accuracy=0.7944</div>
+    <h4>Problem 2 (Medium)</h4>
+    <div class="check-item" data-check="1. income: psi=0.5554 (significant)"><span class="check-icon"></span>1. income: PSI=0.5554 (significant)</div>
+    <div class="check-item" data-check="2. clicks: psi=0.0714 (stable)"><span class="check-icon"></span>2. clicks: PSI=0.0714 (stable)</div>
+    <div class="check-item" data-check="3. tenure: psi=0.0024 (stable)"><span class="check-icon"></span>3. tenure: PSI=0.0024 (stable)</div>
+    <h4>Problem 3 (Hard)</h4>
+    <div class="check-item" data-check="successes: 7  failures: 3"><span class="check-icon"></span>Successes: 7  Failures: 3</div>
+    <div class="check-item" data-check="retries used: 2  retries denied: 3"><span class="check-icon"></span>Retries used: 2  Retries denied: 3</div>
+    <div class="check-item" data-check="attempts made: 12 (amplification 1.20x)"><span class="check-icon"></span>Attempts made: 12 (amplification 1.20x)</div>
+  </div>
+
+  <details style="margin-top:16px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 18px">
+    <summary style="cursor:pointer;font-weight:700;color:var(--violet)">👁 Reference solutions — open after your 25 minutes</summary>
+    <div style="margin-top:14px">
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Problem 1 — sliding-window alert</span></div>
+    <div class="cb-code">alert_starts = []
+worst_start, worst_acc = <span class="kw">None</span>, <span class="nm">2.0</span>
+<span class="kw">for</span> start <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(stream) - window + <span class="nm">1</span>):
+    chunk = stream[start:start + window]
+    acc = <span class="bi">sum</span>(c <span class="kw">for</span> c, _ <span class="kw">in</span> chunk) / <span class="bi">sum</span>(t <span class="kw">for</span> _, t <span class="kw">in</span> chunk)
+    <span class="kw">if</span> acc &lt; <span class="nm">0.90</span>:
+        alert_starts.append(start)
+    <span class="kw">if</span> acc &lt; worst_acc:
+        worst_start, worst_acc = start, acc
+<span class="bi">print</span>(<span class="st">f'Alert windows (start minute): {alert_starts}'</span>)
+<span class="bi">print</span>(<span class="st">f'Alert count: {len(alert_starts)}'</span>)
+<span class="bi">print</span>(<span class="st">f'Worst window: start={worst_start} accuracy={worst_acc:.4f}'</span>)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Problem 2 — top-K drifted features (PSI)</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">psi</span>(ref_bins, cur_bins):
+    <span class="kw">return</span> <span class="bi">sum</span>((c - r) * math.log(c / r) <span class="kw">for</span> r, c <span class="kw">in</span> <span class="bi">zip</span>(ref_bins, cur_bins))
+
+scores = {f: psi(ref[f], cur[f]) <span class="kw">for</span> f <span class="kw">in</span> ref}
+label = <span class="kw">lambda</span> v: <span class="st">'stable'</span> <span class="kw">if</span> v &lt; <span class="nm">0.10</span> <span class="kw">else</span> <span class="st">'moderate'</span> <span class="kw">if</span> v &lt; <span class="nm">0.25</span> <span class="kw">else</span> <span class="st">'significant'</span>
+<span class="kw">for</span> rank, (feature, value) <span class="kw">in</span> <span class="bi">enumerate</span>(<span class="bi">sorted</span>(scores.items(), key=<span class="kw">lambda</span> kv: kv[<span class="nm">1</span>], reverse=<span class="kw">True</span>)[:<span class="nm">3</span>], start=<span class="nm">1</span>):
+    <span class="bi">print</span>(<span class="st">f'{rank}. {feature}: PSI={value:.4f} ({label(value)})'</span>)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Problem 3 — retry budget</span></div>
+    <div class="cb-code">tokens, ok, failed, retries, denied, attempts = <span class="nm">10</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>
+<span class="kw">for</span> outcomes <span class="kw">in</span> calls:
+    tokens = <span class="bi">min</span>(<span class="nm">20</span>, tokens + <span class="nm">2</span>)
+    tried, success = <span class="nm">0</span>, <span class="kw">False</span>
+    <span class="kw">while</span> tried &lt; <span class="nm">3</span> <span class="kw">and</span> tried &lt; <span class="bi">len</span>(outcomes):
+        attempts += <span class="nm">1</span>
+        result = outcomes[tried]
+        tried += <span class="nm">1</span>
+        <span class="kw">if</span> result == <span class="st">'ok'</span>:
+            success = <span class="kw">True</span>
+            <span class="kw">break</span>
+        <span class="kw">if</span> tried &gt;= <span class="nm">3</span>:
+            <span class="kw">break</span>
+        <span class="kw">if</span> tokens &gt;= <span class="nm">10</span>:
+            tokens -= <span class="nm">10</span>
+            retries += <span class="nm">1</span>
+        <span class="kw">else</span>:
+            denied += <span class="nm">1</span>
+            <span class="kw">break</span>
+    ok += success
+    failed += (<span class="kw">not</span> success)
+<span class="bi">print</span>(<span class="st">f'Successes: {ok}  Failures: {failed}'</span>)
+<span class="bi">print</span>(<span class="st">f'Retries used: {retries}  Retries denied: {denied}'</span>)
+<span class="bi">print</span>(<span class="st">f'Attempts made: {attempts} (amplification {attempts / len(calls):.2f}x)'</span>)</div>
+  </div>
+    </div>
+  </details>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 MLOps 5 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A model scores 0.97 AUC offline but performs close to random online. Training data was built by joining labels to the <strong>latest</strong> feature value per user. What is the most likely cause?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Label leakage from a join that is not point-in-time correct — some features were computed after the label event, so the model learned from information that does not exist at prediction time</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The model was trained for too few epochs</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> GPU nondeterminism between training runs</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Online traffic is always harder than offline data, so the gap is expected</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why should a feature-hashing function use <code>hashlib</code> (for example <code>md5</code>) instead of Python's built-in <code>hash()</code> on strings?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> hashlib is always faster than hash()</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The built-in hash() of a string is salted per process, so a training job and a serving container would send the same value to different buckets — invisible training/serving skew</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> hash() cannot handle strings longer than 32 characters</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> There is no difference; either is fine for feature hashing</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A planned 14-day A/B test shows p &lt; 0.05 on day 2. What is the best decision?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Ship immediately — p &lt; 0.05 means the result is real</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Roll back, because early results are always wrong</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Keep running to the planned horizon (or use a sequential-testing method designed for repeated looks), because stopping at the first significant peek inflates the false-positive rate well above 5%</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Double the traffic to the winning arm and stop the experiment</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Which pandas function performs an as-of join — matching each row to the most recent earlier row in another table? (Just the function name.)</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="function name..." rows="2"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">A canary has served only 300 requests and shows a 0% error rate. What should an automated rollout decision be?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Promote — 0% errors is a perfect result</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Hold — 300 requests is too little traffic to conclude anything, so keep collecting before deciding</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Roll back as a precaution</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Jump straight to 50% of traffic to gather data faster</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="course-complete-card" id="course-complete-card" style="display:none">
+    <div class="ccc-icon">🎉</div>
+    <h3>MLOps Track <span>Complete</span> — Python for MLOps</h3>
+    <p>Reproducible data and validation, experiment tracking and a model registry, orchestrated pipelines, monitoring and drift — and now the interview round that tests all of it. Pair this with the DevOps Python track and the Interview Mastery bonus (behavioral + system design) and you are covering both halves of a real platform-engineering interview loop.</p>
+    <div class="ccc-stats">
+      <div class="ccc-stat"><strong>5</strong>MLOps chapters</div>
+      <div class="ccc-stat"><strong>25</strong>practice exercises</div>
+      <div class="ccc-stat"><strong>5</strong>interview-prep tabs</div>
+    </div>
+    <a class="ccc-btn" href="../index.html">🏠 Back to Course Home</a>
+    <a class="ccc-btn" href="../bonus/interview-mastery.html" style="background:var(--card2);color:var(--text);border:1px solid var(--border);margin-left:10px">🎯 Bonus: Interview Mastery (behavioral + system design)</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 MLOps &amp; ML-Platform Interview Prep</h2>
+    <p>10 questions that ML-platform and MLOps interviews ask again and again, with the answer a strong candidate gives — including the pitfall to name. Click a question to reveal the answer. Not graded — this is here so you walk in prepared, not just quizzed.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is the difference between an offline and an online feature store, and why do you need both?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The <strong>offline store</strong> holds the full history of every feature (warehouse tables or Parquet in object storage) and is what training reads, using point-in-time joins so each training row only sees values that existed at its label time. The <strong>online store</strong> (Redis, DynamoDB, Bigtable) holds only the latest value per entity key and answers single-key lookups in milliseconds for serving. You need both because the access patterns are opposite: huge scans over history versus tiny, latency-critical lookups. The important part is that both are fed from <strong>one feature definition</strong> — a materialisation job writes the same computed values to both — otherwise you have built training/serving skew into the platform. Expect follow-ups on TTLs and freshness, backfills, and how you populate the online store for a brand-new feature.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is point-in-time correctness and how do you enforce it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">For each training example you may only use feature values that were available at prediction time — never anything computed after the label event. The failure is silent: offline metrics are inflated and production is near random. Enforce it structurally: keep timestamped feature <em>history</em> (not just the latest value), join with an as-of join (<code>pandas.merge_asof</code>, or the feature store's historical-features API), account for an availability lag, and add a test asserting <code>max(feature_ts) &lt;= label_ts</code> for every row. Also split train and validation by time, not randomly, for anything time-dependent.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is training/serving skew, how do you detect it, and how do you prevent it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Skew is a difference between the inputs a model was trained on and what it receives online <em>at the same point in time</em> — as opposed to drift, which is the world changing over time. Typical causes: separate code paths for offline and online feature computation, units or encoding differences, stale online features, null handling, unseen categories, and library version differences. Detect it by logging the features actually served and comparing per-feature summary statistics (mean, null rate, category set) against the training set, alerting on step changes. Prevent it with a single shared feature definition, preprocessing code packaged with the model, golden-row integration tests that push one raw input through both paths, and ideally "log and wait" — train on the features you actually logged at serving time.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does CI/CD look like for an ML system, and how is it different from ordinary software CI/CD?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">You version and test three things instead of one: <strong>code, data and model</strong>. CI runs unit tests, data validation (schema, ranges, null rates) and a fast training smoke test. A training pipeline produces a candidate model plus an evaluation report, and a <strong>gate</strong> compares it against the current production model on a fixed evaluation set and on important slices — promoting only if it wins by a margin and passes latency and fairness checks. CD then rolls out through shadow or canary with automatic rollback on guardrail regressions. The differences: the artefact is not reproducible from code alone (you need pinned data and seeds), you need continuous-training triggers (schedule, drift, new labels), and monitoring is part of the pipeline rather than an afterthought.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you version models and roll back safely?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Treat a release as an immutable bundle: weights, preprocessing code, feature schema, a training-data hash or snapshot id, the code commit, an environment lockfile and the evaluation report, stored in a registry with stage aliases such as staging, production and archived. Serving resolves an alias, so <strong>rollback is repointing "production" to the previous version</strong> — seconds, no rebuild. Keep the previous version warm for a fast cutover, keep feature schemas backward compatible for at least one version, and make rollback a rehearsed runbook step with an automatic trigger on guardrail breaches. The trap worth naming: a rollback is only safe if the previous model still works with the <em>current</em> feature pipeline.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you monitor a model in production when ground-truth labels arrive late, or never?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Layer it. Available immediately: system metrics (latency percentiles, error rate, throughput), data quality (null rates, ranges, schema), input drift per feature (PSI, KS test, category shares) and prediction drift (score distribution, class balance). Then proxies: business or engagement signals that correlate with quality, and model confidence or calibration. When labels eventually arrive, join them back by prediction id and compute real performance over the delayed window; if they never arrive, run a labelled-sample or human-review programme. Alert on <em>sustained</em> deviation rather than single points, and tune thresholds so on-call is not paged by noise.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Batch versus online inference — how do you choose?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Ask <strong>who is waiting and how fresh the answer must be</strong>. If nobody is waiting and hours-old scores are fine (nightly churn, weekly recommendations), batch wins on cost, simplicity and throughput: you pay for hours used, can retry a failed job, and can use warehouse joins. If a user or transaction is waiting (fraud checks, search ranking) you need online serving with an SLO, redundancy and a low-latency feature store, and you pay for capacity even when it is idle. Hybrids are common: precompute expensive scores in batch, serve them from a key-value store, and run the model online only for the fresh signal. Back the choice with numbers — replicas from Little's law versus the hours a nightly job takes.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When should you retrain a model?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">On evidence or a schedule justified by how fast the domain changes — not on a whim. Triggers: monitored performance decay once labels arrive, significant input or concept drift, enough new labelled data, or a fixed cadence for fast-moving domains. Before promoting, the retrained model must beat the current one on a fixed evaluation set through the normal gate. Pitfalls: retraining on data corrupted by an upstream bug (you bake the bug in), feedback loops where the model's own predictions shape the labels, and retraining so often that cost and instability outweigh the gain. First diagnose whether a drop is a <strong>pipeline bug</strong> (fix the pipeline) or <strong>real drift</strong> (retrain).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Inference is too expensive and p99 latency is too high. What levers do you pull?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Measure first — profile where the time and money actually go — then, roughly in order of payoff: cache repeated predictions; use dynamic batching to raise hardware utilisation; use a smaller, distilled or quantised model when the accuracy loss is tolerable; right-size and autoscale on concurrency rather than CPU alone; move non-urgent traffic to batch; precompute and look up instead of computing; and use a cascade (a cheap model first, the expensive one only for uncertain cases). State the accuracy cost of each lever and use the SLO and error budget to decide.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a shadow deployment, and when would you use one instead of a canary?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">In a shadow deployment the new model receives a <strong>copy</strong> of live traffic and its predictions are logged but never returned to users. It shows real-world latency, errors and how much the model disagrees with the current one, with zero user impact — ideal before a risky replacement. Limits: it costs double the compute, side effects must be disabled, and because users never act on its output you cannot measure business impact or feedback effects. The usual ladder is shadow (is it safe and sane?), then a canary at 1–5% with automatic rollback (does it behave under real serving?), then an A/B test (does it actually improve the metric?).</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# pandas and scipy load on first use in this chapter (a few seconds)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["PIT sessions_7d (missing=-1): [12, 9, -1, 3]", "Naive sessions_7d (missing=-1): [3, 1, 15, 3]", "Leaky rows (naive != PIT): 3"],
+    hint:"merge_asof needs both sides sorted by their time key. direction='backward' means 'most recent value at or before the label time'. A user with no feature yet comes back NaN.",
+    solution:`import pandas as pd
+
+labels = pd.DataFrame({
+    'user_id':   ['u1', 'u2', 'u1', 'u3'],
+    'scored_at': pd.to_datetime(['2024-02-10', '2024-02-12', '2024-03-05', '2024-02-20']),
+    'churned':   [0, 1, 1, 0],
+})
+features = pd.DataFrame({
+    'user_id':     ['u1', 'u1', 'u2', 'u2', 'u3'],
+    'computed_at': pd.to_datetime(['2024-02-01', '2024-03-01', '2024-01-15', '2024-02-15', '2024-03-10']),
+    'sessions_7d': [12, 3, 9, 1, 15],
+})
+latest = features.sort_values('computed_at').groupby('user_id', as_index=False).last()
+naive = labels.sort_values('scored_at').merge(latest, on='user_id', how='left')
+pit = pd.merge_asof(
+    labels.sort_values('scored_at'), features.sort_values('computed_at'),
+    left_on='scored_at', right_on='computed_at',
+    by='user_id', direction='backward', tolerance=pd.Timedelta(days=30),
+)
+pit_values = pit['sessions_7d'].fillna(-1).astype(int).tolist()
+naive_values = naive['sessions_7d'].fillna(-1).astype(int).tolist()
+leaky = sum(1 for a, b in zip(pit_values, naive_values) if a != b)
+print(f'PIT sessions_7d (missing=-1): {pit_values}')
+print(f'Naive sessions_7d (missing=-1): {naive_values}')
+print(f'Leaky rows (naive != PIT): {leaky}')`
+  },
+  2:{
+    checks:["Flagged features: ['price', 'device', 'rating']", "  price: mean ratio 94.87", "  device: unseen categories ['tv']", "  rating: null rate up 50%"],
+    hint:"Loop over train.columns. pd.api.types.is_numeric_dtype(train[col]) splits numeric vs categorical. serve[col].isna().mean() is a null RATE. Format the ratio with :.2f and the gap with :.0%.",
+    solution:`import pandas as pd
+
+train = pd.DataFrame({
+    'price':  [10.0, 12.5, 9.0, 11.0, 13.5],
+    'device': ['ios', 'android', 'ios', 'web', 'android'],
+    'rating': [4.5, 3.9, 4.1, 4.8, 4.0],
+})
+serve = pd.DataFrame({
+    'price':  [1000.0, 1250.0, 900.0, 1100.0],
+    'device': ['ios', 'tv', 'web', 'tv'],
+    'rating': [4.4, None, 4.2, None],
+})
+
+def skew_report(train, serve, mean_tol=0.25, null_tol=0.10):
+    flagged = {}
+    for col in train.columns:
+        reasons = []
+        if pd.api.types.is_numeric_dtype(train[col]):
+            ratio = serve[col].mean() / train[col].mean()
+            if abs(ratio - 1) > mean_tol:
+                reasons.append(f'mean ratio {ratio:.2f}')
+        else:
+            unseen = sorted(set(serve[col].dropna()) - set(train[col].dropna()))
+            if unseen:
+                reasons.append(f'unseen categories {unseen}')
+        null_gap = serve[col].isna().mean() - train[col].isna().mean()
+        if null_gap > null_tol:
+            reasons.append(f'null rate up {null_gap:.0%}')
+        if reasons:
+            flagged[col] = reasons
+    return flagged
+
+report = skew_report(train, serve)
+print(f'Flagged features: {list(report)}')
+for col, reasons in report.items():
+    for reason in reasons:
+        print(f'  {col}: {reason}')`
+  },
+  3:{
+    checks:["Experiment 1: z=2.0047 p=0.0450 lift=+7.8% -> SHIP B", "Experiment 2: z=0.6876 p=0.4917 lift=+4.1% -> NO DECISION (need more data)"],
+    hint:"z is (p_b - p_a) / se with the POOLED proportion inside se. The two-sided p-value is math.erfc(abs(z) / math.sqrt(2)). Check the sign of z before deciding whether B is better or worse.",
+    solution:`import math
+
+experiments = [(12000, 1236, 12000, 1332), (5000, 510, 5000, 531)]
+
+def ab_verdict(n_a, x_a, n_b, x_b, alpha=0.05):
+    p_a, p_b = x_a / n_a, x_b / n_b
+    p_pool = (x_a + x_b) / (n_a + n_b)
+    se = math.sqrt(p_pool * (1 - p_pool) * (1 / n_a + 1 / n_b))
+    z = (p_b - p_a) / se
+    p_value = math.erfc(abs(z) / math.sqrt(2))
+    lift = (p_b - p_a) / p_a
+    if p_value < alpha and z > 0:
+        verdict = 'SHIP B'
+    elif p_value < alpha and z < 0:
+        verdict = 'KEEP A (B is worse)'
+    else:
+        verdict = 'NO DECISION (need more data)'
+    return z, p_value, lift, verdict
+
+for i, args in enumerate(experiments, start=1):
+    z, p_value, lift, verdict = ab_verdict(*args)
+    print(f'Experiment {i}: z={z:.4f} p={p_value:.4f} lift={lift:+.1%} -> {verdict}')`
+  },
+  4:{
+    checks:["Emitted: ['r1', 'r2', 'r3', 'r4', 'r5', 'r6', 'r7']", "Duplicates: 1", "Late: 2", "State size at end: 3"],
+    hint:"Keep a dict id -> ts. Update max_ts first, compute the watermark, THEN evict old ids, THEN classify the event (late check comes before the duplicate check). Evict with a list comprehension so you don't mutate the dict while iterating it.",
+    solution:`events = [('r1', 10), ('r2', 12), ('r1', 10), ('r3', 20), ('r2', 12),
+          ('r4', 16), ('r5', 30), ('r3', 20), ('r6', 26), ('r7', 31)]
+
+def dedupe_stream(events, allowed_lateness):
+    seen = {}
+    max_ts = None
+    emitted, dups, late = [], 0, 0
+    for event_id, ts in events:
+        if max_ts is None or ts > max_ts:
+            max_ts = ts
+        watermark = max_ts - allowed_lateness
+        for old in [k for k, t in seen.items() if t < watermark]:
+            del seen[old]
+        if ts < watermark:
+            late += 1
+        elif event_id in seen:
+            dups += 1
+        else:
+            seen[event_id] = ts
+            emitted.append(event_id)
+    return emitted, dups, late, len(seen)
+
+emitted, dups, late, state = dedupe_stream(events, allowed_lateness=5)
+print(f'Emitted: {emitted}')
+print(f'Duplicates: {dups}')
+print(f'Late: {late}')
+print(f'State size at end: {state}')`
+  },
+  5:{
+    checks:["A: promote (healthy)", "B: hold (not enough traffic)", "C: rollback (error rate regression)", "D: rollback (latency regression)"],
+    hint:"Order matters: traffic check first (a 0% error rate on 400 requests proves nothing), then the hard guardrails (errors, latency -> rollback), then the softer quality check (-> hold). Return a (decision, reason) tuple.",
+    solution:`baseline = {'requests': 50000, 'errors': 100, 'p95_ms': 180, 'conversion': 0.120}
+scenarios = {
+    'A': {'requests': 5000, 'errors': 12, 'p95_ms': 190, 'conversion': 0.121},
+    'B': {'requests': 400,  'errors': 0,  'p95_ms': 170, 'conversion': 0.130},
+    'C': {'requests': 5000, 'errors': 80, 'p95_ms': 185, 'conversion': 0.121},
+    'D': {'requests': 5000, 'errors': 10, 'p95_ms': 260, 'conversion': 0.121},
+}
+
+def rollout_decision(baseline, canary):
+    if canary['requests'] < 1000:
+        return 'hold', 'not enough traffic'
+    b_err = baseline['errors'] / baseline['requests']
+    c_err = canary['errors'] / canary['requests']
+    if c_err - b_err > 0.005:
+        return 'rollback', 'error rate regression'
+    if canary['p95_ms'] > baseline['p95_ms'] * 1.25:
+        return 'rollback', 'latency regression'
+    if canary['conversion'] < baseline['conversion'] * 0.98:
+        return 'hold', 'quality dip'
+    return 'promote', 'healthy'
+
+for name, canary in scenarios.items():
+    decision, reason = rollout_decision(baseline, canary)
+    print(f'{name}: {decision} ({reason})')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+  const lower=full.toLowerCase();
+
+  // grade each checklist item independently and update its icon
+  document.querySelectorAll('.check-item[data-check]').forEach(item=>{
+    const c=item.getAttribute('data-check');
+    const ok2=lower.includes(c);
+    item.classList.toggle('item-pass', ok2);
+    item.classList.toggle('item-fail', !ok2);
+  });
+
+  const checks=[...document.querySelectorAll('.check-item[data-check]')].map(el=>el.getAttribute('data-check'));
+  const passed=ok&&checks.every(c=>lower.includes(c));
+  const passedCount=checks.filter(c=>lower.includes(c)).length;
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ All 3 problems solved correctly! Full mock interview passed.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent=`❌ ${passedCount}/${checks.length} checklist items passing — check the checklist above (each problem is graded independently)`;
+  }
+};
+
+const CORRECT={1:'A',2:'B',3:'C',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'').replace(/\(\)$/,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val==='merge_asof'||val==='pd.merge_asof'||val==='pandas.merge_asof';
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! merge_asof'
+    :'❌ Not quite. The as-of join in pandas is merge_asof.';
+};
+
+function revealNextChapter(){
+  document.getElementById('course-complete-card').style.display='block';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Point-in-time joins, skew detection, batch vs online sizing, A/B tests, watermark dedupe, rollout gates and stable hashing — the problems ML-platform interviews keep coming back to. Read the Interview Prep tab, then you've finished the MLOps track.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

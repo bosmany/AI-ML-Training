@@ -1,0 +1,2150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DevOps 4: Cloud &amp; Container Ops by Example</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 5-chapter "Python for
+  DevOps: Day-to-Day" track — NOT part of the 41-chapter core curriculum, same tier as the
+  systems/ and dsa/ modules. Everything you can Run is pure standard-library Python operating on
+  JSON shaped exactly like real boto3 / kubectl / docker responses, plus small fake clients (a
+  paginating S3, a throttling API). The real boto3, kubernetes and docker SDK blocks are
+  reference-only, no Run button, because they need real credentials and a network this browser
+  sandbox doesn't have — same pattern as python/ch07's subprocess and requests sections.
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live in
+  the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DevOps 4: Cloud &amp; Container Ops</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for DevOps · 4 of 5</div>
+  </a>
+  <a class="sb-back" href="do03-automation-scripts-resilience.html">← DevOps 3: Automation Scripts &amp; Resilience</a>
+  <div class="sb-section">DevOps 4 · Cloud &amp; Container Ops</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Python for DevOps</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='do05-devops-python-mock-interview.html'"><span class="sb-icon">🎯</span><span class="sb-step">DevOps 5: Python Mock Interview</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DevOps 4 of 5</div>
+    <div class="tb-title">Cloud &amp; Container Ops by Example</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>DevOps 4:<br/><span>Cloud &amp; Container Ops by Example</span></h1>
+    <p>The Python you write for AWS, Kubernetes and Docker is mostly one skill: take a big nested JSON response and turn it into a decision. This chapter drills that skill on realistic data — EC2 and S3 responses, security groups, IAM policies, <code>kubectl</code> output, resource quantities, <code>docker inspect</code> — and the pagination, missing-key and throttling traps that break real scripts and fill interview loops.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~75 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">4.1 — The Skill Behind Every Cloud Script: Handling the Response</div>
+  <p class="lesson-p">Almost every DevOps script you'll write for AWS, Kubernetes or Docker has the same shape: <strong>call an API → get a big nested JSON document back → walk it → decide something</strong> (delete it, alert on it, total it, report it). The SDK call is one line. The value — and nearly every bug — lives in <em>handling the response</em>: keys that are silently missing, results that are paginated, units like <code>250m</code> and <code>2Gi</code>, errors that should or shouldn't be retried. That is what interviewers probe, and it's what this chapter drills.</p>
+  <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code — not runnable in this browser.</strong> <code>boto3</code>, the <code>kubernetes</code> client and the <code>docker</code> SDK needs real credentials and a real network, which this WebAssembly sandbox doesn't have, so there is no ▶ Run button. Every block that <em>does</em> have one operates on JSON shaped exactly like the real response, so the same loop works once you swap the fake for the real client.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — boto3 client vs resource</span></div>
+    <div class="cb-code"><span class="kw">import</span> boto3
+
+<span class="cm"># CLIENT: a 1:1 mapping of the AWS API. Dicts in, dicts out. Every service and operation exists here.</span>
+ec2 = boto3.client(<span class="st">"ec2"</span>, region_name=<span class="st">"us-east-1"</span>)
+resp = ec2.describe_instances(
+    Filters=[{<span class="st">"Name"</span>: <span class="st">"instance-state-name"</span>, <span class="st">"Values"</span>: [<span class="st">"running"</span>]}]
+)
+<span class="kw">for</span> reservation <span class="kw">in</span> resp[<span class="st">"Reservations"</span>]:
+    <span class="kw">for</span> inst <span class="kw">in</span> reservation[<span class="st">"Instances"</span>]:
+        <span class="bi">print</span>(inst[<span class="st">"InstanceId"</span>], inst[<span class="st">"InstanceType"</span>])
+
+<span class="cm"># RESOURCE: an object-oriented wrapper (only some services). Nicer to read, but AWS has put the</span>
+<span class="cm"># resource interface in maintenance mode - new features land in clients only.</span>
+ec2r = boto3.resource(<span class="st">"ec2"</span>, region_name=<span class="st">"us-east-1"</span>)
+<span class="kw">for</span> inst <span class="kw">in</span> ec2r.instances.<span class="bi">filter</span>(Filters=[{<span class="st">"Name"</span>: <span class="st">"instance-state-name"</span>, <span class="st">"Values"</span>: [<span class="st">"running"</span>]}]):
+    <span class="bi">print</span>(inst.id, inst.instance_type)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Client or resource?</strong> Use the <strong>client</strong>. It maps 1:1 onto the AWS API, covers every service and operation, and gives you plain dicts (which is what you'll parse anyway). The resource layer reads nicely but exists for only a few services and gets no new features. Interviewers like hearing that you know <em>why</em>, not just which one you typed.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — no hard-coded keys: the credential chain and assume_role</span></div>
+    <div class="cb-code"><span class="kw">import</span> boto3
+
+<span class="cm"># No long-lived keys in scripts. On EC2/ECS/EKS the SDK finds credentials by itself</span>
+<span class="cm"># (instance profile / task role / IRSA). To act in ANOTHER account, assume a role:</span>
+sts = boto3.client(<span class="st">"sts"</span>)
+creds = sts.assume_role(
+    RoleArn=<span class="st">"arn:aws:iam::123456789012:role/ReadOnlyAudit"</span>,
+    RoleSessionName=<span class="st">"weekly-audit"</span>,
+    DurationSeconds=<span class="nm">3600</span>,
+)[<span class="st">"Credentials"</span>]
+
+audit_session = boto3.Session(
+    aws_access_key_id=creds[<span class="st">"AccessKeyId"</span>],
+    aws_secret_access_key=creds[<span class="st">"SecretAccessKey"</span>],
+    aws_session_token=creds[<span class="st">"SessionToken"</span>],   <span class="cm"># temporary: expires after DurationSeconds</span>
+)
+ec2 = audit_session.client(<span class="st">"ec2"</span>, region_name=<span class="st">"eu-west-1"</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🔒</div><div class="ib-body"><strong>Never put access keys in a script or a repo.</strong> On EC2, ECS and EKS the SDK finds credentials by itself (instance profile, task role, IRSA). Locally it reads <code>~/.aws</code> or environment variables. To work in another account you <code>assume_role</code> and get <em>temporary</em> credentials that expire. Long-lived keys in code are the classic breach.</div></div>
+  <p class="lesson-p">Now the first response-handling trap, and it's a real one: <strong>boto3 omits the <code>Tags</code> key entirely when a resource has no tags</strong> — it is not an empty list. A script that does <code>inst['Tags']</code> works in dev (everything's tagged) and crashes in prod on the one instance nobody tagged. Two tiny helpers fix this class of bug for good.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Missing keys: .get() and a safe nested lookup</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># A real boto3 quirk: the 'Tags' key is OMITTED ENTIRELY when an instance has no tags.</span>
+tagged   = {<span class="st">"InstanceId"</span>: <span class="st">"i-0a1"</span>, <span class="st">"Tags"</span>: [{<span class="st">"Key"</span>: <span class="st">"Owner"</span>, <span class="st">"Value"</span>: <span class="st">"ml-platform"</span>}]}
+untagged = {<span class="st">"InstanceId"</span>: <span class="st">"i-0b2"</span>}                       <span class="cm"># no 'Tags' key at all</span>
+
+<span class="kw">try</span>:
+    <span class="bi">print</span>(untagged[<span class="st">"Tags"</span>])
+<span class="kw">except</span> KeyError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f"KeyError: {e}   &lt;- what crashes naive audit scripts"</span>)
+
+<span class="kw">def</span> <span class="fn">tags_to_dict</span>(instance):
+    <span class="st">"""[{'Key': 'Owner', 'Value': 'x'}] -&gt; {'Owner': 'x'}; safe when 'Tags' is missing."""</span>
+    <span class="kw">return</span> {t[<span class="st">"Key"</span>]: t[<span class="st">"Value"</span>] <span class="kw">for</span> t <span class="kw">in</span> instance.get(<span class="st">"Tags"</span>, [])}
+
+<span class="bi">print</span>(tags_to_dict(tagged))
+<span class="bi">print</span>(tags_to_dict(untagged))
+
+<span class="kw">def</span> <span class="fn">dig</span>(obj, *path, default=<span class="kw">None</span>):
+    <span class="st">"""Walk nested dicts/lists without blowing up: dig(resp, 'Reservations', 0, 'Instances', 0)."""</span>
+    <span class="kw">for</span> key <span class="kw">in</span> path:
+        <span class="kw">try</span>:
+            obj = obj[key]
+        <span class="kw">except</span> (KeyError, IndexError, TypeError):
+            <span class="kw">return</span> default
+    <span class="kw">return</span> obj
+
+resp = {<span class="st">"Reservations"</span>: [{<span class="st">"Instances"</span>: [{<span class="st">"State"</span>: {<span class="st">"Name"</span>: <span class="st">"running"</span>}}]}]}
+<span class="bi">print</span>(dig(resp, <span class="st">"Reservations"</span>, <span class="nm">0</span>, <span class="st">"Instances"</span>, <span class="nm">0</span>, <span class="st">"State"</span>, <span class="st">"Name"</span>))
+<span class="bi">print</span>(dig(resp, <span class="st">"Reservations"</span>, <span class="nm">5</span>, <span class="st">"Instances"</span>, <span class="nm">0</span>, default=<span class="st">"&lt;missing&gt;"</span>))</div>
+  </div>
+
+  <div class="lesson-h2">4.2 — EC2: the Reservations → Instances Shape</div>
+  <p class="lesson-p"><code>describe_instances</code> doesn't return a list of instances. It returns <code>Reservations</code>, each holding <code>Instances</code>. A reservation is just one launch request, so its grouping is meaningless for your purposes — <strong>always flatten first</strong>. Tags arrive as <code>[{'Key': ..., 'Value': ...}]</code>, which you'll want as a dict. Real responses carry <code>datetime</code> objects; here they're ISO strings so the data is easy to read.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Flatten, normalise tags, find stopped instances, estimate spend</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> datetime <span class="kw">import</span> datetime, timezone
+<span class="kw">import</span> re
+
+DESCRIBE = {
+    <span class="st">"Reservations"</span>: [
+        {<span class="st">"ReservationId"</span>: <span class="st">"r-01"</span>, <span class="st">"Instances"</span>: [
+            {<span class="st">"InstanceId"</span>: <span class="st">"i-0a1"</span>, <span class="st">"InstanceType"</span>: <span class="st">"m5.xlarge"</span>, <span class="st">"State"</span>: {<span class="st">"Name"</span>: <span class="st">"running"</span>},
+             <span class="st">"StateTransitionReason"</span>: <span class="st">""</span>, <span class="st">"LaunchTime"</span>: <span class="st">"2026-06-02T08:15:00+00:00"</span>,
+             <span class="st">"Tags"</span>: [{<span class="st">"Key"</span>: <span class="st">"Owner"</span>, <span class="st">"Value"</span>: <span class="st">"ml-platform"</span>}, {<span class="st">"Key"</span>: <span class="st">"Env"</span>, <span class="st">"Value"</span>: <span class="st">"prod"</span>}]},
+            {<span class="st">"InstanceId"</span>: <span class="st">"i-0b2"</span>, <span class="st">"InstanceType"</span>: <span class="st">"t3.large"</span>, <span class="st">"State"</span>: {<span class="st">"Name"</span>: <span class="st">"running"</span>},
+             <span class="st">"StateTransitionReason"</span>: <span class="st">""</span>, <span class="st">"LaunchTime"</span>: <span class="st">"2026-08-20T11:00:00+00:00"</span>},
+        ]},
+        {<span class="st">"ReservationId"</span>: <span class="st">"r-02"</span>, <span class="st">"Instances"</span>: [
+            {<span class="st">"InstanceId"</span>: <span class="st">"i-0c3"</span>, <span class="st">"InstanceType"</span>: <span class="st">"c5.2xlarge"</span>, <span class="st">"State"</span>: {<span class="st">"Name"</span>: <span class="st">"stopped"</span>},
+             <span class="st">"StateTransitionReason"</span>: <span class="st">"User initiated (2026-07-01 10:00:00 GMT)"</span>,
+             <span class="st">"LaunchTime"</span>: <span class="st">"2026-05-10T09:30:00+00:00"</span>,
+             <span class="st">"Tags"</span>: [{<span class="st">"Key"</span>: <span class="st">"Owner"</span>, <span class="st">"Value"</span>: <span class="st">"data-eng"</span>}]},
+            {<span class="st">"InstanceId"</span>: <span class="st">"i-0d4"</span>, <span class="st">"InstanceType"</span>: <span class="st">"t3.micro"</span>, <span class="st">"State"</span>: {<span class="st">"Name"</span>: <span class="st">"running"</span>},
+             <span class="st">"StateTransitionReason"</span>: <span class="st">""</span>, <span class="st">"LaunchTime"</span>: <span class="st">"2026-09-01T07:45:00+00:00"</span>,
+             <span class="st">"Tags"</span>: [{<span class="st">"Key"</span>: <span class="st">"Env"</span>, <span class="st">"Value"</span>: <span class="st">"dev"</span>}]},
+        ]},
+    ]
+}
+PRICE_PER_HOUR = {<span class="st">"t3.micro"</span>: <span class="nm">0.0104</span>, <span class="st">"t3.large"</span>: <span class="nm">0.0832</span>, <span class="st">"m5.xlarge"</span>: <span class="nm">0.192</span>, <span class="st">"c5.2xlarge"</span>: <span class="nm">0.34</span>}
+NOW = datetime(<span class="nm">2026</span>, <span class="nm">9</span>, <span class="nm">18</span>, tzinfo=timezone.utc)      <span class="cm"># injected "now" -&gt; deterministic output</span>
+
+<span class="kw">def</span> <span class="fn">flatten_instances</span>(resp):
+    <span class="kw">return</span> [inst <span class="kw">for</span> res <span class="kw">in</span> resp.get(<span class="st">"Reservations"</span>, []) <span class="kw">for</span> inst <span class="kw">in</span> res.get(<span class="st">"Instances"</span>, [])]
+
+<span class="kw">def</span> <span class="fn">tags_to_dict</span>(inst):
+    <span class="kw">return</span> {t[<span class="st">"Key"</span>]: t[<span class="st">"Value"</span>] <span class="kw">for</span> t <span class="kw">in</span> inst.get(<span class="st">"Tags"</span>, [])}
+
+<span class="kw">def</span> <span class="fn">stopped_since</span>(inst):
+    <span class="st">"""describe_instances has no 'stopped at' field - it hides in StateTransitionReason."""</span>
+    m = re.search(<span class="st">r"\((\d{4}-\d{2}-\d{2}) [\d:]+ GMT\)"</span>, inst.get(<span class="st">"StateTransitionReason"</span>, <span class="st">""</span>))
+    <span class="kw">return</span> datetime.strptime(m.group(<span class="nm">1</span>), <span class="st">"%Y-%m-%d"</span>).replace(tzinfo=timezone.utc) <span class="kw">if</span> m <span class="kw">else</span> <span class="kw">None</span>
+
+instances = flatten_instances(DESCRIBE)
+<span class="bi">print</span>(<span class="st">f"{len(instances)} instances across {len(DESCRIBE['Reservations'])} reservations"</span>)
+<span class="kw">for</span> inst <span class="kw">in</span> instances:
+    tags = tags_to_dict(inst)
+    state = inst[<span class="st">"State"</span>][<span class="st">"Name"</span>]
+    line = <span class="st">f"{inst['InstanceId']:6} {inst['InstanceType']:11} {state:8} owner={tags.get('Owner', '-')}"</span>
+    since = stopped_since(inst)
+    <span class="kw">if</span> state == <span class="st">"stopped"</span> <span class="kw">and</span> since:
+        line += <span class="st">f"  (stopped {(NOW - since).days} days)"</span>
+    <span class="bi">print</span>(line)
+
+untagged = [i[<span class="st">"InstanceId"</span>] <span class="kw">for</span> i <span class="kw">in</span> instances <span class="kw">if</span> <span class="st">"Owner"</span> <span class="kw">not</span> <span class="kw">in</span> tags_to_dict(i)]
+stopped = [i[<span class="st">"InstanceId"</span>] <span class="kw">for</span> i <span class="kw">in</span> instances <span class="kw">if</span> i[<span class="st">"State"</span>][<span class="st">"Name"</span>] == <span class="st">"stopped"</span>]
+HOURS_PER_MONTH = <span class="nm">730</span>
+monthly = <span class="bi">sum</span>(PRICE_PER_HOUR[i[<span class="st">"InstanceType"</span>]] * HOURS_PER_MONTH
+              <span class="kw">for</span> i <span class="kw">in</span> instances <span class="kw">if</span> i[<span class="st">"State"</span>][<span class="st">"Name"</span>] == <span class="st">"running"</span>)
+<span class="bi">print</span>(<span class="st">"Missing Owner tag:"</span>, untagged)
+<span class="bi">print</span>(<span class="st">"Stopped:"</span>, stopped)
+<span class="bi">print</span>(<span class="st">f"Estimated monthly compute (running only): ${monthly:,.2f}"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Where the answers hide.</strong> There is no <code>stopped_at</code> field: the time an instance was stopped is buried inside <code>StateTransitionReason</code> as text like <code>User initiated (2026-07-01 10:00:00 GMT)</code>, so you parse it with a regex. Also note the cost model: a <em>stopped</em> instance stops billing for compute, but its EBS volumes and Elastic IPs keep billing — which is why "stopped for 79 days" is a cleanup candidate, not a free resource.</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Inject the clock.</strong> The code takes <code>NOW</code> as a constant instead of calling <code>datetime.now()</code>. That makes the audit deterministic and testable. Scripts that read the wall clock inside their logic are miserable to unit-test.</div></div>
+
+  <div class="lesson-h2">4.3 — Pagination: NextToken and ContinuationToken</div>
+  <p class="lesson-p">Cloud APIs cap how much they return per call — S3's <code>list_objects_v2</code> returns at most <strong>1,000 keys</strong>. If the result is bigger, the response says <code>IsTruncated: True</code> and hands you a token to pass back. The dangerous failure mode is <em>silence</em>: a script that ignores pagination doesn't crash, it just reports numbers that are quietly wrong once the bucket grows past the first page.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — paginators, the manual loop underneath, and waiters</span></div>
+    <div class="cb-code"><span class="kw">import</span> boto3
+
+s3 = boto3.client(<span class="st">"s3"</span>)
+
+<span class="cm"># 1) The paginator does the token bookkeeping for you (preferred):</span>
+paginator = s3.get_paginator(<span class="st">"list_objects_v2"</span>)
+total = <span class="nm">0</span>
+<span class="kw">for</span> page <span class="kw">in</span> paginator.paginate(Bucket=<span class="st">"ml-artifacts"</span>, Prefix=<span class="st">"models/"</span>):
+    <span class="kw">for</span> obj <span class="kw">in</span> page.get(<span class="st">"Contents"</span>, []):        <span class="cm"># "Contents" is ABSENT on an empty page</span>
+        total += obj[<span class="st">"Size"</span>]
+
+<span class="cm"># 2) The same thing by hand - what the paginator is doing underneath:</span>
+token = <span class="kw">None</span>
+<span class="kw">while</span> <span class="kw">True</span>:
+    kwargs = {<span class="st">"Bucket"</span>: <span class="st">"ml-artifacts"</span>, <span class="st">"Prefix"</span>: <span class="st">"models/"</span>}
+    <span class="kw">if</span> token:
+        kwargs[<span class="st">"ContinuationToken"</span>] = token
+    resp = s3.list_objects_v2(**kwargs)          <span class="cm"># at most 1,000 keys per call</span>
+    <span class="kw">for</span> obj <span class="kw">in</span> resp.get(<span class="st">"Contents"</span>, []):
+        total += obj[<span class="st">"Size"</span>]
+    <span class="kw">if</span> <span class="kw">not</span> resp[<span class="st">"IsTruncated"</span>]:
+        <span class="kw">break</span>
+    token = resp[<span class="st">"NextContinuationToken"</span>]         <span class="cm"># opaque - never parse or build it yourself</span>
+
+<span class="cm"># 3) Waiters poll until a resource reaches a state, so you don't sleep() in a loop:</span>
+ec2 = boto3.client(<span class="st">"ec2"</span>)
+ec2.get_waiter(<span class="st">"instance_running"</span>).wait(
+    InstanceIds=[<span class="st">"i-0a1"</span>], WaiterConfig={<span class="st">"Delay"</span>: <span class="nm">15</span>, <span class="st">"MaxAttempts"</span>: <span class="nm">40</span>}
+)</div>
+  </div>
+  <p class="lesson-p">The runnable version below uses a small fake S3 client that behaves like the real one, including the awkward detail that <code>Contents</code> is <strong>absent</strong> (not an empty list) on an empty page. Watch how the naive single call gives a confident, wrong answer.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A pagination loop against a fake S3 client</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">MB = <span class="nm">1024</span> * <span class="nm">1024</span>
+
+<span class="kw">class</span> <span class="cls">FakeS3</span>:
+    <span class="st">"""Mimics the parts of boto3's s3.list_objects_v2 that trip people up."""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, objects):
+        <span class="kw">self</span>.objects = objects              <span class="cm"># list of (key, size_bytes)</span>
+        <span class="kw">self</span>.calls = <span class="nm">0</span>
+
+    <span class="kw">def</span> <span class="fn">list_objects_v2</span>(<span class="kw">self</span>, Bucket, Prefix=<span class="st">""</span>, MaxKeys=<span class="nm">1000</span>, ContinuationToken=<span class="kw">None</span>):
+        <span class="kw">self</span>.calls += <span class="nm">1</span>
+        matching = [(k, s) <span class="kw">for</span> k, s <span class="kw">in</span> <span class="kw">self</span>.objects <span class="kw">if</span> k.startswith(Prefix)]
+        start = <span class="bi">int</span>(ContinuationToken) <span class="kw">if</span> ContinuationToken <span class="kw">else</span> <span class="nm">0</span>
+        page = matching[start:start + MaxKeys]
+        resp = {<span class="st">"Name"</span>: Bucket, <span class="st">"KeyCount"</span>: <span class="bi">len</span>(page), <span class="st">"IsTruncated"</span>: start + MaxKeys &lt; <span class="bi">len</span>(matching)}
+        <span class="kw">if</span> page:
+            resp[<span class="st">"Contents"</span>] = [{<span class="st">"Key"</span>: k, <span class="st">"Size"</span>: s} <span class="kw">for</span> k, s <span class="kw">in</span> page]   <span class="cm"># absent when empty!</span>
+        <span class="kw">if</span> resp[<span class="st">"IsTruncated"</span>]:
+            resp[<span class="st">"NextContinuationToken"</span>] = <span class="bi">str</span>(start + MaxKeys)
+        <span class="kw">return</span> resp
+
+s3 = FakeS3([
+    (<span class="st">"models/churn-v1.pkl"</span>, <span class="nm">40</span> * MB), (<span class="st">"models/churn-v2.pkl"</span>, <span class="nm">42</span> * MB),
+    (<span class="st">"models/fraud-v1.pkl"</span>, <span class="nm">120</span> * MB), (<span class="st">"models/fraud-v2.pkl"</span>, <span class="nm">118</span> * MB),
+    (<span class="st">"models/embed.bin"</span>, <span class="nm">300</span> * MB), (<span class="st">"models/rank-v1.pkl"</span>, <span class="nm">15</span> * MB),
+    (<span class="st">"models/rank-v2.pkl"</span>, <span class="nm">16</span> * MB), (<span class="st">"logs/2026-09-01.gz"</span>, <span class="nm">5</span> * MB),
+])
+
+<span class="cm"># WRONG: a single call only ever sees the first page (real S3: the first 1,000 keys)</span>
+first = s3.list_objects_v2(<span class="st">"ml-artifacts"</span>, Prefix=<span class="st">"models/"</span>, MaxKeys=<span class="nm">3</span>)
+<span class="bi">print</span>(<span class="st">"Naive total :"</span>, <span class="bi">sum</span>(o[<span class="st">"Size"</span>] <span class="kw">for</span> o <span class="kw">in</span> first[<span class="st">"Contents"</span>]) // MB, <span class="st">"MiB   &lt;- silently wrong"</span>)
+
+<span class="kw">def</span> <span class="fn">list_all</span>(client, bucket, prefix=<span class="st">""</span>, page_size=<span class="nm">1000</span>):
+    token = <span class="kw">None</span>
+    <span class="kw">while</span> <span class="kw">True</span>:
+        kwargs = {<span class="st">"Bucket"</span>: bucket, <span class="st">"Prefix"</span>: prefix, <span class="st">"MaxKeys"</span>: page_size}
+        <span class="kw">if</span> token:
+            kwargs[<span class="st">"ContinuationToken"</span>] = token
+        resp = client.list_objects_v2(**kwargs)
+        <span class="kw">yield</span> <span class="kw">from</span> resp.get(<span class="st">"Contents"</span>, [])         <span class="cm"># .get(): empty pages have no "Contents"</span>
+        <span class="kw">if</span> <span class="kw">not</span> resp[<span class="st">"IsTruncated"</span>]:
+            <span class="kw">return</span>
+        token = resp[<span class="st">"NextContinuationToken"</span>]
+
+s3.calls = <span class="nm">0</span>
+objs = <span class="bi">list</span>(list_all(s3, <span class="st">"ml-artifacts"</span>, <span class="st">"models/"</span>, page_size=<span class="nm">3</span>))
+<span class="bi">print</span>(<span class="st">"Correct total:"</span>, <span class="bi">sum</span>(o[<span class="st">"Size"</span>] <span class="kw">for</span> o <span class="kw">in</span> objs) // MB, <span class="st">"MiB"</span>)
+<span class="bi">print</span>(<span class="st">f"Objects: {len(objs)}, API calls: {s3.calls}"</span>)
+<span class="bi">print</span>(<span class="st">"Empty prefix:"</span>, <span class="bi">list</span>(list_all(s3, <span class="st">"ml-artifacts"</span>, <span class="st">"nothing-here/"</span>)))</div>
+  </div>
+  <table class="lesson-table">
+    <tr><th>API</th><th>Token you send</th><th>Token you read back</th><th>"More?" flag</th></tr>
+    <tr><td>S3 list_objects_v2</td><td>ContinuationToken</td><td>NextContinuationToken</td><td>IsTruncated</td></tr>
+    <tr><td>EC2, ECS, most services</td><td>NextToken</td><td>NextToken</td><td>token present</td></tr>
+    <tr><td>IAM (older APIs)</td><td>Marker</td><td>Marker</td><td>IsTruncated</td></tr>
+    <tr><td>DynamoDB scan/query</td><td>ExclusiveStartKey</td><td>LastEvaluatedKey</td><td>key present</td></tr>
+    <tr><td>Kubernetes list calls</td><td>_continue / continue</td><td>metadata.continue</td><td>token non-empty</td></tr>
+  </table>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Prefer the paginator, and filter on the server.</strong> <code>client.get_paginator(...)</code> hides the token names above, and <code>client.can_paginate('op')</code> tells you whether one exists. Better still, push filtering to the API (<code>Prefix=</code>, <code>Filters=</code>) so you page through less data instead of downloading everything and filtering in Python.</div></div>
+
+  <div class="lesson-h2">4.4 — Security-Group Audit: Where "Open to the World" Hides</div>
+  <p class="lesson-p">A classic cloud-hygiene script: find security groups that expose SSH (22) or RDP (3389) to the internet. It sounds like a one-line <code>if cidr == '0.0.0.0/0'</code>, and that one line misses three real cases: <strong>IPv6</strong> (<code>::/0</code> lives in a separate <code>Ipv6Ranges</code> list), <strong>port ranges</strong> (a rule for 20–25 covers 22), and the <strong>protocol <code>-1</code></strong> rule, which means <em>every protocol, every port</em> and has no <code>FromPort</code>/<code>ToPort</code> keys at all.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Auditing describe_security_groups for open SSH/RDP</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">SECURITY_GROUPS = {<span class="st">"SecurityGroups"</span>: [
+    {<span class="st">"GroupId"</span>: <span class="st">"sg-web"</span>, <span class="st">"GroupName"</span>: <span class="st">"web-tier"</span>, <span class="st">"IpPermissions"</span>: [
+        {<span class="st">"IpProtocol"</span>: <span class="st">"tcp"</span>, <span class="st">"FromPort"</span>: <span class="nm">443</span>, <span class="st">"ToPort"</span>: <span class="nm">443</span>,
+         <span class="st">"IpRanges"</span>: [{<span class="st">"CidrIp"</span>: <span class="st">"0.0.0.0/0"</span>}], <span class="st">"Ipv6Ranges"</span>: []},
+        {<span class="st">"IpProtocol"</span>: <span class="st">"tcp"</span>, <span class="st">"FromPort"</span>: <span class="nm">22</span>, <span class="st">"ToPort"</span>: <span class="nm">22</span>,
+         <span class="st">"IpRanges"</span>: [{<span class="st">"CidrIp"</span>: <span class="st">"0.0.0.0/0"</span>, <span class="st">"Description"</span>: <span class="st">"temp - Bob"</span>}], <span class="st">"Ipv6Ranges"</span>: []},
+    ]},
+    {<span class="st">"GroupId"</span>: <span class="st">"sg-db"</span>, <span class="st">"GroupName"</span>: <span class="st">"postgres"</span>, <span class="st">"IpPermissions"</span>: [
+        {<span class="st">"IpProtocol"</span>: <span class="st">"tcp"</span>, <span class="st">"FromPort"</span>: <span class="nm">5432</span>, <span class="st">"ToPort"</span>: <span class="nm">5432</span>,
+         <span class="st">"IpRanges"</span>: [{<span class="st">"CidrIp"</span>: <span class="st">"10.0.0.0/16"</span>}], <span class="st">"Ipv6Ranges"</span>: []},
+    ]},
+    {<span class="st">"GroupId"</span>: <span class="st">"sg-legacy"</span>, <span class="st">"GroupName"</span>: <span class="st">"old-app"</span>, <span class="st">"IpPermissions"</span>: [
+        {<span class="st">"IpProtocol"</span>: <span class="st">"-1"</span>, <span class="st">"IpRanges"</span>: [{<span class="st">"CidrIp"</span>: <span class="st">"0.0.0.0/0"</span>}], <span class="st">"Ipv6Ranges"</span>: []},   <span class="cm"># no FromPort/ToPort!</span>
+    ]},
+    {<span class="st">"GroupId"</span>: <span class="st">"sg-jump"</span>, <span class="st">"GroupName"</span>: <span class="st">"jumpbox"</span>, <span class="st">"IpPermissions"</span>: [
+        {<span class="st">"IpProtocol"</span>: <span class="st">"tcp"</span>, <span class="st">"FromPort"</span>: <span class="nm">3000</span>, <span class="st">"ToPort"</span>: <span class="nm">3400</span>,
+         <span class="st">"IpRanges"</span>: [], <span class="st">"Ipv6Ranges"</span>: [{<span class="st">"CidrIpv6"</span>: <span class="st">"::/0"</span>}]},
+    ]},
+]}
+
+SENSITIVE = {<span class="nm">22</span>: <span class="st">"SSH"</span>, <span class="nm">3389</span>: <span class="st">"RDP"</span>}
+OPEN_CIDRS = {<span class="st">"0.0.0.0/0"</span>, <span class="st">"::/0"</span>}
+
+<span class="kw">def</span> <span class="fn">open_cidrs</span>(rule):
+    v4 = [r[<span class="st">"CidrIp"</span>] <span class="kw">for</span> r <span class="kw">in</span> rule.get(<span class="st">"IpRanges"</span>, [])]
+    v6 = [r[<span class="st">"CidrIpv6"</span>] <span class="kw">for</span> r <span class="kw">in</span> rule.get(<span class="st">"Ipv6Ranges"</span>, [])]
+    <span class="kw">return</span> [c <span class="kw">for</span> c <span class="kw">in</span> v4 + v6 <span class="kw">if</span> c <span class="kw">in</span> OPEN_CIDRS]
+
+<span class="kw">def</span> <span class="fn">covers</span>(rule, port):
+    <span class="kw">if</span> rule[<span class="st">"IpProtocol"</span>] == <span class="st">"-1"</span>:          <span class="cm"># all protocols, all ports - and NO FromPort/ToPort keys</span>
+        <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> rule[<span class="st">"IpProtocol"</span>] == <span class="st">"tcp"</span> <span class="kw">and</span> rule[<span class="st">"FromPort"</span>] &lt;= port &lt;= rule[<span class="st">"ToPort"</span>]
+
+<span class="kw">def</span> <span class="fn">audit</span>(resp):
+    findings = []
+    <span class="kw">for</span> sg <span class="kw">in</span> resp[<span class="st">"SecurityGroups"</span>]:
+        <span class="kw">for</span> rule <span class="kw">in</span> sg[<span class="st">"IpPermissions"</span>]:
+            <span class="kw">for</span> cidr <span class="kw">in</span> open_cidrs(rule):
+                <span class="kw">for</span> port, name <span class="kw">in</span> SENSITIVE.items():
+                    <span class="kw">if</span> covers(rule, port):
+                        findings.append(<span class="st">f"{sg['GroupId']}: {name} (port {port}) open to {cidr}"</span>)
+    <span class="kw">return</span> <span class="bi">sorted</span>(findings)
+
+<span class="kw">for</span> line <span class="kw">in</span> audit(SECURITY_GROUPS):
+    <span class="bi">print</span>(line)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Rules that reference other groups aren't CIDRs.</strong> A rule can allow traffic <em>from another security group</em> (<code>UserIdGroupPairs</code>) instead of an IP range. That's usually the good, least-privilege pattern — so a robust auditor treats it as "not world-open" rather than crashing on a missing <code>IpRanges</code> key. Always use <code>.get(..., [])</code> on these lists.</div></div>
+
+  <div class="lesson-h2">4.5 — IAM Policy Review: Reading Wildcards Programmatically</div>
+  <p class="lesson-p"><strong>Least privilege</strong> means a role gets exactly the actions it needs on exactly the resources it needs. In a policy document the red flags are wildcards: <code>Action: "*"</code>, <code>"ec2:*"</code>, and <code>Resource: "*"</code>. Parsing them has a well-known snag: IAM lets <code>Statement</code>, <code>Action</code> and <code>Resource</code> each be <strong>a single value or a list</strong>, so you normalise before you loop.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Flagging wildcard actions, wildcard resources and the NotAction trap</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">POLICIES = {
+    <span class="st">"ci-deployer"</span>: {<span class="st">"Version"</span>: <span class="st">"2012-10-17"</span>, <span class="st">"Statement"</span>: [
+        {<span class="st">"Effect"</span>: <span class="st">"Allow"</span>, <span class="st">"Action"</span>: [<span class="st">"s3:GetObject"</span>, <span class="st">"s3:PutObject"</span>],
+         <span class="st">"Resource"</span>: <span class="st">"arn:aws:s3:::ml-artifacts/*"</span>},
+    ]},
+    <span class="st">"legacy-admin"</span>: {<span class="st">"Version"</span>: <span class="st">"2012-10-17"</span>,
+        <span class="st">"Statement"</span>: {<span class="st">"Effect"</span>: <span class="st">"Allow"</span>, <span class="st">"Action"</span>: <span class="st">"*"</span>, <span class="st">"Resource"</span>: <span class="st">"*"</span>}},        <span class="cm"># a dict, not a list!</span>
+    <span class="st">"ops-helper"</span>: {<span class="st">"Version"</span>: <span class="st">"2012-10-17"</span>, <span class="st">"Statement"</span>: [
+        {<span class="st">"Effect"</span>: <span class="st">"Allow"</span>, <span class="st">"Action"</span>: <span class="st">"ec2:*"</span>, <span class="st">"Resource"</span>: <span class="st">"*"</span>},
+        {<span class="st">"Effect"</span>: <span class="st">"Deny"</span>, <span class="st">"Action"</span>: <span class="st">"ec2:TerminateInstances"</span>, <span class="st">"Resource"</span>: <span class="st">"*"</span>},
+        {<span class="st">"Effect"</span>: <span class="st">"Allow"</span>, <span class="st">"Action"</span>: [<span class="st">"s3:*"</span>],
+         <span class="st">"Resource"</span>: [<span class="st">"arn:aws:s3:::logs"</span>, <span class="st">"arn:aws:s3:::logs/*"</span>]},
+    ]},
+    <span class="st">"notaction-trap"</span>: {<span class="st">"Version"</span>: <span class="st">"2012-10-17"</span>, <span class="st">"Statement"</span>: [
+        {<span class="st">"Effect"</span>: <span class="st">"Allow"</span>, <span class="st">"NotAction"</span>: <span class="st">"iam:*"</span>, <span class="st">"Resource"</span>: <span class="st">"*"</span>},
+    ]},
+}
+
+<span class="kw">def</span> <span class="fn">as_list</span>(x):
+    <span class="st">"""IAM lets Statement, Action and Resource be a single value OR a list. Normalise first."""</span>
+    <span class="kw">return</span> x <span class="kw">if</span> <span class="bi">isinstance</span>(x, <span class="bi">list</span>) <span class="kw">else</span> [x]
+
+<span class="kw">def</span> <span class="fn">review</span>(name, policy):
+    issues = []
+    <span class="kw">for</span> i, st <span class="kw">in</span> <span class="bi">enumerate</span>(as_list(policy[<span class="st">"Statement"</span>])):
+        <span class="kw">if</span> st[<span class="st">"Effect"</span>] != <span class="st">"Allow"</span>:
+            <span class="kw">continue</span>                                   <span class="cm"># Deny statements only ever reduce access</span>
+        actions = as_list(st.get(<span class="st">"Action"</span>, []))
+        resources = as_list(st.get(<span class="st">"Resource"</span>, []))
+        <span class="kw">if</span> <span class="st">"NotAction"</span> <span class="kw">in</span> st:
+            issues.append(<span class="st">f"statement {i}: Allow + NotAction grants everything EXCEPT {st['NotAction']}"</span>)
+        <span class="kw">elif</span> <span class="st">"*"</span> <span class="kw">in</span> actions <span class="kw">and</span> <span class="st">"*"</span> <span class="kw">in</span> resources:
+            issues.append(<span class="st">f"statement {i}: FULL ADMIN (Action * on Resource *)"</span>)
+        <span class="kw">else</span>:
+            <span class="kw">for</span> a <span class="kw">in</span> actions:
+                <span class="kw">if</span> a == <span class="st">"*"</span> <span class="kw">or</span> a.endswith(<span class="st">":*"</span>):
+                    issues.append(<span class="st">f"statement {i}: wildcard action {a}"</span>)
+            <span class="kw">if</span> <span class="st">"*"</span> <span class="kw">in</span> resources:
+                issues.append(<span class="st">f"statement {i}: wildcard resource *"</span>)
+    <span class="kw">return</span> issues
+
+<span class="kw">for</span> name, policy <span class="kw">in</span> POLICIES.items():
+    issues = review(name, policy)
+    <span class="bi">print</span>(<span class="st">f"{name}: {'OK' if not issues else str(len(issues)) + ' issue(s)'}"</span>)
+    <span class="kw">for</span> msg <span class="kw">in</span> issues:
+        <span class="bi">print</span>(<span class="st">"   -"</span>, msg)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>What this reviewer deliberately ignores.</strong> It skips <code>Deny</code> statements (they only ever remove access, and an explicit Deny always wins) and it doesn't evaluate <code>Condition</code> blocks, which can narrow a wildcard a lot. In real life you'd also use IAM Access Analyzer and <code>simulate_principal_policy</code>. The point of the script is to <em>triage</em> hundreds of policies down to the few a human should read.</div></div>
+
+  <div class="lesson-h2">4.6 — Kubernetes: kubectl get pods -o json → Triage</div>
+  <p class="lesson-p">When something is broken at 3 a.m., the useful output isn't a 400-line JSON dump — it's a one-line answer per pod. The trick is knowing where each symptom lives. The pod's <code>status.phase</code> is coarse (<code>Pending/Running/Succeeded/Failed</code>); the detail is in <code>status.containerStatuses[*].state.waiting.reason</code>, <code>lastState.terminated</code>, and the <code>conditions</code> list.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — the official kubernetes client</span></div>
+    <div class="cb-code"><span class="kw">from</span> kubernetes <span class="kw">import</span> client, config
+
+config.load_kube_config()            <span class="cm"># from ~/.kube/config. Inside a pod use: config.load_incluster_config()</span>
+v1 = client.CoreV1Api()
+
+<span class="cm"># Typed OBJECTS with attribute access - not dicts (unlike `kubectl get pods -o json`):</span>
+pods = v1.list_pod_for_all_namespaces(limit=<span class="nm">500</span>)
+<span class="kw">for</span> p <span class="kw">in</span> pods.items:
+    <span class="bi">print</span>(p.metadata.namespace, p.metadata.name, p.status.phase)
+
+<span class="cm"># Big clusters: results are paged with a continue token, the k8s cousin of NextToken</span>
+<span class="kw">while</span> pods.metadata._continue:
+    pods = v1.list_pod_for_all_namespaces(limit=<span class="nm">500</span>, _continue=pods.metadata._continue)
+    ...
+
+<span class="cm"># To reuse dict-based code like the examples below, convert the objects back to plain dicts:</span>
+as_dict = client.ApiClient().sanitize_for_serialization(pods)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Classifying pods from kubectl-style JSON</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+PODS = {<span class="st">"kind"</span>: <span class="st">"List"</span>, <span class="st">"items"</span>: [
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"api-7d9f-abc"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>},
+     <span class="st">"spec"</span>: {<span class="st">"nodeName"</span>: <span class="st">"node-1"</span>},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Running"</span>, <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"Ready"</span>, <span class="st">"status"</span>: <span class="st">"True"</span>}],
+                <span class="st">"containerStatuses"</span>: [{<span class="st">"name"</span>: <span class="st">"api"</span>, <span class="st">"ready"</span>: <span class="kw">True</span>, <span class="st">"restartCount"</span>: <span class="nm">0</span>,
+                                       <span class="st">"state"</span>: {<span class="st">"running"</span>: {<span class="st">"startedAt"</span>: <span class="st">"2026-09-17T08:00:00Z"</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"worker-5c6-xyz"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>},
+     <span class="st">"spec"</span>: {<span class="st">"nodeName"</span>: <span class="st">"node-2"</span>},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Running"</span>, <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"Ready"</span>, <span class="st">"status"</span>: <span class="st">"False"</span>}],
+                <span class="st">"containerStatuses"</span>: [{<span class="st">"name"</span>: <span class="st">"worker"</span>, <span class="st">"ready"</span>: <span class="kw">False</span>, <span class="st">"restartCount"</span>: <span class="nm">14</span>,
+                                       <span class="st">"state"</span>: {<span class="st">"waiting"</span>: {<span class="st">"reason"</span>: <span class="st">"CrashLoopBackOff"</span>}},
+                                       <span class="st">"lastState"</span>: {<span class="st">"terminated"</span>: {<span class="st">"reason"</span>: <span class="st">"OOMKilled"</span>, <span class="st">"exitCode"</span>: <span class="nm">137</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"web-9b8-def"</span>, <span class="st">"namespace"</span>: <span class="st">"staging"</span>},
+     <span class="st">"spec"</span>: {<span class="st">"nodeName"</span>: <span class="st">"node-1"</span>},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Pending"</span>, <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"Ready"</span>, <span class="st">"status"</span>: <span class="st">"False"</span>}],   <span class="cm"># NOTE: Pending!</span>
+                <span class="st">"containerStatuses"</span>: [{<span class="st">"name"</span>: <span class="st">"web"</span>, <span class="st">"ready"</span>: <span class="kw">False</span>, <span class="st">"restartCount"</span>: <span class="nm">0</span>,
+                                       <span class="st">"state"</span>: {<span class="st">"waiting"</span>: {<span class="st">"reason"</span>: <span class="st">"ErrImagePull"</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"batch-2f1-ghi"</span>, <span class="st">"namespace"</span>: <span class="st">"staging"</span>},
+     <span class="st">"spec"</span>: {},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Pending"</span>,
+                <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"PodScheduled"</span>, <span class="st">"status"</span>: <span class="st">"False"</span>, <span class="st">"reason"</span>: <span class="st">"Unschedulable"</span>,
+                                <span class="st">"message"</span>: <span class="st">"0/3 nodes are available: 3 Insufficient memory."</span>}]}},   <span class="cm"># no containerStatuses key</span>
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"cache-4a2-jkl"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>},
+     <span class="st">"spec"</span>: {<span class="st">"nodeName"</span>: <span class="st">"node-3"</span>},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Running"</span>, <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"Ready"</span>, <span class="st">"status"</span>: <span class="st">"False"</span>}],
+                <span class="st">"containerStatuses"</span>: [{<span class="st">"name"</span>: <span class="st">"cache"</span>, <span class="st">"ready"</span>: <span class="kw">False</span>, <span class="st">"restartCount"</span>: <span class="nm">0</span>,
+                                       <span class="st">"state"</span>: {<span class="st">"running"</span>: {<span class="st">"startedAt"</span>: <span class="st">"2026-09-18T06:00:00Z"</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"migrate-8e7-mno"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>},
+     <span class="st">"spec"</span>: {<span class="st">"nodeName"</span>: <span class="st">"node-1"</span>},
+     <span class="st">"status"</span>: {<span class="st">"phase"</span>: <span class="st">"Succeeded"</span>, <span class="st">"conditions"</span>: [{<span class="st">"type"</span>: <span class="st">"Ready"</span>, <span class="st">"status"</span>: <span class="st">"False"</span>, <span class="st">"reason"</span>: <span class="st">"PodCompleted"</span>}]}},
+]}
+
+<span class="kw">def</span> <span class="fn">triage</span>(pod):
+    status = pod[<span class="st">"status"</span>]
+    phase = status.get(<span class="st">"phase"</span>)
+    <span class="kw">if</span> phase == <span class="st">"Succeeded"</span>:
+        <span class="kw">return</span> <span class="st">"Completed"</span>                     <span class="cm"># finished Jobs are Ready=False by design - not a problem</span>
+    <span class="kw">if</span> phase == <span class="st">"Pending"</span>:
+        <span class="kw">for</span> cond <span class="kw">in</span> status.get(<span class="st">"conditions"</span>, []):
+            <span class="kw">if</span> cond[<span class="st">"type"</span>] == <span class="st">"PodScheduled"</span> <span class="kw">and</span> cond[<span class="st">"status"</span>] == <span class="st">"False"</span>:
+                <span class="kw">return</span> <span class="st">f"Pending ({cond.get('reason', 'unknown')})"</span>
+    <span class="kw">for</span> cs <span class="kw">in</span> status.get(<span class="st">"containerStatuses"</span>, []):          <span class="cm"># key is missing on unscheduled pods</span>
+        reason = cs.get(<span class="st">"state"</span>, {}).get(<span class="st">"waiting"</span>, {}).get(<span class="st">"reason"</span>)
+        <span class="kw">if</span> reason == <span class="st">"CrashLoopBackOff"</span>:
+            last = cs.get(<span class="st">"lastState"</span>, {}).get(<span class="st">"terminated"</span>, {}).get(<span class="st">"reason"</span>)
+            <span class="kw">return</span> <span class="st">f"CrashLoopBackOff ({last})"</span> <span class="kw">if</span> last <span class="kw">else</span> <span class="st">"CrashLoopBackOff"</span>
+        <span class="kw">if</span> reason <span class="kw">in</span> (<span class="st">"ImagePullBackOff"</span>, <span class="st">"ErrImagePull"</span>):
+            <span class="kw">return</span> <span class="st">"ImagePullBackOff"</span>
+    <span class="kw">if</span> phase == <span class="st">"Pending"</span>:
+        <span class="kw">return</span> <span class="st">"Pending"</span>                       <span class="cm"># scheduled, containers not started yet (e.g. ContainerCreating)</span>
+    ready = <span class="bi">next</span>((c[<span class="st">"status"</span>] <span class="kw">for</span> c <span class="kw">in</span> status.get(<span class="st">"conditions"</span>, []) <span class="kw">if</span> c[<span class="st">"type"</span>] == <span class="st">"Ready"</span>), <span class="st">"False"</span>)
+    <span class="kw">return</span> <span class="st">"Healthy"</span> <span class="kw">if</span> ready == <span class="st">"True"</span> <span class="kw">else</span> <span class="st">"NotReady"</span>
+
+results = {}
+<span class="kw">for</span> pod <span class="kw">in</span> PODS[<span class="st">"items"</span>]:
+    key = <span class="st">f"{pod['metadata']['namespace']}/{pod['metadata']['name']}"</span>
+    results[key] = triage(pod)
+    <span class="bi">print</span>(<span class="st">f"{key:24} {results[key]}"</span>)
+
+summary = Counter(results.values())
+<span class="bi">print</span>(<span class="bi">dict</span>(summary))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Three things that fool every first attempt.</strong> <strong>1.</strong> A pod in <code>ImagePullBackOff</code> reports <code>phase: Pending</code>, not Failed — the containers never started. <strong>2.</strong> A finished Job's pod has <code>Ready=False</code> on purpose (<code>reason: PodCompleted</code>); flagging it is a false alarm. <strong>3.</strong> Unscheduled pods have <em>no</em> <code>containerStatuses</code> key at all.</div></div>
+  <table class="lesson-table">
+    <tr><th>Status</th><th>Typical causes</th><th>First command</th></tr>
+    <tr><td>CrashLoopBackOff</td><td>App crashes on start, bad config/env, failing liveness probe, OOMKilled</td><td><code>kubectl logs --previous</code>, then <code>describe pod</code> (Last State / exit code)</td></tr>
+    <tr><td>ImagePullBackOff / ErrImagePull</td><td>Wrong tag or typo, private registry without imagePullSecret, registry rate limit</td><td><code>describe pod</code> → Events</td></tr>
+    <tr><td>Pending (Unschedulable)</td><td>Not enough cpu/memory, taints, nodeSelector/affinity, unbound PVC, quota</td><td><code>describe pod</code> → FailedScheduling message</td></tr>
+    <tr><td>Running but NotReady</td><td>Readiness probe failing, dependency down, wrong probe port/path</td><td><code>describe pod</code>, probe settings, app logs</td></tr>
+    <tr><td>OOMKilled (exit 137)</td><td>Memory limit too low, or a leak</td><td>Last State; raise the limit or profile the app</td></tr>
+  </table>
+
+  <div class="lesson-h2">4.7 — Resource Quantities, Requests vs Limits, and QoS</div>
+  <p class="lesson-p">Kubernetes writes CPU and memory as strings: <code>100m</code> is 100 <em>millicores</em> (a tenth of a core), <code>0.5</code> and <code>500m</code> are the same, <code>2</code> is two cores. Memory has <strong>binary</strong> suffixes (<code>Ki Mi Gi</code>, powers of 1024) and <strong>decimal</strong> ones (<code>K M G</code>, powers of 1000) — and they are not interchangeable. Before you can add anything up, you have to parse these into plain integers.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parsing CPU and memory quantities</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">BINARY = {<span class="st">"Ki"</span>: <span class="nm">2</span>**<span class="nm">10</span>, <span class="st">"Mi"</span>: <span class="nm">2</span>**<span class="nm">20</span>, <span class="st">"Gi"</span>: <span class="nm">2</span>**<span class="nm">30</span>, <span class="st">"Ti"</span>: <span class="nm">2</span>**<span class="nm">40</span>}
+DECIMAL = {<span class="st">"k"</span>: <span class="nm">10</span>**<span class="nm">3</span>, <span class="st">"K"</span>: <span class="nm">10</span>**<span class="nm">3</span>, <span class="st">"M"</span>: <span class="nm">10</span>**<span class="nm">6</span>, <span class="st">"G"</span>: <span class="nm">10</span>**<span class="nm">9</span>, <span class="st">"T"</span>: <span class="nm">10</span>**<span class="nm">12</span>}
+
+<span class="kw">def</span> <span class="fn">parse_cpu</span>(q):
+    <span class="st">"""'250m' -&gt; 250, '2' -&gt; 2000, '0.5' -&gt; 500   (millicores)"""</span>
+    q = <span class="bi">str</span>(q)
+    <span class="kw">if</span> q.endswith(<span class="st">"m"</span>):
+        <span class="kw">return</span> <span class="bi">int</span>(q[:-<span class="nm">1</span>])
+    <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">round</span>(<span class="bi">float</span>(q) * <span class="nm">1000</span>))
+
+<span class="kw">def</span> <span class="fn">parse_mem</span>(q):
+    <span class="st">"""'512Mi' -&gt; bytes. Binary suffixes (Ki/Mi/Gi) are NOT the same as decimal (K/M/G)."""</span>
+    q = <span class="bi">str</span>(q)
+    <span class="kw">for</span> suffix, mult <span class="kw">in</span> BINARY.items():
+        <span class="kw">if</span> q.endswith(suffix):
+            <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">float</span>(q[:-<span class="bi">len</span>(suffix)]) * mult)
+    <span class="kw">for</span> suffix, mult <span class="kw">in</span> DECIMAL.items():
+        <span class="kw">if</span> q.endswith(suffix):
+            <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">float</span>(q[:-<span class="bi">len</span>(suffix)]) * mult)
+    <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">float</span>(q))                       <span class="cm"># plain bytes, or exponent form like 129e6</span>
+
+<span class="kw">for</span> q <span class="kw">in</span> [<span class="st">"100m"</span>, <span class="st">"0.5"</span>, <span class="st">"2"</span>]:
+    <span class="bi">print</span>(<span class="st">f"cpu {q:&gt;5} = {parse_cpu(q)}m"</span>)
+<span class="kw">for</span> q <span class="kw">in</span> [<span class="st">"512Mi"</span>, <span class="st">"2Gi"</span>, <span class="st">"1G"</span>, <span class="st">"1Gi"</span>, <span class="st">"129e6"</span>, <span class="st">"134217728"</span>]:
+    <span class="bi">print</span>(<span class="st">f"mem {q:&gt;9} = {parse_mem(q):&gt;10} bytes = {parse_mem(q) / 2**20:8.2f} MiB"</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>1G is not 1Gi.</strong> <code>1G</code> is 1,000,000,000 bytes (953.67 MiB); <code>1Gi</code> is 1,073,741,824 (1024 MiB). The gap is about 7%, so a sloppy parser makes capacity numbers drift. Note also that <code>m</code> means <em>milli</em> for CPU.</div></div>
+  <p class="lesson-p">Two numbers per container matter, and they do different jobs. <strong>Requests</strong> are what the scheduler reserves — they decide <em>which node a pod fits on</em>. <strong>Limits</strong> are enforced by the kubelet at runtime: a container over its <em>CPU</em> limit is <strong>throttled</strong> (slowed, never killed), but one over its <em>memory</em> limit is <strong>OOMKilled</strong>. How requests and limits relate also decides the pod's QoS class, which decides who gets evicted first under node pressure.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Per-namespace totals and QoS classes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">parse_cpu</span>(q):
+    q = <span class="bi">str</span>(q)
+    <span class="kw">return</span> <span class="bi">int</span>(q[:-<span class="nm">1</span>]) <span class="kw">if</span> q.endswith(<span class="st">"m"</span>) <span class="kw">else</span> <span class="bi">int</span>(<span class="bi">round</span>(<span class="bi">float</span>(q) * <span class="nm">1000</span>))
+
+<span class="kw">def</span> <span class="fn">parse_mem</span>(q):
+    q = <span class="bi">str</span>(q)
+    units = {<span class="st">"Ki"</span>: <span class="nm">2</span>**<span class="nm">10</span>, <span class="st">"Mi"</span>: <span class="nm">2</span>**<span class="nm">20</span>, <span class="st">"Gi"</span>: <span class="nm">2</span>**<span class="nm">30</span>}
+    <span class="kw">for</span> s, m <span class="kw">in</span> units.items():
+        <span class="kw">if</span> q.endswith(s):
+            <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">float</span>(q[:-<span class="bi">len</span>(s)]) * m)
+    <span class="kw">return</span> <span class="bi">int</span>(<span class="bi">float</span>(q))
+
+PODS = [
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"api-1"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>}, <span class="st">"spec"</span>: {<span class="st">"containers"</span>: [
+        {<span class="st">"name"</span>: <span class="st">"api"</span>, <span class="st">"resources"</span>: {<span class="st">"requests"</span>: {<span class="st">"cpu"</span>: <span class="st">"500m"</span>, <span class="st">"memory"</span>: <span class="st">"512Mi"</span>},
+                                      <span class="st">"limits"</span>: {<span class="st">"cpu"</span>: <span class="st">"1"</span>, <span class="st">"memory"</span>: <span class="st">"1Gi"</span>}}},
+        {<span class="st">"name"</span>: <span class="st">"sidecar"</span>, <span class="st">"resources"</span>: {<span class="st">"requests"</span>: {<span class="st">"cpu"</span>: <span class="st">"100m"</span>, <span class="st">"memory"</span>: <span class="st">"128Mi"</span>},
+                                          <span class="st">"limits"</span>: {<span class="st">"cpu"</span>: <span class="st">"100m"</span>, <span class="st">"memory"</span>: <span class="st">"128Mi"</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"db-1"</span>, <span class="st">"namespace"</span>: <span class="st">"prod"</span>}, <span class="st">"spec"</span>: {<span class="st">"containers"</span>: [
+        {<span class="st">"name"</span>: <span class="st">"pg"</span>, <span class="st">"resources"</span>: {<span class="st">"requests"</span>: {<span class="st">"cpu"</span>: <span class="st">"2"</span>, <span class="st">"memory"</span>: <span class="st">"4Gi"</span>},
+                                     <span class="st">"limits"</span>: {<span class="st">"cpu"</span>: <span class="st">"2"</span>, <span class="st">"memory"</span>: <span class="st">"4Gi"</span>}}}]}},
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"debug-1"</span>, <span class="st">"namespace"</span>: <span class="st">"dev"</span>}, <span class="st">"spec"</span>: {<span class="st">"containers"</span>: [
+        {<span class="st">"name"</span>: <span class="st">"shell"</span>}]}},                                                <span class="cm"># no resources at all</span>
+    {<span class="st">"metadata"</span>: {<span class="st">"name"</span>: <span class="st">"app-1"</span>, <span class="st">"namespace"</span>: <span class="st">"dev"</span>}, <span class="st">"spec"</span>: {<span class="st">"containers"</span>: [
+        {<span class="st">"name"</span>: <span class="st">"app"</span>, <span class="st">"resources"</span>: {<span class="st">"requests"</span>: {<span class="st">"cpu"</span>: <span class="st">"250m"</span>, <span class="st">"memory"</span>: <span class="st">"256Mi"</span>}}}]}},   <span class="cm"># no limits</span>
+]
+
+<span class="kw">def</span> <span class="fn">qos_class</span>(pod):
+    containers = pod[<span class="st">"spec"</span>][<span class="st">"containers"</span>]
+    res = [c.get(<span class="st">"resources"</span>, {}) <span class="kw">for</span> c <span class="kw">in</span> containers]
+    <span class="kw">if</span> <span class="kw">not</span> <span class="bi">any</span>(r.get(<span class="st">"requests"</span>) <span class="kw">or</span> r.get(<span class="st">"limits"</span>) <span class="kw">for</span> r <span class="kw">in</span> res):
+        <span class="kw">return</span> <span class="st">"BestEffort"</span>
+    guaranteed = <span class="bi">all</span>(
+        r.get(<span class="st">"limits"</span>, {}).get(k) <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span> <span class="kw">and</span> r.get(<span class="st">"requests"</span>, {}).get(k, r[<span class="st">"limits"</span>][k]) == r[<span class="st">"limits"</span>][k]
+        <span class="kw">for</span> r <span class="kw">in</span> res <span class="kw">for</span> k <span class="kw">in</span> (<span class="st">"cpu"</span>, <span class="st">"memory"</span>)
+    )
+    <span class="kw">return</span> <span class="st">"Guaranteed"</span> <span class="kw">if</span> guaranteed <span class="kw">else</span> <span class="st">"Burstable"</span>
+
+totals = {}
+<span class="kw">for</span> pod <span class="kw">in</span> PODS:
+    ns = pod[<span class="st">"metadata"</span>][<span class="st">"namespace"</span>]
+    t = totals.setdefault(ns, {<span class="st">"cpu_req"</span>: <span class="nm">0</span>, <span class="st">"cpu_lim"</span>: <span class="nm">0</span>, <span class="st">"mem_req"</span>: <span class="nm">0</span>, <span class="st">"mem_lim"</span>: <span class="nm">0</span>})
+    <span class="kw">for</span> c <span class="kw">in</span> pod[<span class="st">"spec"</span>][<span class="st">"containers"</span>]:
+        r = c.get(<span class="st">"resources"</span>, {})
+        t[<span class="st">"cpu_req"</span>] += parse_cpu(r.get(<span class="st">"requests"</span>, {}).get(<span class="st">"cpu"</span>, <span class="nm">0</span>))
+        t[<span class="st">"cpu_lim"</span>] += parse_cpu(r.get(<span class="st">"limits"</span>, {}).get(<span class="st">"cpu"</span>, <span class="nm">0</span>))
+        t[<span class="st">"mem_req"</span>] += parse_mem(r.get(<span class="st">"requests"</span>, {}).get(<span class="st">"memory"</span>, <span class="nm">0</span>))
+        t[<span class="st">"mem_lim"</span>] += parse_mem(r.get(<span class="st">"limits"</span>, {}).get(<span class="st">"memory"</span>, <span class="nm">0</span>))
+    <span class="bi">print</span>(<span class="st">f"{pod['metadata']['name']:8} QoS={qos_class(pod)}"</span>)
+
+<span class="kw">for</span> ns, t <span class="kw">in</span> <span class="bi">sorted</span>(totals.items()):
+    <span class="bi">print</span>(<span class="st">f"{ns}: cpu {t['cpu_req']}m requested / {t['cpu_lim']}m limit, "</span>
+          <span class="st">f"mem {t['mem_req'] // 2**20}Mi requested / {t['mem_lim'] // 2**20}Mi limit"</span>)</div>
+  </div>
+  <table class="lesson-table">
+    <tr><th>QoS class</th><th>How you get it</th><th>Eviction order under pressure</th></tr>
+    <tr><td>Guaranteed</td><td>Every container has cpu AND memory limits, and requests equal limits</td><td>Last to be evicted</td></tr>
+    <tr><td>Burstable</td><td>At least one request or limit set, but not Guaranteed</td><td>Middle</td></tr>
+    <tr><td>BestEffort</td><td>No requests or limits at all</td><td>First to be evicted</td></tr>
+  </table>
+
+  <div class="lesson-h2">4.8 — Docker: inspect JSON, Image References and Container Hygiene</div>
+  <p class="lesson-p"><code>docker inspect</code> returns the full configuration and state of a container as JSON, and the SDK's <code>container.attrs</code> is that same document. Typical audit checks: is the image pinned, is the container privileged, is a port published on every interface, did it get OOM-killed.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — the docker SDK</span></div>
+    <div class="cb-code"><span class="kw">import</span> docker
+
+client = docker.from_env()                       <span class="cm"># talks to /var/run/docker.sock (or DOCKER_HOST)</span>
+<span class="kw">for</span> c <span class="kw">in</span> client.containers.<span class="bi">list</span>(<span class="bi">all</span>=<span class="kw">True</span>):       <span class="cm"># all=True includes stopped containers, like `docker ps -a`</span>
+    <span class="bi">print</span>(c.name, c.status, c.image.tags)
+
+c = client.containers.get(<span class="st">"api"</span>)
+<span class="bi">print</span>(c.attrs[<span class="st">"HostConfig"</span>][<span class="st">"RestartPolicy"</span>])    <span class="cm"># .attrs is the same JSON `docker inspect` prints</span>
+c.reload()                                       <span class="cm"># attrs are a snapshot - reload() refreshes them</span>
+<span class="bi">print</span>(c.logs(tail=<span class="nm">50</span>).decode())                  <span class="cm"># logs() returns BYTES</span>
+<span class="bi">print</span>(c.stats(stream=<span class="kw">False</span>)[<span class="st">"memory_stats"</span>][<span class="st">"usage"</span>])</div>
+  </div>
+  <p class="lesson-p">Auditing image tags means parsing image references correctly. It's easy to get wrong because a registry host can contain a colon (a port), so <code>localhost:5000/cache/redis</code> has a colon that is <em>not</em> a tag separator. The rule: only look for a tag <strong>after the last slash</strong>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parsing image refs and auditing docker inspect output</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">INSPECT = [
+    {<span class="st">"Name"</span>: <span class="st">"/api"</span>, <span class="st">"Config"</span>: {<span class="st">"Image"</span>: <span class="st">"registry.example.com/team/api:latest"</span>},
+     <span class="st">"HostConfig"</span>: {<span class="st">"Privileged"</span>: <span class="kw">False</span>, <span class="st">"RestartPolicy"</span>: {<span class="st">"Name"</span>: <span class="st">"unless-stopped"</span>},
+                    <span class="st">"PortBindings"</span>: {<span class="st">"8080/tcp"</span>: [{<span class="st">"HostIp"</span>: <span class="st">"0.0.0.0"</span>, <span class="st">"HostPort"</span>: <span class="st">"8080"</span>}]}},
+     <span class="st">"State"</span>: {<span class="st">"Status"</span>: <span class="st">"running"</span>, <span class="st">"OOMKilled"</span>: <span class="kw">False</span>, <span class="st">"ExitCode"</span>: <span class="nm">0</span>}},
+    {<span class="st">"Name"</span>: <span class="st">"/redis"</span>, <span class="st">"Config"</span>: {<span class="st">"Image"</span>: <span class="st">"localhost:5000/cache/redis:7.2.4"</span>},
+     <span class="st">"HostConfig"</span>: {<span class="st">"Privileged"</span>: <span class="kw">False</span>, <span class="st">"RestartPolicy"</span>: {<span class="st">"Name"</span>: <span class="st">"no"</span>},
+                    <span class="st">"PortBindings"</span>: {<span class="st">"6379/tcp"</span>: [{<span class="st">"HostIp"</span>: <span class="st">"127.0.0.1"</span>, <span class="st">"HostPort"</span>: <span class="st">"6379"</span>}]}},
+     <span class="st">"State"</span>: {<span class="st">"Status"</span>: <span class="st">"running"</span>, <span class="st">"OOMKilled"</span>: <span class="kw">False</span>, <span class="st">"ExitCode"</span>: <span class="nm">0</span>}},
+    {<span class="st">"Name"</span>: <span class="st">"/tools"</span>, <span class="st">"Config"</span>: {<span class="st">"Image"</span>: <span class="st">"busybox"</span>},
+     <span class="st">"HostConfig"</span>: {<span class="st">"Privileged"</span>: <span class="kw">True</span>, <span class="st">"RestartPolicy"</span>: {<span class="st">"Name"</span>: <span class="st">"no"</span>}, <span class="st">"PortBindings"</span>: {}},
+     <span class="st">"State"</span>: {<span class="st">"Status"</span>: <span class="st">"exited"</span>, <span class="st">"OOMKilled"</span>: <span class="kw">True</span>, <span class="st">"ExitCode"</span>: <span class="nm">137</span>}},
+    {<span class="st">"Name"</span>: <span class="st">"/pinned"</span>, <span class="st">"Config"</span>: {<span class="st">"Image"</span>: <span class="st">"ghcr.io/acme/model@sha256:9f86d081884c7d659a2feaa0c55ad015"</span>},
+     <span class="st">"HostConfig"</span>: {<span class="st">"Privileged"</span>: <span class="kw">False</span>, <span class="st">"RestartPolicy"</span>: {<span class="st">"Name"</span>: <span class="st">"always"</span>}, <span class="st">"PortBindings"</span>: {}},
+     <span class="st">"State"</span>: {<span class="st">"Status"</span>: <span class="st">"running"</span>, <span class="st">"OOMKilled"</span>: <span class="kw">False</span>, <span class="st">"ExitCode"</span>: <span class="nm">0</span>}},
+]
+
+<span class="kw">def</span> <span class="fn">parse_image</span>(ref):
+    <span class="st">"""'localhost:5000/cache/redis:7.2.4' -&gt; ('localhost:5000/cache/redis', '7.2.4', None).
+    The registry host may contain a colon (port), so only look for a tag AFTER the last '/'."""</span>
+    digest = <span class="kw">None</span>
+    <span class="kw">if</span> <span class="st">"@"</span> <span class="kw">in</span> ref:
+        ref, digest = ref.split(<span class="st">"@"</span>, <span class="nm">1</span>)
+    head, _, last = ref.rpartition(<span class="st">"/"</span>)
+    name_part, _, tag = last.partition(<span class="st">":"</span>)
+    name = <span class="st">f"{head}/{name_part}"</span> <span class="kw">if</span> head <span class="kw">else</span> name_part
+    <span class="kw">return</span> name, (tag <span class="kw">or</span> <span class="kw">None</span>), digest
+
+<span class="kw">def</span> <span class="fn">audit_container</span>(c):
+    issues = []
+    name, tag, digest = parse_image(c[<span class="st">"Config"</span>][<span class="st">"Image"</span>])
+    <span class="kw">if</span> digest <span class="kw">is</span> <span class="kw">None</span> <span class="kw">and</span> tag <span class="kw">in</span> (<span class="kw">None</span>, <span class="st">"latest"</span>):
+        issues.append(<span class="st">f"image '{c['Config']['Image']}' is not pinned (tag={tag})"</span>)
+    <span class="kw">if</span> c[<span class="st">"HostConfig"</span>][<span class="st">"Privileged"</span>]:
+        issues.append(<span class="st">"runs --privileged"</span>)
+    <span class="kw">for</span> port, binds <span class="kw">in</span> c[<span class="st">"HostConfig"</span>][<span class="st">"PortBindings"</span>].items():
+        <span class="kw">for</span> b <span class="kw">in</span> binds:
+            <span class="kw">if</span> b[<span class="st">"HostIp"</span>] == <span class="st">"0.0.0.0"</span>:
+                issues.append(<span class="st">f"{port} published on all interfaces"</span>)
+    <span class="kw">if</span> c[<span class="st">"State"</span>][<span class="st">"OOMKilled"</span>]:
+        issues.append(<span class="st">f"was OOM-killed (exit {c['State']['ExitCode']})"</span>)
+    <span class="kw">return</span> issues
+
+<span class="kw">for</span> c <span class="kw">in</span> INSPECT:
+    issues = audit_container(c)
+    <span class="bi">print</span>(<span class="st">f"{c['Name']}: {'clean' if not issues else '; '.join(issues)}"</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Why :latest is a smell, and what to use instead.</strong> A tag is a <em>mutable pointer</em>: <code>:latest</code> can point at a different image tomorrow, so two hosts running "the same" deployment can run different code, and a rollback has nothing to go back to. Pin a version tag at minimum; pin a digest (<code>@sha256:…</code>) when you need bit-for-bit reproducibility.</div></div>
+
+  <div class="lesson-h2">4.9 — Errors, Throttling and Backoff</div>
+  <p class="lesson-p">Cloud APIs rate-limit you, and scripts that loop over hundreds of resources will hit it. The rule of thumb: <strong>retry what is transient, fail fast on what isn't.</strong> Throttling, timeouts and 5xx errors are worth retrying with <em>exponential backoff and jitter</em> (so a fleet of scripts doesn't retry in lock-step). <code>AccessDenied</code> or a validation error will fail identically every time, so retrying only wastes minutes.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — botocore's built-in retries and reading ClientError</span></div>
+    <div class="cb-code"><span class="kw">import</span> boto3
+<span class="kw">from</span> botocore.config <span class="kw">import</span> Config
+<span class="kw">from</span> botocore.exceptions <span class="kw">import</span> ClientError
+
+<span class="cm"># Let botocore retry throttling/5xx for you. "adaptive" also rate-limits the client side.</span>
+cfg = Config(retries={<span class="st">"max_attempts"</span>: <span class="nm">10</span>, <span class="st">"mode"</span>: <span class="st">"adaptive"</span>}, connect_timeout=<span class="nm">5</span>, read_timeout=<span class="nm">30</span>)
+ec2 = boto3.client(<span class="st">"ec2"</span>, config=cfg)
+
+<span class="kw">try</span>:
+    ec2.describe_instances(InstanceIds=[<span class="st">"i-doesnotexist"</span>])
+<span class="kw">except</span> ClientError <span class="kw">as</span> e:
+    code = e.response[<span class="st">"Error"</span>][<span class="st">"Code"</span>]                 <span class="cm"># e.g. "InvalidInstanceID.NotFound"</span>
+    status = e.response[<span class="st">"ResponseMetadata"</span>][<span class="st">"HTTPStatusCode"</span>]
+    <span class="kw">if</span> code <span class="kw">in</span> (<span class="st">"AuthFailure"</span>, <span class="st">"UnauthorizedOperation"</span>, <span class="st">"AccessDenied"</span>):
+        <span class="kw">raise</span> SystemExit(<span class="st">f"permissions problem, retrying will not help: {code}"</span>)
+    <span class="kw">raise</span></div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Backoff with an injected sleep and rng (deterministic)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">FakeClientError</span>(Exception):
+    <span class="st">"""Shaped like botocore.exceptions.ClientError: the error code lives in e.response."""</span>
+    <span class="kw">def</span> <span class="fn">__init__</span>(<span class="kw">self</span>, code, message=<span class="st">""</span>):
+        <span class="bi">super</span>().__init__(<span class="st">f"{code}: {message}"</span>)
+        <span class="kw">self</span>.response = {<span class="st">"Error"</span>: {<span class="st">"Code"</span>: code, <span class="st">"Message"</span>: message}}
+
+RETRYABLE = {<span class="st">"Throttling"</span>, <span class="st">"ThrottlingException"</span>, <span class="st">"RequestLimitExceeded"</span>,
+             <span class="st">"TooManyRequestsException"</span>, <span class="st">"RequestTimeout"</span>, <span class="st">"InternalError"</span>, <span class="st">"ServiceUnavailable"</span>}
+
+<span class="kw">def</span> <span class="fn">call_with_backoff</span>(fn, max_attempts=<span class="nm">5</span>, base=<span class="nm">0.5</span>, cap=<span class="nm">8.0</span>, sleep=<span class="kw">lambda</span> s: <span class="kw">None</span>, rng=<span class="kw">lambda</span>: <span class="nm">1.0</span>):
+    <span class="st">"""Exponential backoff with jitter. `sleep` and `rng` are injected so the demo is deterministic;
+    in production pass time.sleep and random.random (full jitter: sleep a random 0..delay)."""</span>
+    <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, max_attempts + <span class="nm">1</span>):
+        <span class="kw">try</span>:
+            <span class="kw">return</span> fn()
+        <span class="kw">except</span> FakeClientError <span class="kw">as</span> e:
+            code = e.response[<span class="st">"Error"</span>][<span class="st">"Code"</span>]
+            <span class="kw">if</span> code <span class="kw">not</span> <span class="kw">in</span> RETRYABLE <span class="kw">or</span> attempt == max_attempts:
+                <span class="kw">raise</span>                                      <span class="cm"># AccessDenied etc: retrying can't help</span>
+            delay = <span class="bi">min</span>(cap, base * <span class="nm">2</span> ** (attempt - <span class="nm">1</span>)) * rng()
+            <span class="bi">print</span>(<span class="st">f"attempt {attempt}: {code} -&gt; waiting {delay:.1f}s"</span>)
+            sleep(delay)
+
+state = {<span class="st">"n"</span>: <span class="nm">0</span>}
+<span class="kw">def</span> <span class="fn">flaky_describe</span>():
+    state[<span class="st">"n"</span>] += <span class="nm">1</span>
+    <span class="kw">if</span> state[<span class="st">"n"</span>] &lt; <span class="nm">3</span>:
+        <span class="kw">raise</span> FakeClientError(<span class="st">"RequestLimitExceeded"</span>, <span class="st">"Request limit exceeded."</span>)
+    <span class="kw">return</span> {<span class="st">"Reservations"</span>: []}
+
+<span class="bi">print</span>(<span class="st">"result:"</span>, call_with_backoff(flaky_describe), <span class="st">"after"</span>, state[<span class="st">"n"</span>], <span class="st">"calls"</span>)
+
+<span class="kw">def</span> <span class="fn">denied</span>():
+    <span class="kw">raise</span> FakeClientError(<span class="st">"AccessDenied"</span>, <span class="st">"not authorized to perform ec2:DescribeInstances"</span>)
+
+<span class="kw">try</span>:
+    call_with_backoff(denied)
+<span class="kw">except</span> FakeClientError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">"gave up immediately:"</span>, e.response[<span class="st">"Error"</span>][<span class="st">"Code"</span>])</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Retries need idempotency.</strong> Retrying a <em>read</em> is always safe. Retrying a <em>create</em> can make two of the thing if the first call actually succeeded but the response was lost. That's why EC2's <code>run_instances</code> accepts a <code>ClientToken</code>: send the same token on every retry and AWS returns the original result instead of launching a second instance.</div></div>
+
+  <div class="lesson-h2">Chapter 4 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Handle the response, not just the call</strong> — missing keys (<code>Tags</code>), nesting (<code>Reservations → Instances</code>), pagination and units are where scripts break.</div></li>
+    <li data-n="2"><div><strong>Always paginate</strong>, ideally with a paginator, and filter server-side. Ignoring it fails silently.</div></li>
+    <li data-n="3"><div><strong>Audit the sneaky cases</strong>: IPv6, port ranges, protocol <code>-1</code>, single-value-or-list IAM fields, <code>NotAction</code>.</div></li>
+    <li data-n="4"><div><strong>Triage pods by symptom</strong>: <code>phase</code> is coarse; the answer is in <code>containerStatuses</code> and <code>conditions</code>.</div></li>
+    <li data-n="5"><div><strong>Requests schedule, limits enforce</strong>: CPU over limit is throttled, memory over limit is OOMKilled. <code>1G ≠ 1Gi</code>.</div></li>
+    <li data-n="6"><div><strong>Retry only what is transient</strong>, with backoff and jitter, and make retried writes idempotent.</div></li>
+  </ul>
+
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. The given data is fixed so your printed output can be checked precisely. Each editor holds the data and a task list — write the logic.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Instance Auditor: Untagged, Stopped, Cost</div>
+        <div class="ex-desc">Flatten a describe_instances response, survive the missing 'Tags' key, and estimate spend.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given a describe_instances-shaped RESPONSE (5 instances in 2 reservations) and a price table:
+  - Flatten Reservations -&gt; Instances
+  - untagged = instances with no 'Owner' tag (careful: some have no 'Tags' key at all)
+  - stopped  = instances in state 'stopped'
+  - cost     = sum(price * 730) over RUNNING instances only
+
+Print exactly (lists sorted):
+  Untagged (no Owner tag): [...]
+  Stopped: [...]
+  Monthly running cost: $N,NNN.NN</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code" rows="29" spellcheck="false">PRICE_PER_HOUR = {"t3.micro": 0.0104, "t3.large": 0.0832, "m5.xlarge": 0.192, "c5.2xlarge": 0.34}
+HOURS_PER_MONTH = 730
+
+RESPONSE = {"Reservations": [
+    {"ReservationId": "r-10", "Instances": [
+        {"InstanceId": "i-1a", "InstanceType": "t3.large", "State": {"Name": "running"},
+         "Tags": [{"Key": "Owner", "Value": "search"}, {"Key": "Env", "Value": "prod"}]},
+        {"InstanceId": "i-2b", "InstanceType": "m5.xlarge", "State": {"Name": "running"},
+         "Tags": [{"Key": "Env", "Value": "prod"}]},
+    ]},
+    {"ReservationId": "r-11", "Instances": [
+        {"InstanceId": "i-3c", "InstanceType": "t3.micro", "State": {"Name": "stopped"}},
+        {"InstanceId": "i-4d", "InstanceType": "c5.2xlarge", "State": {"Name": "running"},
+         "Tags": [{"Key": "Owner", "Value": "data-eng"}]},
+        {"InstanceId": "i-5e", "InstanceType": "t3.large", "State": {"Name": "stopped"},
+         "Tags": [{"Key": "Owner", "Value": "search"}]},
+    ]},
+]}
+
+# TODO 1: flatten Reservations -&gt; Instances into one list (a reservation can hold several)
+# TODO 2: untagged = ids of instances with NO 'Owner' tag (some have no 'Tags' key at all!)
+# TODO 3: stopped  = ids of instances whose State.Name is 'stopped'
+# TODO 4: monthly cost = sum of price * HOURS_PER_MONTH over RUNNING instances only
+# Print, with both lists sorted:
+#   Untagged (no Owner tag): [...]
+#   Stopped: [...]
+#   Monthly running cost: $1,234.56
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Paginated S3 Size Total</div>
+        <div class="ex-desc">Follow ContinuationToken across pages instead of trusting the first response.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+A FakeS3 client (given) returns at most MaxKeys objects per call. Write list_all() that keeps calling
+list_objects_v2 with ContinuationToken until IsTruncated is False, yielding every object.
+Use bucket 'ml-data', prefix 'datasets/', page_size=3, then print API calls, object count,
+total size in MiB and the largest object.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code" rows="34" spellcheck="false">MiB = 1024 * 1024
+
+class FakeS3:
+    def __init__(self, objects):
+        self.objects = objects
+        self.calls = 0
+
+    def list_objects_v2(self, Bucket, Prefix="", MaxKeys=1000, ContinuationToken=None):
+        self.calls += 1
+        matching = [(k, s) for k, s in self.objects if k.startswith(Prefix)]
+        start = int(ContinuationToken) if ContinuationToken else 0
+        page = matching[start:start + MaxKeys]
+        resp = {"KeyCount": len(page), "IsTruncated": start + MaxKeys &lt; len(matching)}
+        if page:
+            resp["Contents"] = [{"Key": k, "Size": s} for k, s in page]
+        if resp["IsTruncated"]:
+            resp["NextContinuationToken"] = str(start + MaxKeys)
+        return resp
+
+client = FakeS3([
+    ("datasets/train-01.parquet", 512 * MiB), ("datasets/train-02.parquet", 498 * MiB),
+    ("datasets/train-03.parquet", 505 * MiB), ("datasets/val.parquet", 64 * MiB),
+    ("datasets/test.parquet", 250 * MiB), ("datasets/_SUCCESS", 0),
+    ("datasets/features.parquet", 1024 * MiB), ("tmp/scratch.bin", 900 * MiB),
+])
+
+# TODO 1: write list_all(client, bucket, prefix, page_size) - a generator that follows
+#         ContinuationToken until IsTruncated is False and yields every object dict.
+#         (Remember: "Contents" is missing on an empty page.)
+# TODO 2: use it on bucket "ml-data", prefix "datasets/", page_size=3
+# Print exactly:
+#   API calls: N
+#   Objects: N
+#   Total size: N MiB
+#   Largest: &lt;key&gt; (N MiB)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Security-Group Auditor</div>
+        <div class="ex-desc">Find SSH/RDP exposed to the internet, including IPv6 and the protocol '-1' trap.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Audit the given describe_security_groups response. Report every (group, rule, open cidr, sensitive port)
+where the cidr is 0.0.0.0/0 or ::/0 and the rule covers port 22 (SSH) or 3389 (RDP).
+A rule with IpProtocol '-1' covers every port and has NO FromPort/ToPort keys; 'udp' never counts.
+Print the findings sorted, then 'Total findings: N'.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code" rows="31" spellcheck="false">GROUPS = {"SecurityGroups": [
+    {"GroupId": "sg-app", "IpPermissions": [
+        {"IpProtocol": "tcp", "FromPort": 8080, "ToPort": 8080,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+        {"IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
+         "IpRanges": [{"CidrIp": "10.0.0.0/8"}], "Ipv6Ranges": []},
+    ]},
+    {"GroupId": "sg-bastion", "IpPermissions": [
+        {"IpProtocol": "tcp", "FromPort": 20, "ToPort": 25,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+        {"IpProtocol": "tcp", "FromPort": 3389, "ToPort": 3389,
+         "IpRanges": [], "Ipv6Ranges": [{"CidrIpv6": "::/0"}]},
+    ]},
+    {"GroupId": "sg-all", "IpPermissions": [
+        {"IpProtocol": "-1", "IpRanges": [], "Ipv6Ranges": [{"CidrIpv6": "::/0"}]},
+    ]},
+    {"GroupId": "sg-udp", "IpPermissions": [
+        {"IpProtocol": "udp", "FromPort": 1, "ToPort": 65535,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+    ]},
+]}
+
+# Sensitive ports: 22 (SSH) and 3389 (RDP).  "Open" means CidrIp 0.0.0.0/0 or CidrIpv6 ::/0.
+# A rule covers a port if: IpProtocol is "-1" (everything - no FromPort/ToPort keys!),
+# or IpProtocol is "tcp" and FromPort &lt;= port &lt;= ToPort.  (udp does NOT count as SSH/RDP.)
+# TODO: build one finding string per (group, rule, open cidr, sensitive port), formatted:
+#   sg-bastion: SSH (port 22) open to 0.0.0.0/0
+# Print the findings sorted alphabetically, then:
+#   Total findings: N
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Pod-Health Triage Report</div>
+        <div class="ex-desc">Turn raw kubectl JSON into the status an on-call engineer actually needs.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write triage(pod) following the precedence in the editor comments, print '&lt;namespace&gt;/&lt;name&gt;: &lt;status&gt;'
+for every pod in order, then 'Unhealthy: N of M' (anything not Healthy/Completed).</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code" rows="34" spellcheck="false">PODS = {"items": [
+    {"metadata": {"name": "auth-1", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "True"}],
+                "containerStatuses": [{"name": "auth", "ready": True, "restartCount": 0,
+                                       "state": {"running": {}}}]}},
+    {"metadata": {"name": "ml-train-2", "namespace": "ml"},
+     "status": {"phase": "Pending",
+                "conditions": [{"type": "PodScheduled", "status": "False", "reason": "Unschedulable",
+                                "message": "0/5 nodes are available: 5 Insufficient nvidia.com/gpu."}]}},
+    {"metadata": {"name": "gateway-3", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "gw", "ready": False, "restartCount": 31,
+                                       "state": {"waiting": {"reason": "CrashLoopBackOff"}},
+                                       "lastState": {"terminated": {"reason": "Error", "exitCode": 1}}}]}},
+    {"metadata": {"name": "report-4", "namespace": "ml"},
+     "status": {"phase": "Pending", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "report", "ready": False, "restartCount": 0,
+                                       "state": {"waiting": {"reason": "ImagePullBackOff"}}}]}},
+    {"metadata": {"name": "etl-5", "namespace": "ml"},
+     "status": {"phase": "Succeeded", "conditions": [{"type": "Ready", "status": "False", "reason": "PodCompleted"}]}},
+    {"metadata": {"name": "search-6", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "search", "ready": False, "restartCount": 0,
+                                       "state": {"running": {}}}]}},
+]}
+
+# Write triage(pod) -&gt; one of these strings, checking in THIS order:
+#   phase == "Succeeded"                                   -&gt; "Completed"
+#   phase == "Pending" and PodScheduled is False           -&gt; "Pending (&lt;reason of that condition&gt;)"
+#   a container waiting with reason CrashLoopBackOff       -&gt; "CrashLoopBackOff (&lt;lastState.terminated.reason&gt;)"
+#   a container waiting with ImagePullBackOff/ErrImagePull -&gt; "ImagePullBackOff"
+#   Ready condition is not "True"                          -&gt; "NotReady"
+#   otherwise                                              -&gt; "Healthy"
+# (Some pods have no containerStatuses key. ImagePullBackOff pods report phase Pending!)
+#
+# Print one line per pod, in the given order:   &lt;namespace&gt;/&lt;name&gt;: &lt;status&gt;
+# then:   Unhealthy: N of M      (anything that is neither Healthy nor Completed)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">k8s Quantity Parser + Namespace Totals</div>
+        <div class="ex-desc">Parse 250m / 0.5 / 2Gi style quantities and total requests vs limits per namespace.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement parse_cpu (-&gt; millicores) and parse_mem (-&gt; bytes), then total cpu/memory requests and limits
+per namespace (missing blocks count as 0). Print one sorted line per namespace in the format shown in the
+editor, then the sorted list of containers that have no memory limit.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code" rows="28" spellcheck="false">PODS = [
+    {"metadata": {"name": "api-1", "namespace": "prod"}, "spec": {"containers": [
+        {"name": "api", "resources": {"requests": {"cpu": "250m", "memory": "256Mi"},
+                                      "limits": {"cpu": "500m", "memory": "512Mi"}}},
+        {"name": "proxy", "resources": {"requests": {"cpu": "0.5", "memory": "128Mi"},
+                                        "limits": {"cpu": "1", "memory": "256Mi"}}}]}},
+    {"metadata": {"name": "db-1", "namespace": "prod"}, "spec": {"containers": [
+        {"name": "pg", "resources": {"requests": {"cpu": "1", "memory": "2Gi"},
+                                     "limits": {"cpu": "2", "memory": "4Gi"}}}]}},
+    {"metadata": {"name": "notebook-1", "namespace": "ml"}, "spec": {"containers": [
+        {"name": "jupyter", "resources": {"requests": {"cpu": "500m", "memory": "1Gi"}}}]}},
+    {"metadata": {"name": "trainer-1", "namespace": "ml"}, "spec": {"containers": [
+        {"name": "train", "resources": {"requests": {"cpu": "2", "memory": "8Gi"},
+                                        "limits": {"cpu": "4", "memory": "16Gi"}}},
+        {"name": "logger", "resources": {"requests": {"cpu": "100m", "memory": "64Mi"}}}]}},
+]
+
+# TODO 1: parse_cpu(q) -&gt; integer millicores      ("250m" -&gt; 250, "0.5" -&gt; 500, "2" -&gt; 2000)
+# TODO 2: parse_mem(q) -&gt; integer bytes           ("256Mi", "2Gi"; binary suffixes)
+# TODO 3: per NAMESPACE, sum requests and limits over every container of every pod.
+#         A missing "limits" (or "requests") block counts as 0.
+# Print one line per namespace, sorted by name, exactly like:
+#   ml: cpu_requests=2600m cpu_limits=4000m mem_requests=9280Mi mem_limits=16384Mi
+# (memory in whole Mi: bytes // 2**20)
+# Then print the containers with NO memory limit, sorted, as &lt;namespace&gt;/&lt;pod&gt;/&lt;container&gt;:
+#   No memory limit: ['ml/notebook-1/jupyter', ...]
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>ClusterHealthReport</span></h2>
+    <p>When paged at night, an on-call engineer wants one screen that answers "what's broken and what do I do first?" Combine node and pod JSON into exactly that: node conditions, a triage of every pod, how full each node is, and a numbered action list. It reuses every idea from the chapter — flattening, safe lookups, pod triage, quantity parsing, requests vs allocatable.</p>
+    <div class="project-tags">
+      <span class="ptag">kubectl JSON</span>
+      <span class="ptag">pod triage</span>
+      <span class="ptag">capacity math</span>
+      <span class="ptag">on-call report</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A <code>ClusterHealthReport(nodes, pods)</code> class. The data plus <code>parse_cpu</code>, <code>parse_mem</code> and <code>triage</code> are given (they're your toolkit from 4.6 and 4.7).</li>
+      <li><code>node_problems()</code>: <code>NotReady</code> when the Ready condition isn't True, plus every <code>*Pressure</code> condition that is True</li>
+      <li><code>pod_statuses()</code>: <code>{'namespace/name': triage(pod)}</code></li>
+      <li><code>node_usage()</code>: CPU (millicores) and memory (Mi) <em>requested</em> per node, and the percentage of allocatable. Count only pods with a <code>nodeName</code> that aren't <code>Succeeded</code></li>
+      <li><code>render()</code>: the report, in the layout the checklist below describes, ending with numbered <code>Actions:</code></li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ ClusterHealthReport — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor" spellcheck="false"># ══════════════════════════════════════════
+#  CAPSTONE: ClusterHealthReport
+# ══════════════════════════════════════════
+def cond(t, s, reason=None):
+    d = {"type": t, "status": s}
+    if reason:
+        d["reason"] = reason
+    return d
+
+NODES = {"items": [
+    {"metadata": {"name": "node-1"},
+     "status": {"allocatable": {"cpu": "4", "memory": "16Gi"},
+                "conditions": [cond("Ready", "True"), cond("MemoryPressure", "False"),
+                               cond("DiskPressure", "False"), cond("PIDPressure", "False")]}},
+    {"metadata": {"name": "node-2"},
+     "status": {"allocatable": {"cpu": "8", "memory": "32Gi"},
+                "conditions": [cond("Ready", "True"), cond("MemoryPressure", "True"),
+                               cond("DiskPressure", "False"), cond("PIDPressure", "False")]}},
+    {"metadata": {"name": "node-3"},
+     "status": {"allocatable": {"cpu": "4", "memory": "16Gi"},
+                "conditions": [cond("Ready", "False", "KubeletNotReady"), cond("MemoryPressure", "False"),
+                               cond("DiskPressure", "False"), cond("PIDPressure", "False")]}},
+]}
+
+def pod(ns, name, node, cpu, mem, phase, ready="True", waiting=None, last=None, sched_fail=None):
+    st = {"phase": phase, "conditions": [cond("Ready", ready)]}
+    if sched_fail:
+        st["conditions"] = [{"type": "PodScheduled", "status": "False", "reason": "Unschedulable", "message": sched_fail}]
+    elif phase != "Succeeded":
+        cs = {"name": "main", "ready": ready == "True", "restartCount": 9 if waiting else 0,
+              "state": {"waiting": {"reason": waiting}} if waiting else {"running": {}}}
+        if last:
+            cs["lastState"] = {"terminated": {"reason": last}}
+        st["containerStatuses"] = [cs]
+    spec = {"containers": [{"name": "main", "resources": {"requests": {"cpu": cpu, "memory": mem}}}]}
+    if node:
+        spec["nodeName"] = node
+    return {"metadata": {"name": name, "namespace": ns}, "spec": spec, "status": st}
+
+PODS = {"items": [
+    pod("prod", "api-1", "node-1", "500m", "1Gi", "Running"),
+    pod("prod", "api-2", "node-2", "500m", "1Gi", "Running"),
+    pod("prod", "worker-1", "node-2", "1", "2Gi", "Running", ready="False", waiting="CrashLoopBackOff", last="OOMKilled"),
+    pod("prod", "cache-1", "node-3", "250m", "512Mi", "Running", ready="False"),
+    pod("staging", "web-1", "node-1", "250m", "256Mi", "Pending", ready="False", waiting="ErrImagePull"),
+    pod("staging", "batch-1", None, "2", "8Gi", "Pending", sched_fail="0/3 nodes are available: 3 Insufficient memory."),
+    pod("prod", "migrate-1", "node-1", "500m", "512Mi", "Succeeded", ready="False"),
+    pod("prod", "search-1", "node-1", "2", "4Gi", "Running"),
+]}
+
+# --- helpers from earlier sections (given) ---
+def parse_cpu(q):
+    q = str(q)
+    return int(q[:-1]) if q.endswith("m") else int(round(float(q) * 1000))
+
+def parse_mem(q):
+    q = str(q)
+    for suffix, mult in {"Ki": 2**10, "Mi": 2**20, "Gi": 2**30}.items():
+        if q.endswith(suffix):
+            return int(float(q[:-len(suffix)]) * mult)
+    return int(float(q))
+
+def triage(p):
+    st = p["status"]
+    phase = st.get("phase")
+    if phase == "Succeeded":
+        return "Completed"
+    if phase == "Pending":
+        for c in st.get("conditions", []):
+            if c["type"] == "PodScheduled" and c["status"] == "False":
+                return f"Pending ({c['reason']})"
+    for cs in st.get("containerStatuses", []):
+        reason = cs.get("state", {}).get("waiting", {}).get("reason")
+        if reason == "CrashLoopBackOff":
+            last = cs.get("lastState", {}).get("terminated", {}).get("reason")
+            return f"CrashLoopBackOff ({last})" if last else "CrashLoopBackOff"
+        if reason in ("ImagePullBackOff", "ErrImagePull"):
+            return "ImagePullBackOff"
+    if phase == "Pending":
+        return "Pending"
+    ready = next((c["status"] for c in st.get("conditions", []) if c["type"] == "Ready"), "False")
+    return "Healthy" if ready == "True" else "NotReady"
+
+
+# === TODO: complete the class, then run the two lines at the bottom ===
+class ClusterHealthReport:
+    def __init__(self, nodes, pods):
+        self.nodes = nodes["items"]
+        self.pods = pods["items"]
+
+    def node_problems(self):
+        """{node_name: [problems]}: 'NotReady' if Ready != True, plus every *Pressure condition that is True."""
+        # TODO
+        return {}
+
+    def pod_statuses(self):
+        """{'namespace/name': triage(pod)}"""
+        # TODO
+        return {}
+
+    def node_usage(self):
+        """{node: (cpu_requested_m, mem_requested_Mi, cpu_pct, mem_pct)} counting pods that have a
+        spec.nodeName and are not Succeeded. Percentages are of the node's allocatable cpu/memory."""
+        # TODO
+        return {}
+
+    def render(self):
+        """Return the report text. Required layout is in the checklist below."""
+        # TODO
+        return ""
+
+report = ClusterHealthReport(NODES, PODS)
+print(report.render())
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">✅</span>Header line and <code>Nodes: 3 total, 2 Ready, 1 NotReady</code></div>
+    <div class="check-item"><span class="check-icon">🖥️</span>Node problems listed: <code>node-2: MemoryPressure</code> and <code>node-3: NotReady</code></div>
+    <div class="check-item"><span class="check-icon">🐳</span><code>Pods: 8 total, 4 need attention</code> — the finished Job and the healthy pods are NOT counted as problems</div>
+    <div class="check-item"><span class="check-icon">🔥</span>Attention list includes <code>prod/worker-1: CrashLoopBackOff (OOMKilled)</code>, <code>staging/web-1: ImagePullBackOff</code> and <code>staging/batch-1: Pending (Unschedulable)</code></div>
+    <div class="check-item"><span class="check-icon">📊</span>Capacity per node, e.g. <code>node-1: cpu 2750m (69%), mem 5376Mi (33%)</code> (the Succeeded pod and the unscheduled pod use no node capacity)</div>
+    <div class="check-item"><span class="check-icon">🛠️</span>An <code>Actions:</code> section with one numbered, specific next step per problem</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DevOps 4 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A script calls <code>s3.list_objects_v2(Bucket='b')</code> once and totals the sizes. The bucket holds 4,200 objects. What happens?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It raises a TruncatedResponse error</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> It silently totals only the first 1,000 objects — <code>IsTruncated</code> is True and the <code>NextContinuationToken</code> must be followed (or use a paginator)</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> boto3 automatically paginates and returns all 4,200</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It returns all 4,200 because list_objects_v2 has no page limit</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text"><code>describe_instances</code> works, but <code>inst['Tags']</code> raises <code>KeyError</code> on one instance. What is the cause and the fix?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> The instance is terminated; skip terminated instances</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Your IAM role lacks <code>ec2:DescribeTags</code>; add the permission</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> That instance has no tags and boto3 omits the <code>Tags</code> key entirely; use <code>inst.get('Tags', [])</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Tags are only available through the resource interface</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">One container exceeds its <strong>memory</strong> limit and another exceeds its <strong>CPU</strong> limit. What happens?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> The memory offender is OOMKilled (exit 137); the CPU offender is throttled, not killed</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Both are killed and restarted</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Both are throttled until usage drops</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Nothing — limits are only advisory hints to the scheduler</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the expression that reads the <strong>error code</strong> string (e.g. <code>"AccessDenied"</code>) from a botocore <code>ClientError</code> stored in a variable named <code>e</code>. Assign it to a variable named <code>code</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="code = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">A security-group rule has <code>IpProtocol: '-1'</code> and <code>CidrIp: 0.0.0.0/0</code> with no FromPort/ToPort. What does it allow, and what breaks in naive code?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Nothing, because no ports are listed</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Only ICMP ping</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Only SSH, since that's the default port</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> All protocols on all ports from anywhere — and code that reads <code>rule['FromPort']</code> raises KeyError</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎯</div>
+    <div class="ncc-info">
+      <h3>DevOps 5: Python Mock Interview</h3>
+      <p>Next up: a timed, auto-graded mock interview of the Python problems DevOps interviewers actually set — rate limiters, TTL caches, config merging, dependency ordering — plus troubleshooting-style Q&amp;A.</p>
+    </div>
+    <a class="ncc-btn" href="do05-devops-python-mock-interview.html">Start DevOps 5 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Cloud &amp; Container Ops — Interview Prep</h2>
+    <p>12 questions on the angles interviewers use to tell whether you've actually operated AWS and Kubernetes, not just read the docs. Click a question to reveal what a strong answer includes.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you handle pagination with boto3, and what goes wrong if you ignore it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Use a paginator (<code>client.get_paginator('list_objects_v2')</code>) or follow the token by hand: pass <code>ContinuationToken</code> (S3), <code>NextToken</code> (most services) or <code>Marker</code> (older APIs) until the <em>more results</em> flag is false. Ignoring it is dangerous because it fails <strong>silently</strong>: S3 returns the first 1,000 keys and a script that doesn't loop just reports a wrong total or deletes/keeps the wrong things once the bucket grows. Also mention that <code>Contents</code> is absent on an empty page, and that you filter server-side with <code>Prefix</code>/<code>Filters</code> to page through less data.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">boto3 client vs resource: which do you use and why?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The <strong>client</strong>: it's a thin 1:1 mapping of the AWS API, covers every service and operation, returns plain dicts, and supports paginators and waiters everywhere. The <strong>resource</strong> interface is object-oriented and pleasant but exists for few services and AWS has stopped adding features to it. A strong answer adds that clients are easier to mock in tests (you stub a dict) and that you'd wrap either in your own small function so business logic isn't coupled to the SDK.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you find security groups that expose SSH to the internet? What are the traps?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Call <code>describe_security_groups</code> (paginated), walk each <code>IpPermissions</code> rule, and check whether the CIDR is <code>0.0.0.0/0</code> <em>or</em> <code>::/0</code> and whether the rule covers port 22. The traps: IPv6 lives in a separate <code>Ipv6Ranges</code> list; a rule is a <em>range</em> (20–25 covers 22); protocol <code>-1</code> means all traffic and has no <code>FromPort</code>/<code>ToPort</code> keys (a <code>KeyError</code> waiting to happen); and rules can reference other security groups instead of CIDRs. Then say you'd rather use SSM Session Manager than expose SSH at all.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is least privilege, and how would you audit IAM policies programmatically?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Least privilege: grant only the actions needed, on only the resources needed, for only as long as needed. Programmatically: normalise each policy (Statement/Action/Resource can each be a value <em>or</em> a list), skip Deny statements, and flag <code>Action: *</code>, service wildcards like <code>s3:*</code>, <code>Resource: *</code>, and <code>Allow + NotAction</code> (grants everything except). Mention that <code>Condition</code> blocks can narrow a wildcard, so triage with the script but confirm with IAM Access Analyzer or <code>simulate_principal_policy</code>, and prefer roles with temporary credentials over long-lived keys.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A pod is in CrashLoopBackOff. Walk me through debugging it.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">1) <code>kubectl describe pod</code>: read <em>Last State</em> and the exit code (137 = SIGKILL, usually OOMKilled; 1 = app error; 143 = SIGTERM). 2) <code>kubectl logs --previous</code> — the current container has just restarted, the useful logs are from the one that died. 3) Check config: missing env vars/secrets/ConfigMaps, wrong command/args. 4) Check probes: an over-eager liveness probe kills a slow-starting app. 5) If OOMKilled, compare memory usage with the limit. The back-off delay (10s, 20s, 40s… up to 5 min) is Kubernetes protecting the node, not the bug itself.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A pod is stuck in Pending. What are the possible causes?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Run <code>kubectl describe pod</code> and read the <code>FailedScheduling</code> event, which says why. Common causes: insufficient cpu/memory on every node (the scheduler counts <em>requests</em>, not actual usage); taints without matching tolerations; nodeSelector or affinity that no node satisfies; an unbound PersistentVolumeClaim; a ResourceQuota or LimitRange rejecting it; or no nodes at all because the autoscaler hasn't added one. Note that a pod that <em>is</em> scheduled but still Pending (ContainerCreating, ImagePullBackOff) is a different problem.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">ImagePullBackOff vs ErrImagePull — what's the difference and what causes them?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><code>ErrImagePull</code> is the first failed attempt; <code>ImagePullBackOff</code> is Kubernetes backing off before retrying. Same root causes: a typo in the image name or tag, a tag that doesn't exist, a private registry without an <code>imagePullSecret</code> (or an expired token), the wrong architecture, a registry rate limit (Docker Hub), or the node having no route to the registry. Gotcha worth mentioning: such a pod reports <code>phase: Pending</code>, so a script that only looks at phase will miss it.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Explain requests vs limits and QoS classes. What happens when a container exceeds each?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>Requests</strong> are reserved capacity used by the scheduler to place the pod. <strong>Limits</strong> are runtime ceilings enforced by the kubelet. Exceed the <em>CPU</em> limit and the container is <strong>throttled</strong> (slower, not killed); exceed the <em>memory</em> limit and it is <strong>OOMKilled</strong>. QoS: <strong>Guaranteed</strong> (requests == limits for cpu and memory on every container), <strong>Burstable</strong> (some requests/limits), <strong>BestEffort</strong> (none). Under node pressure BestEffort is evicted first. Good follow-up: CPU limits can cause needless throttling, which is why some teams set requests but not CPU limits.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you handle API throttling in an automation script?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retry only transient errors (<code>Throttling</code>, <code>RequestLimitExceeded</code>, timeouts, 5xx) with <strong>exponential backoff plus jitter</strong> so parallel scripts don't retry in lock-step; in boto3 you can set <code>Config(retries={'mode': 'adaptive', 'max_attempts': 10})</code>. Fail fast on <code>AccessDenied</code>/validation errors. Reduce the call volume too: paginate with server-side filters, cache results, use batch APIs, and avoid N+1 patterns (one call per resource). Retried writes must be idempotent — e.g. EC2 <code>ClientToken</code>.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What would you build for cloud cost hygiene, and how would you make it safe?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Scripts that find: untagged resources (no Owner/CostCenter), stopped instances that still pay for EBS, unattached volumes, old snapshots, idle load balancers, oversized instances. Make it safe: default to <strong>report-only / dry-run</strong>, require a tag or an allow-list to delete, notify the owner and wait a grace period, log every action, run with a narrowly-scoped role, and make each step idempotent so a re-run is harmless. The mistake interviewers listen for: an automated <em>delete</em> with no dry-run and a broad role.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is :latest a bad idea in production, and what do you use instead?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A tag is a mutable pointer, so <code>:latest</code> can refer to different images over time. Two nodes can run different code under the same manifest, a rollback has nothing to roll back to, and <code>imagePullPolicy</code> semantics get confusing. Use immutable version tags (git SHA or semver) and, for full reproducibility and supply-chain safety, pin by digest (<code>image@sha256:…</code>). Also parse image refs carefully in tooling — a registry host may contain a port colon.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How does a Python script running on EKS or EC2 get AWS credentials without keys in the code?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Through the SDK's credential chain: on EC2 the <strong>instance profile</strong> (IMDS), on ECS the <strong>task role</strong>, on EKS <strong>IRSA</strong> (IAM Roles for Service Accounts — a projected web-identity token exchanged with STS). Locally it falls back to environment variables or the shared profile. For cross-account access you <code>assume_role</code> and receive temporary credentials. Never hard-code keys, never commit them, and scope each role to the one job.</div></div>
+  </div>
+
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">&gt;&gt;&gt;</div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# stdlib only here. boto3 / kubernetes / docker SDKs are reference-only (no network in the browser)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+// ══════════════════════════════════════
+// EXERCISES
+// ══════════════════════════════════════
+const EXERCISES = {
+  1:{
+    checks:["untagged (no owner tag): ['i-2b', 'i-3c']", "stopped: ['i-3c', 'i-5e']", "monthly running cost: $449.10"],
+    hint:"A KeyError on 'Tags' means you used inst['Tags']. Use inst.get('Tags', []). Cost only counts state == 'running'; format with f'{cost:,.2f}'.",
+    solution:`PRICE_PER_HOUR = {"t3.micro": 0.0104, "t3.large": 0.0832, "m5.xlarge": 0.192, "c5.2xlarge": 0.34}
+HOURS_PER_MONTH = 730
+
+RESPONSE = {"Reservations": [
+    {"ReservationId": "r-10", "Instances": [
+        {"InstanceId": "i-1a", "InstanceType": "t3.large", "State": {"Name": "running"},
+         "Tags": [{"Key": "Owner", "Value": "search"}, {"Key": "Env", "Value": "prod"}]},
+        {"InstanceId": "i-2b", "InstanceType": "m5.xlarge", "State": {"Name": "running"},
+         "Tags": [{"Key": "Env", "Value": "prod"}]},
+    ]},
+    {"ReservationId": "r-11", "Instances": [
+        {"InstanceId": "i-3c", "InstanceType": "t3.micro", "State": {"Name": "stopped"}},
+        {"InstanceId": "i-4d", "InstanceType": "c5.2xlarge", "State": {"Name": "running"},
+         "Tags": [{"Key": "Owner", "Value": "data-eng"}]},
+        {"InstanceId": "i-5e", "InstanceType": "t3.large", "State": {"Name": "stopped"},
+         "Tags": [{"Key": "Owner", "Value": "search"}]},
+    ]},
+]}
+
+instances = [i for res in RESPONSE["Reservations"] for i in res["Instances"]]
+
+def owner(inst):
+    return {t["Key"]: t["Value"] for t in inst.get("Tags", [])}.get("Owner")
+
+untagged = sorted(i["InstanceId"] for i in instances if owner(i) is None)
+stopped = sorted(i["InstanceId"] for i in instances if i["State"]["Name"] == "stopped")
+cost = sum(PRICE_PER_HOUR[i["InstanceType"]] * HOURS_PER_MONTH
+           for i in instances if i["State"]["Name"] == "running")
+
+print("Untagged (no Owner tag):", untagged)
+print("Stopped:", stopped)
+print(f"Monthly running cost: \${cost:,.2f}")
+`
+  },
+  2:{
+    checks:["api calls: 3", "objects: 7", "total size: 2853 mib", "largest: datasets/features.parquet (1024 mib)"],
+    hint:"Loop: call, yield from resp.get('Contents', []), stop if not resp['IsTruncated'], else token = resp['NextContinuationToken']. client.calls counts the API calls.",
+    solution:`MiB = 1024 * 1024
+
+class FakeS3:
+    def __init__(self, objects):
+        self.objects = objects
+        self.calls = 0
+
+    def list_objects_v2(self, Bucket, Prefix="", MaxKeys=1000, ContinuationToken=None):
+        self.calls += 1
+        matching = [(k, s) for k, s in self.objects if k.startswith(Prefix)]
+        start = int(ContinuationToken) if ContinuationToken else 0
+        page = matching[start:start + MaxKeys]
+        resp = {"KeyCount": len(page), "IsTruncated": start + MaxKeys < len(matching)}
+        if page:
+            resp["Contents"] = [{"Key": k, "Size": s} for k, s in page]
+        if resp["IsTruncated"]:
+            resp["NextContinuationToken"] = str(start + MaxKeys)
+        return resp
+
+client = FakeS3([
+    ("datasets/train-01.parquet", 512 * MiB), ("datasets/train-02.parquet", 498 * MiB),
+    ("datasets/train-03.parquet", 505 * MiB), ("datasets/val.parquet", 64 * MiB),
+    ("datasets/test.parquet", 250 * MiB), ("datasets/_SUCCESS", 0),
+    ("datasets/features.parquet", 1024 * MiB), ("tmp/scratch.bin", 900 * MiB),
+])
+
+def list_all(client, bucket, prefix="", page_size=1000):
+    token = None
+    while True:
+        kwargs = {"Bucket": bucket, "Prefix": prefix, "MaxKeys": page_size}
+        if token:
+            kwargs["ContinuationToken"] = token
+        resp = client.list_objects_v2(**kwargs)
+        yield from resp.get("Contents", [])
+        if not resp["IsTruncated"]:
+            return
+        token = resp["NextContinuationToken"]
+
+objs = list(list_all(client, "ml-data", "datasets/", page_size=3))
+biggest = max(objs, key=lambda o: o["Size"])
+print(f"API calls: {client.calls}")
+print(f"Objects: {len(objs)}")
+print(f"Total size: {sum(o['Size'] for o in objs) // MiB} MiB")
+print(f"Largest: {biggest['Key']} ({biggest['Size'] // MiB} MiB)")
+`
+  },
+  3:{
+    checks:["sg-all: rdp (port 3389) open to ::/0", "sg-all: ssh (port 22) open to ::/0", "sg-bastion: rdp (port 3389) open to ::/0", "sg-bastion: ssh (port 22) open to 0.0.0.0/0", "total findings: 4"],
+    hint:"Collect cidrs from IpRanges (CidrIp) AND Ipv6Ranges (CidrIpv6). Test rule['IpProtocol'] == '-1' BEFORE touching rule['FromPort'], or you get a KeyError.",
+    solution:`GROUPS = {"SecurityGroups": [
+    {"GroupId": "sg-app", "IpPermissions": [
+        {"IpProtocol": "tcp", "FromPort": 8080, "ToPort": 8080,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+        {"IpProtocol": "tcp", "FromPort": 22, "ToPort": 22,
+         "IpRanges": [{"CidrIp": "10.0.0.0/8"}], "Ipv6Ranges": []},
+    ]},
+    {"GroupId": "sg-bastion", "IpPermissions": [
+        {"IpProtocol": "tcp", "FromPort": 20, "ToPort": 25,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+        {"IpProtocol": "tcp", "FromPort": 3389, "ToPort": 3389,
+         "IpRanges": [], "Ipv6Ranges": [{"CidrIpv6": "::/0"}]},
+    ]},
+    {"GroupId": "sg-all", "IpPermissions": [
+        {"IpProtocol": "-1", "IpRanges": [], "Ipv6Ranges": [{"CidrIpv6": "::/0"}]},
+    ]},
+    {"GroupId": "sg-udp", "IpPermissions": [
+        {"IpProtocol": "udp", "FromPort": 1, "ToPort": 65535,
+         "IpRanges": [{"CidrIp": "0.0.0.0/0"}], "Ipv6Ranges": []},
+    ]},
+]}
+
+SENSITIVE = {22: "SSH", 3389: "RDP"}
+OPEN = {"0.0.0.0/0", "::/0"}
+
+findings = []
+for sg in GROUPS["SecurityGroups"]:
+    for rule in sg["IpPermissions"]:
+        cidrs = [r["CidrIp"] for r in rule.get("IpRanges", [])] + \\
+                [r["CidrIpv6"] for r in rule.get("Ipv6Ranges", [])]
+        for cidr in cidrs:
+            if cidr not in OPEN:
+                continue
+            for port, name in SENSITIVE.items():
+                if rule["IpProtocol"] == "-1" or (
+                        rule["IpProtocol"] == "tcp" and rule["FromPort"] <= port <= rule["ToPort"]):
+                    findings.append(f"{sg['GroupId']}: {name} (port {port}) open to {cidr}")
+
+for f in sorted(findings):
+    print(f)
+print(f"Total findings: {len(findings)}")
+`
+  },
+  4:{
+    checks:["prod/auth-1: healthy", "ml/ml-train-2: pending (unschedulable)", "prod/gateway-3: crashloopbackoff (error)", "ml/report-4: imagepullbackoff", "ml/etl-5: completed", "prod/search-6: notready", "unhealthy: 4 of 6"],
+    hint:"Check phase == 'Succeeded' first (finished Jobs are Ready=False on purpose). Use .get('containerStatuses', []) - unscheduled pods don't have that key.",
+    solution:`PODS = {"items": [
+    {"metadata": {"name": "auth-1", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "True"}],
+                "containerStatuses": [{"name": "auth", "ready": True, "restartCount": 0,
+                                       "state": {"running": {}}}]}},
+    {"metadata": {"name": "ml-train-2", "namespace": "ml"},
+     "status": {"phase": "Pending",
+                "conditions": [{"type": "PodScheduled", "status": "False", "reason": "Unschedulable",
+                                "message": "0/5 nodes are available: 5 Insufficient nvidia.com/gpu."}]}},
+    {"metadata": {"name": "gateway-3", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "gw", "ready": False, "restartCount": 31,
+                                       "state": {"waiting": {"reason": "CrashLoopBackOff"}},
+                                       "lastState": {"terminated": {"reason": "Error", "exitCode": 1}}}]}},
+    {"metadata": {"name": "report-4", "namespace": "ml"},
+     "status": {"phase": "Pending", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "report", "ready": False, "restartCount": 0,
+                                       "state": {"waiting": {"reason": "ImagePullBackOff"}}}]}},
+    {"metadata": {"name": "etl-5", "namespace": "ml"},
+     "status": {"phase": "Succeeded", "conditions": [{"type": "Ready", "status": "False", "reason": "PodCompleted"}]}},
+    {"metadata": {"name": "search-6", "namespace": "prod"},
+     "status": {"phase": "Running", "conditions": [{"type": "Ready", "status": "False"}],
+                "containerStatuses": [{"name": "search", "ready": False, "restartCount": 0,
+                                       "state": {"running": {}}}]}},
+]}
+
+def triage(pod):
+    st = pod["status"]
+    phase = st.get("phase")
+    if phase == "Succeeded":
+        return "Completed"
+    if phase == "Pending":
+        for c in st.get("conditions", []):
+            if c["type"] == "PodScheduled" and c["status"] == "False":
+                return f"Pending ({c['reason']})"
+    for cs in st.get("containerStatuses", []):
+        reason = cs.get("state", {}).get("waiting", {}).get("reason")
+        if reason == "CrashLoopBackOff":
+            last = cs.get("lastState", {}).get("terminated", {}).get("reason")
+            return f"CrashLoopBackOff ({last})"
+        if reason in ("ImagePullBackOff", "ErrImagePull"):
+            return "ImagePullBackOff"
+    ready = next((c["status"] for c in st.get("conditions", []) if c["type"] == "Ready"), "False")
+    return "Healthy" if ready == "True" else "NotReady"
+
+statuses = []
+for pod in PODS["items"]:
+    s = triage(pod)
+    statuses.append(s)
+    print(f"{pod['metadata']['namespace']}/{pod['metadata']['name']}: {s}")
+bad = sum(1 for s in statuses if s not in ("Healthy", "Completed"))
+print(f"Unhealthy: {bad} of {len(statuses)}")
+`
+  },
+  5:{
+    checks:["ml: cpu_requests=2600m cpu_limits=4000m mem_requests=9280mi mem_limits=16384mi", "prod: cpu_requests=1750m cpu_limits=3500m mem_requests=2432mi mem_limits=4864mi", "no memory limit: ['ml/notebook-1/jupyter', 'ml/trainer-1/logger']"],
+    hint:"'m' means milli: int(q[:-1]). Otherwise float(q) * 1000. For memory try 'Ki','Mi','Gi' suffixes first. Use res.get('limits', {}) so a missing block doesn't crash.",
+    solution:`PODS = [
+    {"metadata": {"name": "api-1", "namespace": "prod"}, "spec": {"containers": [
+        {"name": "api", "resources": {"requests": {"cpu": "250m", "memory": "256Mi"},
+                                      "limits": {"cpu": "500m", "memory": "512Mi"}}},
+        {"name": "proxy", "resources": {"requests": {"cpu": "0.5", "memory": "128Mi"},
+                                        "limits": {"cpu": "1", "memory": "256Mi"}}}]}},
+    {"metadata": {"name": "db-1", "namespace": "prod"}, "spec": {"containers": [
+        {"name": "pg", "resources": {"requests": {"cpu": "1", "memory": "2Gi"},
+                                     "limits": {"cpu": "2", "memory": "4Gi"}}}]}},
+    {"metadata": {"name": "notebook-1", "namespace": "ml"}, "spec": {"containers": [
+        {"name": "jupyter", "resources": {"requests": {"cpu": "500m", "memory": "1Gi"}}}]}},
+    {"metadata": {"name": "trainer-1", "namespace": "ml"}, "spec": {"containers": [
+        {"name": "train", "resources": {"requests": {"cpu": "2", "memory": "8Gi"},
+                                        "limits": {"cpu": "4", "memory": "16Gi"}}},
+        {"name": "logger", "resources": {"requests": {"cpu": "100m", "memory": "64Mi"}}}]}},
+]
+
+def parse_cpu(q):
+    q = str(q)
+    return int(q[:-1]) if q.endswith("m") else int(round(float(q) * 1000))
+
+def parse_mem(q):
+    q = str(q)
+    for suffix, mult in {"Ki": 2**10, "Mi": 2**20, "Gi": 2**30}.items():
+        if q.endswith(suffix):
+            return int(float(q[:-len(suffix)]) * mult)
+    return int(float(q))
+
+totals = {}
+no_mem_limit = []
+for pod in PODS:
+    ns, name = pod["metadata"]["namespace"], pod["metadata"]["name"]
+    t = totals.setdefault(ns, dict(cr=0, cl=0, mr=0, ml=0))
+    for c in pod["spec"]["containers"]:
+        res = c.get("resources", {})
+        req, lim = res.get("requests", {}), res.get("limits", {})
+        t["cr"] += parse_cpu(req.get("cpu", 0))
+        t["cl"] += parse_cpu(lim.get("cpu", 0))
+        t["mr"] += parse_mem(req.get("memory", 0))
+        t["ml"] += parse_mem(lim.get("memory", 0))
+        if "memory" not in lim:
+            no_mem_limit.append(f"{ns}/{name}/{c['name']}")
+
+for ns in sorted(totals):
+    t = totals[ns]
+    print(f"{ns}: cpu_requests={t['cr']}m cpu_limits={t['cl']}m "
+          f"mem_requests={t['mr'] // 2**20}Mi mem_limits={t['ml'] // 2**20}Mi")
+print("No memory limit:", sorted(no_mem_limit))
+`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["=== cluster health report ===", "nodes: 3 total, 2 ready, 1 notready", "node-2: memorypressure", "node-3: notready", "pods: 8 total, 4 need attention", "prod/worker-1: crashloopbackoff (oomkilled)", "staging/web-1: imagepullbackoff", "staging/batch-1: pending (unschedulable)", "node-1: cpu 2750m (69%), mem 5376mi (33%)", "node-3: cpu 250m (6%), mem 512mi (3%)", "actions:"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1: 'B', 2: 'C', 3: 'A', 5: 'D'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'').replace(/"/g,"'");
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.startsWith("code=")&&val.includes("e.response")&&(val.includes("['error']['code']")||(val.includes("get('error'")&&val.includes("get('code'")));
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! code = e.response['Error']['Code']"
+    :"❌ Not quite. The code lives in e.response['Error']['Code'] — assign it to a variable named code.";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Pagination, the missing-key traps, pod triage, requests vs limits and safe retries — the response-handling skill behind every cloud script. Try the Interview Prep tab next.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

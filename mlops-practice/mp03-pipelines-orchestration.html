@@ -1,0 +1,1764 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus MLOps Practice 3: Pipelines &amp; Orchestration</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 5-chapter "MLOps
+  Practice" track — NOT part of the 41-chapter core curriculum, same tier as the dsa/ and
+  systems/ modules. Everything runnable here is pure Python (stdlib only: heapq, hashlib,
+  json, datetime) — the DAG, topological sort, retries, caching and backfill logic are real
+  code. The Airflow / Prefect / DVC snippets are reference-only, no Run button, since those
+  tools need their own servers and packages this browser sandbox does not have.
+  No XP, no localStorage progress tracking — exercises/capstone/quiz still run and grade live
+  in the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">MP 3: Pipelines &amp; Orchestration</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · MLOps Practice · 3 of 5</div>
+  </a>
+  <a class="sb-back" href="mp02-experiment-tracking-model-registry.html">← MP 2: Experiment Tracking &amp; Model Registry</a>
+  <div class="sb-section">MP 3 · Pipelines &amp; Orchestration</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — MLOps Practice</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='mp04-monitoring-and-drift.html'"><span class="sb-icon">📈</span><span class="sb-step">MP 4: Monitoring &amp; Drift</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus MLOps 3 of 5</div>
+    <div class="tb-title">Pipelines &amp; Orchestration</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>MLOps Practice 3:<br/><span>Pipelines &amp; Orchestration</span></h1>
+    <p>Every ML platform job posting says "Airflow", "Kubeflow" or "Prefect", and every interview for one probes the same handful of ideas: dependency graphs, retries, idempotency, caching, backfills. Instead of memorising tool syntax, you will build a working mini-orchestrator in about seventy lines of plain Python, then see exactly how Airflow, Prefect, Dagster and Kubeflow spell the same ideas. The tools change every few years; these ideas do not.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~70 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">3.1 — Why Pipelines, Not One Giant Script</div>
+  <p class="lesson-p">Every ML system starts as one notebook or one <code>train.py</code>. Then it gets put on a schedule, and it starts failing at 3 a.m. — usually at the last step, after two hours of work. A <strong>pipeline</strong> is the same work split into <strong>named steps with declared inputs and outputs</strong>, so a supervisor (the <strong>orchestrator</strong>) can do five things a script cannot: run steps in dependency order, run independent steps in parallel, retry only the step that failed, skip steps whose inputs have not changed, and tell you exactly which step is red. Everything in this chapter — and everything Airflow, Prefect, Dagster and Kubeflow do — is a variation on those five.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A giant script vs. named, recorded steps</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">ingest</span>():      <span class="kw">return</span> <span class="nm">1200</span>
+<span class="kw">def</span> <span class="fn">validate</span>(n):
+    <span class="kw">if</span> n &lt; <span class="nm">1000</span>:
+        <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">"too few rows"</span>)
+    <span class="kw">return</span> n
+<span class="kw">def</span> <span class="fn">featurize</span>(n):  <span class="kw">return</span> n * <span class="nm">12</span>
+<span class="kw">def</span> <span class="fn">train</span>(x):
+    <span class="kw">raise</span> <span class="bi">RuntimeError</span>(<span class="st">"OOM while training"</span>)   <span class="cm"># step 4 blows up</span>
+
+<span class="cm"># One giant script: a late crash throws everything away</span>
+<span class="bi">print</span>(<span class="st">"== giant script =="</span>)
+<span class="kw">try</span>:
+    n = validate(ingest()); x = featurize(n); model = train(x)
+<span class="kw">except</span> <span class="bi">Exception</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f"crashed: {e} -&gt; nothing saved, rerun ALL of it"</span>)
+
+<span class="cm"># The same work as named steps whose results are recorded</span>
+<span class="bi">print</span>(<span class="st">"== recorded steps =="</span>)
+state = {}
+steps = [
+    (<span class="st">"ingest"</span>,    <span class="kw">lambda</span>: ingest()),
+    (<span class="st">"validate"</span>,  <span class="kw">lambda</span>: validate(state[<span class="st">"ingest"</span>])),
+    (<span class="st">"featurize"</span>, <span class="kw">lambda</span>: featurize(state[<span class="st">"validate"</span>])),
+    (<span class="st">"train"</span>,     <span class="kw">lambda</span>: train(state[<span class="st">"featurize"</span>])),
+]
+failed = <span class="kw">None</span>
+<span class="kw">for</span> name, fn <span class="kw">in</span> steps:
+    <span class="kw">try</span>:
+        state[name] = fn()
+        <span class="bi">print</span>(<span class="st">f"{name:&lt;10} ok    -&gt; {state[name]}"</span>)
+    <span class="kw">except</span> <span class="bi">Exception</span> <span class="kw">as</span> e:
+        failed = name
+        <span class="bi">print</span>(<span class="st">f"{name:&lt;10} FAIL  -&gt; {e}"</span>)
+        <span class="kw">break</span>
+<span class="bi">print</span>(<span class="st">"kept:"</span>, <span class="bi">sorted</span>(state))
+<span class="bi">print</span>(<span class="st">"resume from:"</span>, failed)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The orchestrator supervises; it should not do the heavy lifting.</strong>A good task launches the work (a Spark job, a Kubernetes pod, a warehouse query) and reports success or failure. If your Airflow worker is itself holding a 40 GB DataFrame, you have rebuilt the giant script inside a scheduler — with worse debugging.</div></div>
+  <div class="lesson-h2">3.2 — A DAG Is Just Data: Task → Dependencies</div>
+  <p class="lesson-p">The dependency structure of a pipeline is a <strong>DAG</strong> — a <strong>directed acyclic graph</strong>. Tasks are nodes; an edge means "this must finish before that can start". In Python the most honest representation is a dict mapping each task to the tasks it depends on (Airflow writes the same edges as <code>a &gt;&gt; b</code>). A task with no dependencies is a <strong>root</strong>, a task nothing depends on is a <strong>leaf</strong>, and everything that has to wait for a task is <strong>downstream</strong> of it. The example below is the pipeline the rest of the chapter reuses: two ingests feed validation, which fans out to feature building and data docs; two models train in parallel; and a <strong>quality gate</strong> decides whether the winner may be registered.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The ML pipeline as a dict, plus reverse edges and downstream lookup</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">ml_dag = {
+    <span class="st">"ingest_events"</span>: [],
+    <span class="st">"ingest_users"</span>:  [],
+    <span class="st">"validate"</span>:  [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>],
+    <span class="st">"data_docs"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"featurize"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"train_lr"</span>:  [<span class="st">"featurize"</span>],
+    <span class="st">"train_rf"</span>:  [<span class="st">"featurize"</span>],
+    <span class="st">"evaluate"</span>:  [<span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>],
+    <span class="st">"gate"</span>:      [<span class="st">"evaluate"</span>],
+    <span class="st">"register"</span>:  [<span class="st">"gate"</span>],
+}
+
+<span class="kw">def</span> <span class="fn">dependents</span>(dag):
+    out = {t: [] <span class="kw">for</span> t <span class="kw">in</span> dag}
+    <span class="kw">for</span> task, deps <span class="kw">in</span> dag.items():
+        <span class="kw">for</span> d <span class="kw">in</span> deps:
+            out[d].append(task)
+    <span class="kw">return</span> {t: <span class="bi">sorted</span>(v) <span class="kw">for</span> t, v <span class="kw">in</span> out.items()}
+
+<span class="kw">def</span> <span class="fn">all_downstream</span>(dag, task):
+    down, stack, seen = dependents(dag), [task], <span class="bi">set</span>()
+    <span class="kw">while</span> stack:
+        <span class="kw">for</span> child <span class="kw">in</span> down[stack.pop()]:
+            <span class="kw">if</span> child <span class="kw">not</span> <span class="kw">in</span> seen:
+                seen.add(child)
+                stack.append(child)
+    <span class="kw">return</span> <span class="bi">sorted</span>(seen)
+
+down = dependents(ml_dag)
+<span class="bi">print</span>(<span class="st">"roots :"</span>, [t <span class="kw">for</span> t, deps <span class="kw">in</span> ml_dag.items() <span class="kw">if</span> <span class="kw">not</span> deps])
+<span class="bi">print</span>(<span class="st">"leaves:"</span>, [t <span class="kw">for</span> t, kids <span class="kw">in</span> down.items() <span class="kw">if</span> <span class="kw">not</span> kids])
+<span class="bi">print</span>(<span class="st">"edges :"</span>, <span class="bi">sum</span>(<span class="bi">len</span>(deps) <span class="kw">for</span> deps <span class="kw">in</span> ml_dag.values()))
+<span class="bi">print</span>(<span class="st">"validate feeds:"</span>, down[<span class="st">"validate"</span>])
+<span class="bi">print</span>(<span class="st">"if train_rf breaks, blocked:"</span>, all_downstream(ml_dag, <span class="st">"train_rf"</span>))</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>The DAG is a description; running it is a separate step.</strong>Because the graph is plain data, the orchestrator can validate it, draw it, and compute what to re-run <em>before</em> executing a single task. That separation is the whole trick.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Why acyclic?</strong>If <code>a</code> waits for <code>b</code> and <code>b</code> waits for <code>a</code>, neither can ever start. A cycle is a deadlock written down, so orchestrators reject cyclic graphs at parse time.</div></div>
+  <div class="lesson-h2">3.3 — Topological Sort (Kahn's Algorithm) and Readable Cycle Errors</div>
+  <p class="lesson-p">To run a DAG you need an order in which every task comes after everything it depends on: a <strong>topological order</strong>. <strong>Kahn's algorithm</strong> gets it in three moves: count each task's unmet dependencies (its <em>indegree</em>); start with every task at zero; repeatedly take one, emit it, and decrement its children — any child that reaches zero joins the ready set. Two production details matter. First, <strong>tie-breaking</strong>: with several tasks ready, pick deterministically (here alphabetically, via a heap), or your logs and tests change from run to run. Second, <strong>cycle detection comes free</strong>: if the loop ends with tasks never emitted, they are stuck in a cycle or waiting behind one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Kahn's algorithm with a cycle error a human can act on</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> heapq
+
+<span class="kw">def</span> <span class="fn">topo_order</span>(dag):
+    indegree = {t: <span class="bi">len</span>(deps) <span class="kw">for</span> t, deps <span class="kw">in</span> dag.items()}
+    children = {t: [] <span class="kw">for</span> t <span class="kw">in</span> dag}
+    <span class="kw">for</span> t, deps <span class="kw">in</span> dag.items():
+        <span class="kw">for</span> d <span class="kw">in</span> deps:
+            children[d].append(t)
+    ready = [t <span class="kw">for</span> t, n <span class="kw">in</span> indegree.items() <span class="kw">if</span> n == <span class="nm">0</span>]
+    heapq.heapify(ready)                      <span class="cm"># alphabetical tie-break -&gt; same order every run</span>
+    order = []
+    <span class="kw">while</span> ready:
+        t = heapq.heappop(ready)
+        order.append(t)
+        <span class="kw">for</span> c <span class="kw">in</span> children[t]:
+            indegree[c] -= <span class="nm">1</span>
+            <span class="kw">if</span> indegree[c] == <span class="nm">0</span>:
+                heapq.heappush(ready, c)
+    <span class="kw">if</span> <span class="bi">len</span>(order) != <span class="bi">len</span>(dag):
+        blocked = <span class="bi">sorted</span>(<span class="bi">set</span>(dag) - <span class="bi">set</span>(order))
+        <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">f"cycle detected; blocked tasks: {blocked}"</span>)
+    <span class="kw">return</span> order
+
+<span class="kw">def</span> <span class="fn">find_cycle</span>(dag):
+    color, stack = {t: <span class="nm">0</span> <span class="kw">for</span> t <span class="kw">in</span> dag}, []    <span class="cm"># 0 = unseen, 1 = on the current path, 2 = done</span>
+    <span class="kw">def</span> <span class="fn">visit</span>(t):
+        color[t] = <span class="nm">1</span>
+        stack.append(t)
+        <span class="kw">for</span> d <span class="kw">in</span> <span class="bi">sorted</span>(dag[t]):
+            <span class="kw">if</span> color[d] == <span class="nm">1</span>:
+                <span class="kw">return</span> stack[stack.index(d):] + [d]
+            <span class="kw">if</span> color[d] == <span class="nm">0</span>:
+                found = visit(d)
+                <span class="kw">if</span> found:
+                    <span class="kw">return</span> found
+        color[t] = <span class="nm">2</span>
+        stack.pop()
+    <span class="kw">for</span> t <span class="kw">in</span> <span class="bi">sorted</span>(dag):
+        <span class="kw">if</span> color[t] == <span class="nm">0</span>:
+            found = visit(t)
+            <span class="kw">if</span> found:
+                <span class="kw">return</span> found
+
+ml_dag = {
+    <span class="st">"ingest_events"</span>: [], <span class="st">"ingest_users"</span>: [],
+    <span class="st">"validate"</span>: [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>],
+    <span class="st">"data_docs"</span>: [<span class="st">"validate"</span>], <span class="st">"featurize"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"train_lr"</span>: [<span class="st">"featurize"</span>], <span class="st">"train_rf"</span>: [<span class="st">"featurize"</span>],
+    <span class="st">"evaluate"</span>: [<span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>], <span class="st">"gate"</span>: [<span class="st">"evaluate"</span>], <span class="st">"register"</span>: [<span class="st">"gate"</span>],
+}
+<span class="bi">print</span>(topo_order(ml_dag))
+
+broken = {<span class="st">"a"</span>: [], <span class="st">"b"</span>: [<span class="st">"a"</span>, <span class="st">"d"</span>], <span class="st">"c"</span>: [<span class="st">"b"</span>], <span class="st">"d"</span>: [<span class="st">"c"</span>], <span class="st">"e"</span>: [<span class="st">"c"</span>]}
+<span class="kw">try</span>:
+    topo_order(broken)
+<span class="kw">except</span> <span class="bi">ValueError</span> <span class="kw">as</span> err:
+    <span class="bi">print</span>(err)
+<span class="bi">print</span>(<span class="st">"one cycle ('depends on'):"</span>, <span class="st">" -&gt; "</span>.join(find_cycle(broken)))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The 'blocked' list is bigger than the cycle.</strong>Task <code>e</code> is not part of the cycle — it is merely downstream of it, so it is blocked too. Reporting all four as 'the cycle' sends someone hunting in the wrong place, which is why <code>find_cycle</code> walks the graph again to print an actual loop.</div></div>
+  <div class="lesson-h2">3.4 — Parallel Levels and the Critical Path</div>
+  <p class="lesson-p">A task's <strong>level</strong> is the length of the longest chain of dependencies leading to it (roots are level 0). Everything in one level can run at the same time, given enough workers. But wall-clock time is not the sum of task durations and not the number of levels either: it is the duration of the slowest chain, the <strong>critical path</strong>. That is why "make it faster" has a precise answer. Speeding up <code>train_lr</code> or <code>data_docs</code> buys nothing here, because neither sits on the critical path; shaving minutes off <code>featurize</code> or <code>train_rf</code> shortens every single run.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Levels, sequential time vs. parallel time, and the critical path</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">ml_dag = {
+    <span class="st">"ingest_events"</span>: [], <span class="st">"ingest_users"</span>: [],
+    <span class="st">"validate"</span>: [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>],
+    <span class="st">"data_docs"</span>: [<span class="st">"validate"</span>], <span class="st">"featurize"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"train_lr"</span>: [<span class="st">"featurize"</span>], <span class="st">"train_rf"</span>: [<span class="st">"featurize"</span>],
+    <span class="st">"evaluate"</span>: [<span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>], <span class="st">"gate"</span>: [<span class="st">"evaluate"</span>], <span class="st">"register"</span>: [<span class="st">"gate"</span>],
+}
+minutes = {<span class="st">"ingest_events"</span>: <span class="nm">6</span>, <span class="st">"ingest_users"</span>: <span class="nm">4</span>, <span class="st">"validate"</span>: <span class="nm">3</span>, <span class="st">"data_docs"</span>: <span class="nm">2</span>, <span class="st">"featurize"</span>: <span class="nm">9</span>,
+           <span class="st">"train_lr"</span>: <span class="nm">5</span>, <span class="st">"train_rf"</span>: <span class="nm">14</span>, <span class="st">"evaluate"</span>: <span class="nm">3</span>, <span class="st">"gate"</span>: <span class="nm">1</span>, <span class="st">"register"</span>: <span class="nm">1</span>}
+
+<span class="kw">def</span> <span class="fn">levels</span>(dag):
+    level = {}
+    <span class="kw">def</span> <span class="fn">lv</span>(t):
+        <span class="kw">if</span> t <span class="kw">not</span> <span class="kw">in</span> level:
+            level[t] = <span class="nm">0</span> <span class="kw">if</span> <span class="kw">not</span> dag[t] <span class="kw">else</span> <span class="nm">1</span> + <span class="bi">max</span>(lv(d) <span class="kw">for</span> d <span class="kw">in</span> dag[t])
+        <span class="kw">return</span> level[t]
+    <span class="kw">for</span> t <span class="kw">in</span> dag:
+        lv(t)
+    grouped = {}
+    <span class="kw">for</span> t, l <span class="kw">in</span> level.items():
+        grouped.setdefault(l, []).append(t)
+    <span class="kw">return</span> [<span class="bi">sorted</span>(grouped[l]) <span class="kw">for</span> l <span class="kw">in</span> <span class="bi">sorted</span>(grouped)]
+
+<span class="kw">def</span> <span class="fn">critical_path</span>(dag, minutes):
+    finish, via = {}, {}
+    <span class="kw">def</span> <span class="fn">fin</span>(t):
+        <span class="kw">if</span> t <span class="kw">not</span> <span class="kw">in</span> finish:
+            best = <span class="bi">max</span>(dag[t], key=fin, default=<span class="kw">None</span>)
+            via[t] = best
+            finish[t] = minutes[t] + (fin(best) <span class="kw">if</span> best <span class="kw">else</span> <span class="nm">0</span>)
+        <span class="kw">return</span> finish[t]
+    end = <span class="bi">max</span>(dag, key=fin)
+    path = []
+    <span class="kw">while</span> end:
+        path.append(end)
+        end = via[end]
+    <span class="kw">return</span> finish[path[<span class="nm">0</span>]], path[::-<span class="nm">1</span>]
+
+<span class="kw">for</span> i, group <span class="kw">in</span> <span class="bi">enumerate</span>(levels(ml_dag)):
+    <span class="bi">print</span>(<span class="st">f"level {i}: {group}"</span>)
+total, path = critical_path(ml_dag, minutes)
+<span class="bi">print</span>(<span class="st">f"one at a time : {sum(minutes.values())} min"</span>)
+<span class="bi">print</span>(<span class="st">f"with parallelism: {total} min"</span>)
+<span class="bi">print</span>(<span class="st">"critical path :"</span>, <span class="st">" -&gt; "</span>.join(path))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The interview question hiding here:</strong><em>'Our nightly pipeline takes 37 minutes. Where do you look first?'</em> A strong answer is 'find the critical path, then optimise or split the slowest task on it' — not 'add more workers', which does nothing once every level already has enough.</div></div>
+  <div class="lesson-h2">3.5 — Failure Propagation: Skip Downstream, Keep Independent Branches</div>
+  <p class="lesson-p">When a task fails after its retries, what should happen to the rest of the run? The standard rule: <strong>a task runs only if every upstream task succeeded</strong>. If any upstream task failed or was itself skipped, the task is marked <strong>skipped</strong> (Airflow calls it <code>upstream_failed</code>) and never starts. Branches that do not depend on the failed task carry on. You end up with the most possible progress and a single red root cause instead of ten confusing errors. Orchestrators let you override this per task — Airflow's <strong>trigger rules</strong> (<code>all_done</code> for cleanup, <code>one_failed</code> for alerting) — but the default is the one to reason from.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A run where train_rf runs out of memory</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> heapq
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+ml_dag = {
+    <span class="st">"ingest_events"</span>: [], <span class="st">"ingest_users"</span>: [],
+    <span class="st">"validate"</span>: [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>],
+    <span class="st">"data_docs"</span>: [<span class="st">"validate"</span>], <span class="st">"featurize"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"train_lr"</span>: [<span class="st">"featurize"</span>], <span class="st">"train_rf"</span>: [<span class="st">"featurize"</span>],
+    <span class="st">"evaluate"</span>: [<span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>], <span class="st">"gate"</span>: [<span class="st">"evaluate"</span>], <span class="st">"register"</span>: [<span class="st">"gate"</span>],
+}
+order = [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>, <span class="st">"validate"</span>, <span class="st">"data_docs"</span>, <span class="st">"featurize"</span>,
+         <span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>, <span class="st">"evaluate"</span>, <span class="st">"gate"</span>, <span class="st">"register"</span>]
+
+<span class="kw">def</span> <span class="fn">run_dag</span>(dag, order, actions):
+    status = {}
+    <span class="kw">for</span> t <span class="kw">in</span> order:
+        <span class="kw">if</span> <span class="bi">any</span>(status[d] != <span class="st">"success"</span> <span class="kw">for</span> d <span class="kw">in</span> dag[t]):
+            status[t] = <span class="st">"skipped"</span>                     <span class="cm"># upstream failed (Airflow: upstream_failed)</span>
+            <span class="kw">continue</span>
+        <span class="kw">try</span>:
+            actions[t]()
+            status[t] = <span class="st">"success"</span>
+        <span class="kw">except</span> <span class="bi">Exception</span> <span class="kw">as</span> e:
+            status[t] = <span class="st">"failed"</span>
+            <span class="bi">print</span>(<span class="st">f"  ! {t} raised {type(e).__name__}: {e}"</span>)
+    <span class="kw">return</span> status
+
+<span class="kw">def</span> <span class="fn">ok</span>():
+    <span class="kw">pass</span>
+
+<span class="kw">def</span> <span class="fn">out_of_memory</span>():
+    <span class="kw">raise</span> <span class="bi">MemoryError</span>(<span class="st">"OOM on a 16 GB worker"</span>)
+
+actions = {t: ok <span class="kw">for</span> t <span class="kw">in</span> ml_dag}
+actions[<span class="st">"train_rf"</span>] = out_of_memory
+
+status = run_dag(ml_dag, order, actions)
+<span class="kw">for</span> t <span class="kw">in</span> order:
+    <span class="bi">print</span>(<span class="st">f"{t:&lt;14}{status[t]}"</span>)
+<span class="bi">print</span>(<span class="bi">dict</span>(<span class="bi">sorted</span>(Counter(status.values()).items())))</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Never run a task on stale or partial upstream output.</strong>A green run that registered a model built from yesterday's features is far worse than a red run that registered nothing. Skipping is the safe failure mode; make it the default and opt out deliberately.</div></div>
+  <div class="lesson-h2">3.6 — Retries: Attempt Counting, Backoff, and What NOT to Retry</div>
+  <p class="lesson-p">Many production failures are weather, not bugs: a connection reset, a 503, a spot instance reclaimed mid-task. A retry policy has four parts — a <strong>maximum number of attempts</strong>, a <strong>delay between attempts</strong> that grows (<strong>exponential backoff</strong>: 2 s, 4 s, 8 s…), a <strong>cap</strong> on that delay, and a rule for <strong>which errors are retryable</strong>. The last one is the one people forget. A <code>ValueError</code> from a missing column will fail identically on every attempt; retrying it burns time, hides the bug, and delays the alert. The code below injects the failures and records the delays it <em>would</em> sleep instead of sleeping, so it runs instantly and deterministically.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Retries with exponential backoff, and one error that must not be retried</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">TransientError</span>(<span class="bi">Exception</span>):
+    <span class="kw">pass</span>
+
+<span class="kw">def</span> <span class="fn">run_with_retries</span>(fn, max_attempts=<span class="nm">3</span>, base_delay=<span class="nm">2</span>, cap=<span class="nm">30</span>):
+    delays = []
+    <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, max_attempts + <span class="nm">1</span>):
+        <span class="kw">try</span>:
+            <span class="kw">return</span> <span class="st">"success"</span>, attempt, delays, fn(attempt)
+        <span class="kw">except</span> TransientError:
+            <span class="kw">if</span> attempt == max_attempts:
+                <span class="kw">return</span> <span class="st">"failed"</span>, attempt, delays, <span class="kw">None</span>
+            delays.append(<span class="bi">min</span>(cap, base_delay * <span class="nm">2</span> ** (attempt - <span class="nm">1</span>)))   <span class="cm"># a real system sleeps here</span>
+        <span class="cm"># any OTHER exception type is a bug, not weather: it propagates immediately</span>
+
+<span class="kw">def</span> <span class="fn">flaky_until_third</span>(attempt):
+    <span class="kw">if</span> attempt &lt; <span class="nm">3</span>:
+        <span class="kw">raise</span> TransientError(<span class="st">"connection reset"</span>)
+    <span class="kw">return</span> <span class="st">"features.parquet"</span>
+
+<span class="kw">def</span> <span class="fn">always_down</span>(attempt):
+    <span class="kw">raise</span> TransientError(<span class="st">"warehouse unreachable"</span>)
+
+<span class="kw">def</span> <span class="fn">schema_bug</span>(attempt):
+    <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">"column 'age' missing"</span>)
+
+<span class="bi">print</span>(run_with_retries(flaky_until_third))
+<span class="bi">print</span>(run_with_retries(always_down))
+<span class="kw">try</span>:
+    run_with_retries(schema_bug)
+<span class="kw">except</span> <span class="bi">ValueError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">"not retried:"</span>, e)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Add jitter in real systems.</strong>If 500 tasks all fail at once and all retry after exactly 2 seconds, they hit the recovering service in one synchronised wave (a thundering herd). Randomising each delay slightly spreads the load. It is left out above only so the output is deterministic.</div></div>
+  <div class="lesson-h2">3.7 — Caching: Skip Steps Whose Inputs Have Not Changed</div>
+  <p class="lesson-p">Re-running a fifteen-minute <code>ingest</code> because you tweaked a training hyper-parameter is pure waste. The fix is a <strong>cache key</strong>: a hash of everything that determines a task's output — its <strong>name</strong>, its <strong>code version</strong>, its <strong>parameters</strong> and the <strong>keys of its upstream tasks</strong>. Same key means same output, so skip it. Including the upstream keys is what makes a change <em>propagate</em>: alter <code>featurize</code> and its key changes, so the keys of everything after it change too, while <code>ingest</code> and <code>validate</code> are untouched. This is the idea behind <code>make</code>, DVC's <code>dvc repro</code>, Kubeflow step caching, Prefect cache policies and Dagster's notion of a stale asset.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">An input-hash cache: change a parameter, watch only the affected tasks re-run</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib, json
+
+ml_dag = {
+    <span class="st">"ingest_events"</span>: [], <span class="st">"ingest_users"</span>: [],
+    <span class="st">"validate"</span>: [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>],
+    <span class="st">"data_docs"</span>: [<span class="st">"validate"</span>], <span class="st">"featurize"</span>: [<span class="st">"validate"</span>],
+    <span class="st">"train_lr"</span>: [<span class="st">"featurize"</span>], <span class="st">"train_rf"</span>: [<span class="st">"featurize"</span>],
+    <span class="st">"evaluate"</span>: [<span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>], <span class="st">"gate"</span>: [<span class="st">"evaluate"</span>], <span class="st">"register"</span>: [<span class="st">"gate"</span>],
+}
+order = [<span class="st">"ingest_events"</span>, <span class="st">"ingest_users"</span>, <span class="st">"validate"</span>, <span class="st">"data_docs"</span>, <span class="st">"featurize"</span>,
+         <span class="st">"train_lr"</span>, <span class="st">"train_rf"</span>, <span class="st">"evaluate"</span>, <span class="st">"gate"</span>, <span class="st">"register"</span>]
+
+<span class="kw">def</span> <span class="fn">task_key</span>(name, version, params, upstream_keys):
+    payload = json.dumps([name, version, params, <span class="bi">sorted</span>(upstream_keys)], sort_keys=<span class="kw">True</span>)
+    <span class="kw">return</span> hashlib.sha256(payload.encode()).hexdigest()
+
+<span class="kw">def</span> <span class="fn">run_pipeline</span>(dag, order, versions, params, cache):
+    keys, report = {}, {}
+    <span class="kw">for</span> t <span class="kw">in</span> order:
+        keys[t] = task_key(t, versions[t], params.get(t, {}), [keys[d] <span class="kw">for</span> d <span class="kw">in</span> dag[t]])
+        <span class="kw">if</span> keys[t] <span class="kw">in</span> cache:
+            report[t] = <span class="st">"cached"</span>
+        <span class="kw">else</span>:
+            cache.add(keys[t])
+            report[t] = <span class="st">"ran"</span>
+    <span class="kw">return</span> report
+
+versions = {t: <span class="st">"v1"</span> <span class="kw">for</span> t <span class="kw">in</span> ml_dag}
+params = {<span class="st">"featurize"</span>: {<span class="st">"window"</span>: <span class="nm">7</span>}, <span class="st">"train_rf"</span>: {<span class="st">"trees"</span>: <span class="nm">200</span>}, <span class="st">"gate"</span>: {<span class="st">"min_auc"</span>: <span class="nm">0.75</span>}}
+cache = <span class="bi">set</span>()
+
+<span class="kw">def</span> <span class="fn">show</span>(label):
+    report = run_pipeline(ml_dag, order, versions, params, cache)
+    ran = [t <span class="kw">for</span> t <span class="kw">in</span> order <span class="kw">if</span> report[t] == <span class="st">"ran"</span>]
+    <span class="bi">print</span>(<span class="st">f"{label}: ran={len(ran)} cached={len(order) - len(ran)}  {ran}"</span>)
+
+show(<span class="st">"run 1, cold cache     "</span>)
+show(<span class="st">"run 2, nothing changed"</span>)
+params[<span class="st">"featurize"</span>] = {<span class="st">"window"</span>: <span class="nm">14</span>}
+show(<span class="st">"run 3, window 7 -&gt; 14 "</span>)
+params[<span class="st">"gate"</span>] = {<span class="st">"min_auc"</span>: <span class="nm">0.70</span>}
+show(<span class="st">"run 4, gate threshold "</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Three ways a cache silently lies to you.</strong><strong>1.</strong> Leaving the code version out of the key, so an edited task still serves its old result. <strong>2.</strong> Serialising params without <code>sort_keys=True</code>, so equal dicts hash differently. <strong>3.</strong> Putting a timestamp or random seed into the params, so the key is new every time and nothing is ever cached. Failed tasks must never be cached at all.</div></div>
+  <div class="lesson-h2">3.8 — Idempotency: Safe to Run Twice</div>
+  <p class="lesson-p">An orchestrator gives you <strong>at-least-once</strong> execution: after a timeout it cannot know whether the task finished, so it runs it again. Add manual "clear and re-run", and backfills, and every task will be executed more than once in its life. A task is <strong>idempotent</strong> when running it N times leaves the world in the same state as running it once. The classic bug is a load that <strong>appends</strong>: the write succeeds, the acknowledgement is lost, the retry appends again, and the table now holds duplicates that quietly corrupt every metric downstream.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Append vs. overwrite-the-partition, after a retry</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">table = {}   <span class="cm"># partition -&gt; rows, standing in for a warehouse table</span>
+
+<span class="kw">def</span> <span class="fn">load_append</span>(partition, rows):
+    table.setdefault(partition, []).extend(rows)
+
+<span class="kw">def</span> <span class="fn">load_overwrite</span>(partition, rows):
+    table[partition] = <span class="bi">list</span>(rows)          <span class="cm"># replace the whole partition: same end state every time</span>
+
+rows = [(<span class="st">"u1"</span>, <span class="nm">3</span>), (<span class="st">"u2"</span>, <span class="nm">5</span>)]
+
+<span class="cm"># The load succeeded but the acknowledgement was lost, so the orchestrator retries it once</span>
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2</span>):
+    load_append(<span class="st">"2026-03-01"</span>, rows)
+    load_overwrite(<span class="st">"2026-03-02"</span>, rows)
+
+<span class="bi">print</span>(<span class="st">"append    -&gt;"</span>, <span class="bi">len</span>(table[<span class="st">"2026-03-01"</span>]), <span class="st">"rows"</span>, table[<span class="st">"2026-03-01"</span>])
+<span class="bi">print</span>(<span class="st">"overwrite -&gt;"</span>, <span class="bi">len</span>(table[<span class="st">"2026-03-02"</span>]), <span class="st">"rows"</span>, table[<span class="st">"2026-03-02"</span>])</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Recipes that make a task idempotent:</strong><strong>Overwrite the partition</strong> (<code>INSERT OVERWRITE</code>, or delete-then-insert in one transaction). <strong>Upsert</strong> on a natural key (<code>MERGE</code>). <strong>Write to a temporary path, then atomically rename</strong>. Derive output paths from the <strong>logical date</strong>, never from <code>now()</code>. For side effects you cannot undo (an email, a payment call), send an <strong>idempotency key</strong> so the receiver can drop duplicates.</div></div>
+  <div class="lesson-h2">3.9 — Logical Dates, Backfills and Catchup</div>
+  <p class="lesson-p">Batch pipelines process <strong>partitions</strong> — usually one per day. A daily run is identified by its <strong>logical date</strong> (Airflow: <code>ds</code>, or <code>logical_date</code> since 2.2): the start of the <strong>data interval</strong> it processes. And it fires <em>after</em> that interval ends. So the run for Monday's data starts on Tuesday; logical date is Monday, run date is Tuesday. Mixing the two up is the most common off-by-one bug in data engineering, and the cure is one rule: <strong>a task must derive its partition from the logical date the orchestrator hands it, never from <code>datetime.now()</code></strong>. Get that right and two more ideas fall out. A <strong>backfill</strong> deliberately re-runs a range of past partitions (after a bug fix, or a new column). <strong>Catchup</strong> is the scheduler doing it automatically — creating a run for every interval missed since the DAG was last active.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Logical date vs. run date, and how catchup floods a scheduler</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> datetime <span class="kw">import</span> date, timedelta
+
+<span class="kw">def</span> <span class="fn">run_date</span>(logical_date):
+    <span class="kw">return</span> logical_date + timedelta(days=<span class="nm">1</span>)      <span class="cm"># a daily run fires AFTER its data interval has ended</span>
+
+<span class="kw">def</span> <span class="fn">partitions</span>(start, end):
+    d, out = start, []
+    <span class="kw">while</span> d &lt;= end:
+        out.append(d)
+        d += timedelta(days=<span class="nm">1</span>)
+    <span class="kw">return</span> out
+
+<span class="kw">def</span> <span class="fn">waves</span>(items, size):
+    <span class="kw">return</span> [items[i:i + size] <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">0</span>, <span class="bi">len</span>(items), size)]
+
+paused_since, unpaused_on = date(<span class="nm">2026</span>, <span class="nm">3</span>, <span class="nm">1</span>), date(<span class="nm">2026</span>, <span class="nm">3</span>, <span class="nm">31</span>)
+missed = partitions(paused_since, unpaused_on - timedelta(days=<span class="nm">1</span>))
+
+<span class="bi">print</span>(<span class="st">f"logical date {missed[0]} runs on {run_date(missed[0])}"</span>)
+<span class="bi">print</span>(<span class="st">"catchup=True queues"</span>, <span class="bi">len</span>(missed), <span class="st">"runs at once"</span>)
+batches = waves(missed, <span class="nm">5</span>)
+<span class="bi">print</span>(<span class="st">f"max_active_runs=5 -&gt; {len(batches)} waves; first = {[d.isoformat() for d in batches[0]]}"</span>)
+<span class="bi">print</span>(<span class="st">f"catchup=False -&gt; 1 run, for {missed[-1]} only"</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Catchup can take a system down.</strong>Unpause a daily DAG after a month and <code>catchup=True</code> queues thirty runs at once, all hammering the same source database and the same worker pool. Cap it with <code>max_active_runs</code> (work through the backlog in waves), or set <code>catchup=False</code> when old partitions are not needed. Backfills of non-idempotent tasks are worse still: every backfilled day duplicates data.</div></div>
+  <div class="lesson-h2">3.10 — How Airflow, Prefect, Dagster and Kubeflow Map Onto This</div>
+  <p class="lesson-p">You have now built the core of every orchestrator. What the real tools add is <strong>durability and scale</strong>: state in a database instead of a dict, distributed workers, a UI, alerting, secrets, and integrations. The mapping is close to one-to-one:</p>
+  <table class="lesson-table">
+    <tr><th>This chapter</th><th>Airflow</th><th>Prefect</th></tr>
+    <tr><td>DAG dict</td><td>@dag / a &gt;&gt; b</td><td>@flow calling @task</td></tr>
+    <tr><td>topo_order()</td><td>the scheduler</td><td>the flow engine</td></tr>
+    <tr><td>success / failed / skipped</td><td>success / failed / upstream_failed</td><td>Completed / Failed / NotReady</td></tr>
+    <tr><td>run_with_retries()</td><td>retries, retry_delay</td><td>retries, retry_delay_seconds</td></tr>
+    <tr><td>input-hash cache</td><td>(external: DVC, dbt state)</td><td>cache_policy=INPUTS</td></tr>
+    <tr><td>overwrite a partition</td><td>ds / logical_date templating</td><td>flow parameter (a date)</td></tr>
+    <tr><td>waves of runs</td><td>max_active_runs, pools</td><td>concurrency limits</td></tr>
+  </table>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference only — the three blocks below have no Run button.</strong>Airflow, Prefect and DVC need their own servers, packages and files, which a browser sandbox does not have. Read them as the real-world spelling of what you just built.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — Airflow (TaskFlow API)</span></div>
+    <div class="cb-code">from datetime import datetime, timedelta
+from airflow.decorators import dag, task
+from airflow.utils.trigger_rule import TriggerRule
+
+@dag(
+    schedule="@daily",
+    start_date=datetime(2026, 1, 1),
+    catchup=False,                     # do not flood the scheduler with every missed day
+    max_active_runs=1,
+    default_args={
+        "retries": 3,
+        "retry_delay": timedelta(minutes=2),
+        "retry_exponential_backoff": True,
+        "max_retry_delay": timedelta(minutes=30),
+    },
+)
+def churn_pipeline():
+    @task
+    def ingest(ds=None):               # ds = the LOGICAL date, e.g. "2026-03-01"
+        return f"s3://acme/raw/dt={ds}/"
+
+    @task
+    def validate(path: str):
+        ...                            # raise on bad data -&gt; task fails, downstream is skipped
+        return path
+
+    @task
+    def train(path: str):
+        ...
+
+    @task(trigger_rule=TriggerRule.ALL_DONE)   # runs even if upstream failed
+    def notify():
+        ...
+
+    train(validate(ingest())) &gt;&gt; notify()
+
+churn_pipeline()</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — Prefect 3</span></div>
+    <div class="cb-code">from datetime import timedelta
+from prefect import flow, task
+from prefect.cache_policies import INPUTS
+
+@task(retries=3, retry_delay_seconds=[2, 4, 8],
+      cache_policy=INPUTS, cache_expiration=timedelta(days=1))
+def featurize(path: str, window: int) -&gt; str:
+    ...
+
+@flow(log_prints=True)
+def churn_pipeline(day: str):          # the partition arrives as a parameter, not from now()
+    path = ingest(day)                 # ingest / train / evaluate / register are tasks too
+    features = featurize(path, window=14)
+    model = train(features)
+    if evaluate(model) &gt;= 0.75:        # the quality gate is just an if
+        register(model)</div>
+  </div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — DVC (dvc.yaml): a file-based DAG with hash caching</span></div>
+    <div class="cb-code">stages:
+  featurize:
+    cmd: python featurize.py
+    deps:
+      - featurize.py
+      - data/validated.parquet
+    params:
+      - featurize.window          # a changed value here invalidates this stage and everything after it
+    outs:
+      - data/features.parquet</div>
+  </div>
+  <p class="lesson-p">The remaining two differ in <em>philosophy</em> rather than mechanics. <strong>Dagster</strong> is asset-centric: you declare the data assets (a features table, a model) and their dependencies, and it derives what is stale and needs recomputing — the caching idea of 3.7 promoted to the core model. <strong>Kubeflow Pipelines</strong> (and Argo Workflows) run each step as a container on Kubernetes with per-step caching and GPU scheduling, at the cost of operating Kubernetes.</p>
+  <div class="lesson-h2">Chapter Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div>A pipeline is a <strong>DAG stored as data</strong> — task → dependencies — so it can be validated, drawn and scheduled before anything runs. Cycles are deadlocks and are rejected at parse time.</div></li>
+    <li data-n="2"><div><strong>Kahn's algorithm</strong> gives a deterministic run order and detects cycles for free. The 'blocked tasks' it reports include innocents downstream of the cycle.</div></li>
+    <li data-n="3"><div>Wall-clock time is set by the <strong>critical path</strong>, not the task count. Optimise tasks on it; ignore the rest.</div></li>
+    <li data-n="4"><div><strong>Failure propagation</strong>: run a task only if all upstream succeeded, otherwise skip it; independent branches continue. Never run on stale or partial inputs.</div></li>
+    <li data-n="5"><div><strong>Retry transient errors</strong> with capped exponential backoff (plus jitter); never retry deterministic bugs. Retries only make sense for <strong>idempotent</strong> tasks.</div></li>
+    <li data-n="6"><div>A <strong>cache key</strong> (name + code version + params + upstream keys) lets unchanged work be skipped; failures are never cached.</div></li>
+    <li data-n="7"><div>Derive partitions from the <strong>logical date</strong>, not <code>now()</code>; a run fires after its interval ends. Backfill deliberately, and bound <strong>catchup</strong> with <code>max_active_runs</code>.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely. Each one is a piece of the orchestrator you assemble in the capstone.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Topological Order + a Cycle Report</div>
+        <div class="ex-desc">Implement Kahn's algorithm with alphabetical tie-breaking, and report the blocked tasks when the graph has a cycle.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement topo_order(dag) using Kahn's algorithm (as in 3.3):
+  - repeatedly emit the alphabetically-first task whose dependencies are all done (a heap works well)
+  - if some tasks are never emitted, raise ValueError with the SORTED list of those blocked tasks as its
+    single argument
+Then, for the given `good` and `bad` DAGs, print exactly:
+  f"Order: {topo_order(good)}"
+  f"Cycle detected, blocked tasks: {blocked}"     (blocked = the list from the ValueError, for `bad`)
+(Correct: Order: ['extract', 'clean', 'features', 'labels', 'train', 'report'] / Cycle detected, blocked tasks: ['b', 'c', 'd', 'e'])</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">import heapq
+
+good = {"extract": [], "clean": ["extract"], "features": ["clean"],
+        "labels": ["clean"], "train": ["features", "labels"], "report": ["train"]}
+bad = {"a": [], "b": ["a", "d"], "c": ["b"], "d": ["c"], "e": ["c"]}
+
+def topo_order(dag):
+    # TODO: indegree per task, children lists, a heap of ready tasks
+    # TODO: pop -&gt; append to order -&gt; decrement children -&gt; push any that reach 0
+    # TODO: if len(order) != len(dag): raise ValueError(sorted(set(dag) - set(order)))
+    ...
+
+# TODO: print the two required lines (catch the ValueError for `bad`)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Parallel Levels and the Critical Path</div>
+        <div class="ex-desc">Group tasks into parallel levels, then compare one-at-a-time time with critical-path time.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+For the given dag and per-task minutes:
+  - compute the levels (level 0 = no dependencies; else 1 + the highest level among dependencies)
+    and group them into a list of alphabetically-sorted lists, ordered by level
+  - sequential time = sum of all minutes
+  - critical path time = the finish time of the slowest chain, where
+    finish(t) = minutes[t] + max(finish of its dependencies, or 0 for a root)
+Print exactly:
+  f"Levels: {levels}"
+  f"Sequential: {sequential} min"
+  f"Parallel (critical path): {critical} min"
+  f"Speedup: {sequential / critical:.2f}x"
+(Correct: Levels: [['ingest_a', 'ingest_b'], ['join'], ['feat_num', 'feat_txt'], ['train']] / Sequential: 53 min / Parallel (critical path): 42 min / Speedup: 1.26x)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">dag = {"ingest_a": [], "ingest_b": [], "join": ["ingest_a", "ingest_b"],
+       "feat_num": ["join"], "feat_txt": ["join"], "train": ["feat_num", "feat_txt"]}
+minutes = {"ingest_a": 5, "ingest_b": 8, "join": 4, "feat_num": 6, "feat_txt": 10, "train": 20}
+
+# TODO: level[t] with a small recursive helper (memoise in a dict)
+# TODO: group tasks by level -&gt; list of sorted lists
+# TODO: finish[t] with another memoised recursive helper; critical = max(finish.values())
+# TODO: print the four required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Failure Propagation Report</div>
+        <div class="ex-desc">Run a DAG where one task fails and report which downstream tasks were skipped.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write run_dag(dag, order, failing) that walks `order` and assigns each task a status:
+  - "skipped" if ANY dependency's status is not "success"
+  - "failed"  if the task is in the `failing` set (and was not skipped)
+  - "success" otherwise
+Print one line per task in `order`, exactly f"{task}: {status}", then:
+  f"Summary: success={n} failed={n} skipped={n}"
+(Correct: featurize: failed / train: skipped / evaluate: skipped / docs: success / alert: success, and Summary: success=4 failed=1 skipped=2)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">dag = {"ingest": [], "validate": ["ingest"], "featurize": ["validate"],
+       "train": ["featurize"], "evaluate": ["train"], "docs": ["validate"], "alert": ["ingest"]}
+order = ["ingest", "validate", "featurize", "train", "evaluate", "docs", "alert"]
+failing = {"featurize"}
+
+def run_dag(dag, order, failing):
+    status = {}
+    # TODO: for each task in order: skipped / failed / success, as described in the task
+    return status
+
+# TODO: call it, print one line per task, then the Summary line
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">An Input-Hash Cache That Propagates Changes</div>
+        <div class="ex-desc">Skip unchanged steps using a cache key that includes the previous step's key.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write run_pipeline(steps, cache) for a linear pipeline. For each (name, version, params) step, in order:
+  - key = SHA-256 hex digest of json.dumps([name, version, params, prev_key], sort_keys=True)
+    (prev_key is "" for the first step, otherwise the previous step's key)
+  - if the key is already in `cache` the step is cached; otherwise add it and count it as "ran"
+  - return the list of step names that ran
+Then run it three times: unchanged steps twice, and a third time after changing featurize's params
+to {"window": 14}. Print exactly:
+  f"Run 1: ran={a} cached={b}"
+  f"Run 2: ran={a} cached={b}"
+  f"Run 3: ran={a} cached={b} (ran: {names})"
+(Correct: Run 1: ran=4 cached=0 / Run 2: ran=0 cached=4 / Run 3: ran=2 cached=2 (ran: ['featurize', 'train']))</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">import hashlib, json
+
+steps = [
+    ("ingest",    "v1", {"source": "s3://acme/raw"}),
+    ("validate",  "v1", {"min_rows": 100}),
+    ("featurize", "v1", {"window": 7}),
+    ("train",     "v1", {"lr": 0.1}),
+]
+cache = set()
+
+def run_pipeline(steps, cache):
+    ran, prev_key = [], ""
+    # TODO: build each step's key (include prev_key!), check/add it in `cache`, remember prev_key
+    return ran
+
+# TODO: run 1, run 2, then steps[2] = ("featurize", "v1", {"window": 14}) and run 3; print the three lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">A Backfill Planner</div>
+        <div class="ex-desc">Generate daily partitions for a date range, drop the ones already done, and plan waves.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given start, end (inclusive), the set already_done and max_active_runs:
+  - partitions = every date from start to end inclusive
+  - todo = the partitions not in already_done (keep the order)
+  - waves = todo split into consecutive chunks of at most max_active_runs
+Print exactly (dates as ISO strings, i.e. p.isoformat()):
+  f"Partitions: {[...]}"
+  f"To run: {[...]}"
+  f"Waves: {[[...], ...]}"
+  f"Logical {partitions[0]} fires on {run_date}"     (run_date = the logical date + 1 day)
+(Correct: 5 partitions 2026-01-30..2026-02-03; To run skips 2026-01-31; Waves: [['2026-01-30', '2026-02-01'], ['2026-02-02', '2026-02-03']]; Logical 2026-01-30 fires on 2026-01-31)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">from datetime import date, timedelta
+
+start, end = date(2026, 1, 30), date(2026, 2, 3)
+already_done = {date(2026, 1, 31)}
+max_active_runs = 2
+
+# TODO: partitions = [...]  (loop with timedelta(days=1))
+# TODO: todo = [...]        (skip already_done)
+# TODO: waves = [todo[i:i + max_active_runs] for i in range(0, len(todo), max_active_runs)]
+# TODO: print the four required lines
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>MiniOrchestrator</span></h2>
+    <p>Assemble the whole chapter into one object that could sit at the heart of a tiny Airflow: a topological run order, retries with backoff for transient errors only, input-hash caching, skip-on-upstream-failure, and a quality gate that refuses to register a weak model. Three runs show the behaviour that matters in production — what is retried, what is cached, and what happens to a failed task on the next run.</p>
+    <div class="project-tags">
+      <span class="ptag">Kahn ordering</span>
+      <span class="ptag">retries + backoff</span>
+      <span class="ptag">input-hash cache</span>
+      <span class="ptag">failure propagation</span>
+      <span class="ptag">quality gate</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>The ten tasks and their functions are given (ingest → validate → featurize → train two models → evaluate → gate → register). <code>ingest_users</code> fails once with a <code>TransientError</code>; <code>train_rf</code> fails twice; the gate needs AUC ≥ 0.75 but the best model scores 0.74</li>
+      <li><code>order()</code>: Kahn's algorithm, alphabetical tie-break, <code>ValueError</code> on a cycle</li>
+      <li><code>key()</code>: SHA-256 over name, version, params and the sorted upstream keys, so a change propagates downstream</li>
+      <li><code>run(label)</code>: skip a task when any dependency did not succeed or come from cache; serve cache hits; otherwise attempt up to <code>max_attempts</code>, retrying only <code>TransientError</code> (record each backoff delay, do not sleep) and failing <code>GateFailed</code> immediately. Never cache a failure</li>
+      <li>Print each line as <code>name: status (attempts=n)</code> and a summary line <code>Run 1 summary: success=.. cached=.. failed=.. skipped=..</code></li>
+      <li>Run three times: cold; unchanged; then with the gate's <code>min_auc</code> lowered to 0.70</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ MiniOrchestrator — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor">import heapq, hashlib, json
+
+class TransientError(Exception):
+    pass
+
+class GateFailed(Exception):
+    pass
+
+def fn_ingest_events(inp, attempt, params):
+    return {"rows": 12000}
+
+def fn_ingest_users(inp, attempt, params):
+    if attempt &lt; 2:
+        raise TransientError("warehouse timeout")
+    return {"rows": 3000}
+
+def fn_validate(inp, attempt, params):
+    assert inp["ingest_events"]["rows"] &gt; 1000
+    return {"rows": inp["ingest_events"]["rows"], "users": inp["ingest_users"]["rows"]}
+
+def fn_data_docs(inp, attempt, params):
+    return "docs built"
+
+def fn_featurize(inp, attempt, params):
+    return {"features": 42, "rows": inp["validate"]["rows"]}
+
+def fn_train_lr(inp, attempt, params):
+    return {"model": "lr", "auc": 0.71}
+
+def fn_train_rf(inp, attempt, params):
+    if attempt &lt; 3:
+        raise TransientError("spot instance reclaimed")
+    return {"model": "rf", "auc": 0.74}
+
+def fn_evaluate(inp, attempt, params):
+    return max((inp["train_lr"], inp["train_rf"]), key=lambda m: m["auc"])
+
+def fn_gate(inp, attempt, params):
+    best = inp["evaluate"]
+    if best["auc"] &lt; params["min_auc"]:
+        raise GateFailed(f"auc {best['auc']} &lt; {params['min_auc']}")
+    return {"approved": best["model"]}
+
+def fn_register(inp, attempt, params):
+    return {"registered": inp["gate"]["approved"], "stage": "staging"}
+
+def task(deps, fn, params=None):
+    return {"deps": deps, "version": "v1", "params": params or {}, "fn": fn}
+
+TASKS = {
+    "ingest_events": task([], fn_ingest_events),
+    "ingest_users":  task([], fn_ingest_users),
+    "validate":  task(["ingest_events", "ingest_users"], fn_validate),
+    "data_docs": task(["validate"], fn_data_docs),
+    "featurize": task(["validate"], fn_featurize, {"window": 7}),
+    "train_lr":  task(["featurize"], fn_train_lr),
+    "train_rf":  task(["featurize"], fn_train_rf),
+    "evaluate":  task(["train_lr", "train_rf"], fn_evaluate),
+    "gate":      task(["evaluate"], fn_gate, {"min_auc": 0.75}),
+    "register":  task(["gate"], fn_register),
+}
+
+class MiniOrchestrator:
+    def __init__(self, tasks, max_attempts=3, base_delay=2):
+        self.tasks = tasks
+        self.max_attempts = max_attempts
+        self.base_delay = base_delay
+        self.cache = {}          # cache key -&gt; result; must survive across run() calls
+        self.delays = []         # backoff delays we WOULD have slept
+
+    def order(self):
+        # TODO 1: Kahn's algorithm with a heap (alphabetical tie-break); raise ValueError on a cycle
+        ...
+
+    def key(self, name, upstream_keys):
+        # TODO 2: sha256 of json.dumps([name, version, params, sorted(upstream_keys)], sort_keys=True)
+        ...
+
+    def run(self, label):
+        # TODO 3: for each task in self.order():
+        #   - skipped (attempts=0) if any dependency is not success/cached
+        #   - else compute its key; if the key is in self.cache -&gt; cached (attempts=0)
+        #   - else try up to max_attempts: call t["fn"](inputs, attempt, t["params"]);
+        #       TransientError -&gt; record base_delay * 2**(attempt-1) in self.delays and retry
+        #       GateFailed     -&gt; failed immediately, no retry
+        #       success        -&gt; store in self.cache (failures are NEVER cached)
+        #   - print f"{name}: {status} (attempts={n})"
+        # TODO 4: print f"{label} summary: success=.. cached=.. failed=.. skipped=.."
+        ...
+
+# TODO 5: orch = MiniOrchestrator(TASKS)
+#   orch.run("Run 1"); print("Backoff delays so far (not slept):", orch.delays)
+#   orch.run("Run 2")
+#   TASKS["gate"]["params"] = {"min_auc": 0.70}   # lower the quality bar
+#   orch.run("Run 3")
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🔁</span>ingest_users: success (attempts=2) and train_rf: success (attempts=3) — transient failures retried</div>
+    <div class="check-item"><span class="check-icon">⏱️</span>Backoff delays so far (not slept): [2, 2, 4]</div>
+    <div class="check-item"><span class="check-icon">🚧</span>gate: failed (attempts=1) — a gate failure is never retried — and register: skipped (attempts=0)</div>
+    <div class="check-item"><span class="check-icon">📊</span>Run 1 summary: success=8 cached=0 failed=1 skipped=1</div>
+    <div class="check-item"><span class="check-icon">⚡</span>Run 2 summary: success=0 cached=8 failed=1 skipped=1 — eight tasks served from cache, the failed gate re-executed</div>
+    <div class="check-item"><span class="check-icon">✅</span>Run 3 summary: success=2 cached=8 failed=0 skipped=0 — only gate and register ran after the threshold changed</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 MLOps Practice 3 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A teammate makes <code>evaluate</code> wait for <code>gate</code>, and <code>gate</code> wait for <code>evaluate</code>, "to keep them in sync". What happens in an orchestrator?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Both run in parallel and synchronise on their own</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Neither can ever start, because each waits for the other; there is no valid execution order, so a scheduler rejects the DAG (cycle detection)</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The scheduler runs them alphabetically and ignores the dependency</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It works, it just takes twice as long</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text"><code>train_rf</code> fails after all its retries. <code>train_lr</code> already succeeded, and <code>data_docs</code> (which only depends on <code>validate</code>) has not run yet. What should a standard orchestrator do by default?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Cancel the whole run immediately, including <code>data_docs</code></button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Keep retrying <code>train_rf</code> until it succeeds</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Run the independent branch (<code>data_docs</code>), mark <code>train_rf</code> failed, and mark everything downstream of it (<code>evaluate</code>, <code>gate</code>, <code>register</code>) skipped</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Run <code>evaluate</code> anyway with whichever model exists</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A nightly load task <em>appends</em> 10,000 rows, then its worker is killed before reporting success, so the orchestrator retries it. What is in the table afterwards, and what is the standard fix?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> 20,000 rows (duplicates). Make the load idempotent: overwrite the date partition, or upsert on a key, so a re-run gives the same end state</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> 10,000 rows, because orchestrators de-duplicate automatically</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> 0 rows, because a failed task always rolls its writes back</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> 10,000 rows, but only if you set <code>retries=0</code></button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that computes a task's cache key from its <code>name</code>, <code>version</code> and <code>params</code> (a dict), assigned to a variable named <code>key</code>: the SHA-256 hex digest of the JSON-serialised list, with keys sorted so <code>{"a":1,"b":2}</code> and <code>{"b":2,"a":1}</code> hash identically. Assume <code>hashlib</code> and <code>json</code> are already imported.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="key = ..." rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">A daily DAG with <code>catchup=True</code> is paused for 30 days and then unpaused. What happens, and what is a sensible guard?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Nothing special: the scheduler only ever runs the most recent day</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The DAG crashes because too much time has passed</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> The scheduler silently skips the missed days</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It creates a run for every missed daily interval (about 30), all wanting to start at once; cap them with <code>max_active_runs</code> (or use <code>catchup=False</code> if old partitions are not needed) so the source and workers are not flooded</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">📈</div>
+    <div class="ncc-info">
+      <h3>MP 4: Monitoring &amp; Drift</h3>
+      <p>Next up: latency percentiles and SLOs, the Population Stability Index, the KS test, prediction drift, delayed labels and canary comparisons — how you know a deployed model has quietly gone bad.</p>
+    </div>
+    <a class="ncc-btn" href="mp04-monitoring-and-drift.html">Start MP 4 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Pipelines &amp; Orchestration — Interview Prep</h2>
+    <p>10 questions that ML platform, MLOps and data engineering interviewers use to check whether you have actually operated scheduled pipelines, not just drawn a DAG. Click a question to reveal what a strong answer sounds like, including the pitfall to avoid.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does it mean for a pipeline task to be idempotent, and how do you make one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Running it once or ten times with the same inputs leaves the system in the same end state. That matters because orchestrators give <strong>at-least-once</strong> execution: after a timeout they cannot know whether the task finished, so they run it again — and retries, manual clears and backfills do the same. To achieve it: <strong>overwrite the partition</strong> (<code>INSERT OVERWRITE</code>, or delete-then-insert in one transaction) instead of appending; <strong>upsert</strong> on a natural key (<code>MERGE</code>); write to a temporary location and <strong>atomically rename</strong>; derive output paths from the <strong>logical date</strong>; and attach an <strong>idempotency key</strong> to side effects you cannot undo, such as a payment or an email. A classic pitfall is calling <code>datetime.now()</code> inside the task: a re-run on a different day then writes a different partition.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Explain backfill versus catchup, and what can go wrong with each.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A <strong>backfill</strong> is a deliberate re-run of a range of past partitions — after a bug fix, a schema change, or when adding a new feature column. <strong>Catchup</strong> is the scheduler doing this automatically: it creates a run for every interval missed since the DAG's start date or since it was last active. What goes wrong: an unpaused DAG can queue dozens of runs at once and flood the source database or worker pool (bound it with <code>max_active_runs</code>, pools, or <code>catchup=False</code>); non-idempotent tasks duplicate data on every backfilled day; and tasks that read 'the latest snapshot' rather than a point-in-time input produce wrong history, which for ML means silent <strong>label or feature leakage</strong> in retrained models. Good practice: backfill in chunks, dry-run first, and make sure every task derives its inputs from the logical date.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">At-least-once versus exactly-once: which does an orchestrator give you?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>At-least-once</strong>. If a worker dies after doing the work but before reporting, the orchestrator has to assume it failed and run it again. True exactly-once across independent systems is not achievable in general — a call to a third-party API sits outside any transaction you control. What you build is <strong>effectively-once</strong>: at-least-once delivery plus <strong>idempotent writes</strong> (upserts, dedupe keys, transactional commits), so the duplicates are harmless. Streaming systems (Kafka transactions, Flink checkpoints) do offer exactly-once semantics, but only inside their own boundary. The pitfall in an interview is claiming exactly-once without saying where its boundary ends.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Airflow, Prefect, Dagster, Kubeflow: how do you choose?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">There is no universal winner, so answer with trade-offs and the team's context. <strong>Airflow</strong> is the most widely deployed, centred on scheduled, time-partitioned batch DAGs, with a huge provider ecosystem; graph structure is mostly fixed at parse time and it is operationally heavy. <strong>Prefect</strong> is Python-native, with dynamic control flow, easy local development and API or event-triggered runs. <strong>Dagster</strong> is asset-centric — you declare data assets and dependencies, and get lineage, freshness and testing as first-class ideas. <strong>Kubeflow Pipelines</strong> (or Argo) runs each step as a container on Kubernetes, which suits GPU and large ML steps and gives per-step caching, at the cost of owning Kubernetes. Match the choice to what you already run, whether work is batch or event-driven, Kubernetes maturity, and how much lineage matters.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is a sensor, and what are the pitfalls of using one?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A <strong>sensor</strong> is a task whose job is to wait for something external — a file landing in object storage, an upstream partition becoming ready, an API returning 200 — before letting downstream tasks run. The classic pitfall is <strong>poke mode</strong>, where the sensor occupies a worker slot for the whole wait; enough of them starve the pool and unrelated DAGs stop running. Prefer <code>reschedule</code> mode or <strong>deferrable operators</strong> that free the slot while waiting. Always set a <strong>timeout</strong> (and decide whether a timeout fails or soft-fails the run). Better still, prefer data-aware or event-driven triggers (Airflow datasets, Dagster asset sensors) over polling on the clock, and make sure the thing being waited on is parameterised by the logical date.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you handle late-arriving data in a batch pipeline?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">First decide what a partition means: <strong>event time</strong> (when it happened) or <strong>ingestion time</strong> (when it arrived). Then combine a few tools: a <strong>watermark or delay</strong> so a run waits, say, two hours past the interval end; a <strong>lookback window</strong> that idempotently reprocesses the last N partitions on every run; and re-running (clearing) an affected partition when a late batch lands, letting downstream tasks re-trigger. Add a <strong>completeness check</strong> before the gate so you never train or report on a partial day. For ML there is a second flavour: <strong>late labels</strong> — ground truth arrives days after the prediction, so evaluation must be joined point-in-time. The pitfall is silently using partial data, which produces a plausible-looking but biased model.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why not just use cron and shell scripts?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Cron only answers 'when'. It has no dependency graph, so step 3 happily runs on stale data when step 2 fails; no retries with backoff; no backfill or per-partition state; no history of what ran, no per-task logs and no alerting; no concurrency limits, so slow runs overlap; and no shared secrets handling or UI. An orchestrator supplies all of that. The honest counterpoint: for one small, independent job, cron plus a lock file and log rotation is perfectly fine, and adopting a platform for it is over-engineering. The signal to move is the second job that depends on the first.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Which failures should a task retry, and how?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Retry <strong>transient</strong> failures — timeouts, connection resets, 429 and 503 responses, a spot instance being reclaimed. Do <strong>not</strong> retry deterministic ones — a schema mismatch, a failed assertion, bad configuration, a quality gate saying no — because they fail identically every time, waste compute, and delay the alert. Use a <strong>bounded number of attempts</strong>, <strong>exponential backoff with a cap</strong> and <strong>jitter</strong> so a fleet of retries does not hit a recovering service in one synchronised wave, and alert once the attempts are exhausted. Retries are only safe on idempotent tasks. In Airflow this is <code>retries</code>, <code>retry_delay</code>, <code>retry_exponential_backoff</code> and <code>max_retry_delay</code>; in Prefect, <code>retries</code> and <code>retry_delay_seconds</code> (which can be a list).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How should tasks pass data to each other?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Pass <strong>references and small metadata</strong>, not payloads. Return a path or URI, a partition key, a run id or a handful of metrics — via XCom or return values, which live in the orchestrator's metadata database — and let the bulk data travel through proper storage (object storage, the warehouse, a feature store) at deterministic locations derived from the logical date and run id. Pushing a large DataFrame through XCom bloats the metadata database, hits size limits and serialisation problems, and makes runs hard to reproduce. For ML the same rule applies to models: write the artifact to a registry or object store and hand downstream tasks its URI.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A daily job's 'Monday' run started on Tuesday. Is that a bug?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">No — that is normal. A daily run processes a <strong>data interval</strong> (Monday 00:00 to Tuesday 00:00) and can only start once that interval has ended. Its <strong>logical date</strong> (<code>ds</code>) is Monday, and its actual start is Tuesday. The bug to watch for is code that uses <code>datetime.now()</code> instead of the logical date, so it processes Tuesday's data under Monday's label — and a backfill of last month then processes today's data thirty times. Always derive the partition from the value the orchestrator passes (templated <code>{{ ds }}</code>, <code>data_interval_start</code>, or a flow parameter). Airflow renamed <code>execution_date</code> to <code>logical_date</code> in 2.2 partly because of this confusion.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# No external libraries needed — DAGs, retries, caching and backfills are pure Python (stdlib only)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["order: ['extract', 'clean', 'features', 'labels', 'train', 'report']", "cycle detected, blocked tasks: ['b', 'c', 'd', 'e']"],
+    hint:"After the loop, blocked = sorted(set(dag) - set(order)). In the except block, err.args[0] is that list. Note 'e' is blocked even though it is not in the cycle \u2014 it just sits downstream of it.",
+    solution:`import heapq
+
+def topo_order(dag):
+    indegree = {t: len(deps) for t, deps in dag.items()}
+    children = {t: [] for t in dag}
+    for t, deps in dag.items():
+        for d in deps:
+            children[d].append(t)
+    ready = [t for t, n in indegree.items() if n == 0]
+    heapq.heapify(ready)
+    order = []
+    while ready:
+        t = heapq.heappop(ready)
+        order.append(t)
+        for c in children[t]:
+            indegree[c] -= 1
+            if indegree[c] == 0:
+                heapq.heappush(ready, c)
+    if len(order) != len(dag):
+        raise ValueError(sorted(set(dag) - set(order)))
+    return order
+
+good = {"extract": [], "clean": ["extract"], "features": ["clean"],
+        "labels": ["clean"], "train": ["features", "labels"], "report": ["train"]}
+bad = {"a": [], "b": ["a", "d"], "c": ["b"], "d": ["c"], "e": ["c"]}
+
+print(f"Order: {topo_order(good)}")
+try:
+    topo_order(bad)
+except ValueError as err:
+    print(f"Cycle detected, blocked tasks: {err.args[0]}")`
+  },
+  2:{
+    checks:["levels: [['ingest_a', 'ingest_b'], ['join'], ['feat_num', 'feat_txt'], ['train']]", "sequential: 53 min", "parallel (critical path): 42 min", "speedup: 1.26x"],
+    hint:"finish(t) = minutes[t] + max((finish(d) for d in dag[t]), default=0). The critical path time is the maximum finish over all tasks. 53 / 42 = 1.26 with :.2f formatting.",
+    solution:`dag = {"ingest_a": [], "ingest_b": [], "join": ["ingest_a", "ingest_b"],
+       "feat_num": ["join"], "feat_txt": ["join"], "train": ["feat_num", "feat_txt"]}
+minutes = {"ingest_a": 5, "ingest_b": 8, "join": 4, "feat_num": 6, "feat_txt": 10, "train": 20}
+
+level = {}
+def lv(t):
+    if t not in level:
+        level[t] = 0 if not dag[t] else 1 + max(lv(d) for d in dag[t])
+    return level[t]
+for t in dag:
+    lv(t)
+
+groups = {}
+for t, l in level.items():
+    groups.setdefault(l, []).append(t)
+levels = [sorted(groups[l]) for l in sorted(groups)]
+
+finish = {}
+def fin(t):
+    if t not in finish:
+        finish[t] = minutes[t] + max((fin(d) for d in dag[t]), default=0)
+    return finish[t]
+critical = max(fin(t) for t in dag)
+sequential = sum(minutes.values())
+
+print(f"Levels: {levels}")
+print(f"Sequential: {sequential} min")
+print(f"Parallel (critical path): {critical} min")
+print(f"Speedup: {sequential / critical:.2f}x")`
+  },
+  3:{
+    checks:["ingest: success", "validate: success", "featurize: failed", "train: skipped", "evaluate: skipped", "docs: success", "alert: success", "summary: success=4 failed=1 skipped=2"],
+    hint:"Check the skip condition first: any(status[d] != 'success' for d in dag[t]). Because you walk in topological order, every dependency already has a status by the time you reach a task. docs and alert are independent of featurize, so they still succeed.",
+    solution:`dag = {"ingest": [], "validate": ["ingest"], "featurize": ["validate"],
+       "train": ["featurize"], "evaluate": ["train"], "docs": ["validate"], "alert": ["ingest"]}
+order = ["ingest", "validate", "featurize", "train", "evaluate", "docs", "alert"]
+failing = {"featurize"}
+
+def run_dag(dag, order, failing):
+    status = {}
+    for t in order:
+        if any(status[d] != "success" for d in dag[t]):
+            status[t] = "skipped"
+        elif t in failing:
+            status[t] = "failed"
+        else:
+            status[t] = "success"
+    return status
+
+status = run_dag(dag, order, failing)
+for t in order:
+    print(f"{t}: {status[t]}")
+counts = {s: list(status.values()).count(s) for s in ("success", "failed", "skipped")}
+print(f"Summary: success={counts['success']} failed={counts['failed']} skipped={counts['skipped']}")`
+  },
+  4:{
+    checks:["run 1: ran=4 cached=0", "run 2: ran=0 cached=4", "run 3: ran=2 cached=2 (ran: ['featurize', 'train'])"],
+    hint:"hashlib.sha256(json.dumps([name, version, params, prev_key], sort_keys=True).encode()).hexdigest(). If you forget prev_key, 'train' will wrongly stay cached in run 3 even though its input changed \u2014 that is the whole point of chaining keys.",
+    solution:`import hashlib, json
+
+steps = [
+    ("ingest",    "v1", {"source": "s3://acme/raw"}),
+    ("validate",  "v1", {"min_rows": 100}),
+    ("featurize", "v1", {"window": 7}),
+    ("train",     "v1", {"lr": 0.1}),
+]
+cache = set()
+
+def run_pipeline(steps, cache):
+    ran, prev_key = [], ""
+    for name, version, params in steps:
+        payload = json.dumps([name, version, params, prev_key], sort_keys=True)
+        key = hashlib.sha256(payload.encode()).hexdigest()
+        if key not in cache:
+            cache.add(key)
+            ran.append(name)
+        prev_key = key
+    return ran
+
+ran = run_pipeline(steps, cache)
+print(f"Run 1: ran={len(ran)} cached={len(steps) - len(ran)}")
+ran = run_pipeline(steps, cache)
+print(f"Run 2: ran={len(ran)} cached={len(steps) - len(ran)}")
+steps[2] = ("featurize", "v1", {"window": 14})
+ran = run_pipeline(steps, cache)
+print(f"Run 3: ran={len(ran)} cached={len(steps) - len(ran)} (ran: {ran})")`
+  },
+  5:{
+    checks:["partitions: ['2026-01-30', '2026-01-31', '2026-02-01', '2026-02-02', '2026-02-03']", "to run: ['2026-01-30', '2026-02-01', '2026-02-02', '2026-02-03']", "waves: [['2026-01-30', '2026-02-01'], ['2026-02-02', '2026-02-03']]", "logical 2026-01-30 fires on 2026-01-31"],
+    hint:"Use a while loop: d = start; while d <= end: append; d += timedelta(days=1). Print dates with p.isoformat() inside a list comprehension so the output shows plain strings.",
+    solution:`from datetime import date, timedelta
+
+start, end = date(2026, 1, 30), date(2026, 2, 3)
+already_done = {date(2026, 1, 31)}
+max_active_runs = 2
+
+partitions = []
+d = start
+while d <= end:
+    partitions.append(d)
+    d += timedelta(days=1)
+
+todo = [p for p in partitions if p not in already_done]
+waves = [todo[i:i + max_active_runs] for i in range(0, len(todo), max_active_runs)]
+
+print(f"Partitions: {[p.isoformat() for p in partitions]}")
+print(f"To run: {[p.isoformat() for p in todo]}")
+print(f"Waves: {[[p.isoformat() for p in w] for w in waves]}")
+print(f"Logical {partitions[0]} fires on {partitions[0] + timedelta(days=1)}")`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["ingest_users: success (attempts=2)", "train_rf: success (attempts=3)", "gate: failed (attempts=1)", "register: skipped (attempts=0)", "run 1 summary: success=8 cached=0 failed=1 skipped=1", "backoff delays so far (not slept): [2, 2, 4]", "run 2 summary: success=0 cached=8 failed=1 skipped=1", "run 3 summary: success=2 cached=8 failed=0 skipped=0"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={'1': 'B', '2': 'C', '3': 'A', '5': 'D'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('key=hashlib.sha256(')&&val.includes('json.dumps(')&&val.includes('sort_keys=true')&&val.includes('.hexdigest()');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! key = hashlib.sha256(json.dumps([name, version, params], sort_keys=True).encode()).hexdigest()"
+    :"❌ Not quite. You need something like: key = hashlib.sha256(json.dumps([name, version, params], sort_keys=True).encode()).hexdigest()";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">DAGs, cycle detection, the critical path, failure propagation, retries, input-hash caching, idempotency and backfills — the vocabulary that separates "I've drawn a DAG" from "I've operated a pipeline." Check out the Interview Prep tab, then move on to MP 4.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>

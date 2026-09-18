@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus MLOps Python 2: Experiment Tracking &amp; Model Registry</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython compiled to WebAssembly). This is a BONUS module — the 5-chapter "Python for MLOps:
+  Day-to-Day" track (mlops-practice/) — NOT part of the 41-chapter core curriculum, same tier as the
+  dsa/ and systems/ bonus modules. The experiment tracker, model registry, promotion gates, rollback
+  and lineage code is real, runnable Python (standard library; pandas loads on demand in section 2.4).
+  The real MLflow API is shown as reference-only (no Run button) since it needs a tracking server this
+  browser sandbox doesn't have. No XP and no localStorage progress tracking — exercises, capstone and
+  quiz still run and grade live in the browser, but nothing persists across page loads.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+</style>
+</head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">MP 2: Experiment Tracking &amp; Registry</div>
+  <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · MLOps Python · 2 of 5</div>
+  </a>
+  <a class="sb-back" href="mp01-reproducibility-data-validation.html">← MP 1: Reproducibility &amp; Data Validation</a>
+  <div class="sb-section">MP 2 · Experiment Tracking &amp; Model Registry</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Capstone</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-item" id="sb-interview" onclick="showSection('interview')"><span class="sb-icon">💼</span><span class="sb-step">Interview Prep</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — MLOps Python</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='mp03-pipelines-orchestration.html'"><span class="sb-icon">🔀</span><span class="sb-step">MP 3: Pipelines &amp; Orchestration</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Bonus MLOps Python 2 of 5</div>
+    <div class="tb-title">Experiment Tracking &amp; Model Registry</div>
+    <div class="tb-gap"></div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Capstone</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+      <div class="stab" id="tab-interview" onclick="showSection('interview')">💼 Interview Prep</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>MLOps Python 2:<br/><span>Experiment Tracking &amp; Model Registry Patterns</span></h1>
+    <p>Every ML team eventually gets asked &quot;which run produced the model that's in production, and can you rebuild it?&quot; This chapter is how you make that question boring. You will build the object model behind MLflow and Weights &amp; Biases from scratch (runs, stepped metrics, tie-broken comparisons, hyperparameter grids), then the part production teams argue about: a model registry with versions and stages, promotion gates that explain themselves, rollback driven by history, and the lineage that makes a deployed model auditable. These are the exact patterns, and the exact edge cases, MLOps interviewers probe.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Capstone Project</span>
+      <span class="badge">🧪 5-question quiz</span>
+      <span class="badge">💼 10 Interview Prep Q&amp;A</span>
+    </div>
+  </div>
+
+  <div class="lesson-h2">2.1 — What Goes Into an Experiment Record (and Why &quot;I Remember the Settings&quot; Fails)</div>
+  <p class="lesson-p">Every ML team starts the same way: a notebook, a few good runs, and a spreadsheet of numbers. Six weeks later someone asks <strong>&quot;which run produced the model that's in production, and can we rebuild it?&quot;</strong> and nobody can answer. <strong>Experiment tracking</strong> is the discipline of writing down, automatically, everything needed to answer that question. A run record is more than <code>params</code> and <code>metrics</code>: it also pins the <strong>data version</strong> (a hash of the training data), the <strong>code version</strong> (git commit), the <strong>environment</strong> (Python and library versions), the <strong>random seed</strong>, and the <strong>artifacts</strong> the run produced (model file, plots) by checksum.</p>
+  <table class="lesson-table"><tr><th>What to log</th><th>Why it matters</th><th>Example</th></tr><tr><td class="highlight">params</td><td>Reproduce and compare configurations</td><td>lr=0.1, max_depth=4</td></tr><tr><td class="highlight">metrics (with step)</td><td>Learning curves, best epoch, early stopping</td><td>val_loss at steps 0..N</td></tr><tr><td class="highlight">data version</td><td>Same code + different data = different model</td><td>sha256 of the training set</td></tr><tr><td class="highlight">code version</td><td>The exact commit (and whether the tree was dirty)</td><td>git_sha = 3e7b1c9</td></tr><tr><td class="highlight">environment</td><td>A library bump can change results</td><td>python 3.11.8, scikit-learn 1.4.2</td></tr><tr><td class="highlight">seed</td><td>Rerun and get the same numbers</td><td>seed = 42</td></tr><tr><td class="highlight">artifacts (by checksum)</td><td>Prove the file you deploy is the file you evaluated</td><td>model.pkl sha256</td></tr></table>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A run record, and a check for what's missing</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">run_record = {
+    <span class="st">"run_id"</span>: <span class="st">"run-0042"</span>,
+    <span class="st">"params"</span>: {<span class="st">"lr"</span>: <span class="nm">0.1</span>, <span class="st">"max_depth"</span>: <span class="nm">4</span>, <span class="st">"n_estimators"</span>: <span class="nm">200</span>},
+    <span class="st">"metrics"</span>: {<span class="st">"val_auc"</span>: <span class="nm">0.913</span>, <span class="st">"val_loss"</span>: <span class="nm">0.271</span>},
+    <span class="st">"tags"</span>: {<span class="st">"model"</span>: <span class="st">"churn-classifier"</span>, <span class="st">"owner"</span>: <span class="st">"ml-platform"</span>},
+    <span class="st">"data_sha256"</span>: <span class="st">"9f2c41aa07d3"</span>,
+    <span class="st">"git_sha"</span>: <span class="st">"3e7b1c9"</span>,
+    <span class="st">"env"</span>: {<span class="st">"python"</span>: <span class="st">"3.11.8"</span>, <span class="st">"scikit-learn"</span>: <span class="st">"1.4.2"</span>},
+    <span class="st">"seed"</span>: <span class="nm">0</span>,
+}
+
+REQUIRED = [<span class="st">"params"</span>, <span class="st">"metrics"</span>, <span class="st">"data_sha256"</span>, <span class="st">"git_sha"</span>, <span class="st">"env"</span>, <span class="st">"seed"</span>]
+
+<span class="kw">def</span> <span class="fn">missing_fields</span>(record):
+    <span class="cm"># `in (None, "", {})` instead of `not record.get(key)`, so seed=0 still counts as logged</span>
+    <span class="kw">return</span> [key <span class="kw">for</span> key <span class="kw">in</span> REQUIRED <span class="kw">if</span> record.get(key) <span class="kw">in</span> (<span class="kw">None</span>, <span class="st">""</span>, {})]
+
+<span class="bi">print</span>(<span class="st">"complete record -&gt;"</span>, missing_fields(run_record))
+sloppy = {<span class="st">"params"</span>: {<span class="st">"lr"</span>: <span class="nm">0.1</span>}, <span class="st">"metrics"</span>: {<span class="st">"val_auc"</span>: <span class="nm">0.913</span>}}
+<span class="bi">print</span>(<span class="st">"sloppy record   -&gt;"</span>, missing_fields(sloppy))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The falsy-zero bug.</strong> <code>not record.get(&quot;seed&quot;)</code> treats <code>seed=0</code> as &quot;missing&quot; because <code>0</code> is falsy. Validators like this are everywhere in MLOps code (seeds, learning rates of 0, empty-but-valid params), so test for <code>None</code>/empty explicitly instead of relying on truthiness.</div></div>
+
+  <div class="lesson-h2">2.2 — A Tiny Tracker: <code>Run</code> and <code>Tracker</code></div>
+  <p class="lesson-p">MLflow, Weights &amp; Biases, Neptune and Comet all boil down to the same small object model: a <strong>run</strong> holds params, stepped metrics, tags and artifact checksums; a <strong>tracker</strong> creates runs and keeps them. Building a 40-line version makes every real tool's API obvious. Two behaviors are worth copying exactly: <strong>params are write-once</strong> (silently overwriting a param would make the record lie), and <strong>a crashed run is still recorded</strong> with status <code>FAILED</code> — the failures are often the most informative rows.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Run + Tracker with write-once params and a context manager</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> hashlib
+<span class="kw">from</span> contextlib <span class="kw">import</span> contextmanager
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass, field
+
+@dataclass
+<span class="kw">class</span> <span class="cls">Run</span>:
+    run_id: <span class="bi">str</span>
+    name: <span class="bi">str</span>
+    params: <span class="bi">dict</span> = field(default_factory=<span class="bi">dict</span>)
+    metrics: <span class="bi">dict</span> = field(default_factory=<span class="bi">dict</span>)     <span class="cm"># key -&gt; [(step, value), ...]</span>
+    tags: <span class="bi">dict</span> = field(default_factory=<span class="bi">dict</span>)
+    artifacts: <span class="bi">dict</span> = field(default_factory=<span class="bi">dict</span>)   <span class="cm"># name -&gt; short sha256</span>
+    status: <span class="bi">str</span> = <span class="st">"RUNNING"</span>
+
+    <span class="kw">def</span> <span class="fn">log_param</span>(self, key, value):
+        <span class="kw">if</span> key <span class="kw">in</span> self.params <span class="kw">and</span> self.params[key] != value:
+            <span class="kw">raise</span> ValueError(<span class="st">f"param {key!r} already logged as {self.params[key]!r}"</span>)
+        self.params[key] = value
+
+    <span class="kw">def</span> <span class="fn">log_metric</span>(self, key, value, step=<span class="nm">0</span>):
+        self.metrics.setdefault(key, []).append((step, value))
+
+    <span class="kw">def</span> <span class="fn">log_artifact</span>(self, name, content):
+        self.artifacts[name] = hashlib.sha256(content).hexdigest()[:<span class="nm">12</span>]
+
+<span class="kw">class</span> <span class="cls">Tracker</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.runs = []
+
+    <span class="kw">def</span> <span class="fn">start_run</span>(self, name):
+        run = Run(run_id=<span class="st">f"run-{len(self.runs) + 1:04d}"</span>, name=name)
+        self.runs.append(run)
+        <span class="kw">return</span> run
+
+    @contextmanager
+    <span class="kw">def</span> <span class="fn">track</span>(self, name):
+        run = self.start_run(name)
+        <span class="kw">try</span>:
+            <span class="kw">yield</span> run
+            run.status = <span class="st">"FINISHED"</span>
+        <span class="kw">except</span> Exception:
+            run.status = <span class="st">"FAILED"</span>
+            <span class="kw">raise</span>
+
+tracker = Tracker()
+<span class="kw">with</span> tracker.track(<span class="st">"baseline"</span>) <span class="kw">as</span> run:
+    run.log_param(<span class="st">"lr"</span>, <span class="nm">0.1</span>)
+    <span class="kw">for</span> step, loss <span class="kw">in</span> <span class="bi">enumerate</span>([<span class="nm">0.90</span>, <span class="nm">0.62</span>, <span class="nm">0.48</span>]):
+        run.log_metric(<span class="st">"val_loss"</span>, loss, step)
+    run.log_artifact(<span class="st">"model.bin"</span>, <span class="st">b"fake-model-bytes"</span>)
+
+<span class="kw">try</span>:
+    <span class="kw">with</span> tracker.track(<span class="st">"too-big"</span>) <span class="kw">as</span> run2:
+        run2.log_param(<span class="st">"lr"</span>, <span class="nm">0.3</span>)
+        <span class="kw">raise</span> RuntimeError(<span class="st">"CUDA out of memory"</span>)
+<span class="kw">except</span> RuntimeError:
+    <span class="kw">pass</span>
+
+<span class="bi">print</span>([(r.run_id, r.status) <span class="kw">for</span> r <span class="kw">in</span> tracker.runs])
+<span class="bi">print</span>(tracker.runs[<span class="nm">0</span>].metrics)
+<span class="bi">print</span>(tracker.runs[<span class="nm">0</span>].artifacts)
+<span class="kw">try</span>:
+    tracker.runs[<span class="nm">0</span>].log_param(<span class="st">"lr"</span>, <span class="nm">0.5</span>)
+<span class="kw">except</span> ValueError <span class="kw">as</span> err:
+    <span class="bi">print</span>(<span class="st">"blocked:"</span>, err)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Why the run id is deterministic here.</strong> Real tools use UUIDs. A counter is used in this tiny tracker so tests and this chapter's graders are reproducible — the general rule is to <strong>inject anything non-deterministic</strong> (ids, clocks, randomness) so the logic around it stays testable.</div></div>
+
+  <div class="lesson-h2">2.3 — Stepped Metrics: Final vs Best vs Last</div>
+  <p class="lesson-p">A single number per run hides the learning curve. Log a metric <strong>per step</strong> (epoch or iteration) and you can answer three different questions: what was the <strong>best</strong> value and when, what was the <strong>last</strong> value (what you actually shipped if you didn't checkpoint), and how big the gap is. A validation loss that bottoms out at epoch 3 and then rises is the signature of overfitting, and the last-vs-best gap quantifies it. The same history drives <strong>early stopping</strong>: stop after <code>patience</code> steps without improvement and keep the checkpoint from the best step.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Best step, last step, and early stopping on a val_loss curve</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">history = [(<span class="nm">0</span>, <span class="nm">0.90</span>), (<span class="nm">1</span>, <span class="nm">0.62</span>), (<span class="nm">2</span>, <span class="nm">0.48</span>), (<span class="nm">3</span>, <span class="nm">0.44</span>), (<span class="nm">4</span>, <span class="nm">0.47</span>), (<span class="nm">5</span>, <span class="nm">0.53</span>)]   <span class="cm"># (step, val_loss)</span>
+
+<span class="kw">def</span> <span class="fn">best_step</span>(history, mode=<span class="st">"min"</span>):
+    pick = <span class="bi">min</span> <span class="kw">if</span> mode == <span class="st">"min"</span> <span class="kw">else</span> <span class="bi">max</span>
+    <span class="kw">return</span> pick(history, key=<span class="kw">lambda</span> sv: sv[<span class="nm">1</span>])       <span class="cm"># on ties the FIRST best step wins</span>
+
+step, value = best_step(history, <span class="st">"min"</span>)
+last_step, last_value = history[-<span class="nm">1</span>]
+<span class="bi">print</span>(<span class="st">f"best val_loss {value} at step {step}"</span>)
+<span class="bi">print</span>(<span class="st">f"last val_loss {last_value} at step {last_step}"</span>)
+<span class="bi">print</span>(<span class="st">f"overfit gap  {last_value - value:.2f}"</span>)
+
+<span class="kw">def</span> <span class="fn">early_stop_step</span>(history, patience=<span class="nm">2</span>, mode=<span class="st">"min"</span>):
+    best, best_at, waited = <span class="kw">None</span>, <span class="kw">None</span>, <span class="nm">0</span>
+    <span class="kw">for</span> step, value <span class="kw">in</span> history:
+        better = best <span class="kw">is</span> <span class="kw">None</span> <span class="kw">or</span> (value &lt; best <span class="kw">if</span> mode == <span class="st">"min"</span> <span class="kw">else</span> value &gt; best)
+        <span class="kw">if</span> better:
+            best, best_at, waited = value, step, <span class="nm">0</span>
+        <span class="kw">else</span>:
+            waited += <span class="nm">1</span>
+            <span class="kw">if</span> waited &gt;= patience:
+                <span class="kw">return</span> step, best_at                 <span class="cm"># (where we stopped, which step to restore)</span>
+    <span class="kw">return</span> <span class="kw">None</span>, best_at
+
+<span class="bi">print</span>(<span class="st">"early stop (stopped_at, restore_step):"</span>, early_stop_step(history, patience=<span class="nm">2</span>))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Compare runs on the same footing.</strong> Comparing run A's <em>best</em> epoch to run B's <em>last</em> epoch is a classic unfair comparison. Decide once — usually &quot;best step on the validation set, evaluated once on the untouched test set&quot; — and apply it to every run.</div></div>
+
+  <div class="lesson-h2">2.4 — Comparing Runs: DataFrames and Deterministic Tie-Breaking</div>
+  <p class="lesson-p">Once you have dozens of runs, you compare them as a table: one row per run, param columns plus a metric. The subtle bug is <strong>ties</strong>. Three runs at <code>val_auc = 0.912</code> and code that just takes the first row will pick a different &quot;winner&quot; whenever the row order changes — a different machine, a re-sorted export, a parallel sweep finishing in another order. Fix it with an <strong>explicit total ordering</strong>: metric (descending), then a cost such as training time (ascending), then <code>run_id</code> as the final, always-unique tiebreaker.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Rank runs with an explicit tie-break (pandas and plain Python)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+rows = [
+    {<span class="st">"run_id"</span>: <span class="st">"run-0001"</span>, <span class="st">"lr"</span>: <span class="nm">0.10</span>, <span class="st">"max_depth"</span>: <span class="nm">4</span>, <span class="st">"val_auc"</span>: <span class="nm">0.912</span>, <span class="st">"train_s"</span>: <span class="nm">41</span>},
+    {<span class="st">"run_id"</span>: <span class="st">"run-0002"</span>, <span class="st">"lr"</span>: <span class="nm">0.30</span>, <span class="st">"max_depth"</span>: <span class="nm">4</span>, <span class="st">"val_auc"</span>: <span class="nm">0.905</span>, <span class="st">"train_s"</span>: <span class="nm">39</span>},
+    {<span class="st">"run_id"</span>: <span class="st">"run-0003"</span>, <span class="st">"lr"</span>: <span class="nm">0.10</span>, <span class="st">"max_depth"</span>: <span class="nm">6</span>, <span class="st">"val_auc"</span>: <span class="nm">0.912</span>, <span class="st">"train_s"</span>: <span class="nm">77</span>},
+    {<span class="st">"run_id"</span>: <span class="st">"run-0004"</span>, <span class="st">"lr"</span>: <span class="nm">0.01</span>, <span class="st">"max_depth"</span>: <span class="nm">6</span>, <span class="st">"val_auc"</span>: <span class="nm">0.912</span>, <span class="st">"train_s"</span>: <span class="nm">41</span>},
+    {<span class="st">"run_id"</span>: <span class="st">"run-0005"</span>, <span class="st">"lr"</span>: <span class="nm">0.30</span>, <span class="st">"max_depth"</span>: <span class="nm">2</span>, <span class="st">"val_auc"</span>: <span class="nm">0.871</span>, <span class="st">"train_s"</span>: <span class="nm">12</span>},
+]
+
+df = pd.DataFrame(rows)
+ranked = df.sort_values(by=[<span class="st">"val_auc"</span>, <span class="st">"train_s"</span>, <span class="st">"run_id"</span>], ascending=[<span class="kw">False</span>, <span class="kw">True</span>, <span class="kw">True</span>])
+<span class="kw">for</span> rec <span class="kw">in</span> ranked.to_dict(<span class="st">"records"</span>):
+    <span class="bi">print</span>(<span class="st">f"{rec['run_id']}  val_auc={rec['val_auc']}  train_s={rec['train_s']}"</span>)
+<span class="bi">print</span>(<span class="st">"winner:"</span>, ranked.iloc[<span class="nm">0</span>][<span class="st">"run_id"</span>])
+
+best = <span class="bi">min</span>(rows, key=<span class="kw">lambda</span> r: (-r[<span class="st">"val_auc"</span>], r[<span class="st">"train_s"</span>], r[<span class="st">"run_id"</span>]))
+<span class="bi">print</span>(<span class="st">"plain-python winner:"</span>, best[<span class="st">"run_id"</span>])</div>
+  </div>
+
+  <div class="lesson-h2">2.5 — Hyperparameter Grids with <code>itertools.product</code></div>
+  <p class="lesson-p">A <strong>grid search</strong> is the cross product of the values you list for each hyperparameter: 3 learning rates × 3 depths = 9 runs. <code>itertools.product</code> generates it lazily and in a stable order, so run ids line up between reruns. Every combination becomes a tracked run — including the bad ones, because a sweep that only records winners can't tell you the shape of the search space. The training call below is a deterministic stand-in formula (no randomness), which keeps the output identical everywhere.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Enumerate a grid, track every run, pick the best and worst</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> itertools <span class="kw">import</span> product
+
+<span class="kw">def</span> <span class="fn">fake_train</span>(lr, max_depth):
+    <span class="cm"># deterministic stand-in for a real training run</span>
+    <span class="kw">return</span> <span class="bi">round</span>(<span class="nm">0.70</span> + <span class="nm">0.05</span> * max_depth - <span class="nm">0.004</span> * max_depth ** <span class="nm">2</span> - <span class="nm">0.5</span> * <span class="bi">abs</span>(lr - <span class="nm">0.1</span>), <span class="nm">4</span>)
+
+grid = {<span class="st">"lr"</span>: [<span class="nm">0.01</span>, <span class="nm">0.1</span>, <span class="nm">0.3</span>], <span class="st">"max_depth"</span>: [<span class="nm">2</span>, <span class="nm">4</span>, <span class="nm">6</span>]}
+keys = <span class="bi">list</span>(grid)
+runs = []
+<span class="kw">for</span> i, values <span class="kw">in</span> <span class="bi">enumerate</span>(product(*grid.values()), start=<span class="nm">1</span>):
+    params = <span class="bi">dict</span>(<span class="bi">zip</span>(keys, values))
+    runs.append({<span class="st">"run_id"</span>: <span class="st">f"run-{i:04d}"</span>, **params, <span class="st">"val_auc"</span>: fake_train(**params)})
+
+<span class="bi">print</span>(<span class="st">f"{len(runs)} runs"</span>)
+<span class="bi">print</span>(<span class="st">"best :"</span>, <span class="bi">max</span>(runs, key=<span class="kw">lambda</span> r: r[<span class="st">"val_auc"</span>]))
+<span class="bi">print</span>(<span class="st">"worst:"</span>, <span class="bi">min</span>(runs, key=<span class="kw">lambda</span> r: r[<span class="st">"val_auc"</span>]))</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Grids explode.</strong> 5 hyperparameters × 5 values each is 3,125 runs. That is why real sweeps use <strong>random search</strong> or <strong>Bayesian optimization</strong> (Optuna, Ray Tune, W&amp;B Sweeps) — the tracking discipline stays identical, only the way configurations are proposed changes.</div></div>
+
+  <div class="lesson-h2">2.6 — A Model Registry: Versions and Stages</div>
+  <p class="lesson-p">A tracker answers &quot;what did we try?&quot; A <strong>model registry</strong> answers &quot;what are we <em>serving</em>, and what is allowed to serve?&quot; It stores each registered model as an immutable numbered <strong>version</strong> that points back to the run that produced it, plus a lifecycle <strong>stage</strong>: <code>None</code> → <code>Staging</code> → <code>Production</code> → <code>Archived</code>. The invariant that matters most: <strong>at most one version per model is in Production</strong>, so promoting a new version must archive the old one in the same operation.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">ModelRegistry with auto-incrementing versions and a one-production invariant</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">ModelRegistry</span>:
+    STAGES = (<span class="st">"None"</span>, <span class="st">"Staging"</span>, <span class="st">"Production"</span>, <span class="st">"Archived"</span>)
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.versions = {}                                   <span class="cm"># (name, version) -&gt; info</span>
+
+    <span class="kw">def</span> <span class="fn">register</span>(self, name, run_id, val_auc, data_sha, git_sha):
+        version = <span class="nm">1</span> + <span class="bi">max</span>((v <span class="kw">for</span> (n, v) <span class="kw">in</span> self.versions <span class="kw">if</span> n == name), default=<span class="nm">0</span>)
+        self.versions[(name, version)] = {
+            <span class="st">"run_id"</span>: run_id, <span class="st">"val_auc"</span>: val_auc,
+            <span class="st">"data_sha"</span>: data_sha, <span class="st">"git_sha"</span>: git_sha, <span class="st">"stage"</span>: <span class="st">"None"</span>,
+        }
+        <span class="kw">return</span> version
+
+    <span class="kw">def</span> <span class="fn">transition</span>(self, name, version, stage):
+        <span class="kw">if</span> stage <span class="kw">not</span> <span class="kw">in</span> self.STAGES:
+            <span class="kw">raise</span> ValueError(<span class="st">f"unknown stage {stage!r}"</span>)
+        <span class="kw">if</span> stage == <span class="st">"Production"</span>:                            <span class="cm"># invariant: only ONE production version</span>
+            <span class="kw">for</span> (n, v), info <span class="kw">in</span> self.versions.items():
+                <span class="kw">if</span> n == name <span class="kw">and</span> info[<span class="st">"stage"</span>] == <span class="st">"Production"</span>:
+                    info[<span class="st">"stage"</span>] = <span class="st">"Archived"</span>
+        self.versions[(name, version)][<span class="st">"stage"</span>] = stage
+
+    <span class="kw">def</span> <span class="fn">stages</span>(self, name):
+        <span class="kw">return</span> {v: info[<span class="st">"stage"</span>] <span class="kw">for</span> (n, v), info <span class="kw">in</span> <span class="bi">sorted</span>(self.versions.items()) <span class="kw">if</span> n == name}
+
+reg = ModelRegistry()
+v1 = reg.register(<span class="st">"churn"</span>, <span class="st">"run-0001"</span>, <span class="nm">0.912</span>, <span class="st">"9f2c41"</span>, <span class="st">"3e7b1c9"</span>)
+v2 = reg.register(<span class="st">"churn"</span>, <span class="st">"run-0007"</span>, <span class="nm">0.921</span>, <span class="st">"9f2c41"</span>, <span class="st">"a41d0e2"</span>)
+reg.transition(<span class="st">"churn"</span>, v1, <span class="st">"Production"</span>)
+<span class="bi">print</span>(reg.stages(<span class="st">"churn"</span>))
+reg.transition(<span class="st">"churn"</span>, v2, <span class="st">"Production"</span>)
+<span class="bi">print</span>(reg.stages(<span class="st">"churn"</span>))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference only below — needs a real MLflow server.</strong> There is no Run button on the next block: MLflow talks to a tracking server (or a local <code>mlruns/</code> directory), which a browser sandbox cannot do. The runnable classes above mirror this API on purpose, so the skill transfers.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference only — the same ideas with real MLflow</span></div>
+    <div class="cb-code"><span class="kw">import</span> mlflow
+<span class="kw">from</span> mlflow <span class="kw">import</span> MlflowClient
+
+mlflow.set_tracking_uri(<span class="st">"http://mlflow.internal:5000"</span>)
+mlflow.set_experiment(<span class="st">"churn-classifier"</span>)
+
+<span class="kw">with</span> mlflow.start_run(run_name=<span class="st">"baseline"</span>) <span class="kw">as</span> run:
+    mlflow.log_params({<span class="st">"lr"</span>: <span class="nm">0.1</span>, <span class="st">"max_depth"</span>: <span class="nm">4</span>})
+    <span class="kw">for</span> step, loss <span class="kw">in</span> <span class="bi">enumerate</span>([<span class="nm">0.90</span>, <span class="nm">0.62</span>, <span class="nm">0.48</span>]):
+        mlflow.log_metric(<span class="st">"val_loss"</span>, loss, step=step)
+    mlflow.set_tags({<span class="st">"git_sha"</span>: <span class="st">"3e7b1c9"</span>, <span class="st">"data_sha256"</span>: <span class="st">"9f2c41aa07d3"</span>})
+    mlflow.sklearn.log_model(model, <span class="st">"model"</span>, registered_model_name=<span class="st">"churn"</span>)
+
+client = MlflowClient()
+client.set_registered_model_alias(<span class="st">"churn"</span>, <span class="st">"champion"</span>, version=<span class="nm">2</span>)   <span class="cm"># aliases: named, movable pointers</span>
+prod_model = mlflow.pyfunc.load_model(<span class="st">"models:/churn@champion"</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Stages vs aliases.</strong> Recent MLflow versions deprecate the fixed Staging/Production stages in favor of <strong>aliases</strong> (<code>champion</code>, <code>challenger</code>, <code>shadow</code>): named pointers you can create freely and move atomically, several per model. The promotion logic you will build in 2.7 is identical either way — you are just moving a pointer.</div></div>
+
+  <div class="lesson-h2">2.7 — Promotion Gates and Rollback</div>
+  <p class="lesson-p">Moving a model to Production should be a <strong>decision made by code</strong>, not by whoever feels confident that day. A <strong>promotion gate</strong> lists the conditions a candidate must meet, and returns <em>all</em> the reasons it failed (a list is far more useful in CI than a bare <code>False</code>). Typical gates: a metric <strong>floor</strong>, a required <strong>margin</strong> over the current production model (small gains are usually noise), a passing <strong>validation suite</strong>, and <strong>no open data-quality flags</strong>. The other half is <strong>rollback</strong>: because every transition is written to a <code>history</code> list, restoring the previous production version is a lookup, not an archaeology project.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A promotion gate that explains itself</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">can_promote</span>(candidate, production, min_auc=<span class="nm">0.80</span>, margin=<span class="nm">0.01</span>):
+    reasons = []
+    <span class="kw">if</span> candidate[<span class="st">"val_auc"</span>] &lt; min_auc:
+        reasons.append(<span class="st">f"val_auc {candidate['val_auc']} below floor {min_auc}"</span>)
+    <span class="kw">if</span> production <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:
+        delta = <span class="bi">round</span>(candidate[<span class="st">"val_auc"</span>] - production[<span class="st">"val_auc"</span>], <span class="nm">4</span>)   <span class="cm"># round before comparing floats</span>
+        <span class="kw">if</span> delta &lt; margin:
+            reasons.append(<span class="st">f"gain {delta} is under the required margin {margin}"</span>)
+    <span class="kw">if</span> <span class="kw">not</span> candidate.get(<span class="st">"validation_passed"</span>):
+        reasons.append(<span class="st">"validation suite failed"</span>)
+    <span class="kw">if</span> candidate.get(<span class="st">"open_dq_flags"</span>):
+        reasons.append(<span class="st">f"{len(candidate['open_dq_flags'])} open data-quality flag(s)"</span>)
+    <span class="kw">return</span> (<span class="kw">not</span> reasons), reasons
+
+prod = {<span class="st">"val_auc"</span>: <span class="nm">0.912</span>}
+cases = {
+    <span class="st">"good"</span>:        {<span class="st">"val_auc"</span>: <span class="nm">0.925</span>, <span class="st">"validation_passed"</span>: <span class="kw">True</span>,  <span class="st">"open_dq_flags"</span>: []},
+    <span class="st">"tiny gain"</span>:   {<span class="st">"val_auc"</span>: <span class="nm">0.914</span>, <span class="st">"validation_passed"</span>: <span class="kw">True</span>,  <span class="st">"open_dq_flags"</span>: []},
+    <span class="st">"dq flag"</span>:     {<span class="st">"val_auc"</span>: <span class="nm">0.930</span>, <span class="st">"validation_passed"</span>: <span class="kw">True</span>,  <span class="st">"open_dq_flags"</span>: [<span class="st">"null spike in tenure"</span>]},
+    <span class="st">"below floor"</span>: {<span class="st">"val_auc"</span>: <span class="nm">0.780</span>, <span class="st">"validation_passed"</span>: <span class="kw">False</span>, <span class="st">"open_dq_flags"</span>: []},
+}
+<span class="kw">for</span> name, cand <span class="kw">in</span> cases.items():
+    ok, why = can_promote(cand, prod)
+    <span class="bi">print</span>(<span class="st">f"{name:12s} -&gt; {'PROMOTE' if ok else 'BLOCK'} {why}"</span>)
+
+<span class="cm"># why the delta is rounded before comparing: a gain of exactly 0.005 is not exactly 0.005 in floating point</span>
+<span class="bi">print</span>(<span class="st">"raw delta:"</span>, <span class="nm">0.938</span> - <span class="nm">0.933</span>, <span class="st">"| rounded:"</span>, <span class="bi">round</span>(<span class="nm">0.938</span> - <span class="nm">0.933</span>, <span class="nm">4</span>))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Why round before comparing.</strong> <code>0.938 - 0.933</code> is <code>0.004999999999999893</code> in floating point, not <code>0.005</code>. Compare that raw value against a margin of <code>0.005</code> and a candidate that beats production by exactly the required amount gets blocked. Rounding the <em>difference</em> to a sensible precision makes the boundary behave the way the policy is written.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Rollback driven by a transition history</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Registry</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        self.stage = {}          <span class="cm"># version -&gt; stage</span>
+        self.history = []        <span class="cm"># (version, from_stage, to_stage, reason)</span>
+
+    <span class="kw">def</span> <span class="fn">set_stage</span>(self, version, to, reason=<span class="st">""</span>):
+        self.history.append((version, self.stage.get(version, <span class="st">"None"</span>), to, reason))
+        self.stage[version] = to
+
+    <span class="kw">def</span> <span class="fn">production</span>(self):
+        <span class="kw">return</span> <span class="bi">next</span>((v <span class="kw">for</span> v, s <span class="kw">in</span> self.stage.items() <span class="kw">if</span> s == <span class="st">"Production"</span>), <span class="kw">None</span>)
+
+    <span class="kw">def</span> <span class="fn">promote</span>(self, version):
+        current = self.production()
+        <span class="kw">if</span> current <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:
+            self.set_stage(current, <span class="st">"Archived"</span>, <span class="st">f"replaced by v{version}"</span>)
+        self.set_stage(version, <span class="st">"Production"</span>, <span class="st">"gates passed"</span>)
+
+    <span class="kw">def</span> <span class="fn">rollback</span>(self, reason):
+        current = self.production()
+        previous = <span class="bi">next</span>((v <span class="kw">for</span> (v, frm, to, why) <span class="kw">in</span> <span class="bi">reversed</span>(self.history)
+                         <span class="kw">if</span> frm == <span class="st">"Production"</span> <span class="kw">and</span> to == <span class="st">"Archived"</span> <span class="kw">and</span> why == <span class="st">f"replaced by v{current}"</span>), <span class="kw">None</span>)
+        <span class="kw">if</span> previous <span class="kw">is</span> <span class="kw">None</span>:
+            <span class="kw">raise</span> RuntimeError(<span class="st">"no previous production version"</span>)
+        self.set_stage(current, <span class="st">"Archived"</span>, <span class="st">f"rolled back: {reason}"</span>)
+        self.set_stage(previous, <span class="st">"Production"</span>, <span class="st">"rollback restore"</span>)
+
+reg = Registry()
+reg.promote(<span class="nm">1</span>)
+reg.promote(<span class="nm">2</span>)
+<span class="bi">print</span>(<span class="st">"before rollback:"</span>, <span class="bi">dict</span>(<span class="bi">sorted</span>(reg.stage.items())))
+reg.rollback(<span class="st">"canary error rate 9%"</span>)
+<span class="bi">print</span>(<span class="st">"after rollback :"</span>, <span class="bi">dict</span>(<span class="bi">sorted</span>(reg.stage.items())), <span class="st">"-&gt; production is v"</span> + <span class="bi">str</span>(reg.production()))
+<span class="kw">for</span> entry <span class="kw">in</span> reg.history[-<span class="nm">2</span>:]:
+    <span class="bi">print</span>(entry)</div>
+  </div>
+
+  <div class="lesson-h2">2.8 — Semantic Versioning, Model Cards, and Lineage</div>
+  <p class="lesson-p">Registry versions are just counters (1, 2, 3). Consumers of a model care about something else: <strong>will my integration break?</strong> <strong>Semantic versioning</strong> answers that for models: bump <strong>MAJOR</strong> when the input/feature contract or the metric definition changes (callers must change), <strong>MINOR</strong> when you retrain on new data with the same contract, <strong>PATCH</strong> for a threshold or config fix. A <strong>model card</strong> is the human-readable record next to the artifact — intended use, what it must <em>not</em> be used for, metrics (including the <em>worst</em> segment, not just the average), limitations. And <strong>lineage</strong> ties the deployed model back to the exact run, data hash, code commit, params, seed and environment — the difference between &quot;we think this is the model&quot; and an answer an auditor accepts.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">bump(), a model card, and a lineage completeness check</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">bump</span>(version, kind):
+    major, minor, patch = (<span class="bi">int</span>(p) <span class="kw">for</span> p <span class="kw">in</span> version.split(<span class="st">"."</span>))
+    <span class="kw">if</span> kind == <span class="st">"major"</span>:
+        <span class="kw">return</span> <span class="st">f"{major + 1}.0.0"</span>
+    <span class="kw">if</span> kind == <span class="st">"minor"</span>:
+        <span class="kw">return</span> <span class="st">f"{major}.{minor + 1}.0"</span>
+    <span class="kw">if</span> kind == <span class="st">"patch"</span>:
+        <span class="kw">return</span> <span class="st">f"{major}.{minor}.{patch + 1}"</span>
+    <span class="kw">raise</span> ValueError(<span class="st">f"unknown bump {kind!r}"</span>)
+
+v = <span class="st">"1.4.2"</span>
+<span class="bi">print</span>(<span class="st">"new feature contract   -&gt;"</span>, bump(v, <span class="st">"major"</span>))
+<span class="bi">print</span>(<span class="st">"retrained, same schema -&gt;"</span>, bump(v, <span class="st">"minor"</span>))
+<span class="bi">print</span>(<span class="st">"threshold tweak        -&gt;"</span>, bump(v, <span class="st">"patch"</span>))
+
+LINEAGE_KEYS = (<span class="st">"run_id"</span>, <span class="st">"data_sha256"</span>, <span class="st">"git_sha"</span>, <span class="st">"params"</span>, <span class="st">"seed"</span>, <span class="st">"env"</span>)
+
+<span class="kw">def</span> <span class="fn">lineage_gaps</span>(card):
+    lineage = card.get(<span class="st">"lineage"</span>, {})
+    <span class="kw">return</span> [k <span class="kw">for</span> k <span class="kw">in</span> LINEAGE_KEYS <span class="kw">if</span> lineage.get(k) <span class="kw">in</span> (<span class="kw">None</span>, <span class="st">""</span>, {})]
+
+card = {
+    <span class="st">"name"</span>: <span class="st">"churn-classifier"</span>, <span class="st">"version"</span>: <span class="st">"1.5.0"</span>, <span class="st">"owner"</span>: <span class="st">"ml-platform"</span>,
+    <span class="st">"intended_use"</span>: <span class="st">"rank customers by 30-day churn risk for retention outreach"</span>,
+    <span class="st">"not_for"</span>: <span class="st">"credit or pricing decisions"</span>,
+    <span class="st">"metrics"</span>: {<span class="st">"val_auc"</span>: <span class="nm">0.921</span>, <span class="st">"val_auc_worst_segment"</span>: <span class="nm">0.884</span>},
+    <span class="st">"limitations"</span>: [<span class="st">"trained on 2023-24 EU customers only"</span>],
+    <span class="st">"lineage"</span>: {<span class="st">"run_id"</span>: <span class="st">"run-0007"</span>, <span class="st">"data_sha256"</span>: <span class="st">"9f2c41aa07d3"</span>, <span class="st">"git_sha"</span>: <span class="st">"a41d0e2"</span>,
+                <span class="st">"params"</span>: {<span class="st">"lr"</span>: <span class="nm">0.1</span>, <span class="st">"max_depth"</span>: <span class="nm">4</span>}, <span class="st">"seed"</span>: <span class="nm">42</span>, <span class="st">"env"</span>: {<span class="st">"python"</span>: <span class="st">"3.11.8"</span>}},
+}
+<span class="bi">print</span>(<span class="st">"lineage gaps:"</span>, lineage_gaps(card))
+<span class="kw">del</span> card[<span class="st">"lineage"</span>][<span class="st">"git_sha"</span>]
+<span class="bi">print</span>(<span class="st">"lineage gaps:"</span>, lineage_gaps(card))</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The six-month test.</strong> Pick a model that has been in production for six months and try to rebuild it from the registry alone. If any of <em>data hash, git commit, params, seed, environment lock</em> is missing, you found a hole in your process while it is still cheap to fix.</div></div>
+
+  <div class="lesson-h2">Chapter Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>A run record is more than params + metrics</strong>: pin the data hash, git commit, environment, seed and artifact checksums, or the run cannot be reproduced.</div></li>
+    <li data-n="2"><div><strong>Log metrics per step</strong> so you can tell best from last, quantify overfitting, and implement early stopping. Compare runs on the same footing.</div></li>
+    <li data-n="3"><div><strong>Break ties with an explicit total ordering</strong> (metric, then cost, then run_id) — never rely on row order.</div></li>
+    <li data-n="4"><div><strong>A registry gives each model an immutable version</strong> and a lifecycle; exactly one version serves as Production, and modern tools move <em>aliases</em> instead of fixed stages.</div></li>
+    <li data-n="5"><div><strong>Promotion is a gate, not a feeling</strong>: metric floor, margin over production, passing validation, no open data-quality flags — and the gate returns <em>all</em> reasons it failed.</div></li>
+    <li data-n="6"><div><strong>Rollback is a history lookup</strong> if every transition is recorded; <strong>lineage</strong> and a model card make the deployed model auditable.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Given data is fixed so your printed output can be checked precisely; every printed line is spelled out in the task.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">A Run That Records Stepped Metrics</div>
+        <div class="ex-desc">Build a minimal Run with log_metric and best_step, then report best, last and regret.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement a class Run with:
+  log_metric(key, value, step)  -&gt; appends (step, value) to a list stored under metrics[key]
+  best_step(key, mode="max")    -&gt; returns the (step, value) pair with the best value
+                                   (mode "max" picks the largest, "min" the smallest;
+                                    on a tie the EARLIEST step wins)
+
+Log this validation AUC curve as key "val_auc":
+  steps 0-5 = 0.71, 0.78, 0.83, 0.86, 0.86, 0.85
+
+Then print exactly:
+  f"Best val_auc: {best} at step {step}"
+  f"Last val_auc: {last}"
+  f"Regret: {round(best - last, 2)}"
+  f"Steps logged: {n}"</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">curve = [0.71, 0.78, 0.83, 0.86, 0.86, 0.85]
+
+class Run:
+    def __init__(self):
+        self.metrics = {}
+
+    def log_metric(self, key, value, step):
+        ...   # TODO
+
+    def best_step(self, key, mode="max"):
+        ...   # TODO: return (step, value)
+
+run = Run()
+# TODO: log every value in `curve` under "val_auc" with its index as the step
+# TODO: print the four lines described in the task
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Pick the Best Run — With a Deterministic Tie-Break</div>
+        <div class="ex-desc">Rank runs by AUC, then training time, then run_id, so ties never depend on row order.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+runs below is deliberately shuffled and has ties. Write rank_runs(runs) that returns the
+run_ids ordered best-first using this total ordering:
+  1) val_auc, highest first
+  2) train_s, lowest first
+  3) run_id, alphabetical (the final, always-unique tiebreaker)
+
+Print exactly:
+  f"Winner: {ranking[0]}"
+  f"Ranking: {ranking}"
+  f"Runs tied for top val_auc: {n_top}"     (how many runs share the highest val_auc)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code">runs = [
+    {"run_id": "run-0003", "val_auc": 0.905, "train_s": 55},
+    {"run_id": "run-0001", "val_auc": 0.918, "train_s": 61},
+    {"run_id": "run-0005", "val_auc": 0.918, "train_s": 48},
+    {"run_id": "run-0002", "val_auc": 0.918, "train_s": 48},
+    {"run_id": "run-0006", "val_auc": 0.899, "train_s": 20},
+    {"run_id": "run-0004", "val_auc": 0.905, "train_s": 30},
+]
+
+def rank_runs(runs):
+    ...   # TODO: return a list of run_id strings, best first
+
+ranking = rank_runs(runs)
+# TODO: print the three lines described in the task
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Enumerate a Hyperparameter Grid and Track Every Run</div>
+        <div class="ex-desc">Use itertools.product to build all runs, then report the best config, the worst score and the top 3.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Using the provided fake_train and grid, create one run dict per combination with
+run_id "run-0001", "run-0002", ... in the order itertools.product yields them, and a
+"val_auc" key from fake_train(**params).
+
+Print exactly:
+  f"Runs: {len(runs)}"
+  f"Best: {best}"                       (the whole run dict with the highest val_auc)
+  f"Worst score: {worst_score}"
+  f"Top 3 scores: {top3}"               (list of the 3 highest val_auc values, best first)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">from itertools import product
+
+def fake_train(lr, depth, l2):
+    return round(0.60 + 0.06 * depth - 0.005 * depth ** 2 - 0.4 * abs(lr - 0.05) - 0.1 * l2, 4)
+
+grid = {"lr": [0.01, 0.05, 0.2], "depth": [3, 5], "l2": [0.0, 0.5]}
+
+runs = []
+# TODO: for each combination from product(*grid.values()) build a run dict
+#       {"run_id": ..., "lr": ..., "depth": ..., "l2": ..., "val_auc": ...} and append it
+
+# TODO: print the four lines described in the task
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">A Promotion Gate That Returns Every Reason</div>
+        <div class="ex-desc">Implement can_promote with a floor, a margin over production (boundary-safe), validation and data-quality gates.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Implement can_promote(candidate, production, min_auc=0.85, margin=0.005) returning
+(ok, reasons). reasons is a list of short codes, in THIS order, for every gate that failed:
+  "floor"       candidate val_auc &lt; min_auc
+  "margin"      production is not None AND round(candidate - production, 4) &lt; margin
+                (round the difference first: 0.938 - 0.933 is 0.004999999999999893 in
+                floating point, but must count as exactly 0.005)
+  "validation"  candidate["validation_passed"] is not True
+  "dq"          candidate["open_dq_flags"] is non-empty
+ok is True only when reasons is empty. A first release has production=None (no margin check).
+
+Print one line per case, exactly:
+  f"{name}: {'PROMOTE' if ok else 'BLOCK'} {reasons}"</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">def can_promote(candidate, production, min_auc=0.85, margin=0.005):
+    reasons = []
+    # TODO: append "floor", "margin", "validation", "dq" as described in the task
+    return (not reasons), reasons
+
+prod = {"val_auc": 0.933}
+cases = {
+    "exact_margin":  ({"val_auc": 0.938, "validation_passed": True,  "open_dq_flags": []}, prod),
+    "just_short":    ({"val_auc": 0.937, "validation_passed": True,  "open_dq_flags": []}, prod),
+    "dq_flagged":    ({"val_auc": 0.950, "validation_passed": True,  "open_dq_flags": ["null spike"]}, prod),
+    "everything_bad": ({"val_auc": 0.800, "validation_passed": False, "open_dq_flags": []}, prod),
+    "first_release": ({"val_auc": 0.870, "validation_passed": True,  "open_dq_flags": []}, None),
+}
+# TODO: loop over cases, call can_promote, print the line described in the task
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Roll Back to the Previous Production Version</div>
+        <div class="ex-desc">Use a transition history to restore the version that was in production before the current one.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Complete the Registry so that:
+  promote(version)  archives the current Production version (history reason "replaced by v&lt;version&gt;")
+                    and sets &lt;version&gt; to Production
+  rollback()        finds, in the history, the version that was replaced by the CURRENT production
+                    version, archives the current one, and restores that previous version.
+                    If there is none, raise RuntimeError("no previous production version").
+
+Then promote v1, v2, v3; roll back twice; try a third rollback. Print exactly:
+  f"After 3 promotions: {stages}"
+  f"After rollback 1: {stages}"
+  f"After rollback 2: {stages}"
+  f"Rollback 3 blocked: {error}"
+where stages is dict(sorted(reg.stage.items())) and error is the RuntimeError message.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code">class Registry:
+    def __init__(self):
+        self.stage = {}       # version -&gt; stage
+        self.history = []     # (version, from_stage, to_stage, reason)
+
+    def set_stage(self, version, to, reason=""):
+        self.history.append((version, self.stage.get(version, "None"), to, reason))
+        self.stage[version] = to
+
+    def production(self):
+        return next((v for v, s in self.stage.items() if s == "Production"), None)
+
+    def promote(self, version):
+        ...   # TODO
+
+    def rollback(self):
+        ...   # TODO
+
+reg = Registry()
+# TODO: promote 1, 2, 3 and print the first line
+# TODO: rollback twice, printing after each; then try a third rollback inside try/except
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Capstone →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Capstone: <span>MiniRegistry</span></h2>
+    <p>The real lifecycle of a model in one script: sweep six configurations, register the winner with its lineage, promote it through Staging to Production behind a gate, ship a better retrain, then roll back when the canary looks bad. This is the loop MLflow, SageMaker and Vertex AI automate, built from the pieces you just learned.</p>
+    <div class="project-tags">
+      <span class="ptag">tracking</span>
+      <span class="ptag">registry</span>
+      <span class="ptag">promotion gates</span>
+      <span class="ptag">rollback</span>
+      <span class="ptag">lineage</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Train the six CONFIGS with fake_train and pick the best run with the deterministic tie-break (-val_auc, train_s, run_id)</li>
+      <li>Write a MiniRegistry with register / set_stage / production / promote / rollback, recording every transition in a history list</li>
+      <li>Register the winner as v1, check its lineage is complete, gate it as a first release, and move it None → Staging → Production</li>
+      <li>Register V2_INFO as v2, gate it against production with the 0.01 margin, and promote it (v1 is archived automatically)</li>
+      <li>Simulate the canary: error_rate 0.09 against a 0.05 limit is over, so roll back and make v1 the Production version again</li>
+      <li>Print the nine lines listed in TODO 4</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ MiniRegistry — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Capstone: MiniRegistry
+# Everything you need was built in sections 2.1 - 2.8.
+# The helpers and data below are given - write TODO 1 to TODO 4 beneath them.
+# ══════════════════════════════════════════
+
+def fake_train(lr, depth):
+    return round(0.70 + 0.05 * depth - 0.004 * depth ** 2 - 0.5 * abs(lr - 0.1), 4)
+
+TRAIN_TIME = {2: 12, 4: 40, 6: 75}
+CONFIGS = [(0.01, 4), (0.1, 4), (0.3, 4), (0.1, 6), (0.1, 2), (0.3, 6)]
+
+V1_META = {"data_sha": "9f2c41", "git_sha": "3e7b1c9", "validation_passed": True, "open_dq_flags": []}
+V2_INFO = {"run_id": "run-0007", "val_auc": 0.872, "data_sha": "c41e07", "git_sha": "a41d0e2",
+           "validation_passed": True, "open_dq_flags": []}
+CANARY = {"error_rate": 0.09, "limit": 0.05}
+LINEAGE = ("run_id", "data_sha", "git_sha")
+
+def can_promote(candidate, production, min_auc=0.80, margin=0.01):
+    reasons = []
+    if candidate["val_auc"] &lt; min_auc:
+        reasons.append("floor")
+    if production is not None and round(candidate["val_auc"] - production["val_auc"], 4) &lt; margin:
+        reasons.append("margin")
+    if candidate.get("validation_passed") is not True:
+        reasons.append("validation")
+    if candidate.get("open_dq_flags"):
+        reasons.append("dq")
+    return (not reasons), reasons
+
+# === TODO 1: train the six CONFIGS ===
+# runs = one dict per config: {"run_id": "run-0001", ..., "lr", "depth", "val_auc", "train_s"}
+#   (val_auc from fake_train, train_s from TRAIN_TIME[depth])
+# best = the winner by the total ordering (-val_auc, train_s, run_id)
+
+# === TODO 2: write a MiniRegistry class ===
+#   register(info)             -&gt; next version number (1, 2, ...); store dict(info, stage="None")
+#   set_stage(v, to, reason)   -&gt; append (v, old_stage, to, reason) to self.history, then set the stage
+#   production()               -&gt; the version whose stage is "Production", or None
+#   promote(v)                 -&gt; archive the current production (reason f"replaced by v{v}"), set v Production
+#   rollback(reason)           -&gt; restore the version replaced by the CURRENT production
+#                                 (raise RuntimeError("no previous production version") if none)
+
+# === TODO 3: drive the lifecycle ===
+#   register best as v1 (info = run_id + val_auc + V1_META) and assert LINEAGE keys are all present
+#   gate v1 with can_promote(..., None); if ok: None -&gt; Staging -&gt; Production
+#   register V2_INFO as v2, gate it against the production version, promote it if ok
+#   if CANARY["error_rate"] &gt; CANARY["limit"]: roll back
+
+# === TODO 4: print exactly these lines (values come from your code) ===
+#   Trained 6 runs; best &lt;run_id&gt; val_auc=&lt;value&gt;
+#   Registered v1 from &lt;run_id&gt; (lineage complete)
+#   v1 gate: PROMOTE []
+#   Production: v1
+#   v2 gate: PROMOTE []
+#   Production: v2 (v1 is Archived)
+#   Canary error_rate 0.09 &gt; 0.05 -&gt; ROLLBACK
+#   Production: v1
+#   History: 6 transitions
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Capstone Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">🏋️</span>Trained 6 runs and reported the best run id and its val_auc (tie-broken deterministically)</div>
+    <div class="check-item"><span class="check-icon">📦</span>Registered v1 and confirmed its lineage is complete</div>
+    <div class="check-item"><span class="check-icon">🚦</span>Gated v1 as a first release, then Production: v1</div>
+    <div class="check-item"><span class="check-icon">⬆️</span>Gated v2 with the margin and promoted it: Production: v2 with v1 Archived</div>
+    <div class="check-item"><span class="check-icon">🐤</span>Canary error rate over the limit: ROLLBACK, Production: v1 again</div>
+    <div class="check-item"><span class="check-icon">📜</span>History: 6 transitions</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 MLOps Python 2 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass. You can retake this as many times as you want — nothing is saved across page loads.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A run's validation loss was lowest at epoch 8 of 30, and you logged only the final value. What goes wrong?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Nothing — the final value is always the best one</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> You compare runs by a number that reflects overfitting instead of model quality, and you can't tell when to stop; logging per-step metrics and recording the best step fixes it</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> MLflow refuses to store a run with a single metric value</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It only matters when training on a GPU</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Three runs tie on val_auc = 0.912, and your &quot;pick the best run&quot; code returns a different winner on different machines. What is the most likely cause and the right fix?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Floating-point error — switch to float32</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The database is corrupt — re-import the runs</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Randomness in training — add more seeds</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It relies on the incidental row order for ties — define an explicit total ordering such as (metric desc, train time asc, run_id asc)</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Why are registry <em>aliases</em> (like <code>champion</code> and <code>challenger</code>) replacing fixed stages in modern tooling?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Aliases are named pointers you can create freely, move atomically and attach several of to one model, while stages are a fixed list of four</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Aliases encrypt the model artifact</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Stages cannot point to a specific model version</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Aliases make the model train faster</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">A candidate scores 0.914 AUC against production's 0.912, and your gate requires a margin of 0.005. What should happen and why?</div>
+    <div class="q-options" id="q4-opts">
+      <button class="q-opt" onclick="selectOpt(4,'A')"><span class="q-opt-letter">A</span> Promote — any improvement is an improvement</button>
+      <button class="q-opt" onclick="selectOpt(4,'B')"><span class="q-opt-letter">B</span> Promote it to Staging automatically, then Production after a week</button>
+      <button class="q-opt" onclick="selectOpt(4,'C')"><span class="q-opt-letter">C</span> Block it — a 0.002 gain is within run-to-run noise (seed variance, evaluation-set size), so it adds deployment risk for a probably-imaginary benefit</button>
+      <button class="q-opt" onclick="selectOpt(4,'D')"><span class="q-opt-letter">D</span> Block it only if training loss is also higher</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">Which set of recorded facts lets you rebuild the exact model that has been in production for six months?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> The run name and its final metric</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Data version hash, git commit, params, seed and a locked environment (plus the artifact checksum)</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Only the pickled model file</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> A screenshot of the metrics dashboard</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🔀</div>
+    <div class="ncc-info">
+      <h3>MP 3: Pipelines &amp; Orchestration</h3>
+      <p>Next up: DAGs and topological sort, retries and idempotent tasks, input-hash caching, backfills over date partitions, and how Airflow, Prefect and Kubeflow express the same ideas.</p>
+    </div>
+    <a class="ncc-btn" href="mp03-pipelines-orchestration.html">Start MP 3 →</a>
+  </div>
+</div><!-- end quiz -->
+
+<div class="interview-section" id="sec-interview">
+  <div class="interview-intro">
+    <h2>💼 Experiment Tracking &amp; Model Registry — Interview Prep</h2>
+    <p>10 questions on the exact angles MLOps and ML-platform interviewers use to tell whether you have run models in production or only trained them in a notebook. Click a question to reveal what a strong answer covers, including the pitfall most candidates miss.</p>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What belongs in an experiment record beyond hyperparameters and a final metric?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Everything you would need to reproduce and audit the run: <strong>params</strong>, <strong>metrics per step</strong> (not just the last value), <strong>tags</strong> (owner, model name, purpose), a <strong>data version</strong> (content hash or table snapshot id), the <strong>git commit</strong> (and whether the working tree was dirty), the <strong>environment</strong> (Python and library versions, ideally a lockfile hash), the <strong>random seed</strong>, and <strong>artifacts</strong> stored with checksums. A strong answer also mentions <strong>failed runs</strong> — you keep those, with status FAILED, because &quot;what didn't work and why&quot; saves the next person days.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why do you log a hash of the training data and the git SHA instead of just a dataset name and a branch?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Names and branches are <strong>mutable</strong>: <code>train_v3.csv</code> gets overwritten and <code>main</code> moves. A content hash and a commit SHA are immutable identifiers, so they answer &quot;exactly which bytes and which code produced this model&quot; even a year later. If the working tree was dirty at run time, a SHA alone is misleading — log the dirty flag (or refuse to track from a dirty tree in CI).</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you compare two experiments fairly?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Same data split (a fixed, versioned split — never re-split per run), same metric definition, same evaluation protocol (best-step on validation, one shot on the untouched test set), and enough <strong>seeds</strong> to see the variance: if the seed-to-seed spread is 0.004 AUC, a 0.002 difference means nothing. Also compare cost (train time, latency, model size), not just the headline metric. Mention data leakage — a suspiciously large jump is more often a leak than a breakthrough.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is the difference between an experiment tracker and a model registry?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The tracker records <strong>what you tried</strong> — many runs, most of them discarded — and is optimized for comparison. The registry records <strong>what you serve</strong> — a small set of named, versioned, approved models with a lifecycle — and is optimized for governance and deployment. The link between them is lineage: every registered version points back to the run (and thereby the data and code) that produced it. Feature stores are a third, separate concern: they version the <em>inputs</em>.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Stages (Staging/Production) versus aliases (champion/challenger) — why did MLflow move toward aliases?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Stages are a fixed vocabulary of four, one meaning per model, which does not fit real workflows (shadow, canary, per-region champions, A/B challengers). <strong>Aliases</strong> are arbitrary named pointers to a version; you can move one atomically and have several per model, and deployment tooling just resolves <code>models:/churn@champion</code>. The promotion logic doesn't change — it's still gates deciding whether a pointer may move.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What gates would you require before a model reaches production?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A metric <strong>floor</strong> and a <strong>margin</strong> over the current production model (so noise doesn't cause churn), a passing <strong>validation suite</strong> (schema, slice/segment metrics — the worst segment, not only the average — fairness and bias checks where relevant), <strong>no open data-quality flags</strong>, a successful <strong>load and latency test</strong>, and a <strong>human approval</strong> for high-risk models. Return <em>all</em> failing reasons from the gate so the person fixing it isn't playing whack-a-mole. Then deploy gradually: shadow, canary, then full traffic.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A model you just promoted is misbehaving. Walk me through rolling back.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">First, <strong>rollback must be fast and boring</strong>: the previous production version is still in the registry, its artifact is immutable, and the transition history says exactly which version it was, so it's a pointer move (or alias flip), not a rebuild. Keep the old version <strong>warm</strong> (still deployable, dependencies available). Watch the trap: if the new model needed <em>new features</em> or a changed schema, rolling back the model alone may break — the feature contract has to be compatible (or versioned together). Afterwards, record why in the history and add a test or gate so the failure can't recur silently.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How would you reproduce a model that has been in production for six months?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Look up the registry version and follow lineage: run id → data hash (fetch that exact snapshot from versioned storage), git SHA (check out that commit), params and seed, and the environment lock (rebuild the same container or venv). Re-run training and compare metrics to the recorded ones; small differences from non-deterministic GPU ops are normal, large ones mean something wasn't captured. If any link is missing, that's the finding — you fix the process so the next model has it.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">MLflow versus Weights &amp; Biases (or Neptune, Comet, SageMaker Experiments) — how do you choose?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><strong>MLflow</strong> is open source and self-hostable, has an integrated model registry and broad framework support — you control cost and data location but you run and secure the server. <strong>W&amp;B</strong> and similar hosted tools have polished UIs, collaboration, reports and sweeps with little setup, at a per-seat price and with data leaving your network (or an enterprise self-host option). Decide on data-residency/compliance, team size and how much platform effort you can spend. The tracking <em>discipline</em> matters more than the tool, and wrapping the calls behind your own thin interface avoids lock-in.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Is there a downside to tracking too much?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Yes: storage and cost (large artifacts every run), slower training if logging is synchronous or per-step for huge models, noise that hides the signal, and sensitive data leaking into logs and artifacts (samples of PII, credentials in params). Log metrics at a sensible cadence, store big artifacts by reference plus checksum, log asynchronously, redact secrets, and set retention policies — keep everything for registered models, expire the rest.</div></div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Back to Quiz</button>
+  </div>
+</div><!-- end interview -->
+
+  </div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Standard library only, except section 2.4 which loads pandas on demand','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz','interview'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+const EXERCISES = {
+  1:{
+    checks:["Best val_auc: 0.86 at step 3", "Last val_auc: 0.85", "Regret: 0.01", "Steps logged: 6"],
+    hint:"max()/min() with key=lambda sv: sv[1] return the FIRST best element on ties, which is exactly the tie rule you need. Last value is metrics['val_auc'][-1][1].",
+    solution:"class Run:\n    def __init__(self):\n        self.metrics = {}\n\n    def log_metric(self, key, value, step):\n        self.metrics.setdefault(key, []).append((step, value))\n\n    def best_step(self, key, mode=\"max\"):\n        pick = max if mode == \"max\" else min\n        return pick(self.metrics[key], key=lambda sv: sv[1])\n\ncurve = [0.71, 0.78, 0.83, 0.86, 0.86, 0.85]\nrun = Run()\nfor step, value in enumerate(curve):\n    run.log_metric(\"val_auc\", value, step)\n\nstep, best = run.best_step(\"val_auc\")\nlast = run.metrics[\"val_auc\"][-1][1]\nprint(f\"Best val_auc: {best} at step {step}\")\nprint(f\"Last val_auc: {last}\")\nprint(f\"Regret: {round(best - last, 2)}\")\nprint(f\"Steps logged: {len(run.metrics['val_auc'])}\")"
+  },
+  2:{
+    checks:["Winner: run-0002", "Ranking: ['run-0002', 'run-0005', 'run-0001', 'run-0004', 'run-0003', 'run-0006']", "Runs tied for top val_auc: 3"],
+    hint:"sorted(runs, key=lambda r: (-r['val_auc'], r['train_s'], r['run_id'])) — negate the metric so 'highest first' and 'lowest first' can share one ascending sort.",
+    solution:"runs = [\n    {\"run_id\": \"run-0003\", \"val_auc\": 0.905, \"train_s\": 55},\n    {\"run_id\": \"run-0001\", \"val_auc\": 0.918, \"train_s\": 61},\n    {\"run_id\": \"run-0005\", \"val_auc\": 0.918, \"train_s\": 48},\n    {\"run_id\": \"run-0002\", \"val_auc\": 0.918, \"train_s\": 48},\n    {\"run_id\": \"run-0006\", \"val_auc\": 0.899, \"train_s\": 20},\n    {\"run_id\": \"run-0004\", \"val_auc\": 0.905, \"train_s\": 30},\n]\n\ndef rank_runs(runs):\n    ordered = sorted(runs, key=lambda r: (-r[\"val_auc\"], r[\"train_s\"], r[\"run_id\"]))\n    return [r[\"run_id\"] for r in ordered]\n\nranking = rank_runs(runs)\ntop = max(r[\"val_auc\"] for r in runs)\nn_top = sum(1 for r in runs if r[\"val_auc\"] == top)\nprint(f\"Winner: {ranking[0]}\")\nprint(f\"Ranking: {ranking}\")\nprint(f\"Runs tied for top val_auc: {n_top}\")"
+  },
+  3:{
+    checks:["Runs: 12", "Best: {'run_id': 'run-0007', 'lr': 0.05, 'depth': 5, 'l2': 0.0, 'val_auc': 0.775}", "Worst score: 0.625", "Top 3 scores: [0.775, 0.759, 0.735]"],
+    hint:"dict(zip(grid, values)) turns a product() tuple back into named params; then {'run_id': f'run-{i:04d}', **params, 'val_auc': fake_train(**params)}.",
+    solution:"from itertools import product\n\ndef fake_train(lr, depth, l2):\n    return round(0.60 + 0.06 * depth - 0.005 * depth ** 2 - 0.4 * abs(lr - 0.05) - 0.1 * l2, 4)\n\ngrid = {\"lr\": [0.01, 0.05, 0.2], \"depth\": [3, 5], \"l2\": [0.0, 0.5]}\n\nruns = []\nfor i, values in enumerate(product(*grid.values()), start=1):\n    params = dict(zip(grid, values))\n    runs.append({\"run_id\": f\"run-{i:04d}\", **params, \"val_auc\": fake_train(**params)})\n\nbest = max(runs, key=lambda r: r[\"val_auc\"])\nworst_score = min(r[\"val_auc\"] for r in runs)\ntop3 = sorted((r[\"val_auc\"] for r in runs), reverse=True)[:3]\nprint(f\"Runs: {len(runs)}\")\nprint(f\"Best: {best}\")\nprint(f\"Worst score: {worst_score}\")\nprint(f\"Top 3 scores: {top3}\")"
+  },
+  4:{
+    checks:["exact_margin: PROMOTE []", "just_short: BLOCK ['margin']", "dq_flagged: BLOCK ['dq']", "everything_bad: BLOCK ['floor', 'margin', 'validation']", "first_release: PROMOTE []"],
+    hint:"Rounding the delta first: delta = round(candidate['val_auc'] - production['val_auc'], 4). Then 0.938-0.933 becomes exactly 0.005 and 'delta < margin' is False, so the boundary case passes.",
+    solution:"def can_promote(candidate, production, min_auc=0.85, margin=0.005):\n    reasons = []\n    if candidate[\"val_auc\"] < min_auc:\n        reasons.append(\"floor\")\n    if production is not None and round(candidate[\"val_auc\"] - production[\"val_auc\"], 4) < margin:\n        reasons.append(\"margin\")\n    if candidate.get(\"validation_passed\") is not True:\n        reasons.append(\"validation\")\n    if candidate.get(\"open_dq_flags\"):\n        reasons.append(\"dq\")\n    return (not reasons), reasons\n\nprod = {\"val_auc\": 0.933}\ncases = {\n    \"exact_margin\":  ({\"val_auc\": 0.938, \"validation_passed\": True,  \"open_dq_flags\": []}, prod),\n    \"just_short\":    ({\"val_auc\": 0.937, \"validation_passed\": True,  \"open_dq_flags\": []}, prod),\n    \"dq_flagged\":    ({\"val_auc\": 0.950, \"validation_passed\": True,  \"open_dq_flags\": [\"null spike\"]}, prod),\n    \"everything_bad\": ({\"val_auc\": 0.800, \"validation_passed\": False, \"open_dq_flags\": []}, prod),\n    \"first_release\": ({\"val_auc\": 0.870, \"validation_passed\": True,  \"open_dq_flags\": []}, None),\n}\nfor name, (cand, production) in cases.items():\n    ok, reasons = can_promote(cand, production)\n    print(f\"{name}: {'PROMOTE' if ok else 'BLOCK'} {reasons}\")"
+  },
+  5:{
+    checks:["After 3 promotions: {1: 'Archived', 2: 'Archived', 3: 'Production'}", "After rollback 1: {1: 'Archived', 2: 'Production', 3: 'Archived'}", "After rollback 2: {1: 'Production', 2: 'Archived', 3: 'Archived'}", "Rollback 3 blocked: no previous production version"],
+    hint:"Search reversed(self.history) for an entry (v, 'Production', 'Archived', f'replaced by v{current}') — v is the previous production version.",
+    solution:"class Registry:\n    def __init__(self):\n        self.stage = {}\n        self.history = []\n\n    def set_stage(self, version, to, reason=\"\"):\n        self.history.append((version, self.stage.get(version, \"None\"), to, reason))\n        self.stage[version] = to\n\n    def production(self):\n        return next((v for v, s in self.stage.items() if s == \"Production\"), None)\n\n    def promote(self, version):\n        current = self.production()\n        if current is not None:\n            self.set_stage(current, \"Archived\", f\"replaced by v{version}\")\n        self.set_stage(version, \"Production\", \"gates passed\")\n\n    def rollback(self):\n        current = self.production()\n        previous = next((v for (v, frm, to, why) in reversed(self.history)\n                         if frm == \"Production\" and to == \"Archived\" and why == f\"replaced by v{current}\"), None)\n        if previous is None:\n            raise RuntimeError(\"no previous production version\")\n        self.set_stage(current, \"Archived\", \"rolled back\")\n        self.set_stage(previous, \"Production\", \"rollback restore\")\n\nreg = Registry()\nfor v in (1, 2, 3):\n    reg.promote(v)\nprint(f\"After 3 promotions: {dict(sorted(reg.stage.items()))}\")\nreg.rollback()\nprint(f\"After rollback 1: {dict(sorted(reg.stage.items()))}\")\nreg.rollback()\nprint(f\"After rollback 2: {dict(sorted(reg.stage.items()))}\")\ntry:\n    reg.rollback()\nexcept RuntimeError as err:\n    print(f\"Rollback 3 blocked: {err}\")"
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=["trained 6 runs; best run-0004 val_auc=0.856", "registered v1 from run-0004 (lineage complete)", "v1 gate: promote []", "production: v1", "v2 gate: promote []", "production: v2 (v1 is archived)", "canary error_rate 0.09 > 0.05 -> rollback", "production: v1", "history: 6 transitions"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Capstone complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+const CORRECT={"1": "B", "2": "D", "3": "A", "4": "C", "5": "B"};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,4,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Run records that can be reproduced, tie-broken comparisons, a registry with one production version, gates that explain themselves, and rollback from history — the working vocabulary of an MLOps engineer. Check the Interview Prep tab, then move on to MP 3.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+</body>
+</html>
