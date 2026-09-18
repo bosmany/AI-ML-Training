@@ -470,6 +470,114 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>If you were writing your own file</strong> (say, <code>metrics.py</code>) full of functions, another file could use them with <code>from metrics import compute_accuracy</code>. This is how real ML projects are structured: one file per concern (data loading, model, metrics, training loop), stitched together with imports.</div></div>
 
+  <!-- 3.8 -->
+  <div class="lesson-h2">3.8 — Closures, Nested Functions & nonlocal</div>
+  <p class="lesson-p">A function defined inside another function is a <strong>nested function</strong>. If the inner function uses a variable from the outer function's scope, it "closes over" that variable — that's a <strong>closure</strong>. The outer function can return the inner one, and the inner one keeps remembering the outer variable even after the outer function has finished running. To let the inner function <em>modify</em> (not just read) that outer variable, use <code>nonlocal</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A closure that remembers, and one that counts</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> make_multiplier(factor):
+    <span class="kw">def</span> multiply(x):
+        <span class="kw">return</span> x * factor    <span class="cm"># 'factor' is remembered from the outer scope</span>
+    <span class="kw">return</span> multiply
+
+double = make_multiplier(<span class="nm">2</span>)
+triple = make_multiplier(<span class="nm">3</span>)
+<span class="bi">print</span>(double(<span class="nm">5</span>))    <span class="cm"># 10</span>
+<span class="bi">print</span>(triple(<span class="nm">5</span>))    <span class="cm"># 15</span>
+
+<span class="cm"># nonlocal lets the inner function MODIFY the outer variable</span>
+<span class="kw">def</span> make_counter():
+    count = <span class="nm">0</span>
+    <span class="kw">def</span> increment():
+        <span class="kw">nonlocal</span> count
+        count += <span class="nm">1</span>
+        <span class="kw">return</span> count
+    <span class="kw">return</span> increment
+
+counter = make_counter()
+<span class="bi">print</span>(counter())   <span class="cm"># 1</span>
+<span class="bi">print</span>(counter())   <span class="cm"># 2</span>
+<span class="bi">print</span>(counter())   <span class="cm"># 3 — each call remembers the running total</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>nonlocal vs global:</strong> <code>global</code> (3.6) reaches all the way to module-level variables. <code>nonlocal</code> reaches only to the nearest ENCLOSING function's scope — the one directly outside, not all the way to the top.</div></div>
+
+  <!-- 3.9 -->
+  <div class="lesson-h2">3.9 — Type Hints on Function Signatures</div>
+  <p class="lesson-p">Type hints document what a function expects and returns — <code>def f(x: int) -> str:</code> — without changing how the code runs (Python never enforces them at runtime). They're standard in professional Python because they let your editor catch mistakes before you run the code, and they make a function's contract obvious without reading its body.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Type hints on parameters, return values, and variables</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> compute_accuracy(correct: <span class="bi">int</span>, total: <span class="bi">int</span>) -> <span class="bi">float</span>:
+    <span class="kw">return</span> correct / total
+
+<span class="kw">def</span> format_metric(name: <span class="bi">str</span>, value: <span class="bi">float</span>, decimals: <span class="bi">int</span> = <span class="nm">4</span>) -> <span class="bi">str</span>:
+    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
+
+acc: <span class="bi">float</span> = compute_accuracy(<span class="nm">83</span>, <span class="nm">100</span>)
+<span class="bi">print</span>(format_metric(<span class="st">'accuracy'</span>, acc))
+
+<span class="cm"># list[float] hints "a list of floats" — Python 3.9+ built-in generic syntax</span>
+<span class="kw">def</span> average(values: <span class="bi">list</span>[<span class="bi">float</span>]) -> <span class="bi">float</span>:
+    <span class="kw">return</span> <span class="bi">sum</span>(values) / <span class="bi">len</span>(values)
+
+<span class="bi">print</span>(average([<span class="nm">0.9</span>, <span class="nm">0.8</span>, <span class="nm">0.95</span>]))</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Type hints are <strong>not enforced</strong> — calling <code>compute_accuracy('83', '100')</code> would still run (and crash later with the wrong error) since Python doesn't check hints at runtime. Tools like <code>mypy</code> check them separately, before the code ever runs.</div></div>
+
+  <!-- 3.10 -->
+  <div class="lesson-h2">3.10 — functools: reduce, partial, lru_cache</div>
+  <p class="lesson-p">The <code>functools</code> module has three tools you'll reach for constantly: <code>reduce()</code> collapses a list down to one value by repeatedly combining pairs (a generalization of <code>sum()</code>), <code>partial()</code> "pre-fills" some of a function's arguments to create a new, simpler function, and <code>@lru_cache</code> automatically remembers past results so an expensive function is never recomputed for the same input twice.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">reduce, partial, and lru_cache in action</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> functools <span class="kw">import</span> reduce, partial, lru_cache
+
+<span class="cm"># reduce(function, iterable) — combine all items into one value</span>
+losses = [<span class="nm">0.9</span>, <span class="nm">0.7</span>, <span class="nm">0.5</span>, <span class="nm">0.3</span>]
+total = reduce(<span class="kw">lambda</span> acc, x: acc + x, losses)
+<span class="bi">print</span>(<span class="st">f'Total loss: <span class="bi">{total}</span>'</span>)
+
+<span class="cm"># partial(function, fixed_arg) — lock in an argument, get a simpler function back</span>
+<span class="kw">def</span> scale(factor, value):
+    <span class="kw">return</span> value * factor
+
+double = partial(scale, <span class="nm">2</span>)     <span class="cm"># 'factor' is now always 2</span>
+<span class="bi">print</span>(double(<span class="nm">21</span>))          <span class="cm"># 42</span>
+
+<span class="cm"># @lru_cache — memoize: skip recomputing for an input you've already seen</span>
+<span class="op">@lru_cache</span>(maxsize=<span class="kw">None</span>)
+<span class="kw">def</span> slow_square(n):
+    <span class="bi">print</span>(<span class="st">f'computing square of <span class="bi">{n}</span>'</span>)
+    <span class="kw">return</span> n * n
+
+<span class="bi">print</span>(slow_square(<span class="nm">5</span>))   <span class="cm"># prints "computing..." then 25</span>
+<span class="bi">print</span>(slow_square(<span class="nm">5</span>))   <span class="cm"># cached — no "computing..." line, straight to 25</span>
+<span class="bi">print</span>(slow_square(<span class="nm">6</span>))   <span class="cm"># new input — computes again</span></div>
+  </div>
+
+  <!-- 3.11 -->
+  <div class="lesson-h2">3.11 — Docstrings, Packages & if __name__ == '__main__'</div>
+  <p class="lesson-p">A <strong>docstring</strong> is a string literal right under a <code>def</code> — it documents what the function does and shows up when someone calls <code>help(your_function)</code> or checks <code>your_function.__doc__</code>. <code>if __name__ == '__main__':</code> is a guard that only runs when a file is executed directly (<code>python script.py</code>) — not when it's imported by another file. A <strong>package</strong> is a folder of modules with an <code>__init__.py</code> file inside it, letting you organize a real project as <code>myproject/data.py</code>, <code>myproject/model.py</code>, imported as <code>from myproject import data</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Docstrings and the __main__ guard</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> compute_f1(precision, recall):
+    <span class="st">"""Return the harmonic mean of precision and recall (the F1 score)."""</span>
+    <span class="kw">return</span> <span class="nm">2</span> * (precision * recall) / (precision + recall)
+
+<span class="bi">print</span>(compute_f1.__doc__)
+<span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{compute_f1(0.8, 0.6):.4f}</span>'</span>)
+
+<span class="kw">def</span> main():
+    <span class="bi">print</span>(<span class="st">'Running as a script, not imported'</span>)
+    <span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{compute_f1(0.9, 0.85):.4f}</span>'</span>)
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    main()   <span class="cm"># only runs when THIS file is executed directly</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why the __main__ guard matters:</strong> without it, importing your file anywhere else (<code>from metrics import compute_f1</code>) would also immediately re-run everything inside <code>main()</code> — the guard is what lets a file be BOTH a reusable module and a runnable script.<br/><strong>Packages, reference only:</strong> a real multi-file package (<code>__init__.py</code>, relative imports like <code>from .metrics import compute_f1</code>) needs a real filesystem with multiple files — this in-browser console runs one file at a time, so this part is conceptual here; you'll use it for real in any project you run locally.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 3 Summary</div>
   <ul class="step-list">
@@ -477,8 +585,9 @@ ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</spa
     <li data-n="2"><div><strong>Default parameters</strong> (<code>decimals=4</code>) make functions flexible without forcing every caller to specify everything.</div></li>
     <li data-n="3"><div><strong>*args</strong> collects extra positional arguments into a tuple. <strong>**kwargs</strong> collects extra keyword arguments into a dict.</div></li>
     <li data-n="4"><div><strong>lambda</strong> writes a tiny function inline — most often as the <code>key</code> for <code>sorted()</code>.</div></li>
-    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable — but prefer <code>return</code>ing values instead when you can.</div></li>
+    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable, <code>nonlocal</code> for an enclosing function's variable — but prefer <code>return</code>ing values instead when you can.</div></li>
     <li data-n="6"><div><strong>Modules:</strong> <code>import math</code>, <code>from math import sqrt</code> — every ML library (NumPy, Pandas, sklearn) is used exactly this way.</div></li>
+    <li data-n="7"><div><strong>Type hints</strong> (<code>x: int -> float</code>) document contracts without runtime enforcement. <strong>functools</strong> gives you <code>reduce</code>, <code>partial</code>, and <code>@lru_cache</code>. <strong>Docstrings</strong> + <code>if __name__=='__main__':</code> make a file both documented and dual-purpose (importable AND runnable).</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -572,13 +681,22 @@ Then print:
       </div>
     </div>
     <div class="ex-task">Task:
-Write average_loss(*losses) that RETURNS the average of however many
-values it's given.
+Write average_loss(*losses, **kwargs) that RETURNS a formatted string.
 
-Print exactly: f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}'
-(The correct answer is Average: 0.3500)</div>
+*losses collects however many values it's given (like before). **kwargs
+should accept an OPTIONAL keyword argument called "label" (default to the
+string 'Run' if no label is passed) using kwargs.get('label', 'Run').
+
+Return exactly: f'{label} average: {avg:.4f}'  (where avg is the mean of losses)
+
+Print: average_loss(0.5, 0.3, 0.4, 0.2, label='Validation')
+(The correct answer is Validation average: 0.3500)
+Print: average_loss(0.9, 0.1)
+(The correct answer is Run average: 0.5000 — no label given, so it defaults to 'Run')</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code"># def average_loss(*losses): ...
+      <textarea class="ex-editor" id="ex3-code"># def average_loss(*losses, **kwargs):
+#     label = kwargs.get('label', 'Run')
+#     ...
 
 </textarea>
       <div class="ex-btn-row">
@@ -639,8 +757,9 @@ Print exactly: f'Top performer: {sorted_scores[0][0]}'
     <div class="ex-task">Task:
 total_processed = 0   (already given as a global variable)
 
-Write process_batch(batch_size) that uses "global total_processed"
-and adds batch_size to it (no return needed).
+Write process_batch(batch_size: int) -> None: with a type-hinted signature
+(parameter AND return type) and a one-line docstring describing what it does.
+Inside, use "global total_processed" and add batch_size to it (no return needed).
 
 Call it three times: process_batch(32), process_batch(16), process_batch(8)
 Then print exactly: f'Total processed: {total_processed}'
@@ -648,7 +767,9 @@ Then print exactly: f'Total processed: {total_processed}'
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">total_processed = 0
 
-# def process_batch(batch_size): ...
+# def process_batch(batch_size: int) -> None:
+#     """..."""
+#     ...
 
 </textarea>
       <div class="ex-btn-row">
@@ -995,12 +1116,15 @@ print(format_metric('loss', 0.123456))
 print(format_metric('accuracy', 0.9423, decimals=2))`
   },
   3:{
-    checks:['average: 0.3500'],
-    hint:"def average_loss(*losses): return sum(losses)/len(losses)",
-    solution:`def average_loss(*losses):
-    return sum(losses) / len(losses)
+    checks:['validation average: 0.3500','run average: 0.5000'],
+    hint:"def average_loss(*losses, **kwargs): label=kwargs.get('label','Run'); avg=sum(losses)/len(losses); return f'{label} average: {avg:.4f}'",
+    solution:`def average_loss(*losses, **kwargs):
+    label = kwargs.get('label', 'Run')
+    avg = sum(losses) / len(losses)
+    return f'{label} average: {avg:.4f}'
 
-print(f'Average: {average_loss(0.5, 0.3, 0.4, 0.2):.4f}')`
+print(average_loss(0.5, 0.3, 0.4, 0.2, label='Validation'))
+print(average_loss(0.9, 0.1))`
   },
   4:{
     checks:['top performer: bob'],
@@ -1011,10 +1135,11 @@ print(f'Top performer: {sorted_scores[0][0]}')`
   },
   5:{
     checks:['total processed: 56'],
-    hint:"def process_batch(batch_size): global total_processed; total_processed += batch_size",
+    hint:"def process_batch(batch_size: int) -> None: \"\"\"...\"\"\"; global total_processed; total_processed += batch_size",
     solution:`total_processed = 0
 
-def process_batch(batch_size):
+def process_batch(batch_size: int) -> None:
+    """Add batch_size to the running total of samples processed."""
     global total_processed
     total_processed += batch_size
 

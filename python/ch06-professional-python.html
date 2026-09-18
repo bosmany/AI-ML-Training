@@ -415,6 +415,29 @@ deactivate</div>
   </div>
   <p class="lesson-p">Why this matters for DevOps and ML alike: any resource that needs guaranteed cleanup — a database connection, a temp file, a GPU memory allocation, a timer around a training step — belongs in a context manager, not in ad-hoc code you might forget to run on the error path.</p>
 
+  <!-- 6.3b -->
+  <div class="lesson-h2">6.3b — Class-Based Context Managers: __enter__ / __exit__</div>
+  <p class="lesson-p"><code>@contextmanager</code> isn't the only way to build one — any class that defines <code>__enter__</code> and <code>__exit__</code> works with <code>with</code> too. <code>__enter__</code> runs on entry and its return value is what <code>as</code> binds to; <code>__exit__</code> always runs on exit (even after an exception) and receives the exception info as three arguments — returning <code>True</code> from it would suppress the exception, <code>False</code> lets it propagate.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The class-based protocol</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Stage</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name):
+        self.name = name
+
+    <span class="kw">def</span> <span class="fn">__enter__</span>(self):
+        <span class="bi">print</span>(<span class="st">f'START <span class="bi">{self.name}</span>'</span>)
+        <span class="kw">return</span> self
+
+    <span class="kw">def</span> <span class="fn">__exit__</span>(self, exc_type, exc_value, traceback):
+        <span class="bi">print</span>(<span class="st">f'END <span class="bi">{self.name}</span>'</span>)
+        <span class="kw">return</span> <span class="kw">False</span>  <span class="cm"># False = don't suppress exceptions</span>
+
+<span class="kw">with</span> Stage(<span class="st">'validation'</span>):
+    <span class="bi">print</span>(<span class="st">'checking data'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🤔</div><div class="ib-body"><strong>When to pick which style</strong> — <code>@contextmanager</code> is shorter for a quick, stateless wrap (like 6.3's example). A class is usually clearer once the context manager needs to hold state across <code>__enter__</code>/<code>__exit__</code> (a connection object, a timer's start time, a counter) or needs to inspect the exception in <code>__exit__</code> to decide whether to suppress it.</div></div>
+
   <!-- 6.4 -->
   <div class="lesson-h2">6.4 — Decorators: Wrapping Behavior Around a Function</div>
   <p class="lesson-p">A <strong>decorator</strong> is a function that takes a function and returns a new function that wraps it — adding behavior before/after the original runs, without touching the original's code. The <code>@decorator_name</code> syntax above a function definition is shorthand for <code>func = decorator_name(func)</code>.</p>
@@ -436,6 +459,39 @@ deactivate</div>
 add(<span class="nm">3</span>, <span class="nm">5</span>)</div>
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>*args, **kwargs let a decorator wrap ANY function</strong> — one with 0 arguments, one with 5, one with keyword arguments — the wrapper doesn't need to know the original's exact signature. You'll see this exact pattern in Flask/FastAPI route decorators and PyTorch's <code>@torch.no_grad()</code>.</div></div>
+
+  <!-- 6.4b -->
+  <div class="lesson-h2">6.4b — Parameterized Decorators: A Decorator That Takes Arguments</div>
+  <p class="lesson-p"><code>@log_call</code> takes no configuration — it only ever accepts the function itself. To write a decorator like <code>@retry(times=3)</code>, which needs its OWN arguments, you add one more layer of nesting: an outer function that takes the configuration and <strong>returns</strong> the actual decorator, which then takes the function.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A decorator factory: @retry(times=3)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">retry</span>(times):
+    <span class="kw">def</span> <span class="fn">decorator</span>(func):
+        <span class="kw">def</span> <span class="fn">wrapper</span>(*args, **kwargs):
+            last_error = <span class="kw">None</span>
+            <span class="kw">for</span> attempt <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, times + <span class="nm">1</span>):
+                <span class="kw">try</span>:
+                    <span class="kw">return</span> func(*args, **kwargs)
+                <span class="kw">except</span> <span class="bi">ValueError</span> <span class="kw">as</span> e:
+                    last_error = e
+                    <span class="bi">print</span>(<span class="st">f'Attempt <span class="bi">{attempt}</span> failed: <span class="bi">{e}</span>'</span>)
+            <span class="kw">raise</span> last_error
+        <span class="kw">return</span> wrapper
+    <span class="kw">return</span> decorator
+
+attempts = {<span class="st">'count'</span>: <span class="nm">0</span>}
+
+<span class="op">@retry(times=3)</span>
+<span class="kw">def</span> <span class="fn">flaky</span>():
+    attempts[<span class="st">'count'</span>] += <span class="nm">1</span>
+    <span class="kw">if</span> attempts[<span class="st">'count'</span>] < <span class="nm">3</span>:
+        <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">'not ready yet'</span>)
+    <span class="kw">return</span> <span class="st">'success'</span>
+
+<span class="bi">print</span>(flaky())</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>@retry(times=3) is really three function calls deep</strong> — <code>retry(times=3)</code> runs FIRST and returns <code>decorator</code>; THEN <code>decorator(flaky)</code> runs and returns <code>wrapper</code>; only when <code>flaky()</code> is later called does <code>wrapper</code> actually execute. Compare to <code>@log_call</code> above, which skips the first call entirely because it takes no configuration.</div></div>
 
   <!-- 6.5 -->
   <div class="lesson-h2">6.5 — Generators: Lazy Sequences With yield</div>
@@ -474,6 +530,28 @@ logger.warning(<span class="st">'score close to threshold'</span>)
   </div>
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Always pass force=True when re-configuring logging in this console</strong> — without it, calling <code>basicConfig()</code> a second time in the same session is a no-op (Python only lets you configure the root logger once by default), and old handlers silently keep pointing at stale output streams.</div></div>
 
+  <p class="lesson-p"><code>basicConfig()</code> is a shortcut. Under the hood, a <strong>logger</strong> has a level (which messages it even considers) and one or more <strong>handlers</strong> (where accepted messages go — console, a file, a network socket), and each handler has its own level (a further filter) and a <strong>formatter</strong> (how each line is rendered). Levels are just numbers, ordered <code>DEBUG(10) &lt; INFO(20) &lt; WARNING(30) &lt; ERROR(40) &lt; CRITICAL(50)</code> — setting a level means "show this and everything more severe."</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Handlers, formatters and levels working together</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> logging
+
+logger = logging.getLogger(<span class="st">'training'</span>)
+logger.handlers.clear()  <span class="cm"># avoid stacking handlers across re-runs in this console</span>
+logger.setLevel(logging.DEBUG)  <span class="cm"># logger itself lets everything through to its handlers</span>
+
+handler = logging.StreamHandler()
+handler.setLevel(logging.WARNING)  <span class="cm"># but THIS handler only shows WARNING and above</span>
+handler.setFormatter(logging.Formatter(<span class="st">'%(levelname)s | %(name)s | %(message)s'</span>))
+logger.addHandler(handler)
+
+logger.debug(<span class="st">'loading batch 1'</span>)         <span class="cm"># filtered out by the handler's level</span>
+logger.info(<span class="st">'batch 1 loaded'</span>)           <span class="cm"># filtered out by the handler's level</span>
+logger.warning(<span class="st">'batch 1 had 3 NaNs'</span>)    <span class="cm"># printed</span>
+logger.error(<span class="st">'batch 2 failed to load'</span>)  <span class="cm"># printed</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Two levels are checked, not one</strong> — a message must clear the LOGGER's level to be considered at all, then clear each HANDLER's level to actually be emitted by that handler. This lets you e.g. log everything (DEBUG+) to a file while only showing WARNING+ on the console, using the same logger calls.</div></div>
+
   <!-- 6.7 -->
   <div class="lesson-h2">6.7 — Testing: Trusting Your Own Code</div>
   <p class="lesson-p">A function you never test is a function you're hoping works. <code>unittest</code> (built into Python, no install needed) lets you write assertions that run automatically and report exactly what broke. <code>assertEqual(a, b)</code> fails loudly with a diff if <code>a != b</code>, instead of silently passing wrong output downstream.</p>
@@ -498,6 +576,65 @@ result = runner.run(unittest.TestLoader().loadTestsFromTestCase(TestAdd))
 <span class="bi">print</span>(<span class="st">f'Tests run: <span class="bi">{result.testsRun}</span>, Failures: <span class="bi">{len(result.failures)}</span>'</span>)</div>
   </div>
   <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Never call unittest.main() in this console</strong> — it calls <code>sys.exit()</code> when done, which raises <code>SystemExit</code> and looks like a crash here. Use <code>TextTestRunner().run(...)</code> instead, exactly as shown above — this is what you'd also do to run tests programmatically from another script.</div></div>
+
+  <p class="lesson-p"><code>unittest</code> ships with Python, but most real-world teams use <strong>pytest</strong> instead: plain <code>assert</code> statements instead of <code>self.assertEqual(...)</code>, no test class required, clearer failure output, and reusable <strong>fixtures</strong> for test data. It's a third-party package (<code>pip install pytest</code>), not part of the standard library.</p>
+
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>pytest isn't reliably available through Pyodide's package loader in this console</strong> — the block below is reference material, no Run button. Try it for real locally (<code>pip install pytest</code>, then <code>pytest test_file.py -v</code>) or in a Colab notebook.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">pytest — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="kw">return</span> a + b
+
+<span class="kw">def</span> <span class="fn">test_add_positive</span>():
+    <span class="kw">assert</span> add(<span class="nm">2</span>, <span class="nm">3</span>) == <span class="nm">5</span>          <span class="cm"># plain assert — no self.assertEqual needed</span>
+
+<span class="kw">import</span> pytest
+
+<span class="kw">def</span> <span class="fn">test_add_type_error</span>():
+    <span class="kw">with</span> pytest.raises(<span class="bi">TypeError</span>):
+        add(<span class="nm">2</span>, <span class="st">'three'</span>)            <span class="cm"># pytest.raises() checks an exception IS raised</span>
+
+<span class="op">@pytest.fixture</span>
+<span class="kw">def</span> <span class="fn">sample_scores</span>():
+    <span class="kw">return</span> [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>, <span class="nm">88</span>]   <span class="cm"># a fixture builds reusable test data</span>
+
+<span class="kw">def</span> <span class="fn">test_high_scores</span>(sample_scores):        <span class="cm"># pytest injects the fixture by parameter name</span>
+    <span class="kw">assert</span> <span class="bi">max</span>(sample_scores) == <span class="nm">92</span>
+
+<span class="op">@pytest.mark.parametrize(<span class="st">'a,b,expected'</span>, [(<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">5</span>), (-<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>), (<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>)])</span>
+<span class="kw">def</span> <span class="fn">test_add_parametrized</span>(a, b, expected):  <span class="cm"># this one test runs 3 times, once per tuple</span>
+    <span class="kw">assert</span> add(a, b) == expected
+
+<span class="cm"># run from a terminal with:  pytest test_file.py -v</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Fixtures and parametrize are pytest's two biggest wins over unittest</strong> — a fixture builds shared test data once and any test can request it just by naming it as a parameter; <code>@pytest.mark.parametrize</code> runs the same test body against a whole table of inputs instead of copy-pasting one test per case.</div></div>
+
+  <!-- 6.7b -->
+  <div class="lesson-h2">6.7b — Packaging Your Project: pyproject.toml</div>
+  <p class="lesson-p">Once code is meant to be installed and shared — not just run as a standalone script — a Python project declares its name, version, dependencies, and metadata in a <code>pyproject.toml</code> file at its root. It's the modern, standardized replacement for the older <code>setup.py</code>, and every tool in this ecosystem (pip, build backends like setuptools/hatchling/poetry, even <code>pip install -r requirements.txt</code>'s cousin <code>pip install -e .</code>) reads it.</p>
+
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference only — packaging a real project needs a real filesystem</strong>, which this browser sandbox doesn't have. Read the shape below; you'll write one for real the first time you turn a folder of scripts into an installable project.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">pyproject.toml — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="cm">[project]</span>
+name = <span class="st">"candidate-scoring"</span>
+version = <span class="st">"0.1.0"</span>
+description = <span class="st">"Score and validate ML candidates"</span>
+dependencies = [
+    <span class="st">"pandas>=2.0"</span>,
+    <span class="st">"scikit-learn>=1.3"</span>,
+]
+
+<span class="cm">[project.scripts]</span>
+score-candidates = <span class="st">"candidate_scoring.cli:main"</span>
+
+<span class="cm">[build-system]</span>
+requires = [<span class="st">"setuptools>=68"</span>]
+build-backend = <span class="st">"setuptools.build_meta"</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>[project.scripts] creates a real terminal command</strong> — an "entry point." After <code>pip install -e .</code> (editable install, using this exact file), typing <code>score-candidates</code> in any terminal runs <code>candidate_scoring/cli.py</code>'s <code>main()</code> function directly, no <code>python</code> prefix needed. This is how tools like <code>pytest</code> and <code>black</code> become terminal commands after you <code>pip install</code> them.</div></div>
 
   <!-- Summary -->
   <div class="lesson-h2">Chapter 6 Summary</div>
@@ -659,33 +796,36 @@ Print exactly, in order:
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Write a Logging Decorator</div>
-        <div class="ex-desc">Wrap a function so every call prints its arguments and result.</div>
+        <div class="ex-title">Write a Parameterized Logging Decorator</div>
+        <div class="ex-desc">Build a decorator FACTORY — @log_call(label) — not a plain decorator.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Define log_call(func) returning a wrapper(*args, **kwargs) that:
-  1. prints f'Calling {func.__name__} with {args}'
+Define log_call(label) that returns a decorator(func), which
+returns a wrapper(*args, **kwargs) that:
+  1. prints f'[{label}] Calling {func.__name__} with {args}'
   2. calls func(*args, **kwargs), storing the result
-  3. prints f'Result: {result}'
+  3. prints f'[{label}] Result: {result}'
   4. returns result
 
-Apply @log_call to: def add(a, b): return a + b
+Apply @log_call('MATH') to: def add(a, b): return a + b
 Call add(3, 5).
 
 (Correct output, in order:
-Calling add with (3, 5)
-Result: 8)</div>
+[MATH] Calling add with (3, 5)
+[MATH] Result: 8)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code"># def log_call(func):
-#     def wrapper(*args, **kwargs):
-#         print(f'Calling {func.__name__} with {args}')
-#         result = func(*args, **kwargs)
-#         print(f'Result: {result}')
-#         return result
-#     return wrapper
+      <textarea class="ex-editor" id="ex4-code"># def log_call(label):
+#     def decorator(func):
+#         def wrapper(*args, **kwargs):
+#             print(f'[{label}] Calling {func.__name__} with {args}')
+#             result = func(*args, **kwargs)
+#             print(f'[{label}] Result: {result}')
+#             return result
+#         return wrapper
+#     return decorator
 #
-# @log_call
+# @log_call('MATH')
 # def add(a, b):
 #     return a + b
 #
@@ -1098,17 +1238,19 @@ with stage('validation'):
     print('checking data')`
   },
   4:{
-    checks:['calling add with (3, 5)','result: 8'],
-    hint:"def log_call(func): def wrapper(*args, **kwargs): print(...); result=func(*args,**kwargs); print(...); return result; return wrapper",
-    solution:`def log_call(func):
-    def wrapper(*args, **kwargs):
-        print(f'Calling {func.__name__} with {args}')
-        result = func(*args, **kwargs)
-        print(f'Result: {result}')
-        return result
-    return wrapper
+    checks:['[math] calling add with (3, 5)','[math] result: 8'],
+    hint:"def log_call(label): def decorator(func): def wrapper(*args, **kwargs): print(...); result=func(*args,**kwargs); print(...); return result; return wrapper; return decorator",
+    solution:`def log_call(label):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            print(f'[{label}] Calling {func.__name__} with {args}')
+            result = func(*args, **kwargs)
+            print(f'[{label}] Result: {result}')
+            return result
+        return wrapper
+    return decorator
 
-@log_call
+@log_call('MATH')
 def add(a, b):
     return a + b
 

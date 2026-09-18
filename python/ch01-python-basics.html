@@ -645,15 +645,54 @@ mse = ((p1-a1)**<span class="nm">2</span> + (p2-a2)**<span class="nm">2</span> +
 
   <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>You just implemented MSE from scratch.</strong> Mean Squared Error is one of the most important loss functions in machine learning. You used only Chapter 1 Python — no libraries. This is exactly what libraries like sklearn calculate internally.</div></div>
 
+  <!-- 1.8 -->
+  <div class="lesson-h2">1.8 — More String Power: Slicing, Joining, and Raw Strings</div>
+  <p class="lesson-p">A few more string tools come up constantly once you're past the basics: slicing lets you pull out any piece of a string by position, <code>.join()</code> is the reverse of <code>.split()</code> (a list of pieces → one string), and raw/multi-line strings solve two everyday annoyances — file paths with backslashes, and messages that span several lines.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Slicing, joining, prefixes/suffixes, raw & multi-line strings</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">s = <span class="st">'Python for ML'</span>
+
+<span class="cm"># Slicing: s[start:stop:step] — stop is exclusive, step defaults to 1</span>
+<span class="bi">print</span>(s[<span class="nm">0</span>:<span class="nm">6</span>])       <span class="cm"># Python   — first 6 characters</span>
+<span class="bi">print</span>(s[-<span class="nm">2</span>:])       <span class="cm"># ML       — last 2 characters (negative index)</span>
+<span class="bi">print</span>(s[::-<span class="nm">1</span>])      <span class="cm"># reversed — negative step walks backwards</span>
+<span class="bi">print</span>(s[<span class="nm">7</span>:<span class="nm">10</span>])      <span class="cm"># for      — a middle slice</span>
+
+<span class="cm"># .join() is the reverse of .split() — list of strings -> one string</span>
+words = [<span class="st">'loss'</span>, <span class="st">'accuracy'</span>, <span class="st">'f1'</span>]
+<span class="bi">print</span>(<span class="st">', '</span>.join(words))     <span class="cm"># loss, accuracy, f1</span>
+<span class="bi">print</span>(<span class="st">'/'</span>.join([<span class="st">'models'</span>, <span class="st">'v2'</span>, <span class="st">'checkpoint.pt'</span>]))  <span class="cm"># models/v2/checkpoint.pt</span>
+
+<span class="cm"># startswith / endswith — common for filtering file names, log lines</span>
+filename = <span class="st">'model_v2_final.pt'</span>
+<span class="bi">print</span>(filename.startswith(<span class="st">'model_'</span>))   <span class="cm"># True</span>
+<span class="bi">print</span>(filename.endswith(<span class="st">'.pt'</span>))       <span class="cm"># True</span>
+
+<span class="cm"># Raw strings — the r prefix disables backslash escapes (Windows paths!)</span>
+path = r<span class="st">'C:\models\checkpoint'</span>
+<span class="bi">print</span>(path)          <span class="cm"># C:\models\checkpoint  — no escape processing</span>
+
+<span class="cm"># Triple-quoted strings — span multiple lines, keep the newlines</span>
+report = <span class="st">"""Training Report
+----------------
+Epochs: 50
+Final loss: 0.04"""</span>
+<span class="bi">print</span>(report)</div>
+  </div>
+
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why this course never uses <code>input()</code>:</strong> exercises here are auto-graded by running your code and checking the printed output — there's no real keyboard attached to this in-browser console, so <code>input()</code> would just hang waiting for text that can never arrive. Real command-line tools use <code>input()</code> or <code>argparse</code> (Chapter 7) instead; every exercise in this course gives you fixed values up front so the output stays deterministic and checkable.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 1 Summary</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>Variables</strong> are named boxes. Python figures out the type automatically. Use snake_case naming.</div></li>
     <li data-n="2"><div><strong>4 types:</strong> int (whole), float (decimal), str (text), bool (True/False). Each has a specific ML use case.</div></li>
     <li data-n="3"><div><strong>Type conversion:</strong> CSV files load everything as strings. Use int(), float(), str(). Never int() a decimal string directly — go through float() first.</div></li>
-    <li data-n="4"><div><strong>Strings</strong> have methods: .strip(), .lower(), .split(), .replace(). Chain them for NLP preprocessing.</div></li>
+    <li data-n="4"><div><strong>Strings</strong> have methods: .strip(), .lower(), .split(), .replace(), .join(), slicing [start:stop:step]. Chain them for NLP preprocessing.</div></li>
     <li data-n="5"><div><strong>F-strings:</strong> <code>f'Loss: {loss:.4f}'</code>. Use {:03d} for zero-padded integers, {:.4f} for decimals, {:.2%} for percentages.</div></li>
     <li data-n="6"><div><strong>Operators:</strong> ** for power (squaring, sqrt), % for remainder (batch indexing), // for floor division (batch counting).</div></li>
+    <li data-n="7"><div><strong>Raw &amp; multi-line strings:</strong> <code>r'...'</code> disables backslash escapes (paths); <code>"""..."""</code> spans multiple lines.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -773,8 +812,10 @@ Clean this text in steps and print each step:
   Step 4: Remove all '.' characters
   Step 5: Split into individual words
   Step 6: Print the word count
+  Step 7: Slice out just the first 3 words (words[:3]) and print them
+  Step 8: Rejoin ALL the words into one string with ' '.join(words) and print it as "Cleaned: ..."
 
-Final output should include the cleaned text and word count.</div>
+Final output should include the cleaned (rejoined) text, the first-three-words slice, and word count.</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex3-code">raw_text = '  The QUICK Brown FOX!!! jumps Over the LAZY dog...   '
 
@@ -784,6 +825,8 @@ Final output should include the cleaned text and word count.</div>
 # Step 4: remove .
 # Step 5: split into words
 # Step 6: print word count
+# Step 7: slice the first 3 words with words[:3]
+# Step 8: rejoin the words with ' '.join(words)
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(3)">▶ Run & Check</button>
@@ -1281,15 +1324,18 @@ print(rate, type(rate))
 print(age == 28)`
   },
   3:{
-    checks:['words','the quick brown fox'],
-    hint:"step=text.strip(); step=step.lower(); step=step.replace('!',''); step=step.replace('.',''); words=step.split(); print(len(words),'words')",
+    checks:['words','the quick brown fox jumps over the lazy dog',"['the', 'quick', 'brown']"],
+    hint:"step=text.strip(); step=step.lower(); step=step.replace('!',''); step=step.replace('.',''); words=step.split(); first_three=words[:3]; rejoined=' '.join(words)",
     solution:`raw_text = '  The QUICK Brown FOX!!! jumps Over the LAZY dog...   '
 step1 = raw_text.strip()
 step2 = step1.lower()
 step3 = step2.replace('!','')
 step4 = step3.replace('.','')
 words = step4.split()
-print('Cleaned:', step4.strip())
+first_three = words[:3]
+rejoined = ' '.join(words)
+print('Cleaned:', rejoined)
+print('First three words:', first_three)
 print('Words:', words)
 print(len(words), 'words')`
   },
@@ -1309,7 +1355,15 @@ print(f'Status   : {status}')`
   },
   5:{
     checks:['mse:','rmse:','mae:'],
-    hint:"MSE=(sq1+sq2+sq3+sq4+sq5)/5. RMSE=mse**0.5. MAE=(abs(0.8-1)+abs(0.3-0)+abs(0.9-1)+abs(0.6-0.5)+abs(0.3-0))/5",
+    checkFn:(full)=>{
+      const mseM=full.match(/\bmse:\s*(-?\d+\.?\d*)/i);
+      const rmseM=full.match(/\brmse:\s*(-?\d+\.?\d*)/i);
+      const maeM=full.match(/\bmae:\s*(-?\d+\.?\d*)/i);
+      if(!mseM||!rmseM||!maeM)return false;
+      const mse=parseFloat(mseM[1]),rmse=parseFloat(rmseM[1]),mae=parseFloat(maeM[1]);
+      return Math.abs(mse-0.048)<0.001 && Math.abs(rmse-0.218909)<0.001 && Math.abs(mae-0.2)<0.001;
+    },
+    hint:"MSE=(sq1+sq2+sq3+sq4+sq5)/5. RMSE=mse**0.5. MAE=(abs(0.8-1)+abs(0.3-0)+abs(0.9-1)+abs(0.6-0.5)+abs(0.3-0))/5. Correct values: MSE=0.048000, RMSE=0.218909, MAE=0.200000",
     solution:`predictions=[0.8,0.3,0.9,0.6,0.3];targets=[1.0,0.0,1.0,0.5,0.0]
 sq1=(predictions[0]-targets[0])**2;sq2=(predictions[1]-targets[1])**2
 sq3=(predictions[2]-targets[2])**2;sq4=(predictions[3]-targets[3])**2
@@ -1340,6 +1394,9 @@ window.runExercise=async function(n){
   let passed=ok;
   if(passed&&ex.checks){
     passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  if(passed&&ex.checkFn){
+    passed=ex.checkFn(full);
   }
   resEl.style.display='flex';
   resEl.className='ex-result show '+(passed?'pass':'fail');

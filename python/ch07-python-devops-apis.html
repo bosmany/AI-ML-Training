@@ -372,6 +372,24 @@ args = parser.parse_args([<span class="st">'--name'</span>, <span class="st">'Al
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Passing an explicit list to parse_args() is the key trick for THIS console</strong> — a browser has no real command line, so every argparse exercise here builds the argument list as a Python list instead of typing it at a terminal. The behavior is identical either way.</div></div>
 
+  <!-- 7.1b -->
+  <div class="lesson-h2">7.1b — pathlib: Working With Paths</div>
+  <p class="lesson-p">DevOps scripts constantly build file paths — log files, config files, output directories. The old way, <code>os.path.join(...)</code> plus manual string slicing for the extension, is error-prone across operating systems. <code>pathlib.Path</code> makes a path an OBJECT: the <code>/</code> operator joins pieces (correctly, on any OS), and attributes like <code>.name</code>/<code>.suffix</code>/<code>.stem</code>/<code>.parent</code> pull out the pieces you'd otherwise slice out of a string by hand.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Building and inspecting a path</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+log_path = Path(<span class="st">'reports'</span>) / <span class="st">'training'</span> / <span class="st">'run_042.log'</span>   <span class="cm"># / joins path pieces</span>
+
+<span class="bi">print</span>(<span class="st">f'Full path: <span class="bi">{log_path}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Name: <span class="bi">{log_path.name}</span>'</span>)      <span class="cm"># last component, with extension</span>
+<span class="bi">print</span>(<span class="st">f'Suffix: <span class="bi">{log_path.suffix}</span>'</span>)  <span class="cm"># just the extension</span>
+<span class="bi">print</span>(<span class="st">f'Stem: <span class="bi">{log_path.stem}</span>'</span>)      <span class="cm"># name WITHOUT the extension</span>
+<span class="bi">print</span>(<span class="st">f'Parent: <span class="bi">{log_path.parent}</span>'</span>)  <span class="cm"># the directory it lives in</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>A Path is an object, not a string</strong> — that's why <code>/</code> can be overloaded to mean "join," and why <code>.exists()</code>, <code>.is_file()</code>, <code>.mkdir()</code>, and <code>.read_text()</code> live directly on it once you're working with real files (as in Chapter 5's file exercises), instead of being separate functions that take a string path as an argument.</div></div>
+
   <!-- 7.2 -->
   <div class="lesson-h2">7.2 — JSON: The Universal Data Format</div>
   <p class="lesson-p">Almost every API, config file, and log line you'll touch uses <strong>JSON</strong> (JavaScript Object Notation) — a text format that maps directly onto Python dicts and lists. <code>json.dumps()</code> converts a Python object TO a JSON string; <code>json.loads()</code> parses a JSON string INTO Python objects.</p>
@@ -402,16 +420,55 @@ response.raise_for_status()          <span class="cm"># raises if status is 4xx/
 data = response.json()               <span class="cm"># .json() == json.loads(response.text), done for you</span>
 <span class="bi">print</span>([c[<span class="st">'name'</span>] <span class="kw">for</span> c <span class="kw">in</span> data[<span class="st">'results'</span>]])</div>
   </div>
-  <p class="lesson-p">Notice the shape: <code>response.json()</code> gives you back exactly the nested dict/list structure <code>json.loads()</code> would. That's why the exercise below is realistic practice even without a live network call — it hands you the JSON text an API would have returned, and you parse it the same way.</p>
+
+  <p class="lesson-p">GET is only half the story. Sending data means <strong>POST</strong> (usually with a JSON body), and real APIs need <strong>authentication</strong> — almost always a token sent as a header, not a query parameter.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Parsing "as if" this came from response.json()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">Terminal / real script — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="kw">import</span> requests
+
+<span class="cm"># POST with a JSON body, custom headers, and a bearer token</span>
+response = requests.post(
+    <span class="st">'https://api.example.com/candidates'</span>,
+    json={<span class="st">'name'</span>: <span class="st">'Frank'</span>, <span class="st">'score'</span>: <span class="nm">0.81</span>},   <span class="cm"># json= builds the body AND sets Content-Type for you</span>
+    headers={<span class="st">'Authorization'</span>: <span class="st">'Bearer YOUR_API_TOKEN'</span>},
+    timeout=<span class="nm">5</span>,
+)
+
+<span class="kw">if</span> response.status_code == <span class="nm">201</span>:
+    <span class="bi">print</span>(<span class="st">'Created:'</span>, response.json())
+<span class="kw">elif</span> response.status_code == <span class="nm">401</span>:
+    <span class="bi">print</span>(<span class="st">'Auth failed — check the token'</span>)
+<span class="kw">else</span>:
+    response.raise_for_status()   <span class="cm"># anything else unexpected -> raise loudly</span></div>
+  </div>
+
+  <table class="lesson-table">
+    <tr><th>Status Code</th><th>Meaning</th></tr>
+    <tr><td>200</td><td class="highlight">OK — request succeeded</td></tr>
+    <tr><td>201</td><td>Created — a POST successfully created a new resource</td></tr>
+    <tr><td>400</td><td>Bad Request — malformed input, the server can't process it</td></tr>
+    <tr><td>401</td><td class="highlight">Unauthorized — missing or invalid credentials</td></tr>
+    <tr><td>404</td><td>Not Found</td></tr>
+    <tr><td>500</td><td>Server Error — the problem is on THEIR end, not yours</td></tr>
+  </table>
+
+  <p class="lesson-p">Notice the shape: <code>response.json()</code> gives you back exactly the nested dict/list structure <code>json.loads()</code> would. That's why the exercise below is realistic practice even without a live network call — it hands you the JSON text an API would have returned, and you parse it the same way, status field and all.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parsing "as if" this came from response.json() — status-checked</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code"><span class="kw">import</span> json
 
-api_response_text = <span class="st">'{"results": [{"name": "Alice", "score": 0.92}, {"name": "Dave", "score": 0.60}]}'</span>
+api_response_text = <span class="st">'{"status": "ok", "results": [{"name": "Alice", "score": 0.92}, {"name": "Dave", "score": 0.60}]}'</span>
 data = json.loads(api_response_text)
-names = [r[<span class="st">'name'</span>] <span class="kw">for</span> r <span class="kw">in</span> data[<span class="st">'results'</span>]]
-<span class="bi">print</span>(<span class="st">f'Names: <span class="bi">{names}</span>'</span>)</div>
+
+<span class="cm"># real APIs report failure via a status FIELD too, not just the HTTP status code —</span>
+<span class="cm"># always check it before trusting the rest of the payload</span>
+<span class="kw">if</span> data[<span class="st">'status'</span>] != <span class="st">'ok'</span>:
+    <span class="bi">print</span>(<span class="st">f'API error: <span class="bi">{data["status"]}</span>'</span>)
+<span class="kw">else</span>:
+    names = [r[<span class="st">'name'</span>] <span class="kw">for</span> r <span class="kw">in</span> data[<span class="st">'results'</span>]]
+    <span class="bi">print</span>(<span class="st">f'Names: <span class="bi">{names}</span>'</span>)</div>
   </div>
 
   <!-- 7.4 -->
@@ -473,6 +530,107 @@ missing = os.environ.get(<span class="st">'MISSING_VAR'</span>, <span class="st"
 <span class="kw">await</span> main()   <span class="cm"># this console already runs inside an event loop, so 'await' works at top level</span></div>
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>asyncio.gather() preserves order in its RETURN VALUE</strong> regardless of which finishes first — <code>results[0]</code> is always Alice's result, <code>results[1]</code> is always Bob's — even though the three sleeps happen concurrently under the hood.</div></div>
+
+  <!-- 7.6b -->
+  <div class="lesson-h2">7.6b — async for and async with</div>
+  <p class="lesson-p"><code>async for</code> iterates an <strong>async generator</strong> (a generator function defined with <code>async def</code> that uses <code>yield</code>) — the same lazy, one-at-a-time idea as Chapter 6's generators, but each step can itself <code>await</code> something. <code>async with</code> is the same idea applied to context managers: a class with <code>__aenter__</code>/<code>__aexit__</code> instead of <code>__enter__</code>/<code>__exit__</code>, for setup/teardown that needs to await (opening a real network connection, for example).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">async for over an async generator</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> asyncio
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">stream_scores</span>(scores):
+    <span class="kw">for</span> s <span class="kw">in</span> scores:
+        <span class="kw">await</span> asyncio.sleep(<span class="nm">0</span>)   <span class="cm"># hands control back to the event loop between items</span>
+        <span class="kw">yield</span> s
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">summarize</span>():
+    total, count = <span class="nm">0</span>, <span class="nm">0</span>
+    <span class="kw">async</span> <span class="kw">for</span> s <span class="kw">in</span> stream_scores([<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">81</span>, <span class="nm">60</span>, <span class="nm">88</span>]):
+        total += s
+        count += <span class="nm">1</span>
+    <span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{total / count:.1f}</span>'</span>)
+
+<span class="kw">await</span> summarize()</div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">async with over an async context manager</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">AsyncStage</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name):
+        self.name = name
+    <span class="kw">async</span> <span class="kw">def</span> <span class="fn">__aenter__</span>(self):
+        <span class="kw">await</span> asyncio.sleep(<span class="nm">0</span>)
+        <span class="bi">print</span>(<span class="st">f'START <span class="bi">{self.name}</span>'</span>)
+        <span class="kw">return</span> self
+    <span class="kw">async</span> <span class="kw">def</span> <span class="fn">__aexit__</span>(self, exc_type, exc_value, traceback):
+        <span class="kw">await</span> asyncio.sleep(<span class="nm">0</span>)
+        <span class="bi">print</span>(<span class="st">f'END <span class="bi">{self.name}</span>'</span>)
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">run</span>():
+    <span class="kw">async</span> <span class="kw">with</span> AsyncStage(<span class="st">'validation'</span>):
+        <span class="bi">print</span>(<span class="st">'checking data'</span>)
+
+<span class="kw">await</span> run()</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>The "async" version of a protocol always means "this step may need to await"</strong> — an async generator's body can await between yields, and <code>__aenter__</code>/<code>__aexit__</code> can await during setup/teardown. If nothing inside ever actually awaits, a plain (non-async) generator or context manager is simpler and does the same job.</div></div>
+
+  <!-- 7.6c -->
+  <div class="lesson-h2">7.6c — create_task vs gather, and Error Handling in Concurrent Work</div>
+  <p class="lesson-p"><code>asyncio.gather(a, b)</code> schedules both AND waits for both. <code>asyncio.create_task(coro)</code> only schedules — it returns immediately with a handle you can <code>await</code> later, after doing other work in between. And by default, if any awaitable passed to <code>gather()</code> raises, <code>gather()</code> immediately re-raises that exception; pass <code>return_exceptions=True</code> to get the exception back as a normal value in the results list instead, so one failure doesn't kill the whole batch.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">create_task() to start early, return_exceptions=True to survive failures</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> asyncio
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">fetch</span>(name, delay, fail=<span class="kw">False</span>):
+    <span class="kw">await</span> asyncio.sleep(delay)
+    <span class="kw">if</span> fail:
+        <span class="kw">raise</span> <span class="bi">ValueError</span>(<span class="st">f'<span class="bi">{name}</span> failed'</span>)
+    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: done'</span>
+
+<span class="kw">async</span> <span class="kw">def</span> <span class="fn">main3</span>():
+    <span class="cm"># create_task starts BOTH running immediately, before either is awaited</span>
+    task_a = asyncio.create_task(fetch(<span class="st">'A'</span>, <span class="nm">0.02</span>))
+    task_b = asyncio.create_task(fetch(<span class="st">'B'</span>, <span class="nm">0.01</span>))
+    <span class="bi">print</span>(<span class="st">'both tasks started — B finishes first even though A was created first'</span>)
+    <span class="bi">print</span>(<span class="kw">await</span> task_b)
+    <span class="bi">print</span>(<span class="kw">await</span> task_a)
+
+    <span class="cm"># gather with return_exceptions=True turns a raised error into a returned value</span>
+    results = <span class="kw">await</span> asyncio.gather(
+        fetch(<span class="st">'C'</span>, <span class="nm">0.01</span>),
+        fetch(<span class="st">'D'</span>, <span class="nm">0.01</span>, fail=<span class="kw">True</span>),
+        return_exceptions=<span class="kw">True</span>,
+    )
+    <span class="kw">for</span> r <span class="kw">in</span> results:
+        <span class="bi">print</span>(<span class="st">f'Error: <span class="bi">{r}</span>'</span> <span class="kw">if</span> <span class="bi">isinstance</span>(r, <span class="bi">Exception</span>) <span class="kw">else</span> r)
+
+<span class="kw">await</span> main3()</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>isinstance(r, Exception) is the check that makes return_exceptions=True usable</strong> — without it you can't tell a genuine string/number result apart from a captured exception sitting in the same results list.</div></div>
+
+  <!-- 7.7 -->
+  <div class="lesson-h2">7.7 — Packaging &amp; Entry Points</div>
+  <p class="lesson-p">Once a CLI script like 7.1's score checker is something you (or a team) run regularly, wrap it as an installable package with a <code>pyproject.toml</code>: declare its dependencies, and add an <strong>entry point</strong> under <code>[project.scripts]</code> so it becomes a real terminal command after installing — no more typing <code>python score.py</code>.</p>
+
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference only — packaging needs a real filesystem and a real terminal</strong>, neither of which this browser sandbox has. Read the shape below; you'll do this for real the first time a script of yours needs to be installed rather than just copy-pasted.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">pyproject.toml — reference only, no Run button</span></div>
+    <div class="cb-code"><span class="cm">[project]</span>
+name = <span class="st">"healthcheck-cli"</span>
+version = <span class="st">"0.1.0"</span>
+dependencies = [<span class="st">"requests>=2.31"</span>]
+
+<span class="cm">[project.scripts]</span>
+healthcheck = <span class="st">"healthcheck_cli.cli:main"</span>
+
+<span class="cm">[build-system]</span>
+requires = [<span class="st">"setuptools>=68"</span>]
+build-backend = <span class="st">"setuptools.build_meta"</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>After pip install -e . , "healthcheck --city Pune --threshold 0.8" just works</strong> as a real terminal command, calling <code>cli.py</code>'s <code>main()</code>. Inside <code>main()</code>, <code>argparse.ArgumentParser().parse_args()</code> is called with NO explicit list this time — it reads the real <code>sys.argv</code>, unlike every exercise in this chapter, which had to pass an explicit list since this console has no real command line.</div></div>
 
   <!-- Summary -->
   <div class="lesson-h2">Chapter 7 Summary — Module 1 Complete</div>
@@ -581,28 +739,33 @@ response_text = '{"name": "Carol", "score": 0.81, "city": "Mumbai"}'
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Nested JSON: Find the Best Candidate</div>
-        <div class="ex-desc">Parse a nested JSON payload and find the highest-scoring entry.</div>
+        <div class="ex-title">Nested JSON: Status-Checked Candidate Search</div>
+        <div class="ex-desc">Check an API's status field before trusting its payload, then find the highest-scoring entry.</div>
       </div>
     </div>
     <div class="ex-task">Task:
 import json
-raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
+raw = '{"status": "ok", "candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
 (already given)
 
-Parse raw into d. Find the candidate with the highest score using
-max(d['candidates'], key=lambda c: c['score']), store as top.
+Parse raw into d. Real APIs report failure via a status FIELD, not
+just the HTTP status code — always check it first:
+  if d['status'] != 'ok': print(f'Error: status is {d["status"]}')
+  else: find top = max(d['candidates'], key=lambda c: c['score']) and proceed
 
-Print exactly:
+Since status is "ok" here, print exactly:
   f'Top candidate: {top["name"]}'
   f'Count field: {d["count"]}'
 (Correct: Top candidate: Eve / Count field: 2)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex3-code">import json
-raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
+raw = '{"status": "ok", "candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
 
 # d = json.loads(raw)
-# top = max(d['candidates'], key=lambda c: c['score'])
+# if d['status'] != 'ok':
+#     print(f'Error: status is {d["status"]}')
+# else:
+#     top = max(d['candidates'], key=lambda c: c['score'])
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
@@ -659,46 +822,55 @@ os.environ['MAX_RETRIES'] = '5'
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">Concurrent Health Checks</div>
-        <div class="ex-desc">Run two async health checks concurrently with asyncio.gather.</div>
+        <div class="ex-title">Concurrent Health Checks, One of Which Fails</div>
+        <div class="ex-desc">Run three async health checks concurrently with asyncio.gather, surviving one failure.</div>
       </div>
     </div>
     <div class="ex-task">Task:
 import asyncio
 
-Define: async def check_health(service, delay):
-  await asyncio.sleep(delay); return f'{service}: OK'
+Define: async def check_health(service, delay, fail=False):
+  await asyncio.sleep(delay)
+  if fail: raise ConnectionError(f'{service} unreachable')
+  return f'{service}: OK'
 
 Define: async def main2():
   return await asyncio.gather(
       check_health('auth-service', 0.01),
       check_health('db-service', 0.01),
+      check_health('cache-service', 0.01, fail=True),
+      return_exceptions=True,   # one failure must not kill the others
   )
 
 results = await main2()   (this console runs inside an event loop already)
-Print each result in results, then:
-  f'Checked {len(results)} services'
+For each r in results: print f'FAILED: {r}' if isinstance(r, Exception) else r
+Then print: f'Checked {len(results)} services'
 
 (Correct output, in order:
 auth-service: OK
 db-service: OK
-Checked 2 services)</div>
+FAILED: cache-service unreachable
+Checked 3 services)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">import asyncio
 
-# async def check_health(service, delay):
+# async def check_health(service, delay, fail=False):
 #     await asyncio.sleep(delay)
+#     if fail:
+#         raise ConnectionError(f'{service} unreachable')
 #     return f'{service}: OK'
 #
 # async def main2():
 #     return await asyncio.gather(
 #         check_health('auth-service', 0.01),
 #         check_health('db-service', 0.01),
+#         check_health('cache-service', 0.01, fail=True),
+#         return_exceptions=True,
 #     )
 #
 # results = await main2()
 # for r in results:
-#     print(r)
+#     print(f'FAILED: {r}' if isinstance(r, Exception) else r)
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
@@ -1114,13 +1286,16 @@ print(f'Score pct: {data["score"]:.0%}')`
   },
   3:{
     checks:['top candidate: eve','count field: 2'],
-    hint:"top = max(d['candidates'], key=lambda c: c['score'])",
+    hint:"check d['status'] != 'ok' first; else top = max(d['candidates'], key=lambda c: c['score'])",
     solution:`import json
-raw = '{"candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
+raw = '{"status": "ok", "candidates": [{"name": "Eve", "score": 0.88}, {"name": "Bob", "score": 0.75}], "count": 2}'
 d = json.loads(raw)
-top = max(d['candidates'], key=lambda c: c['score'])
-print(f'Top candidate: {top["name"]}')
-print(f'Count field: {d["count"]}')`
+if d['status'] != 'ok':
+    print(f'Error: status is {d["status"]}')
+else:
+    top = max(d['candidates'], key=lambda c: c['score'])
+    print(f'Top candidate: {top["name"]}')
+    print(f'Count field: {d["count"]}')`
   },
   4:{
     checks:['retries: 5','timeout: 30'],
@@ -1133,23 +1308,27 @@ print(f'Retries: {retries}')
 print(f'Timeout: {timeout}')`
   },
   5:{
-    checks:['auth-service: ok','db-service: ok','checked 2 services'],
-    hint:"results = await main2()  — no asyncio.run(), this console already runs an event loop",
+    checks:['auth-service: ok','db-service: ok','failed: cache-service unreachable','checked 3 services'],
+    hint:"asyncio.gather(..., return_exceptions=True) turns a raised exception into a returned value instead of crashing everything; check isinstance(r, Exception) in the loop",
     solution:`import asyncio
 
-async def check_health(service, delay):
+async def check_health(service, delay, fail=False):
     await asyncio.sleep(delay)
+    if fail:
+        raise ConnectionError(f'{service} unreachable')
     return f'{service}: OK'
 
 async def main2():
     return await asyncio.gather(
         check_health('auth-service', 0.01),
         check_health('db-service', 0.01),
+        check_health('cache-service', 0.01, fail=True),
+        return_exceptions=True,
     )
 
 results = await main2()
 for r in results:
-    print(r)
+    print(f'FAILED: {r}' if isinstance(r, Exception) else r)
 print(f'Checked {len(results)} services')`
   }
 };

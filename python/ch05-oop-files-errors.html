@@ -387,7 +387,95 @@ run = <span class="cls">TrainingRun</span>(<span class="st">'CandidateScorer-v1'
   </div>
 
   <!-- 5.3 -->
-  <div class="lesson-h2">5.3 — try/except: Surviving Bad Data</div>
+  <div class="lesson-h2">5.3 — Inheritance and super()</div>
+  <p class="lesson-p">A subclass inherits everything from its parent class, then can add new behavior or override existing methods. <code>super().__init__(...)</code> calls the parent's constructor so you don't have to repeat its logic — this is how you extend a class without copy-pasting it.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A subclass extending Model with super()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
+        self.name = name
+        self.accuracy = accuracy
+
+    <span class="kw">def</span> <span class="fn">summary</span>(self):
+        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>
+
+<span class="kw">class</span> <span class="cls">FineTunedModel</span>(<span class="cls">Model</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy, base_model):
+        <span class="bi">super</span>().__init__(name, accuracy)   <span class="cm"># runs Model's __init__ first</span>
+        self.base_model = base_model
+
+    <span class="kw">def</span> <span class="fn">summary</span>(self):
+        base_summary = <span class="bi">super</span>().summary()   <span class="cm"># reuse the parent's method instead of rewriting it</span>
+        <span class="kw">return</span> <span class="st">f'<span class="bi">{base_summary}</span> (fine-tuned from <span class="bi">{self.base_model}</span>)'</span>
+
+m = <span class="cls">FineTunedModel</span>(<span class="st">'ResNet50-FT'</span>, <span class="nm">0.9423</span>, <span class="st">'ResNet50'</span>)
+<span class="bi">print</span>(m.summary())
+<span class="bi">print</span>(<span class="bi">isinstance</span>(m, <span class="cls">Model</span>))   <span class="cm"># True — a FineTunedModel IS-A Model</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>super() means "the same method, one level up."</strong> Without it, <code>FineTunedModel.__init__</code> would have to repeat <code>self.name = name; self.accuracy = accuracy</code> itself — duplicating logic that already lives in <code>Model</code>. If <code>Model</code> ever changes, every subclass using <code>super()</code> picks up the change automatically.</div></div>
+
+  <!-- 5.4 -->
+  <div class="lesson-h2">5.4 — Dunder Methods: __str__, __repr__, __eq__</div>
+  <p class="lesson-p">"Dunder" (double-underscore) methods let your own objects hook into Python's built-in behavior. <code>__str__</code> controls what <code>print(obj)</code> shows; <code>__repr__</code> is the unambiguous, developer-facing form shown inside a list or the console; <code>__eq__</code> controls what <code>==</code> does between two instances.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Giving Model a readable print, repr, and equality check</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
+        self.name = name
+        self.accuracy = accuracy
+
+    <span class="kw">def</span> <span class="fn">__str__</span>(self):
+        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>   <span class="cm"># used by print(obj) and str(obj)</span>
+
+    <span class="kw">def</span> <span class="fn">__repr__</span>(self):
+        <span class="kw">return</span> <span class="st">f'Model(name=<span class="bi">{self.name!r}</span>, accuracy=<span class="bi">{self.accuracy!r}</span>)'</span>   <span class="cm"># used inside lists/the console</span>
+
+    <span class="kw">def</span> <span class="fn">__eq__</span>(self, other):
+        <span class="kw">return</span> self.name == other.name <span class="kw">and</span> self.accuracy == other.accuracy
+
+a = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
+b = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
+
+<span class="bi">print</span>(a)          <span class="cm"># uses __str__</span>
+<span class="bi">print</span>([a])        <span class="cm"># a list prints its items with __repr__, not __str__</span>
+<span class="bi">print</span>(a == b)     <span class="cm"># uses __eq__ — True, even though a and b are different objects in memory</span>
+<span class="bi">print</span>(a <span class="kw">is</span> b)     <span class="cm"># "is" checks IDENTITY, not equality — False</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Without <code>__eq__</code>, <code>==</code> falls back to identity</strong> — two separately-created objects with identical data would compare as NOT equal, which usually isn't what you want when comparing data records.</div></div>
+
+  <!-- 5.5 -->
+  <div class="lesson-h2">5.5 — @property, @classmethod, @staticmethod</div>
+  <p class="lesson-p"><code>@property</code> lets a method be read like a plain attribute (no parentheses) — perfect for a value that's always computed fresh, so it can never go stale. <code>@classmethod</code> receives the class itself (<code>cls</code>) instead of an instance, commonly used for alternate constructors. <code>@staticmethod</code> takes neither <code>self</code> nor <code>cls</code> — it's a plain function that just lives inside the class for organization.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Three method types, three different purposes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
+        self.name = name
+        self.accuracy = accuracy
+
+    @property
+    <span class="kw">def</span> <span class="fn">is_production_ready</span>(self):
+        <span class="kw">return</span> self.accuracy >= <span class="nm">0.9</span>   <span class="cm"># computed live — no separate flag that could get out of sync</span>
+
+    @classmethod
+    <span class="kw">def</span> <span class="fn">from_percent</span>(cls, name, percent):
+        <span class="kw">return</span> cls(name, percent / <span class="nm">100</span>)   <span class="cm"># an alternate constructor: Model.from_percent('X', 94.23)</span>
+
+    @staticmethod
+    <span class="kw">def</span> <span class="fn">grade</span>(accuracy):
+        <span class="kw">return</span> <span class="st">'A'</span> <span class="kw">if</span> accuracy >= <span class="nm">0.9</span> <span class="kw">else</span> <span class="st">'B'</span> <span class="kw">if</span> accuracy >= <span class="nm">0.75</span> <span class="kw">else</span> <span class="st">'C'</span>
+
+m = <span class="cls">Model</span>.from_percent(<span class="st">'ResNet50'</span>, <span class="nm">94.23</span>)
+<span class="bi">print</span>(m.is_production_ready)      <span class="cm"># no () — it's a property, not a method call</span>
+<span class="bi">print</span>(<span class="cls">Model</span>.grade(m.accuracy))    <span class="cm"># called on the CLASS — doesn't need an instance at all</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Pick the right tool:</strong> a computed value that should look like data → <code>@property</code>. An alternate way to build an instance → <code>@classmethod</code>. A utility function that's topically related but needs neither <code>self</code> nor <code>cls</code> → <code>@staticmethod</code>.</div></div>
+
+  <!-- 5.6 -->
+  <div class="lesson-h2">5.6 — try/except: Surviving Bad Data</div>
   <p class="lesson-p">Real data is messy. A `try` block runs code that might fail; if it raises an exception, the matching `except` block runs instead of crashing your whole program. This is the difference between a pipeline that dies on row 4,000 of 10,000, and one that skips the bad row and keeps going.</p>
 
   <div class="code-block">
@@ -407,8 +495,8 @@ errors = <span class="nm">0</span>
   </div>
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Catch the specific exception, not everything.</strong> A bare <code>except:</code> catches EVERY error — including bugs in your own code — and hides them silently. Always name the exception type you expect: <code>except ValueError:</code>, <code>except KeyError:</code>, <code>except FileNotFoundError:</code>.</div></div>
 
-  <!-- 5.4 -->
-  <div class="lesson-h2">5.4 — raise: Creating Your Own Errors</div>
+  <!-- 5.7 -->
+  <div class="lesson-h2">5.7 — raise: Creating Your Own Errors</div>
   <p class="lesson-p">Sometimes YOUR code should refuse bad input rather than silently accepting it. <code>raise</code> lets you throw an exception on purpose, with a message that explains exactly what went wrong.</p>
 
   <div class="code-block">
@@ -429,8 +517,29 @@ errors = <span class="nm">0</span>
     <span class="bi">print</span>(<span class="st">f'Error caught: <span class="bi">{e}</span>'</span>)</div>
   </div>
 
-  <!-- 5.5 -->
-  <div class="lesson-h2">5.5 — Reading and Writing Files</div>
+  <!-- 5.8 -->
+  <div class="lesson-h2">5.8 — Exception Chaining: raise ... from e</div>
+  <p class="lesson-p">When you catch one exception and raise a different, clearer one in its place, <code>raise NewError(...) from original_error</code> preserves the original as the new exception's <strong>cause</strong> instead of silently discarding it — critical for debugging, since the real root cause stays visible instead of vanishing behind your cleaner message.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Translating one exception into a clearer one, without losing it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">parse_accuracy</span>(raw):
+    <span class="kw">try</span>:
+        value = <span class="bi">float</span>(raw)
+    <span class="kw">except</span> ValueError <span class="kw">as</span> e:
+        <span class="kw">raise</span> ValueError(<span class="st">f'could not parse accuracy from <span class="bi">{raw!r}</span>'</span>) <span class="kw">from</span> e
+    <span class="kw">return</span> value
+
+<span class="kw">try</span>:
+    parse_accuracy(<span class="st">'not-a-number'</span>)
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f'Error: <span class="bi">{e}</span>'</span>)
+    <span class="bi">print</span>(<span class="st">f'Original cause: <span class="bi">{type(e.__cause__).__name__}</span>: <span class="bi">{e.__cause__}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong><code>raise NewError(...)</code> without <code>from</code> still works</strong>, but Python's traceback then shows "During handling of the above exception, another exception occurred" — which reads like an accidental crash, not an intentional translation. Use <code>from e</code> (or <code>from None</code> to deliberately hide an uninteresting cause) whenever you re-raise a different exception type.</div></div>
+
+  <!-- 5.9 -->
+  <div class="lesson-h2">5.9 — Reading and Writing Files</div>
   <p class="lesson-p"><code>open(filename, mode)</code> gives you a file handle. Use <code>'w'</code> to write, no mode (or <code>'r'</code>) to read. Always use <code>with</code> — it automatically closes the file for you, even if an error happens partway through.</p>
 
   <div class="code-block">
@@ -446,8 +555,53 @@ errors = <span class="nm">0</span>
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This console really does read and write files</strong> — Pyodide gives your Python code its own private virtual filesystem in the browser. It behaves exactly like real file I/O (nothing is saved to your actual computer, and it resets each time you reload the page).</div></div>
 
-  <!-- 5.6 -->
-  <div class="lesson-h2">5.6 — Parsing CSV Data</div>
+  <!-- 5.10 -->
+  <div class="lesson-h2">5.10 — pathlib.Path: A Better Way to Handle File Paths</div>
+  <p class="lesson-p">Building paths with string concatenation (<code>'data/' + filename</code>) breaks the moment the same code runs on a different operating system. <code>pathlib.Path</code> handles separators, extensions, and existence checks in a way that reads clearly and works everywhere.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Path pieces, without manual string splitting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> Path
+
+log_path = Path(<span class="st">'logs'</span>) / <span class="st">'training'</span> / <span class="st">'run_001.csv'</span>   <span class="cm"># / builds a path, OS-independent</span>
+<span class="bi">print</span>(log_path)             <span class="cm"># logs/training/run_001.csv</span>
+<span class="bi">print</span>(log_path.name)        <span class="cm"># run_001.csv — just the filename</span>
+<span class="bi">print</span>(log_path.stem)        <span class="cm"># run_001 — filename without extension</span>
+<span class="bi">print</span>(log_path.suffix)      <span class="cm"># .csv — the extension alone</span>
+<span class="bi">print</span>(log_path.parent)      <span class="cm"># logs/training — the containing folder</span>
+
+<span class="kw">with</span> <span class="bi">open</span>(log_path.name, <span class="st">'w'</span>) <span class="kw">as</span> f:   <span class="cm"># Path works anywhere open() expects a string</span>
+    f.write(<span class="st">'epoch,loss\n1,0.5\n'</span>)
+<span class="bi">print</span>(Path(log_path.name).exists())   <span class="cm"># True — Path can check existence directly, no os.path.exists() needed</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>pathlib is the modern standard</strong> for anything that used to be <code>os.path.join()</code>/<code>os.path.exists()</code> — most real ML config systems (and libraries like DVC) accept <code>Path</code> objects directly.</div></div>
+
+  <!-- 5.11 -->
+  <div class="lesson-h2">5.11 — Class-Based Context Managers: __enter__ and __exit__</div>
+  <p class="lesson-p"><code>with open(...) as f</code> works because file objects implement the <strong>context manager protocol</strong> themselves. Any class can get the same "guaranteed cleanup" behavior by defining <code>__enter__</code> and <code>__exit__</code> — a class-based alternative to the <code>@contextmanager</code> generator function you'll meet in Chapter 6.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A Timer that always reports elapsed time, even on error</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Timer</span>:
+    <span class="kw">def</span> <span class="fn">__enter__</span>(self):
+        <span class="kw">import</span> time
+        self.start = time.time()
+        <span class="kw">return</span> self             <span class="cm"># whatever __enter__ returns becomes the "as x" value</span>
+
+    <span class="kw">def</span> <span class="fn">__exit__</span>(self, exc_type, exc_value, traceback):
+        <span class="kw">import</span> time
+        elapsed = time.time() - self.start
+        <span class="bi">print</span>(<span class="st">f'Elapsed: <span class="bi">{elapsed:.4f}</span>s'</span>)
+        <span class="kw">return</span> <span class="kw">False</span>            <span class="cm"># False = don't suppress any exception that happened inside the block</span>
+
+<span class="kw">with</span> <span class="cls">Timer</span>() <span class="kw">as</span> t:
+    total = <span class="bi">sum</span>(<span class="bi">range</span>(<span class="nm">1_000_000</span>))
+<span class="bi">print</span>(<span class="st">f'Total: <span class="bi">{total}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong><code>__exit__</code> always runs</strong>, even if the code inside the <code>with</code> block raises an exception — exactly like a <code>finally</code> block. That's the whole point of the protocol: guaranteed cleanup (closing a file, releasing a lock, printing a timing report) no matter how the block ends.</div></div>
+
+  <!-- 5.12 -->
+  <div class="lesson-h2">5.12 — Parsing CSV Data</div>
   <p class="lesson-p">CSV (comma-separated values) is the most common format for tabular data. Python's built-in <code>csv</code> module handles the edge cases (commas inside quoted fields, etc.) that manual <code>.split(',')</code> gets wrong.</p>
 
   <div class="code-block">
@@ -470,8 +624,8 @@ scores = [<span class="bi">float</span>(row[<span class="st">'score'</span>]) <s
 <span class="bi">print</span>(<span class="st">f'Average score: <span class="bi">{sum(scores)/len(scores):.2%}</span>'</span>)</div>
   </div>
 
-  <!-- 5.7 -->
-  <div class="lesson-h2">5.7 — Parsing JSON Data</div>
+  <!-- 5.13 -->
+  <div class="lesson-h2">5.13 — Parsing JSON Data</div>
   <p class="lesson-p">JSON is a text format that looks almost exactly like Python dicts and lists nested together — because that's exactly what it is. The <code>json</code> module converts between JSON text and real Python objects.</p>
 
   <div class="code-block">
@@ -494,9 +648,9 @@ back_to_text = json.dumps(config, indent=<span class="nm">2</span>)   <span clas
   <div class="lesson-h2">Chapter 5 Summary</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>class / __init__ / self</strong> — bundle data (attributes) and behavior (methods) together. This is what every ML library object actually is.</div></li>
-    <li data-n="2"><div><strong>try/except</strong> lets code survive bad data instead of crashing. Always catch specific exception types.</div></li>
-    <li data-n="3"><div><strong>raise</strong> lets your own code refuse invalid input on purpose, with a clear error message.</div></li>
-    <li data-n="4"><div><strong>with open(file, mode) as f:</strong> reads or writes files safely, closing them automatically.</div></li>
+    <li data-n="2"><div><strong>Inheritance and super()</strong> let a subclass reuse and extend a parent class's behavior instead of duplicating it. <strong>Dunder methods</strong> (<code>__str__</code>/<code>__repr__</code>/<code>__eq__</code>) hook your objects into <code>print()</code> and <code>==</code>. <strong>@property/@classmethod/@staticmethod</strong> each control how a method is called and what it receives.</div></li>
+    <li data-n="3"><div><strong>try/except</strong> lets code survive bad data instead of crashing. Always catch specific exception types. <strong>raise ... from e</strong> chains a new exception to its original cause instead of hiding it.</div></li>
+    <li data-n="4"><div><strong>with open(file, mode) as f:</strong> reads or writes files safely, closing them automatically. <strong>pathlib.Path</strong> builds and inspects file paths without manual string splitting. A class can implement the same protocol itself via <strong>__enter__/__exit__</strong>.</div></li>
     <li data-n="5"><div><strong>csv.DictReader</strong> turns CSV rows into dicts. Remember: every value from a CSV arrives as a string.</div></li>
     <li data-n="6"><div><strong>json.loads() / json.dumps()</strong> convert between JSON text and Python dicts/lists.</div></li>
   </ul>
@@ -518,20 +672,37 @@ back_to_text = json.dumps(config, indent=<span class="nm">2</span>)   <span clas
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
         <div class="ex-title">Your First Class</div>
-        <div class="ex-desc">Write a class with __init__ and one method that returns a formatted string.</div>
+        <div class="ex-desc">Write a base class and a subclass using super(), a __str__ override, and a @property.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write a class Model with:
+Write a base class Model with:
   __init__(self, name, accuracy) — stores both as attributes
-  report(self) — RETURNS f'{self.name}: {self.accuracy:.2%}'
+  __str__(self) — RETURNS f'{self.name}: {self.accuracy:.2%}' (this is what
+    print(obj) uses automatically — no need to call a method by name)
+  a @property called is_production_ready — RETURNS self.accuracy >= 0.9
 
-Create Model('ResNet50', 0.9423) and print the result of calling .report()
-(The correct answer is ResNet50: 94.23%)</div>
+Then write a subclass FineTunedModel(Model) whose __init__(self, name,
+accuracy, base_model) calls super().__init__(name, accuracy) and stores
+self.base_model = base_model.
+
+Create FineTunedModel('ResNet50-FT', 0.9423, 'ResNet50').
+Print the object directly (print(obj) — uses your __str__).
+Then print exactly: f'Production ready? {obj.is_production_ready}'
+(note: NO parentheses on is_production_ready — it's a property, accessed
+like an attribute)
+(The correct output is two lines: "ResNet50-FT: 94.23%" then "Production ready? True")</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex1-code"># class Model:
 #     def __init__(self, name, accuracy): ...
-#     def report(self): ...
+#     def __str__(self): ...
+#     @property
+#     def is_production_ready(self): ...
+#
+# class FineTunedModel(Model):
+#     def __init__(self, name, accuracy, base_model):
+#         super().__init__(name, accuracy)
+#         self.base_model = base_model
 
 </textarea>
       <div class="ex-btn-row">
@@ -586,22 +757,34 @@ Print exactly: f'Valid ages sum: {total}, errors skipped: {errors}'
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
         <div class="ex-title">Validating Input With raise</div>
-        <div class="ex-desc">Write a validation function that refuses bad input, and catch it with try/except.</div>
+        <div class="ex-desc">Write a validation function that refuses bad input using exception chaining (raise ... from e).</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write validate_accuracy(value): if value is not between 0 and 1
-(inclusive), raise ValueError with any message. Otherwise return value.
+Write validate_accuracy(value): first try to convert value with float(value)
+inside a try/except (TypeError, ValueError). If THAT fails, raise a new
+ValueError with any message, CHAINED from the original using
+`raise ValueError(...) from inner` — this is exception chaining: it keeps
+the original cause attached instead of hiding it. If the conversion
+succeeds but the number is not between 0 and 1 (inclusive), raise a plain
+ValueError with any message. Otherwise return the converted value.
 
 Wrap TWO calls in separate try/except blocks:
   validate_accuracy(0.92)  -> should succeed, print f'Valid: {result}'
-  validate_accuracy(1.5)   -> should fail, print f'Error caught: {e}'
-  (where e is the caught exception)</div>
+  validate_accuracy('bad') -> should fail (can't convert to float); catch
+    it as e, print f'Error caught: {e}', then print
+    f'Caused by: {type(e.__cause__).__name__}' to show the chained cause
+(The correct final line is Caused by: ValueError)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code"># def validate_accuracy(value): ...
+      <textarea class="ex-editor" id="ex3-code"># def validate_accuracy(value):
+#     try:
+#         value = float(value)
+#     except (TypeError, ValueError) as inner:
+#         raise ValueError(...) from inner
+#     ...
 
 # try/except for validate_accuracy(0.92)
-# try/except for validate_accuracy(1.5)
+# try/except for validate_accuracy('bad') -- then print the chained cause
 
 </textarea>
       <div class="ex-btn-row">
@@ -1003,18 +1186,28 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['resnet50: 94.23%'],
-    hint:"class Model: def __init__(self, name, accuracy): self.name=name; self.accuracy=accuracy. def report(self): return f'{self.name}: {self.accuracy:.2%}'",
+    checks:['resnet50-ft: 94.23%','production ready? true'],
+    hint:"class Model: def __init__(...): ...; def __str__(self): return f'...'; @property def is_production_ready(self): return self.accuracy>=0.9. class FineTunedModel(Model): def __init__(self,name,accuracy,base_model): super().__init__(name,accuracy); self.base_model=base_model",
     solution:`class Model:
     def __init__(self, name, accuracy):
         self.name = name
         self.accuracy = accuracy
 
-    def report(self):
+    def __str__(self):
         return f'{self.name}: {self.accuracy:.2%}'
 
-m = Model('ResNet50', 0.9423)
-print(m.report())`
+    @property
+    def is_production_ready(self):
+        return self.accuracy >= 0.9
+
+class FineTunedModel(Model):
+    def __init__(self, name, accuracy, base_model):
+        super().__init__(name, accuracy)
+        self.base_model = base_model
+
+m = FineTunedModel('ResNet50-FT', 0.9423, 'ResNet50')
+print(m)
+print(f'Production ready? {m.is_production_ready}')`
   },
   2:{
     checks:['valid ages sum: 87, errors skipped: 1'],
@@ -1030,9 +1223,13 @@ for a in raw_ages:
 print(f'Valid ages sum: {total}, errors skipped: {errors}')`
   },
   3:{
-    checks:['valid: 0.92','error caught'],
-    hint:"def validate_accuracy(value): if not (0<=value<=1): raise ValueError(f'...{value}'); return value",
+    checks:['valid: 0.92','error caught','caused by: valueerror'],
+    hint:"def validate_accuracy(value): try: value=float(value) except (TypeError,ValueError) as inner: raise ValueError(f'...{value!r}') from inner. Then the 0-1 range check raises a plain ValueError. In the second try/except, after catching, print(f'Caused by: {type(e.__cause__).__name__}')",
     solution:`def validate_accuracy(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError) as inner:
+        raise ValueError(f'accuracy must be a number, got {value!r}') from inner
     if not (0 <= value <= 1):
         raise ValueError(f'accuracy must be between 0 and 1, got {value}')
     return value
@@ -1043,9 +1240,10 @@ except ValueError as e:
     print(f'Error: {e}')
 
 try:
-    print(f'Valid: {validate_accuracy(1.5)}')
+    validate_accuracy('bad')
 except ValueError as e:
-    print(f'Error caught: {e}')`
+    print(f'Error caught: {e}')
+    print(f'Caused by: {type(e.__cause__).__name__}')`
   },
   4:{
     checks:['epoch,loss','1,0.82','2,0.61'],

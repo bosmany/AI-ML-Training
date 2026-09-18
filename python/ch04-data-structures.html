@@ -474,6 +474,75 @@ ranked = <span class="bi">sorted</span>(candidates, key=<span class="kw">lambda<
 <span class="bi">print</span>(<span class="st">f"Test accuracy specifically: <span class="bi">{dataset_stats['test']['accuracy']:.0%}</span>"</span>)</div>
   </div>
 
+  <!-- 4.8 -->
+  <div class="lesson-h2">4.8 — The collections Module: Counter, defaultdict, namedtuple</div>
+  <p class="lesson-p">The built-in <code>collections</code> module gives you three specialized containers that solve extremely common data-wrangling problems in one line instead of five. You'll reach for these constantly once you're working with real, messy data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Counter — counting things without a manual loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter, defaultdict, namedtuple
+
+<span class="cm"># Counter: count occurrences of each item — one line instead of a manual dict+loop</span>
+skill_mentions = [<span class="st">'python'</span>, <span class="st">'sql'</span>, <span class="st">'python'</span>, <span class="st">'ml'</span>, <span class="st">'sql'</span>, <span class="st">'python'</span>]
+counts = Counter(skill_mentions)
+<span class="bi">print</span>(counts)                      <span class="cm"># Counter({'python': 3, 'sql': 2, 'ml': 1})</span>
+<span class="bi">print</span>(counts.most_common(<span class="nm">1</span>))     <span class="cm"># [('python', 3)] — the single most common item, as a list of tuples</span></div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">defaultdict — grouping without checking "does this key exist yet?"</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">candidates = [
+    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'city'</span>: <span class="st">'Hubli'</span>},
+    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'city'</span>: <span class="st">'Pune'</span>},
+    {<span class="st">'name'</span>: <span class="st">'Eve'</span>,   <span class="st">'city'</span>: <span class="st">'Hubli'</span>},
+]
+
+<span class="cm"># Without defaultdict you'd need: if city not in groups: groups[city] = []</span>
+groups = defaultdict(<span class="bi">list</span>)   <span class="cm"># any missing key auto-creates an empty list</span>
+<span class="kw">for</span> c <span class="kw">in</span> candidates:
+    groups[c[<span class="st">'city'</span>]].append(c[<span class="st">'name'</span>])
+<span class="bi">print</span>(<span class="bi">dict</span>(groups))   <span class="cm"># {'Hubli': ['Alice', 'Eve'], 'Pune': ['Bob']}</span></div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">namedtuple — a lightweight, immutable record with named fields</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">Candidate = namedtuple(<span class="st">'Candidate'</span>, [<span class="st">'name'</span>, <span class="st">'score'</span>])
+
+alice = Candidate(<span class="st">'Alice'</span>, <span class="nm">0.92</span>)
+<span class="bi">print</span>(alice.name, alice.score)   <span class="cm"># access by NAME, not index — reads like a dict, immutable like a tuple</span>
+<span class="bi">print</span>(alice)                  <span class="cm"># Candidate(name='Alice', score=0.92) — a readable repr for free</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>When to reach for which:</strong> <code>Counter</code> for "how many of each," <code>defaultdict</code> for "group these by some key," <code>namedtuple</code> when a plain tuple's <code>record[0]</code>/<code>record[1]</code> access gets hard to read and you want <code>record.name</code> instead — without the overhead of a full class.</div></div>
+
+  <!-- 4.9 -->
+  <div class="lesson-h2">4.9 — Star- and Dict-Unpacking</div>
+  <p class="lesson-p">Plain unpacking (<code>x, y = point</code>) requires an exact count match. <strong>Star-unpacking</strong> lets one variable soak up "everything else," and <strong>dict-unpacking</strong> (<code>**</code>) lets you merge or override dictionaries without writing a loop.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Star-unpacking — first, rest, and last</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">72</span>, <span class="nm">85</span>, <span class="nm">60</span>, <span class="nm">91</span>, <span class="nm">78</span>]
+
+first, *rest = scores
+<span class="bi">print</span>(<span class="st">f'first=<span class="bi">{first}</span>, rest=<span class="bi">{rest}</span>'</span>)     <span class="cm"># first=72, rest=[85, 60, 91, 78]</span>
+
+*most, last = scores
+<span class="bi">print</span>(<span class="st">f'most=<span class="bi">{most}</span>, last=<span class="bi">{last}</span>'</span>)     <span class="cm"># most=[72, 85, 60, 91], last=78</span>
+
+first, *middle, last = scores
+<span class="bi">print</span>(<span class="st">f'first=<span class="bi">{first}</span>, middle=<span class="bi">{middle}</span>, last=<span class="bi">{last}</span>'</span>)</div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Dict-unpacking — merging and overriding configs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">base_config = {<span class="st">'epochs'</span>: <span class="nm">50</span>, <span class="st">'lr'</span>: <span class="nm">0.001</span>, <span class="st">'batch_size'</span>: <span class="nm">32</span>}
+overrides   = {<span class="st">'lr'</span>: <span class="nm">0.01</span>}   <span class="cm"># a per-experiment override</span>
+
+<span class="cm"># Later keys win — overrides['lr'] replaces base_config['lr']</span>
+merged = {**base_config, **overrides}
+<span class="bi">print</span>(merged)   <span class="cm"># {'epochs': 50, 'lr': 0.01, 'batch_size': 32}</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why this matters in ML:</strong> <code>{**default_config, **experiment_overrides}</code> is the standard one-liner for "start from defaults, then apply just what this run changes" — you'll see it in almost every training script.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 4 Summary</div>
   <ul class="step-list">
@@ -483,6 +552,7 @@ ranked = <span class="bi">sorted</span>(candidates, key=<span class="kw">lambda<
     <li data-n="4"><div><strong>Sets</strong> hold unique values and support <code>&amp;</code> (intersection), <code>-</code> (difference), <code>|</code> (union).</div></li>
     <li data-n="5"><div><strong>Lists of dicts</strong> are the shape of real datasets. <strong>Nested dicts</strong> are the shape of real configs and JSON.</div></li>
     <li data-n="6"><div><strong>sorted(data, key=lambda x: x['field'])</strong> ranks any list of dicts by any field.</div></li>
+    <li data-n="7"><div><strong>collections</strong> gives you <code>Counter</code> (count things), <code>defaultdict</code> (group things), and <code>namedtuple</code> (a lightweight named record). <strong>Star-unpacking</strong> (<code>first, *rest = ...</code>) and <strong>dict-unpacking</strong> (<code>{**a, **b}</code>) merge and split structures without a manual loop.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -549,11 +619,18 @@ Print each: f'{name} is {age} from {city}'
 
 Then compute the average age across all three records.
 Print exactly: f'Average age: {average_age:.1f}'
-(The correct answer is Average age: 29.0)</div>
+(The correct answer is Average age: 29.0)
+
+Then use STAR-UNPACKING to split records into the first record and
+"all the rest": first_record, *other_records = records
+Print exactly: f'First: {first_record}, Others: {len(other_records)}'
+(The correct answer is First: ('alice', 28, 'Hubli'), Others: 2)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex2-code">records = [('alice', 28, 'Hubli'), ('bob', 34, 'Pune'), ('carol', 25, 'Mumbai')]
 
 # loop with unpacking, then compute average age
+
+# then star-unpacking: first_record, *other_records = records
 
 </textarea>
       <div class="ex-btn-row">
@@ -615,6 +692,7 @@ Print exactly:
     <div class="ex-task">Task:
 model_a_features = {'age','income','education','city'}
 model_b_features = {'age','income','job_title'}
+all_skill_mentions = ['python','sql','python','ml','sql','python']
 (already given)
 
 Compute common = the features in BOTH sets.
@@ -623,12 +701,22 @@ Compute only_in_a = the features in A but NOT in B.
 Print exactly (use sorted() so the order is consistent):
   f'Common: {sorted(common)}'
   f'Only in A: {sorted(only_in_a)}'
-(Correct: Common: ['age', 'income']  and  Only in A: ['city', 'education'])</div>
+(Correct: Common: ['age', 'income']  and  Only in A: ['city', 'education'])
+
+Then use collections.Counter on all_skill_mentions to find the single
+most-mentioned skill (use .most_common(1)).
+Print exactly: f'Most mentioned skill: {top_skill} ({top_count}x)'
+(The correct answer is Most mentioned skill: python (3x))</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">model_a_features = {'age','income','education','city'}
+      <textarea class="ex-editor" id="ex4-code">from collections import Counter
+
+model_a_features = {'age','income','education','city'}
 model_b_features = {'age','income','job_title'}
+all_skill_mentions = ['python','sql','python','ml','sql','python']
 
 # common = ... ; only_in_a = ...
+
+# then: use Counter(...).most_common(1) to find the top skill
 
 </textarea>
       <div class="ex-btn-row">
@@ -653,10 +741,10 @@ model_b_features = {'age','income','job_title'}
     </div>
     <div class="ex-task">Task:
 candidates = [
-    {'name':'Alice','score':0.92},
-    {'name':'Bob','score':0.75},
-    {'name':'Carol','score':0.81},
-    {'name':'Dave','score':0.60},
+    {'name':'Alice','score':0.92,'skills':['Python','SQL']},
+    {'name':'Bob','score':0.75,'skills':['Java']},
+    {'name':'Carol','score':0.81,'skills':['Python','ML']},
+    {'name':'Dave','score':0.60,'skills':['Python']},
 ]
 (already given)
 
@@ -665,16 +753,24 @@ score from HIGHEST to lowest.
 
 Print exactly: f'Qualified: {[c["name"] for c in qualified]}'
 Print exactly: f'Qualified count: {len(qualified)}'
-(Correct: Qualified: ['Alice', 'Carol']  and  Qualified count: 2)</div>
+(Correct: Qualified: ['Alice', 'Carol']  and  Qualified count: 2)
+
+Then use a NESTED comprehension to build a sorted list of every unique
+skill across ALL candidates (not just qualified ones):
+  all_skills = sorted({skill for c in candidates for skill in c['skills']})
+Print exactly: f'All skills: {all_skills}'
+(The correct answer is All skills: ['Java', 'ML', 'Python', 'SQL'])</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">candidates = [
-    {'name':'Alice','score':0.92},
-    {'name':'Bob','score':0.75},
-    {'name':'Carol','score':0.81},
-    {'name':'Dave','score':0.60},
+    {'name':'Alice','score':0.92,'skills':['Python','SQL']},
+    {'name':'Bob','score':0.75,'skills':['Java']},
+    {'name':'Carol','score':0.81,'skills':['Python','ML']},
+    {'name':'Dave','score':0.60,'skills':['Python']},
 ]
 
 # filter score >= 0.8, sort descending by score, then print
+
+# then: all_skills = sorted set built from a nested comprehension over skills
 
 </textarea>
       <div class="ex-btn-row">
@@ -998,15 +1094,18 @@ scores.sort(reverse=True)
 print(f'Top score: {scores[0]}')`
   },
   2:{
-    checks:['average age: 29.0'],
-    hint:"total = 0; for name, age, city in records: print(...); total += age. average_age = total/len(records)",
+    checks:['average age: 29.0',"first: ('alice', 28, 'hubli'), others: 2"],
+    hint:"total = 0; for name, age, city in records: print(...); total += age. average_age = total/len(records). Then: first_record, *other_records = records",
     solution:`records = [('alice', 28, 'Hubli'), ('bob', 34, 'Pune'), ('carol', 25, 'Mumbai')]
 total = 0
 for name, age, city in records:
     print(f'{name} is {age} from {city}')
     total += age
 average_age = total / len(records)
-print(f'Average age: {average_age:.1f}')`
+print(f'Average age: {average_age:.1f}')
+
+first_record, *other_records = records
+print(f'First: {first_record}, Others: {len(other_records)}')`
   },
   3:{
     checks:['resnet50 — epochs=50, batch_size=32'],
@@ -1017,28 +1116,38 @@ model_config['batch_size'] = batch_size
 print(f"{model_config['name']} — epochs={model_config['epochs']}, batch_size={model_config['batch_size']}")`
   },
   4:{
-    checks:["common: ['age', 'income']","only in a: ['city', 'education']"],
-    hint:"common = model_a_features & model_b_features; only_in_a = model_a_features - model_b_features",
-    solution:`model_a_features = {'age','income','education','city'}
+    checks:["common: ['age', 'income']","only in a: ['city', 'education']","most mentioned skill: python (3x)"],
+    hint:"common = model_a_features & model_b_features; only_in_a = model_a_features - model_b_features. Then: top_skill, top_count = Counter(all_skill_mentions).most_common(1)[0]",
+    solution:`from collections import Counter
+
+model_a_features = {'age','income','education','city'}
 model_b_features = {'age','income','job_title'}
+all_skill_mentions = ['python','sql','python','ml','sql','python']
+
 common = model_a_features & model_b_features
 only_in_a = model_a_features - model_b_features
 print(f'Common: {sorted(common)}')
-print(f'Only in A: {sorted(only_in_a)}')`
+print(f'Only in A: {sorted(only_in_a)}')
+
+top_skill, top_count = Counter(all_skill_mentions).most_common(1)[0]
+print(f'Most mentioned skill: {top_skill} ({top_count}x)')`
   },
   5:{
-    checks:["qualified: ['alice', 'carol']","qualified count: 2"],
-    hint:"qualified = sorted([c for c in candidates if c['score'] >= 0.8], key=lambda c: c['score'], reverse=True)",
+    checks:["qualified: ['alice', 'carol']","qualified count: 2","all skills: ['java', 'ml', 'python', 'sql']"],
+    hint:"qualified = sorted([c for c in candidates if c['score'] >= 0.8], key=lambda c: c['score'], reverse=True). Then: all_skills = sorted({skill for c in candidates for skill in c['skills']})",
     solution:`candidates = [
-    {'name':'Alice','score':0.92},
-    {'name':'Bob','score':0.75},
-    {'name':'Carol','score':0.81},
-    {'name':'Dave','score':0.60},
+    {'name':'Alice','score':0.92,'skills':['Python','SQL']},
+    {'name':'Bob','score':0.75,'skills':['Java']},
+    {'name':'Carol','score':0.81,'skills':['Python','ML']},
+    {'name':'Dave','score':0.60,'skills':['Python']},
 ]
 qualified = [c for c in candidates if c['score'] >= 0.8]
 qualified = sorted(qualified, key=lambda c: c['score'], reverse=True)
 print(f'Qualified: {[c["name"] for c in qualified]}')
-print(f'Qualified count: {len(qualified)}')`
+print(f'Qualified count: {len(qualified)}')
+
+all_skills = sorted({skill for c in candidates for skill in c['skills']})
+print(f'All skills: {all_skills}')`
   }
 };
 

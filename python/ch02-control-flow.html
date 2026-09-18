@@ -504,6 +504,60 @@ grades = {s: (<span class="st">'pass'</span> <span class="kw">if</span> s >= <sp
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Read it as English:</strong> <code>[s/100 for s in raw_scores if s >= 60]</code> reads as "s divided by 100, for each s in raw_scores, if s is at least 60." Once you can read comprehensions this way, they stop feeling like a trick and start feeling obvious.</div></div>
 
+  <!-- 2.8 -->
+  <div class="lesson-h2">2.8 — Set & Generator Comprehensions, Nested Comprehensions</div>
+  <p class="lesson-p">The same <code>for ... if</code> shape from 2.7 works with curly braces for a <strong>set comprehension</strong> (dedupe while you build), and with plain parentheses for a <strong>generator expression</strong> — which doesn't build a list in memory at all, it produces values one at a time. That matters once your data gets large: <code>sum(x for x in huge_list)</code> never holds the whole list twice in memory, while <code>sum([x for x in huge_list])</code> does. You can also nest comprehensions to flatten or reshape nested data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Set comprehension, generator expression, nested comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">labels = [<span class="st">'cat'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>, <span class="st">'bird'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>]
+
+<span class="cm"># Set comprehension — {expr for x in iterable} — dedupes automatically</span>
+unique_labels = {label <span class="kw">for</span> label <span class="kw">in</span> labels}
+<span class="bi">print</span>(unique_labels)          <span class="cm"># {'cat', 'dog', 'bird'} — order not guaranteed</span>
+
+<span class="cm"># Generator expression — (expr for x in iterable) — no brackets, lazy</span>
+scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>]
+total_passing = <span class="bi">sum</span>(s <span class="kw">for</span> s <span class="kw">in</span> scores <span class="kw">if</span> s >= <span class="nm">60</span>)   <span class="cm"># sum() consumes it directly</span>
+<span class="bi">print</span>(<span class="st">'Total of passing scores:'</span>, total_passing)
+
+<span class="cm"># A generator is single-use — once consumed, it's empty</span>
+gen = (s <span class="kw">for</span> s <span class="kw">in</span> scores)
+<span class="bi">print</span>(<span class="bi">list</span>(gen))   <span class="cm"># [45, 78, 92, 33, 88]</span>
+<span class="bi">print</span>(<span class="bi">list</span>(gen))   <span class="cm"># [] — already exhausted</span>
+
+<span class="cm"># Nested comprehension — flatten a list of lists</span>
+batches = [[<span class="nm">1</span>, <span class="nm">2</span>], [<span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>], [<span class="nm">6</span>]]
+flat = [item <span class="kw">for</span> batch <span class="kw">in</span> batches <span class="kw">for</span> item <span class="kw">in</span> batch]
+<span class="bi">print</span>(<span class="st">'Flattened:'</span>, flat)   <span class="cm"># [1, 2, 3, 4, 5, 6]</span></div>
+  </div>
+
+  <!-- 2.9 -->
+  <div class="lesson-h2">2.9 — for...else and the Walrus Operator (:=)</div>
+  <p class="lesson-p">A <code>for</code> loop can have an <code>else</code> clause — it runs only if the loop finished WITHOUT hitting a <code>break</code>. It's the cleanest way to express "search for something, and do X if it was never found." The walrus operator <code>:=</code> lets you assign a value AND use it in the same expression — handy inside a <code>while</code> or an <code>if</code> condition, so you don't have to compute something twice.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">for...else and the walrus operator</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracies = [<span class="nm">0.72</span>, <span class="nm">0.81</span>, <span class="nm">0.79</span>, <span class="nm">0.85</span>]
+
+<span class="cm"># for...else — the else only runs if break was NEVER hit</span>
+<span class="kw">for</span> acc <span class="kw">in</span> accuracies:
+    <span class="kw">if</span> acc >= <span class="nm">0.95</span>:
+        <span class="bi">print</span>(<span class="st">'Found a model above 95%!'</span>)
+        <span class="kw">break</span>
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">'No model reached 95% accuracy.'</span>)   <span class="cm"># this runs — no break happened</span>
+
+<span class="cm"># The walrus operator := assigns AND returns the value in one step</span>
+readings = [<span class="nm">12</span>, <span class="nm">45</span>, <span class="nm">99</span>, <span class="nm">7</span>, <span class="nm">150</span>]
+i = <span class="nm">0</span>
+<span class="kw">while</span> i < <span class="bi">len</span>(readings) <span class="kw">and</span> (r := readings[i]) < <span class="nm">100</span>:
+    <span class="bi">print</span>(<span class="st">'Reading:'</span>, r)
+    i += <span class="nm">1</span>
+<span class="bi">print</span>(<span class="st">'Stopped at:'</span>, readings[i] <span class="kw">if</span> i < <span class="bi">len</span>(readings) <span class="kw">else</span> <span class="st">'end'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Without the walrus operator, that last loop would need <code>r = readings[i]</code> as a separate line before the condition — <code>:=</code> just lets you skip the extra line when the assigned value is only needed inside the loop.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 2 Summary</div>
   <ul class="step-list">
@@ -512,7 +566,8 @@ grades = {s: (<span class="st">'pass'</span> <span class="kw">if</span> s >= <sp
     <li data-n="3"><div><strong>for loops</strong> repeat over a sequence or over <code>range(n)</code>. <strong>while loops</strong> repeat until a condition becomes False — always make sure that condition can actually change.</div></li>
     <li data-n="4"><div><strong>continue</strong> skips to the next iteration. <strong>break</strong> exits the loop immediately.</div></li>
     <li data-n="5"><div><strong>enumerate()</strong> gives you the index; <strong>zip()</strong> walks two lists together. Combine them to compare predictions against targets.</div></li>
-    <li data-n="6"><div><strong>Comprehensions</strong> — <code>[expr for x in list if condition]</code> — build a new list in one line: filter, transform, or both.</div></li>
+    <li data-n="6"><div><strong>Comprehensions</strong> — <code>[expr for x in list if condition]</code> — build a new list in one line: filter, transform, or both. <code>{...}</code> makes a set comprehension, <code>(...)</code> makes a lazy generator expression.</div></li>
+    <li data-n="7"><div><strong>for...else</strong> runs the else only if the loop never hit break. <strong>Walrus (:=)</strong> assigns and returns a value in the same expression.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -609,18 +664,25 @@ targets     = [1,0,0,1,0,1,0,1,1,1]
       </div>
     </div>
     <div class="ex-task">Task:
-Start with loss = 1.0 and epoch = 0.
+loss = 1.0, epoch = 0, max_epochs = 25
+corrupted_epochs = {5, 12}   (already given — these epoch numbers have a bad logging read)
+
 While loss is greater than 0.05:
   increase epoch by 1
-  multiply loss by 0.85 (simulating it shrinking each epoch)
+  if this epoch number is in corrupted_epochs: print f'Epoch {epoch}: corrupted reading, skipping'
+    then continue (skip the shrink step entirely for this epoch)
+  otherwise: multiply loss by 0.85 (simulating it shrinking)
+  if epoch has reached max_epochs: print 'Max epochs reached — stopping early' then break
 
 After the loop, print exactly: f'Converged after {epoch} epochs'
-(The correct answer is Converged after 19 epochs — verify your loop logic if you get a different number)</div>
+(The correct answer is Converged after 21 epochs — the two corrupted/skipped epochs cost you 2 extra epochs of "wasted" iterations)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex3-code">loss = 1.0
 epoch = 0
+max_epochs = 25
+corrupted_epochs = {5, 12}
 
-# Your while loop here
+# Your while loop here — use continue to skip corrupted epochs, break if max_epochs is reached
 
 </textarea>
       <div class="ex-btn-row">
@@ -690,11 +752,18 @@ Using ONE list comprehension, build "passing_normalized": keep only scores
 
 Print: f'Passing, normalized: {passing_normalized}'
 Print: f'Passing count: {len(passing_normalized)}'
-(The correct count is Passing count: 7)</div>
+(The correct count is Passing count: 7)
+
+Then, using a GENERATOR EXPRESSION (not a list comprehension — no square
+brackets), compute the sum of the normalized passing scores directly with
+sum(...) and print: f'Passing total: {passing_total}'
+(The correct total is Passing total: 5.52)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">raw_scores = [45,78,92,33,88,61,95,58,72,66]
 
 # One list comprehension: filter >=60 AND divide by 100
+
+# Then a generator expression passed straight to sum(...)
 
 </textarea>
       <div class="ex-btn-row">
@@ -1039,13 +1108,21 @@ accuracy = correct / len(targets)
 print(f'Accuracy: {accuracy:.2%}')`
   },
   3:{
-    checks:['19 epochs'],
-    hint:"while loss > 0.05: epoch += 1; loss *= 0.85",
+    checks:['21 epochs','corrupted reading, skipping'],
+    hint:"while loss > 0.05: epoch += 1; if epoch in corrupted_epochs: print(...); continue; loss *= 0.85; if epoch >= max_epochs: print(...); break",
     solution:`loss = 1.0
 epoch = 0
+max_epochs = 25
+corrupted_epochs = {5, 12}
 while loss > 0.05:
     epoch += 1
+    if epoch in corrupted_epochs:
+        print(f'Epoch {epoch}: corrupted reading, skipping')
+        continue
     loss *= 0.85
+    if epoch >= max_epochs:
+        print('Max epochs reached — stopping early')
+        break
 print(f'Converged after {epoch} epochs')`
   },
   4:{
@@ -1063,12 +1140,14 @@ for i, (p, t) in enumerate(zip(predictions, targets)):
 print(f'Total incorrect: {wrong}')`
   },
   5:{
-    checks:['passing count: 7'],
-    hint:"passing_normalized = [s/100 for s in raw_scores if s >= 60]",
+    checks:['passing count: 7','passing total: 5.52'],
+    hint:"passing_normalized = [s/100 for s in raw_scores if s >= 60]. passing_total = sum(s/100 for s in raw_scores if s >= 60) — no brackets, that's the generator expression.",
     solution:`raw_scores = [45,78,92,33,88,61,95,58,72,66]
 passing_normalized = [s / 100 for s in raw_scores if s >= 60]
 print(f'Passing, normalized: {passing_normalized}')
-print(f'Passing count: {len(passing_normalized)}')`
+print(f'Passing count: {len(passing_normalized)}')
+passing_total = sum(s / 100 for s in raw_scores if s >= 60)
+print(f'Passing total: {passing_total}')`
   }
 };
 
