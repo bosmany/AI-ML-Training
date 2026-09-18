@@ -8,7 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const SKIP_DIRS = new Set(['.git', 'node_modules', '.github']);
+const SKIP_DIRS = new Set(['.git', 'node_modules', '.github', '.fastapi-venv']);
 
 function walk(dir, results) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

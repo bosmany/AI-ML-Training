@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://bosmany.github.io/ai-ml-zero-to-hero/)
 
-A self-built, 35-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps and agentic AI — plus four bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals) and three real production projects with verified, reproducible results.
+A self-built, 41-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps, agentic AI, and production FastAPI web apps — plus four bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals) and three real production projects with verified, reproducible results.
 
 **🔴 Live demo:** **[bosmany.github.io/ai-ml-zero-to-hero](https://bosmany.github.io/ai-ml-zero-to-hero/)**
 
@@ -17,12 +17,13 @@ A self-built, 35-chapter, browser-based AI/ML curriculum — Python fundamentals
 | [End-to-End ML Pipeline](projects/ch33-production-ml-pipeline.html) | Full churn-prediction pipeline: clean → feature-engineer → cross-validate → tune → deploy-gate | Correctly **blocked a regression** — automated gate held a retrain at F1 0.667 against a 0.75 production baseline |
 | [Agentic AI System](projects/ch34-agentic-ai-system.html) | Multi-step ReAct-pattern tool-calling agent with a safety guardrail | Resolves multi-hop queries via dynamically chained tool calls, not a hardcoded pipeline |
 | [RAG Chatbot, Deployed](projects/ch35-rag-chatbot-deployed.html) | Retrieval-augmented chatbot with similarity-threshold grounding + health monitoring | Correctly **declines out-of-scope queries** instead of hallucinating an answer |
+| [FastAPI Capstone: Build & Deploy](fastapi/ch41-fastapi-capstone-deployment.html) | A complete Candidate Scoring API: routers, async SQLAlchemy, bcrypt + JWT auth, background tasks, middleware, a pytest suite, and a Dockerfile | Verified end to end, including a **real uvicorn server** answering real HTTP requests with a real JWT (201 Created) |
 
 Full course map, live progress tracking, and every bonus module: open [`index.html`](index.html) (or just use the live demo link above).
 
 ---
 
-## Status: all 35 chapters complete, verified, committed & pushed. Plus bonus Interview Mastery, DSA, Portfolio Packaging, and Systems Fundamentals modules.
+## Status: all 41 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, and Systems Fundamentals modules.
 
 An interactive, self-contained, browser-based course that takes someone from zero programming knowledge to a working AI/ML skillset — Python fundamentals, math, data tools, classical ML, deep learning, NLP/LLMs, and MLOps deployment.
 
@@ -32,7 +33,11 @@ The course was expanded from 30 to 32 chapters partway through Module 1 (see ren
 below), then expanded again with two more asks mid-build: an **Interview Prep** tab on every
 module capstone (Ch 7, 10, 14, 20, 26, 30, 32), and a bonus **Module 8: Production Projects**
 appended after Ch 32 (no renumbering — Module 8 lives in a new `projects/` folder, chapters 33-35,
-including a dedicated **Agentic AI** project and a **RAG Chatbot, Deployed** course finale).
+including a dedicated **Agentic AI** project and a **RAG Chatbot, Deployed** project), then a
+**Module 9: Python for Web Apps with FastAPI** (Ch 36-41, new `fastapi/` folder, appended after
+Ch 35, no renumbering; Ch 41 is the new capstone and true course finale). Python chapters Ch 1-7
+were also deepened afterwards (new subsections + widened exercises — see "Python foundations
+deepening" below) without changing any chapter's exercise count.
 
 **Verification done on the full 35-chapter set**: every `.html` file passes a syntax + div-balance
 + textarea-balance check; the entire `sb-back`/`prereq`/`next-chapter-card` link chain from Ch 1
@@ -41,7 +46,16 @@ exercise, capstone-project reference solution, and quiz answer key was executed 
 matched against its checker strings; a factual error (a chapter cross-reference off by one) and an
 outdated model-name string were found and fixed during a content spot-check of Ch 29/30; a
 parameter-name-collision bug was found and fixed in Ch 34's capstone. `index.html`'s `MODULES`
-object lists all 35 chapters across 8 modules, all `avail:true`.
+object lists all 41 chapters across 9 modules, all `avail:true`.
+
+**Module 9 verification (Ch 36-41)**: all six `.ipynb` notebooks were executed for real in an
+isolated venv (FastAPI 0.141, Pydantic 2, SQLAlchemy 2, PyJWT, bcrypt) and checked for strictly
+sequential `execution_count`s and zero error outputs; the module's one real-socket cell (Ch 41)
+starts uvicorn in a background thread and makes a real HTTP round-trip with a real JWT. Executing
+them caught real bugs that reading the code did not: `passlib` crashes against current `bcrypt`
+(so the module teaches `bcrypt` directly and `PyJWT`, not `passlib`/`python-jose`); Pydantic v1's
+`.dict()` / `class Config` are deprecated (use `.model_dump()` / `ConfigDict`); and a Starlette
+exception handler registered after an app has served its first request is silently ignored.
 
 | # | Chapter | File |
 |---|---------|------|
@@ -79,11 +93,17 @@ object lists all 35 chapters across 8 modules, all `avail:true`.
 | 32 | MLOps Fundamentals *(core-curriculum capstone 💼)* | `mlops/ch32-mlops-fundamentals-capstone.html` |
 | 33 | Production Project: End-to-End ML Pipeline | `projects/ch33-production-ml-pipeline.html` |
 | 34 | Production Project: **Agentic AI System** *(centerpiece project 💼)* | `projects/ch34-agentic-ai-system.html` |
-| 35 | Production Project: RAG Chatbot, Deployed *(course finale 🎉)* | `projects/ch35-rag-chatbot-deployed.html` |
-| Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 35)* | `bonus/interview-mastery.html` |
-| Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 35, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
-| Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 35)* | `bonus/portfolio-packaging.html` |
-| Bonus | Systems Fundamentals — 4 chapters: APIs &amp; HTTP, Networking &amp; Microservices, Load Balancers &amp; Firewalls, Linux/Docker/Kubernetes Troubleshooting *(not graded/counted in the 35, but has real auto-graded exercises)* | `systems/sf01-...html` through `sf04-...html` |
+| 35 | Production Project: RAG Chatbot, Deployed | `projects/ch35-rag-chatbot-deployed.html` |
+| 36 | FastAPI Fundamentals *(🎬 Colab chapter)* | `fastapi/ch36-fastapi-fundamentals.html` |
+| 37 | Dependency Injection & Error Handling *(🎬 Colab chapter)* | `fastapi/ch37-dependency-injection-error-handling.html` |
+| 38 | Databases with SQLAlchemy *(🎬 Colab chapter)* | `fastapi/ch38-databases-sqlalchemy.html` |
+| 39 | Authentication & Security (bcrypt, JWT, OAuth2) *(🎬 Colab chapter)* | `fastapi/ch39-authentication-security.html` |
+| 40 | Testing, Middleware & Background Tasks *(🎬 Colab chapter)* | `fastapi/ch40-testing-middleware-background-tasks.html` |
+| 41 | FastAPI Capstone: Build & Deploy *(🎬 Colab, Module 9 capstone 💼, course finale 🎉)* | `fastapi/ch41-fastapi-capstone-deployment.html` |
+| Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 41)* | `bonus/interview-mastery.html` |
+| Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 41, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
+| Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 41)* | `bonus/portfolio-packaging.html` |
+| Bonus | Systems Fundamentals — 4 chapters: APIs &amp; HTTP, Networking &amp; Microservices, Load Balancers &amp; Firewalls, Linux/Docker/Kubernetes Troubleshooting *(not graded/counted in the 41, but has real auto-graded exercises)* | `systems/sf01-...html` through `sf04-...html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
@@ -106,7 +126,7 @@ and `apstone` across the affected files — those are the spots a blind number-s
 - **Autograding:** exercises and mini-projects check printed output via substring matching (case-insensitive) against pre-computed expected values. **Every numeric answer baked into a checker was independently verified** (via a Node.js arithmetic simulation, since no local Python was available while building) before shipping — this matters, because the original Chapter 1 prototype this course was rebuilt from had two real autograder bugs (a check hard-coded to one example answer despite the task saying "use your own values"; a check requiring text that never appeared in its own reference solution). Do not add a numeric checker without independently verifying the expected value first.
 - **Floating-point care:** exercises that iterate many times (e.g. gradient descent) can't always use exact-string checks — different-but-equally-correct implementations can diverge in the last few float digits after hundreds/thousands of iterations (see Chapter 8's capstone, which uses a numeric tolerance range parsed via regex instead of exact match). Keep this in mind for future iterative/numerical chapters (optimizers, training loops in Module 5).
 - **Cross-chapter continuity:** the "candidate scoring" dataset theme (Alice/Bob/Carol/Dave/Eve, Hubli/Pune/Mumbai/Delhi, scores) recurs across Chapters 1, 4, 5, and 10 deliberately, so returning learners see the same problem solved with progressively better tools (raw loops → data structures → OOP+files → Pandas one-liners).
-- **Folder = module:** `python/` = Module 1, `math/` = Module 2, `data/` = Module 3. Continue this convention: `ml/` for Module 4, `dl/` for Module 5, `nlp/` for Module 6, `mlops/` for Module 7.
+- **Folder = module:** `python/` = Module 1, `math/` = Module 2, `data/` = Module 3. Continue this convention: `ml/` for Module 4, `dl/` for Module 5, `nlp/` for Module 6, `mlops/` for Module 7, `projects/` for Module 8, `fastapi/` for Module 9.
 - **Per-chapter checklist when building a new one:**
   1. Copy the previous chapter's HTML as a template (CSS/JS shell is identical across chapters — only content, `CH_ID`, sidebar links, and exercise/quiz data change).
   2. Update `CH_ID`, the "back" link, the "coming next" sidebar list, and the previous-chapter-quiz-passed check (`store.chapters['chXX']`).
@@ -134,7 +154,7 @@ console.log('open:', (html.match(/<div/g)||[]).length, 'close:', (html.match(/<\
 "
 ```
 
-## Full 32-chapter curriculum (the plan)
+## Full 41-chapter curriculum (the plan)
 
 **Module 1 — Python Foundations** (done, 7 chapters): Basics, Control Flow, Functions & Modules, Data Structures, OOP/Files/Errors, **Professional Python** (venv/pip, custom exceptions, context managers, decorators, generators, logging, unittest), **Python for DevOps & APIs** *(capstone: argparse, JSON, requests/subprocess patterns, env-based config, asyncio)*.
 
@@ -149,6 +169,8 @@ console.log('open:', (html.match(/<div/g)||[]).length, 'close:', (html.match(/<\
 **Module 6 — NLP, LLMs & GenAI** (Ch 27-30): NLP Fundamentals (tokenization, TF-IDF) → Modern NLP with Transformers *(Colab, HuggingFace)* → How LLMs Actually Work (next-token prediction, sampling, prompting) → **Building with LLM APIs Capstone** (RAG, embeddings search, a tool-calling agent).
 
 **Module 7 — MLOps & Deployment** (Ch 31-32): Model Deployment (FastAPI, Docker) *(Colab)* → **MLOps Fundamentals Hero Project** (experiment tracking, monitoring, CI/CD for retraining).
+
+**Module 9 — Python for Web Apps with FastAPI** (Ch 36-41, all *(Colab)*, exercised in-process with Starlette's `TestClient`): FastAPI Fundamentals (path/query params, Pydantic v2 models, validation errors) → Dependency Injection & Error Handling (`Depends`, `HTTPException`, custom handlers, `dependency_overrides`) → Databases with SQLAlchemy (async sessions, CRUD, in-memory SQLite) → Authentication & Security (bcrypt hashing, PyJWT, OAuth2 password flow) → Testing, Middleware & Background Tasks (pytest fixtures/parametrize, CORS, `BackgroundTasks`) → **FastAPI Capstone: Build & Deploy** (`APIRouter`s, full test suite, Dockerfile tying back to Ch 31, one real uvicorn-socket demo; has an Interview Prep tab).
 
 Chapters marked *(Colab)* use a provided Colab notebook instead of the in-browser console, because Pyodide can't run PyTorch/TensorFlow — everything else runs live in the browser via Pyodide, including NumPy and Pandas.
 
@@ -170,14 +192,14 @@ the same mechanism as IPython's autoawait) — never `asyncio.run(...)`, which w
 - **Never print `list(numpy_array_or_series)` in a graded checker.** NumPy 2.0 changed scalar `repr()` to `np.int64(5)` instead of `5`, which breaks any autograder check written as `'[0, 2, 4]'` if Pyodide's NumPy is 2.x — `list.__repr__` calls `repr()` on each element. `f'{scalar}'` and `.4f`-formatted values are unaffected (they use `__format__`/`str()`, not `repr()`); only bracket-printed lists/arrays of numeric NumPy scalars are at risk. **Always use `.tolist()`** (on a NumPy array) or build a plain Python list via a comprehension before printing/checking — this was retrofitted into Ch 8 and Ch 11's exercises after the fact, so check those two files' `EXERCISES` objects as the reference pattern.
 - **Ch 14 (Data Visualization) added chart-image rendering**, the first chapter to need it. `runPy()` now does a second, hidden `runPythonAsync` call after the user's code succeeds, which checks `plt.get_fignums()`, saves the current figure to a base64 PNG (`facecolor='white'`, since charts render on a transparent/white background that needs a white card behind it on this dark theme), and calls `plt.close('all')` so figures don't accumulate across re-runs in the same Pyodide session. The result is rendered as an `<img class="chart-img">` under exercise/project output and `<img class="cl-img">` in the console log. Every graded exercise still ALSO prints plain text facts checked the normal way — the image is for the student to see, not for the autograder to parse. If a future chapter needs charts again, copy this mechanism from `data/ch14-data-visualization.html` rather than re-deriving it.
 
-### The Colab-chapter pattern (Ch 22-24, 26, 28)
+### The Colab-chapter pattern (Ch 22-24, 26, 28, 36-41)
 
 PyTorch and HuggingFace `transformers` can't run in Pyodide (large compiled native libraries, no
 WASM build). For these chapters, copy `dl/ch22-intro-to-pytorch.html`'s exact shell, not a normal
 chapter's:
 - A `.colab-banner` div near the top of the lesson (and again in the project section) linking to
   `https://colab.research.google.com/github/bosmany/ai-ml-zero-to-hero/blob/main/<folder>/<slug>.ipynb`
-  — the real, executed `.ipynb` files now exist for Ch 22-24, 26, 28 (see "Resuming this project").
+  — the real, executed `.ipynb` files now exist for Ch 22-24, 26, 28, 36-41 (see "Resuming this project").
 - Lesson code blocks have NO `▶ Run` button (just a "Colab / real Python — reference only" label).
 - Practice exercises are graded by **pattern-matching the typed code** (`checkTextEx(n)`, checks
   matched against the student's code with all whitespace stripped and lowercased), not by
@@ -188,7 +210,7 @@ chapter's:
   the HTML pages link to notebook URLs that will 404 until those notebooks are authored and
   committed. This is real, deliberately-deferred work, not an oversight to "fix later and forget."
 
-### The Interview Prep pattern (every module capstone: Ch 7, 10, 14, 20, 26, 30, 32)
+### The Interview Prep pattern (every module capstone: Ch 7, 10, 14, 20, 26, 30, 32, 41)
 
 A 5th tab/section alongside Lesson/Practice/Project/Quiz, not counted toward chapter XP/completion.
 Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
@@ -211,13 +233,13 @@ Copy verbatim from `mlops/ch32-mlops-fundamentals-capstone.html`:
 ## Resuming this project
 
 **Everything is done, independently verified, and pushed. There is no known open work.** This
-includes the 35-chapter core curriculum, four bonus modules, and real executed Colab notebooks —
+includes the 41-chapter core curriculum, four bonus modules, and real executed Colab notebooks —
 every exercise, capstone-project reference solution, and quiz answer key was actually executed
 (via `py -3` for HTML chapters, via a real PyTorch/Jupyter environment for notebooks) and matched
 against its expected output — nothing was hand-calculated or trusted on the strength of an agent's
 self-report alone.
 
-**The 35-chapter core curriculum** (Modules 1-8, ending with three production projects):
+**The 41-chapter core curriculum** (Modules 1-9; Modules 1-8 end with three production projects, Module 9 adds the FastAPI track):
 - Ch 33 (`projects/ch33-production-ml-pipeline.html`): a real messy-data → clean → feature-engineer
   → cross-validate (LogisticRegression vs RandomForest) → GridSearchCV tune → evaluate →
   pickle/serve/monitor → ship-or-hold-gate pipeline.
@@ -228,12 +250,24 @@ self-report alone.
   personal hand-verification of any chapter — a parameter-name-collision bug
   (`call_tool(name, **kwargs)` breaking when a tool's own kwarg is named `name`) was caught and
   fixed here.
-- Ch 35 (`projects/ch35-rag-chatbot-deployed.html`, the course finale): a fully-runnable
+- Ch 35 (`projects/ch35-rag-chatbot-deployed.html`): a fully-runnable
   `RagChatbot` class (TF-IDF retrieval, prompt construction, similarity-threshold-gated grounding,
-  health monitoring) plus a reference-only FastAPI wrapper section. Ends with a "🎉 Course Complete"
-  banner instead of a next-chapter card, linking back to `../index.html`.
+  health monitoring) plus a reference-only FastAPI wrapper section. Ends with a "core curriculum
+  complete, one module left" banner pointing at Ch 36 (Module 9).
+- Ch 36-41 (`fastapi/`): the FastAPI track described above; Ch 41 carries the "🎉 Course Complete"
+  banner and an Interview Prep tab. Notebooks need `fastapi uvicorn httpx sqlalchemy aiosqlite
+  bcrypt pyjwt python-multipart pytest` (each notebook's first cell has the exact `!pip install`).
 
-**Four bonus modules** (not counted toward the 35-chapter total, all in the same "not graded but
+**Python foundations deepening (Ch 1-7)**: new subsections and widened exercises (never a changed
+exercise count) — Ch 1 string methods/slicing + a real numeric-tolerance checker for MSE/RMSE (it
+previously only checked the labels, never the numbers); Ch 2 set/generator/nested comprehensions,
+`for...else`, walrus; Ch 3 closures, type hints, `functools`, docstrings, `**kwargs`; Ch 4
+`collections`, star/dict unpacking; Ch 5 inheritance/`super()`, dunder methods, `@property`,
+`pathlib`, exception chaining; Ch 6 class-based context managers, parameterized decorators,
+pytest (reference-only), logging depth, `pyproject.toml`; Ch 7 `async for`/`async with`,
+`create_task` vs `gather`, `requests` POST/auth/status handling, `pathlib`, packaging.
+
+**Four bonus modules** (not counted toward the 41-chapter total, all in the same "not graded but
 rigorously verified" tier):
 - `bonus/interview-mastery.html` — behavioral (STAR) prep built from Ch 33/34's real numbers, an
   ML system design framework with 4 worked case studies, an AWS/GCP/Databricks cloud vocabulary
@@ -269,7 +303,7 @@ must come from actually running the exact solution code (this machine's Anaconda
 `py -3` after a one-time PATH fix for a DLL-loading quirk — search this file's own text/history for
 `Library/bin` if the exact command is needed again), never hand-calculated.
 
-Tell whoever picks this up: **"The AI/ML Zero to Hero course is fully complete — 35 core chapters
+Tell whoever picks this up: **"The AI/ML Zero to Hero course is fully complete — 41 core chapters
 plus four bonus modules (Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals) and
 real executed Colab notebooks, all independently verified and pushed. There is no known open
 work — if the user asks for something new, treat it as a fresh request, not a continuation."**
