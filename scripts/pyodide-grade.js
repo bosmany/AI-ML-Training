@@ -632,7 +632,7 @@ async function gradeChapter(file, root, cfg, log) {
       for (const b of runnable) {
         const r = await worker.exec(b.code, { shared: true, timeoutMs });
         if (r.ok) res.lesson.passed++;
-        else fail('lesson', `block${b.index}@L${b.line}`, 'error', `lesson block #${b.index} (line ${b.line}${b.label ? ', "' + b.label + '"' : ''}) failed: ${r.err}`, { error: r.err, traceback: tailLines(userTrace(r.tb), 8), output: tailLines(r.out), code: b.code.split('\n').slice(0, 3).join('\n') });
+        else fail('lesson', `block${b.index}`, 'error', `lesson block #${b.index} (line ${b.line}${b.label ? ', "' + b.label + '"' : ''}) failed: ${r.err}`, { error: r.err, traceback: tailLines(userTrace(r.tb), 8), output: tailLines(r.out), code: b.code.split('\n').slice(0, 3).join('\n') });
       }
       /* --- exercises: solution must pass, starter must not --- */
       for (const n of exNums) {
