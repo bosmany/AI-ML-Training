@@ -116,6 +116,35 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
+/* lesson deepen: teaching components */
+.lesson-h3{font-size:15px;font-weight:700;color:var(--text);margin:22px 0 8px}
+.trace-h{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--violet);margin:18px 0 2px}
+.cb-tag{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);border:1px solid var(--border);border-radius:5px;padding:2px 7px}
+.run-out{background:#050608;border:1px solid var(--border);border-radius:0 0 10px 10px;margin:-9px 0 16px;overflow:hidden}
+.run-out .ro-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#8B91A5;padding:6px 14px 0}
+.run-out pre{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C9D5E5;padding:4px 14px 12px;margin:0;white-space:pre;overflow-x:auto}
+.run-out.ro-err{border-color:rgba(255,87,87,.35)}
+.run-out.ro-err pre{color:#FCA5A5}
+.diagram{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:16px 0;overflow-x:auto}
+.diagram pre{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--text);white-space:pre;margin:0}
+.diagram .dg-cap{font-size:12px;color:var(--t2);margin-top:10px;font-style:italic;white-space:normal}
+.diagram .dg-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:8px}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:4px solid var(--violet);border-radius:10px;padding:14px 18px;margin:20px 0 8px;font-size:13.5px;color:var(--t2);line-height:1.7}
+.recap strong.rc-title{display:block;color:var(--text);font-size:13px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
+.recap ul{margin:0 0 0 18px}
+.recap li{margin-bottom:3px}
+.recap code,.ck-answer code,details.check summary code,.try-it code,.info-box code,.step-list code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+details.check{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:14px 0;padding:0}
+details.check summary{cursor:pointer;padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--text);list-style:none}
+details.check summary::-webkit-details-marker{display:none}
+details.check summary::before{content:'\1F914  Check yourself: ';color:var(--gold);font-weight:700}
+details.check[open] summary{border-bottom:1px solid var(--border)}
+details.check .ck-answer{padding:12px 16px;font-size:13.5px;color:var(--t2);line-height:1.7}
+details.check .ck-answer strong{color:var(--cyan)}
+.try-it{background:var(--card);border:1px dashed var(--violet);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--t2);line-height:1.7}
+.try-it strong{color:var(--violet)}
+.lesson-table td{overflow-wrap:anywhere}
+@media(max-width:560px){.lesson-table{display:block;overflow-x:auto}#topbar{overflow:hidden}}
 
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
@@ -462,253 +491,1539 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
   <div class="lesson-intro">
     <h1>Chapter 2:<br/><span>Control Flow</span></h1>
-    <p>A program that only runs top-to-bottom can't make decisions or repeat work. Control flow is what turns Chapter 1's static variables into something that behaves like a training loop: it decides, it repeats, it reacts. Every model you ever train runs inside a loop built from exactly the tools in this chapter.</p>
+    <p>So far your programs ran every line, top to bottom, once. Real programs must <strong>decide</strong> ("is this model good enough?") and <strong>repeat</strong> ("train for another round"). This chapter teaches both, step by step, starting from the very smallest question Python can answer. You only need Chapter 1: variables, numbers, strings and f-strings. Every idea comes with a short program you can run, a trace of what Python does, and the real error messages you will meet. Every model you ever train runs inside a loop built from these tools.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~50 min read</span>
+      <span class="badge">🕐 ~90 min with practice</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 2.1 -->
-  <div class="lesson-h2">2.1 — Boolean Logic: and, or, not</div>
-  <p class="lesson-p">Every decision in code comes down to a value that is <code>True</code> or <code>False</code>. You already met comparisons (<code>&gt;</code>, <code>==</code>, ...) in Chapter 1 — Boolean logic is how you combine several of them into one decision.</p>
-  <table class="lesson-table">
-    <tr><th>Operator</th><th>Meaning</th><th>Example</th><th>Result</th></tr>
-    <tr><td>and</td><td>True only if BOTH sides are True</td><td>True and False</td><td class="highlight">False</td></tr>
-    <tr><td>or</td><td>True if AT LEAST ONE side is True</td><td>True or False</td><td class="highlight">True</td></tr>
-    <tr><td>not</td><td>Flips True ↔ False</td><td>not True</td><td class="highlight">False</td></tr>
-  </table>
-
+  <!-- S:2.1 -->
+  <div class="lesson-h2">2.1 — Conditions: Questions Python Can Answer with True or False</div>
+  <p class="lesson-p">So far, every program you wrote in Chapter 1 ran the same way every time: top to bottom, every line, no questions asked. That is fine for a calculator, but a real program has to react to what it sees. Look at what happens when the code cannot decide anything.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Deciding if a model is ready to deploy</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">accuracy         = <span class="nm">0.94</span>
-loss             = <span class="nm">0.08</span>
-is_gpu_available = <span class="kw">True</span>
+    <div class="cb-header"><span class="cb-label">A program that cannot decide</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
 
-<span class="bi">print</span>(accuracy > <span class="nm">0.9</span>)                      <span class="cm"># True</span>
-<span class="bi">print</span>(loss < <span class="nm">0.1</span>)                          <span class="cm"># True</span>
-<span class="bi">print</span>(accuracy > <span class="nm">0.9</span> <span class="kw">and</span> loss < <span class="nm">0.1</span>)         <span class="cm"># True — BOTH must hold</span>
-<span class="bi">print</span>(accuracy > <span class="nm">0.99</span> <span class="kw">or</span> loss < <span class="nm">0.1</span>)        <span class="cm"># True — at least ONE holds</span>
-<span class="bi">print</span>(<span class="kw">not</span> is_gpu_available)               <span class="cm"># False</span>
-
-ready_to_deploy = accuracy > <span class="nm">0.9</span> <span class="kw">and</span> loss < <span class="nm">0.1</span> <span class="kw">and</span> is_gpu_available
-<span class="bi">print</span>(<span class="st">f'Ready to deploy: <span class="bi">{ready_to_deploy}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">"Model accepted for deployment!"</span>)
+<span class="bi">print</span>(<span class="st">"Its accuracy was"</span>, accuracy)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Python reads left to right and stops early.</strong> In <code>a and b</code>, if <code>a</code> is already False, Python never even checks <code>b</code> — it already knows the answer is False. This is called <strong>short-circuiting</strong> and it's why <code>x != 0 and 10/x > 1</code> is safe even when <code>x</code> could be zero.</div></div>
-
-  <!-- 2.2 -->
-  <div class="lesson-h2">2.2 — if / elif / else: Making Decisions</div>
-  <p class="lesson-p">An <code>if</code> statement runs a block of code only when a condition is True. Chain <code>elif</code> ("else if") for more conditions, and finish with <code>else</code> for everything that didn't match. <strong>Python checks each condition top to bottom and stops at the first True one</strong> — order matters.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Model accepted for deployment!
+Its accuracy was 0.55</pre></div>
+  <p class="lesson-p">The model got 55% of its answers right, and the program cheerfully accepted it anyway. There was no step where the code asked "is this good enough?". To fix that, we need a way to ask a question and get an answer the program can act on.</p>
+  <p class="lesson-p">That question is called a <strong>condition</strong>: any expression that Python can answer with exactly one of two values, <code>True</code> or <code>False</code>. Think of a light switch. The switch is either on or off, and everything a program decides is built from that. In Chapter 1 you met the type <strong>bool</strong> (short for boolean, named after the mathematician George Boole) and the comparison operators. Here is the full set again, because every decision in this chapter uses one of them.</p>
+  <table class="lesson-table"><tr><th>Operator</th><th>Reads as</th><th>Example</th><th>Result</th></tr><tr><td><code>==</code></td><td>equal to</td><td><code>3 == 3</code></td><td class="highlight">True</td></tr><tr><td><code>!=</code></td><td>not equal to</td><td><code>3 != 3</code></td><td class="highlight">False</td></tr><tr><td><code>&gt;</code></td><td>greater than</td><td><code>5 &gt; 2</code></td><td class="highlight">True</td></tr><tr><td><code>&lt;</code></td><td>less than</td><td><code>5 &lt; 2</code></td><td class="highlight">False</td></tr><tr><td><code>&gt;=</code></td><td>greater than or equal</td><td><code>5 &gt;= 5</code></td><td class="highlight">True</td></tr><tr><td><code>&lt;=</code></td><td>less than or equal</td><td><code>4 &lt;= 3</code></td><td class="highlight">False</td></tr><tr><td><code>in</code></td><td>is found inside</td><td><code>"a" in "cat"</code></td><td class="highlight">True</td></tr></table>
+  <p class="lesson-p">Notice that <code>==</code> uses two equal signs. A single <code>=</code> means "store this value in that name" (assignment). A double <code>==</code> means "are these two things equal?". Mixing them up is the most common beginner slip, and we will meet the error message for it in section 2.2.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Grading a model's accuracy</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">accuracy = <span class="nm">0.83</span>
+    <div class="cb-header"><span class="cb-label">The smallest possible conditions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.94</span>
 
-<span class="kw">if</span> accuracy >= <span class="nm">0.95</span>:
-    grade = <span class="st">'A — Production ready'</span>
-<span class="kw">elif</span> accuracy >= <span class="nm">0.85</span>:
-    grade = <span class="st">'B — Good, needs tuning'</span>
-<span class="kw">elif</span> accuracy >= <span class="nm">0.70</span>:
-    grade = <span class="st">'C — Needs more work'</span>
+<span class="bi">print</span>(accuracy &gt; <span class="nm">0.9</span>)
+<span class="bi">print</span>(accuracy == <span class="nm">0.94</span>)
+<span class="bi">print</span>(accuracy != <span class="nm">1.0</span>)
+<span class="bi">print</span>(<span class="bi">type</span>(accuracy &gt; <span class="nm">0.9</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+True
+True
+&lt;class 'bool'&gt;</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>accuracy = 0.94</code> stores the float 0.94 under the name <code>accuracy</code>.</div></li><li data-n="2"><div><code>accuracy &gt; 0.9</code>: Python looks up <code>accuracy</code>, gets 0.94, compares it with 0.9, and produces the value <code>True</code>. Then <code>print</code> shows it.</div></li><li data-n="3"><div><code>accuracy == 0.94</code> compares equality and gives <code>True</code>. <code>accuracy != 1.0</code> asks "are they different?" and also gives <code>True</code>.</div></li><li data-n="4"><div><code>type(...)</code> of a comparison result is <code>bool</code>. A comparison is not a special kind of thing. It is an ordinary value you can store in a variable, print, or pass around.</div></li></ul>
+  <div class="lesson-h3">Comparison chaining: asking two questions at once</div>
+  <p class="lesson-p">In maths you write <code>0 &lt;= x &lt;= 1</code> to say "x is between 0 and 1". Python lets you write exactly that. It is called <strong>comparison chaining</strong>, and it saves you from repeating the middle value. Python reads it as two comparisons joined together: <code>0 &lt;= x</code> and <code>x &lt;= 1</code>, and the whole chain is True only if both hold. This is perfect for checking that an accuracy, which must be a fraction from 0 to 1, is a sensible number.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Chained comparisons</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.94</span>
+broken = <span class="nm">1.4</span>
+
+<span class="bi">print</span>(<span class="nm">0</span> &lt;= accuracy &lt;= <span class="nm">1</span>)
+<span class="bi">print</span>(<span class="nm">0</span> &lt;= accuracy <span class="kw">and</span> accuracy &lt;= <span class="nm">1</span>)
+<span class="bi">print</span>(<span class="nm">0</span> &lt;= broken &lt;= <span class="nm">1</span>)
+<span class="bi">print</span>(<span class="nm">0.9</span> &lt; accuracy &lt; <span class="nm">0.95</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+True
+False
+True</pre></div>
+  <p class="lesson-p">The first two lines give the same answer, one written short and one written long. The third line is the sad path: 1.4 is not a possible accuracy, so the chain is False. In the last line the value 0.94 sits in a narrow band between 0.9 and 0.95, so it is True.</p>
+  <div class="lesson-h3">Two traps to know about early</div>
+  <p class="lesson-p"><strong>Strings are compared exactly.</strong> Capital letters matter, and so do spaces. <strong>Floats are only approximate.</strong> Computers store decimals like 0.1 in binary, where they cannot be written exactly, so tiny errors creep in. Never trust <code>==</code> between two computed floats. Instead, ask whether they are close.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Case matters, and floats are slightly off</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="st">"Cat"</span> == <span class="st">"cat"</span>)
+<span class="bi">print</span>(<span class="st">"cat"</span> == <span class="st">"cat "</span>)
+<span class="bi">print</span>(<span class="nm">0.1</span> + <span class="nm">0.2</span>)
+<span class="bi">print</span>(<span class="nm">0.1</span> + <span class="nm">0.2</span> == <span class="nm">0.3</span>)
+<span class="bi">print</span>(<span class="bi">abs</span>((<span class="nm">0.1</span> + <span class="nm">0.2</span>) - <span class="nm">0.3</span>) &lt; <span class="nm">0.000001</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>False
+False
+0.30000000000000004
+False
+True</pre></div>
+  <p class="lesson-p">The last line shows the safe habit: subtract, take the absolute distance with <code>abs</code>, and check it is smaller than a tiny tolerance. You will see this pattern again whenever a training loop checks "has the loss stopped changing?".</p>
+  <details class="check"><summary>What is the value of <code>5 &gt; 3 &gt; 1</code>?</summary><div class="ck-answer"><strong>True.</strong> Python reads it as <code>5 &gt; 3 and 3 &gt; 1</code>, and both parts are True. The chain runs left to right, one neighbouring pair at a time.</div></details>
+  <details class="check"><summary>Why does <code>0.1 + 0.2 == 0.3</code> print False?</summary><div class="ck-answer">The sum is stored as 0.30000000000000004, a hair away from 0.3, because 0.1 and 0.2 cannot be stored exactly in binary. Compare with a tolerance instead.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>accuracy</code> in the first "smallest possible conditions" block to 0.5 and re-run it. Predict all four answers before you press Run, then check yourself.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>condition</strong> is an expression that Python answers with <code>True</code> or <code>False</code>.</li><li>Comparison operators are <code>==</code>, <code>!=</code>, <code>&gt;</code>, <code>&lt;</code>, <code>&gt;=</code>, <code>&lt;=</code>, plus <code>in</code>. Remember <code>=</code> stores, <code>==</code> asks.</li><li>Chaining such as <code>0 &lt;= x &lt;= 1</code> means "both comparisons are true".</li><li>Compare strings exactly, and compare computed floats with a tolerance.</li></ul></div>
+
+  <!-- S:2.2 -->
+  <div class="lesson-h2">2.2 — if and else: Running Code Only When a Condition Holds</div>
+  <p class="lesson-p">Back to the model that was accepted with 55% accuracy. We want the "accepted" message to appear only when the accuracy is good enough. Python's tool for that is the <strong>if statement</strong>. It works like a sign on a door: "If it is raining, take an umbrella." When the condition is True, Python runs the lines that belong to the <code>if</code>. When it is False, Python skips them and moves on.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The smallest possible if</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.9</span>:
+    <span class="bi">print</span>(<span class="st">"Model accepted!"</span>)
+<span class="bi">print</span>(<span class="st">"Report finished."</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Report finished.</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Line 1 stores 0.55 in <code>accuracy</code>.</div></li><li data-n="2"><div>Line 3 evaluates the condition <code>accuracy &gt;= 0.9</code>. That is <code>0.55 &gt;= 0.9</code>, which is <code>False</code>.</div></li><li data-n="3"><div>Because it is False, Python skips the indented line 4. Nothing is printed for it.</div></li><li data-n="4"><div>Line 5 is not indented, so it does not belong to the <code>if</code>. It always runs, and prints "Report finished."</div></li></ul>
+  <div class="lesson-h3">How indentation defines a block</div>
+  <p class="lesson-p">The lines that belong to an <code>if</code> are called its <strong>block</strong>. Python does not use curly braces or an "end" keyword to mark a block. It uses <strong>indentation</strong>, which means the empty space at the start of a line. The <code>if</code> line ends with a colon, and every line that is pushed in by four spaces below it is inside the block. The first line that goes back to the left edge is outside it. In Python, indentation is not decoration. It is part of the grammar.</p>
+  <div class="diagram"><div class="dg-title">How Python reads a block</div><pre>if accuracy &gt;= 0.9:            &lt;- header, ends with a colon
+    print("Accepted")           &lt;- 4 spaces: INSIDE the block
+    print("Saving model...")    &lt;- 4 spaces: INSIDE the block
+print("Report finished.")       &lt;- 0 spaces: block is over</pre><div class="dg-cap">Everything indented under the colon runs only when the condition is True. The first line back at the left edge runs no matter what.</div></div>
+  <div class="lesson-h3">Adding an else: the other road</div>
+  <p class="lesson-p">Often you want a second action for the False case. Add <code>else:</code> at the same indentation as the <code>if</code>. Exactly one of the two blocks runs, never both and never neither.</p>
+  <div class="diagram"><div class="dg-title">The two roads of if / else</div><pre>                accuracy &gt;= 0.9 ?
+                 /            \
+            True                False
+             |                    |
+    print("Accepted")      print("Rejected")
+              \                  /
+               print("Report finished.")</pre><div class="dg-cap">A condition is a fork in the road. Both roads join up again afterwards.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">if with else</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.9</span>:
+    <span class="bi">print</span>(<span class="st">"Accepted"</span>)
+    <span class="bi">print</span>(<span class="st">"Saving model..."</span>)
 <span class="kw">else</span>:
-    grade = <span class="st">'F — Back to the drawing board'</span>
-
-<span class="bi">print</span>(<span class="st">f'Accuracy <span class="bi">{accuracy:.0%}</span> → Grade: <span class="bi">{grade}</span>'</span>)</div>
+    <span class="bi">print</span>(<span class="st">"Rejected: accuracy is only"</span>, accuracy)
+    <span class="bi">print</span>(<span class="st">"Keep training."</span>)
+<span class="bi">print</span>(<span class="st">"Report finished."</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Indentation is not style — it's syntax.</strong> Python uses indentation (4 spaces, consistently) to know what belongs inside the <code>if</code> block. Mixing tabs and spaces, or inconsistent indent width, causes an <code>IndentationError</code>.</div></div>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Rejected: accuracy is only 0.55
+Keep training.
+Report finished.</pre></div>
+  <div class="lesson-h3">Common mistakes, with the real error messages</div>
+  <p class="lesson-p">Every beginner hits these. The console on this page shows only the last line of an error, which is the important one. The blocks below show what Python printed in full when we ran them for real, so you can recognise each message.</p>
+  <p class="lesson-p"><strong>Mistake 1: forgetting the colon.</strong> Python expects <code>:</code> at the end of the <code>if</code> line.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Nested conditions — detecting overfitting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">train_loss = <span class="nm">0.12</span>
-val_loss   = <span class="nm">0.31</span>
-accuracy   = <span class="nm">0.91</span>
+    <div class="cb-header"><span class="cb-label">Missing colon</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.9</span>
+    <span class="bi">print</span>(<span class="st">"Accepted"</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 2
+    if accuracy &gt;= 0.9
+                      ^
+SyntaxError: expected ':'</pre></div>
+  <p class="lesson-p"><strong>Mistake 2: forgetting to indent.</strong> The colon promised a block, but nothing is inside it. Python names the statement and the line it is complaining about.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">No indentation after the colon</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.9</span>:
+<span class="bi">print</span>(<span class="st">"Accepted"</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 3
+    print("Accepted")
+    ^^^^^
+IndentationError: expected an indented block after 'if' statement on line 2</pre></div>
+  <p class="lesson-p"><strong>Mistake 3: indenting a line that should not be indented</strong>, or dedenting to a level that matches nothing above it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Unexpected indent</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+    <span class="bi">print</span>(accuracy)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 2
+    print(accuracy)
+IndentationError: unexpected indent</pre></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Dedent to a level that never existed</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.9</span>:
+        <span class="bi">print</span>(<span class="st">"Accepted"</span>)
+    <span class="bi">print</span>(<span class="st">"Saving"</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 4
+    print("Saving")
+                   ^
+IndentationError: unindent does not match any outer indentation level</pre></div>
+  <p class="lesson-p">The fix for all of these is the same. End the header with a colon, indent the block by four spaces, and use the same amount for every line in the same block. Mixing tabs and spaces is also an error, so let your editor insert spaces.</p>
+  <p class="lesson-p"><strong>Mistake 4: one equals sign instead of two.</strong> Recall that <code>=</code> stores and <code>==</code> compares. Python refuses to store a value inside a condition and even suggests the fix.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">= instead of ==</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">accuracy = <span class="nm">0.55</span>
+<span class="kw">if</span> accuracy = <span class="nm">0.9</span>:
+    <span class="bi">print</span>(<span class="st">"Exactly 0.9"</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 2
+    if accuracy = 0.9:
+       ^^^^^^^^^^^^^^
+SyntaxError: invalid syntax. Maybe you meant '==' or ':=' instead of '='?</pre></div>
+  <details class="check"><summary>How many lines print when <code>accuracy = 0.55</code> in the if/else block above, and which ones?</summary><div class="ck-answer">Three lines. The <code>if</code> block is skipped, so Python runs the two lines of the <code>else</code> block ("Rejected: accuracy is only 0.55" and "Keep training.") and then the unindented "Report finished." line.</div></details>
+  <details class="check"><summary>Why does Python need the colon and the indentation?</summary><div class="ck-answer">The colon says "a block starts here". The indentation says exactly which lines are in it. Without both, Python cannot know where the conditional part ends.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the if/else block above, change <code>accuracy</code> to 0.95 and re-run it. Then remove the four spaces before one <code>print</code> and see which error you get.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>if condition:</code> runs its indented block only when the condition is True; <code>else:</code> runs when it is False.</li><li>The colon opens a block and <strong>indentation</strong> (four spaces) says which lines are inside it.</li><li>Exactly one branch of an if/else runs, then Python continues after it.</li><li>Read errors by their last line: <code>expected ':'</code>, <code>expected an indented block</code>, <code>unexpected indent</code>, <code>unindent does not match</code>.</li></ul></div>
 
-<span class="kw">if</span> accuracy > <span class="nm">0.9</span>:
-    <span class="kw">if</span> val_loss > train_loss * <span class="nm">1.5</span>:
-        verdict = <span class="st">'High accuracy, but OVERFITTING — val loss much higher than train loss'</span>
+  <!-- S:2.3 -->
+  <div class="lesson-h2">2.3 — Truthiness: How Python Decides "Yes" or "No" for Any Value</div>
+  <p class="lesson-p">Until now our conditions were comparisons like <code>accuracy &gt;= 0.9</code>, which produce a clean <code>True</code> or <code>False</code>. But real programs also need to ask simpler questions: "Did the user type a name?" or "Do we have any data yet?". Written the long way, those checks are clumsy.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The long way to ask "is it empty?"</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">name = <span class="st">""</span>
+
+<span class="kw">if</span> <span class="bi">len</span>(name) &gt; <span class="nm">0</span>:
+    <span class="bi">print</span>(<span class="st">"Hello,"</span>, name)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"No name was given."</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>No name was given.</pre></div>
+  <p class="lesson-p">Python offers a shortcut. When you put <strong>any</strong> value where a condition is expected, Python quietly converts it to <code>True</code> or <code>False</code> first. The result is called the value's <strong>truthiness</strong>. Values that turn into <code>True</code> are <strong>truthy</strong>, and values that turn into <code>False</code> are <strong>falsy</strong>. Think of a box: an empty box counts as "no", and a box with anything in it counts as "yes".</p>
+  <p class="lesson-p">The rule is short. A value is falsy if it is a zero (the integer <code>0</code> or the float <code>0.0</code>), if it is empty (the string <code>""</code>, the list <code>[]</code>, the dictionary <code>{}</code>; lists and dictionaries are <strong>containers</strong>, values that hold other values, and you will meet them in section 2.7 and Chapter 4), if it is <code>False</code> itself, or if it is <code>None</code>. <strong>None</strong> is Python's way of saying "no value at all". It is what you use for something that has not been filled in yet, such as a score that has not been measured. Everything else is truthy.</p>
+  <div class="diagram"><div class="dg-title">The falsy club: everything outside it is truthy</div><pre>FALSY (act like False)
+  False    0    0.0    ""    []    {}    None
+
+TRUTHY (act like True)
+  True    1    -3    0.001    "hi"    " "    "0"    "False"
+  [0]    [[]]   (not empty inside)    ...anything else</pre><div class="dg-cap">Ask "is it zero, empty, or nothing?". If yes, it is falsy. If not, it is truthy.</div></div>
+  <p class="lesson-p">You can see what Python decides by asking <code>bool(value)</code>, which performs the conversion and shows the answer.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Asking Python for the truthiness of values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="st">"bool(0)        -&gt;"</span>, <span class="bi">bool</span>(<span class="nm">0</span>))
+<span class="bi">print</span>(<span class="st">"bool(0.0)      -&gt;"</span>, <span class="bi">bool</span>(<span class="nm">0.0</span>))
+<span class="bi">print</span>(<span class="st">"bool('')       -&gt;"</span>, <span class="bi">bool</span>(<span class="st">''</span>))
+<span class="bi">print</span>(<span class="st">"bool([])       -&gt;"</span>, <span class="bi">bool</span>([]))
+<span class="bi">print</span>(<span class="st">"bool(None)     -&gt;"</span>, <span class="bi">bool</span>(<span class="kw">None</span>))
+<span class="bi">print</span>(<span class="st">"bool(42)       -&gt;"</span>, <span class="bi">bool</span>(<span class="nm">42</span>))
+<span class="bi">print</span>(<span class="st">"bool(-0.5)     -&gt;"</span>, <span class="bi">bool</span>(-<span class="nm">0.5</span>))
+<span class="bi">print</span>(<span class="st">"bool('hi')     -&gt;"</span>, <span class="bi">bool</span>(<span class="st">'hi'</span>))
+<span class="bi">print</span>(<span class="st">"bool([0, 1])   -&gt;"</span>, <span class="bi">bool</span>([<span class="nm">0</span>, <span class="nm">1</span>]))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>bool(0)        -&gt; False
+bool(0.0)      -&gt; False
+bool('')       -&gt; False
+bool([])       -&gt; False
+bool(None)     -&gt; False
+bool(42)       -&gt; True
+bool(-0.5)     -&gt; True
+bool('hi')     -&gt; True
+bool([0, 1])   -&gt; True</pre></div>
+  <div class="lesson-h3">The surprising cases</div>
+  <p class="lesson-p">Truthiness is about <strong>emptiness</strong>, not about meaning. Python does not read the text. The string <code>"False"</code> is a non-empty string, so it is truthy. The string <code>"0"</code> is truthy for the same reason. A string containing one space is truthy, and so is a list that holds a single zero, because the list itself is not empty.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Values that look false but are truthy</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="bi">bool</span>(<span class="st">"False"</span>))
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="st">"0"</span>))
+<span class="bi">print</span>(<span class="bi">bool</span>(<span class="st">" "</span>))
+<span class="bi">print</span>(<span class="bi">bool</span>([<span class="nm">0</span>]))
+<span class="bi">print</span>(<span class="bi">bool</span>([[]]))
+<span class="bi">print</span>(<span class="bi">bool</span>(-<span class="nm">1</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+True
+True
+True
+True
+True</pre></div>
+  <div class="trace-h">What Python does for <code>if name:</code></div>
+  <ul class="step-list"><li data-n="1"><div>Python evaluates the expression after <code>if</code>. Here it is just the variable <code>name</code>, which holds <code>""</code>.</div></li><li data-n="2"><div>It converts that value with the truthiness rules. An empty string is falsy, so the condition counts as <code>False</code>.</div></li><li data-n="3"><div>The <code>if</code> block is skipped and the <code>else</code> block runs.</div></li></ul>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The short way</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">name = <span class="st">""</span>
+
+<span class="kw">if</span> name:
+    <span class="bi">print</span>(<span class="st">"Hello,"</span>, name)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"No name was given."</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>No name was given.</pre></div>
+  <div class="lesson-h3">The trap: zero is falsy, but zero can be a real answer</div>
+  <p class="lesson-p">Truthiness is handy, and it can also hide a bug. Suppose a model scored exactly 0.0 on a test, a real and very bad result. If your code asks <code>if score:</code>, the zero counts as falsy, and the program claims there is no score at all. When you mean "was a value provided?", compare with <code>None</code> explicitly. Use <code>is None</code> or <code>is not None</code>, because there is only ever one <code>None</code> object and <code>is</code> checks for exactly that.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Zero is a score, None is a missing score</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">score = <span class="nm">0.0</span>
+
+<span class="kw">if</span> score:
+    <span class="bi">print</span>(<span class="st">"if score:            recorded"</span>, score)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"if score:            no score yet  &lt;-- wrong!"</span>)
+
+<span class="kw">if</span> score <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:
+    <span class="bi">print</span>(<span class="st">"is not None:         recorded"</span>, score)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"is not None:         no score yet"</span>)
+
+score = <span class="kw">None</span>
+<span class="bi">print</span>(score <span class="kw">is</span> <span class="kw">None</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>if score:            no score yet  &lt;-- wrong!
+is not None:         recorded 0.0
+True</pre></div>
+  <details class="check"><summary>Is <code>[[]]</code> truthy or falsy, and why?</summary><div class="ck-answer"><strong>Truthy.</strong> It is a list containing one item (an empty list). The outer list is not empty, so it counts as True. Only a list with zero items is falsy.</div></details>
+  <details class="check"><summary>What would <code>if score:</code> do when <code>score</code> is <code>0.0</code>, and how do you fix it if 0.0 is a valid result?</summary><div class="ck-answer">It treats the score as missing (falsy). Write <code>if score is not None:</code> to ask only whether a value was provided.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add your own <code>print(bool(...))</code> lines. Predict first: <code>bool("no")</code>, <code>bool(0.1 - 0.1)</code>, <code>bool(" ".strip())</code>. The last one is worth thinking about, because <code>.strip()</code> removes spaces from both ends.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Any value can be used as a condition. Zero, empty things, <code>None</code> and <code>False</code> are <strong>falsy</strong>; everything else is <strong>truthy</strong>.</li><li>Truthiness checks emptiness, not meaning: <code>"False"</code> and <code>"0"</code> are truthy strings.</li><li>Use <code>if items:</code> to ask "is there anything in it?".</li><li>Use <code>is None</code> or <code>is not None</code> when 0 or an empty value is a legitimate answer.</li></ul></div>
+
+  <!-- S:2.4 -->
+  <div class="lesson-h2">2.4 — Combining Conditions with and, or, not</div>
+  <p class="lesson-p">A model is rarely "good" for one reason alone. It needs high accuracy and low loss. Here is what that looks like with only the tools you have so far: one <code>if</code> tucked inside another.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two checks the clumsy way</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.94</span>
+loss = <span class="nm">0.08</span>
+
+<span class="kw">if</span> accuracy &gt; <span class="nm">0.9</span>:
+    <span class="kw">if</span> loss &lt; <span class="nm">0.1</span>:
+        <span class="bi">print</span>(<span class="st">"Ready to deploy"</span>)
     <span class="kw">else</span>:
-        verdict = <span class="st">'High accuracy AND generalizing well'</span>
+        <span class="bi">print</span>(<span class="st">"Not ready"</span>)
 <span class="kw">else</span>:
-    verdict = <span class="st">'Accuracy too low — keep training'</span>
-
-<span class="bi">print</span>(verdict)</div>
+    <span class="bi">print</span>(<span class="st">"Not ready"</span>)</div>
   </div>
-
-  <!-- 2.3 -->
-  <div class="lesson-h2">2.3 — for Loops and range(): Repeating Work</div>
-  <p class="lesson-p">A <code>for</code> loop runs a block once per item in a sequence. <code>range(n)</code> generates the numbers <code>0, 1, 2, ... n-1</code> — perfect for "do this N times," like running N training epochs.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Ready to deploy</pre></div>
+  <p class="lesson-p">The "Not ready" message is written twice, and the logic is hard to read. Python has three small words that glue conditions together. Think of them as everyday English. To enter a concert you need a ticket <strong>and</strong> an ID. To pay you can use cash <strong>or</strong> a card. Someone at the door saying "<strong>not</strong> under 18" flips the meaning of a check.</p>
+  <table class="lesson-table"><tr><th>Expression</th><th>Meaning</th><th>Result when A is True, B is False</th></tr><tr><td><code>A and B</code></td><td>both must be True</td><td class="highlight">False</td></tr><tr><td><code>A or B</code></td><td>at least one is True</td><td class="highlight">True</td></tr><tr><td><code>not A</code></td><td>flips the answer</td><td class="highlight">False</td></tr><tr><td><code>not B</code></td><td>flips the answer</td><td class="highlight">True</td></tr></table>
+  <p class="lesson-p">A full picture of <code>and</code> and <code>or</code> needs all four combinations of A and B. This list is called a <strong>truth table</strong>.</p>
+  <table class="lesson-table"><tr><th>A</th><th>B</th><th>A and B</th><th>A or B</th></tr><tr><td>True</td><td>True</td><td class="highlight">True</td><td class="highlight">True</td></tr><tr><td>True</td><td>False</td><td class="highlight">False</td><td class="highlight">True</td></tr><tr><td>False</td><td>True</td><td class="highlight">False</td><td class="highlight">True</td></tr><tr><td>False</td><td>False</td><td class="highlight">False</td><td class="highlight">False</td></tr></table>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">for loops — over data, and over epochs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>, <span class="nm">0.30</span>, <span class="nm">0.22</span>, <span class="nm">0.18</span>]
+    <div class="cb-header"><span class="cb-label">The same check with and</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.94</span>
+loss = <span class="nm">0.08</span>
+has_gpu = <span class="kw">False</span>
 
-<span class="cm"># Loop directly over a list's values:</span>
+<span class="bi">print</span>(accuracy &gt; <span class="nm">0.9</span> <span class="kw">and</span> loss &lt; <span class="nm">0.1</span>)
+<span class="bi">print</span>(accuracy &gt; <span class="nm">0.99</span> <span class="kw">or</span> loss &lt; <span class="nm">0.1</span>)
+<span class="bi">print</span>(<span class="kw">not</span> has_gpu)
+
+<span class="kw">if</span> accuracy &gt; <span class="nm">0.9</span> <span class="kw">and</span> loss &lt; <span class="nm">0.1</span>:
+    <span class="bi">print</span>(<span class="st">"Ready to deploy"</span>)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"Not ready"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+True
+True
+Ready to deploy</pre></div>
+  <div class="trace-h">What Python does for <code>accuracy &gt; 0.9 and loss &lt; 0.1</code></div>
+  <ul class="step-list"><li data-n="1"><div>Work out the left side: <code>0.94 &gt; 0.9</code> is <code>True</code>.</div></li><li data-n="2"><div>Work out the right side: <code>0.08 &lt; 0.1</code> is <code>True</code>.</div></li><li data-n="3"><div>Combine them: <code>True and True</code> is <code>True</code>, so the <code>if</code> block runs.</div></li></ul>
+  <div class="lesson-h3">Which one goes first? Precedence and parentheses</div>
+  <p class="lesson-p">When you mix them, Python has an order, called <strong>precedence</strong>: <code>not</code> is applied first, then <code>and</code>, then <code>or</code>. This is like multiplication before addition in maths. The safest habit is to add parentheses to say what you mean, so the reader does not have to remember the rules.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Precedence, and parentheses that change the answer</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="kw">True</span> <span class="kw">or</span> <span class="kw">False</span> <span class="kw">and</span> <span class="kw">False</span>)
+<span class="bi">print</span>((<span class="kw">True</span> <span class="kw">or</span> <span class="kw">False</span>) <span class="kw">and</span> <span class="kw">False</span>)
+<span class="bi">print</span>(<span class="kw">not</span> <span class="kw">True</span> <span class="kw">or</span> <span class="kw">True</span>)
+<span class="bi">print</span>(<span class="kw">not</span> (<span class="kw">True</span> <span class="kw">or</span> <span class="kw">True</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+False
+True
+False</pre></div>
+  <p class="lesson-p">Line 1 is <code>True or (False and False)</code>, which is <code>True or False</code>, so <code>True</code>. Line 2 groups the other way and gets <code>False</code>. Same symbols, different answer.</p>
+  <div class="lesson-h3">The classic mistake: <code>x == "a" or "b"</code></div>
+  <p class="lesson-p">In English you say "if the label is cat or dog". In Python, writing <code>label == "cat" or "dog"</code> does not mean that. It means <code>(label == "cat") or "dog"</code>, and a non-empty string like <code>"dog"</code> is always truthy, so the whole thing is always true.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The condition that is always True</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">label = <span class="st">"bird"</span>
+
+<span class="kw">if</span> label == <span class="st">"cat"</span> <span class="kw">or</span> <span class="st">"dog"</span>:
+    <span class="bi">print</span>(<span class="st">"wrongly accepted:"</span>, label)
+
+<span class="kw">if</span> label == <span class="st">"cat"</span> <span class="kw">or</span> label == <span class="st">"dog"</span>:
+    <span class="bi">print</span>(<span class="st">"never printed for bird"</span>)
+
+<span class="kw">if</span> label <span class="kw">in</span> [<span class="st">"cat"</span>, <span class="st">"dog"</span>]:
+    <span class="bi">print</span>(<span class="st">"never printed for bird"</span>)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"bird is not a cat or a dog"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>wrongly accepted: bird
+bird is not a cat or a dog</pre></div>
+  <p class="lesson-p">The fix is to repeat the full comparison on each side of <code>or</code>, or to use <code>in</code> with a list of choices, which is shorter and easier to extend. (A <strong>list</strong> is a row of values in square brackets, like <code>["cat", "dog"]</code>. Section 2.7 explains lists properly.)</p>
+  <details class="check"><summary>What is <code>not (5 &gt; 3 and 2 &gt; 4)</code>?</summary><div class="ck-answer">Inside the parentheses: <code>True and False</code> is <code>False</code>. Then <code>not False</code> is <strong>True</strong>.</div></details>
+  <details class="check"><summary>Why is <code>if answer == "yes" or "y":</code> a bug?</summary><div class="ck-answer">Python reads it as <code>(answer == "yes") or "y"</code>. The string <code>"y"</code> is truthy, so the condition is always true. Write <code>answer == "yes" or answer == "y"</code>, or <code>answer in ["yes", "y"]</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the "same check with and" block, change <code>loss</code> to 0.5 and predict which of the three prints and the if/else result change before you run it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>and</code> needs both sides True. <code>or</code> needs at least one. <code>not</code> flips the answer.</li><li>Precedence is <code>not</code>, then <code>and</code>, then <code>or</code>. Use parentheses to show your intent.</li><li>Write each comparison in full: <code>x == 1 or x == 2</code>, or use <code>x in [1, 2]</code>.</li></ul></div>
+
+  <!-- S:2.5 -->
+  <div class="lesson-h2">2.5 — Short-Circuiting: Python Stops as Soon as It Knows</div>
+  <p class="lesson-p">Imagine checking the average score of a batch. If the batch is empty, the count is zero, and dividing by zero is impossible. What happens if we just write the check and hope?</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Dividing by zero</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">total = <span class="nm">0.0</span>
+count = <span class="nm">0</span>
+
+<span class="bi">print</span>(total / count &gt; <span class="nm">0.5</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 4, in &lt;module&gt;
+    print(total / count &gt; 0.5)
+           ~~~~~~^~~~~~~
+ZeroDivisionError: float division by zero</pre></div>
+  <p class="lesson-p">We want "if there is at least one item <strong>and</strong> the average is above 0.5". If <code>count</code> is 0 we should never attempt the division at all. Luckily Python already behaves that way. It reads <code>and</code> and <code>or</code> from left to right and <strong>stops as soon as the answer is certain</strong>. This is called <strong>short-circuiting</strong>, like an electrician cutting the power before it reaches the last bulb.</p>
+  <p class="lesson-p">The reasoning is plain. For <code>A and B</code>, if <code>A</code> is False the whole thing must be False, whatever <code>B</code> is, so Python skips <code>B</code>. For <code>A or B</code>, if <code>A</code> is True the whole thing must be True, so Python skips <code>B</code>.</p>
+  <div class="diagram"><div class="dg-title">Where Python stops</div><pre>A and B
+  A is False ?  --&gt; stop. Result is False.
+  A is True ?   --&gt; look at B. Result is B.
+
+A or B
+  A is True ?   --&gt; stop. Result is True.
+  A is False ?  --&gt; look at B. Result is B.</pre><div class="dg-cap">The left side is always evaluated. The right side is evaluated only if the left side did not already decide the answer.</div></div>
+  <p class="lesson-p">To watch this happen, we need a helper that announces itself when it runs. Below, <code>check</code> is a tiny function: it prints a message and hands back the value you gave it. Functions are the topic of Chapter 3, so for now just read it as "a mini-command that prints its label, then returns the value". Every time you see <code>checking ...</code> in the output, that side of the expression was evaluated.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A visible trace of short-circuiting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> check(label, value):
+    <span class="bi">print</span>(<span class="st">"  checking"</span>, label)
+    <span class="kw">return</span> value
+
+<span class="bi">print</span>(<span class="st">"and, left is False:"</span>)
+<span class="bi">print</span>(check(<span class="st">"left"</span>, <span class="kw">False</span>) <span class="kw">and</span> check(<span class="st">"right"</span>, <span class="kw">True</span>))
+
+<span class="bi">print</span>(<span class="st">"and, left is True:"</span>)
+<span class="bi">print</span>(check(<span class="st">"left"</span>, <span class="kw">True</span>) <span class="kw">and</span> check(<span class="st">"right"</span>, <span class="kw">True</span>))
+
+<span class="bi">print</span>(<span class="st">"or, left is True:"</span>)
+<span class="bi">print</span>(check(<span class="st">"left"</span>, <span class="kw">True</span>) <span class="kw">or</span> check(<span class="st">"right"</span>, <span class="kw">False</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>and, left is False:
+  checking left
+False
+and, left is True:
+  checking left
+  checking right
+True
+or, left is True:
+  checking left
+True</pre></div>
+  <div class="trace-h">Reading the trace</div>
+  <ul class="step-list"><li data-n="1"><div>In the first test, <code>left</code> is False, so the <code>and</code> cannot possibly be True. <code>right</code> is never checked, which is why "checking right" is missing.</div></li><li data-n="2"><div>In the second test, <code>left</code> is True, so Python has to look at <code>right</code> to decide. Both lines appear.</div></li><li data-n="3"><div>In the third test, <code>or</code> already has a True on the left, so it stops. Again "checking right" never appears.</div></li></ul>
+  <div class="lesson-h3">Using it as a safety guard</div>
+  <p class="lesson-p">Now the problem from the start has a clean fix. Put the safe check on the left. If it fails, the risky division on the right never runs. The order matters: swapping the two sides would crash again.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A guard that prevents the crash</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">total = <span class="nm">0.0</span>
+count = <span class="nm">0</span>
+
+<span class="kw">if</span> count != <span class="nm">0</span> <span class="kw">and</span> total / count &gt; <span class="nm">0.5</span>:
+    <span class="bi">print</span>(<span class="st">"Good average"</span>)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"No data, or average too low"</span>)
+
+count = <span class="nm">4</span>
+total = <span class="nm">3.0</span>
+<span class="kw">if</span> count != <span class="nm">0</span> <span class="kw">and</span> total / count &gt; <span class="nm">0.5</span>:
+    <span class="bi">print</span>(<span class="st">"Good average:"</span>, total / count)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>No data, or average too low
+Good average: 0.75</pre></div>
+  <div class="lesson-h3">and / or hand back a value, not always True or False</div>
+  <p class="lesson-p">One more detail. When <code>and</code> or <code>or</code> finishes, it returns the operand that decided the result, not a fresh <code>True</code> or <code>False</code>. For <code>or</code> that is the first truthy value it meets, which gives a compact way to supply a default. For <code>and</code> it is the first falsy value, or the last value if all are truthy.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">What and / or actually return</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="st">""</span> <span class="kw">or</span> <span class="st">"anonymous"</span>)
+<span class="bi">print</span>(<span class="st">"Asha"</span> <span class="kw">or</span> <span class="st">"anonymous"</span>)
+<span class="bi">print</span>(<span class="nm">0</span> <span class="kw">and</span> <span class="nm">99</span>)
+<span class="bi">print</span>(<span class="nm">5</span> <span class="kw">and</span> <span class="nm">99</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>anonymous
+Asha
+0
+99</pre></div>
+  <p class="lesson-p">The first line shows the default idea: an empty name is falsy, so <code>or</code> moves on to the next choice. Use it with care, as section 2.3 warned. <code>score or 0.5</code> would wrongly replace a real score of <code>0.0</code>.</p>
+  <details class="check"><summary>What does <code>check("left", False) or check("right", True)</code> print, and what value does the expression return?</summary><div class="ck-answer">It prints both "checking left" and "checking right", because <code>or</code> with a False left side must look at the right side. The value returned is <strong>True</strong>, the right side's value.</div></details>
+  <details class="check"><summary>Why is <code>total / count &gt; 0.5 and count != 0</code> unsafe?</summary><div class="ck-answer">Python evaluates the left side first, so the division happens before the <code>count != 0</code> guard is checked. With <code>count</code> at 0 it crashes. Put the guard on the left.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add <code>print(check("left", 0) and check("right", 1))</code> to the trace block. Predict what is printed and which value comes back before running.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Python evaluates <code>and</code> / <code>or</code> left to right and <strong>short-circuits</strong>: it stops once the answer is known.</li><li>Put the cheap or safe check on the left, for example <code>count != 0 and total / count &gt; 0.5</code>.</li><li><code>and</code> / <code>or</code> return one of their operands, so <code>name or "anonymous"</code> gives a default for an empty string.</li></ul></div>
+
+  <!-- S:2.6 -->
+  <div class="lesson-h2">2.6 — elif Chains, Ordering Mistakes, and Nested Decisions</div>
+  <p class="lesson-p">An if/else gives you two roads. Real reports often need more: a report card with grades A, B, C and F. You might try one <code>if</code> per grade. Let us see what that does to a model with an accuracy of 0.96, which deserves an A.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Separate ifs: every one gets a vote</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.96</span>
+
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.95</span>:
+    grade = <span class="st">"A"</span>
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.85</span>:
+    grade = <span class="st">"B"</span>
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.70</span>:
+    grade = <span class="st">"C"</span>
+
+<span class="bi">print</span>(<span class="st">"Grade:"</span>, grade)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Grade: C</pre></div>
+  <p class="lesson-p">The model earned an A and got a C. Each <code>if</code> here is an independent question. Python asked all three, all three were True, and each one overwrote <code>grade</code> in turn. The last answer won. What we want is a single <strong>chain</strong> in which the first match ends the conversation. That is what <code>elif</code> (short for "else if") does.</p>
+  <div class="diagram"><div class="dg-title">An elif chain is a ladder</div><pre>   accuracy &gt;= 0.95 ?  --yes--&gt;  grade = "A"  --&gt; done
+        | no
+   accuracy &gt;= 0.85 ?  --yes--&gt;  grade = "B"  --&gt; done
+        | no
+   accuracy &gt;= 0.70 ?  --yes--&gt;  grade = "C"  --&gt; done
+        | no
+   else               --------&gt;  grade = "F"  --&gt; done</pre><div class="dg-cap">Python climbs down the ladder from the top and steps off at the first True condition. Conditions below it are never even evaluated.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The same grading with elif</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.96</span>
+
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.95</span>:
+    grade = <span class="st">"A"</span>
+<span class="kw">elif</span> accuracy &gt;= <span class="nm">0.85</span>:
+    grade = <span class="st">"B"</span>
+<span class="kw">elif</span> accuracy &gt;= <span class="nm">0.70</span>:
+    grade = <span class="st">"C"</span>
+<span class="kw">else</span>:
+    grade = <span class="st">"F"</span>
+
+<span class="bi">print</span>(<span class="st">f"Accuracy {accuracy:.0%} -&gt; Grade {grade}"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Accuracy 96% -&gt; Grade A</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Test <code>accuracy &gt;= 0.95</code>. It is <code>0.96 &gt;= 0.95</code>, which is True, so <code>grade</code> becomes "A".</div></li><li data-n="2"><div>Because a branch ran, Python skips every remaining <code>elif</code> and the <code>else</code>. It jumps straight to the <code>print</code>.</div></li><li data-n="3"><div>With <code>accuracy = 0.83</code> the first test is False, the second (<code>&gt;= 0.85</code>) is False, and the third (<code>&gt;= 0.70</code>) is True, so the grade is "C".</div></li></ul>
+  <div class="lesson-h3">The ordering mistake</div>
+  <p class="lesson-p">Because the first True condition wins, <strong>order matters</strong>. Put the most demanding test first. If you list the easiest one at the top, it catches everything below it and the stricter tests can never be reached.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Wrong order: the easy test steals every case</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracy = <span class="nm">0.96</span>
+
+<span class="kw">if</span> accuracy &gt;= <span class="nm">0.70</span>:
+    grade = <span class="st">"C"</span>
+<span class="kw">elif</span> accuracy &gt;= <span class="nm">0.85</span>:
+    grade = <span class="st">"B"</span>
+<span class="kw">elif</span> accuracy &gt;= <span class="nm">0.95</span>:
+    grade = <span class="st">"A"</span>
+<span class="kw">else</span>:
+    grade = <span class="st">"F"</span>
+
+<span class="bi">print</span>(<span class="st">f"Accuracy {accuracy:.0%} -&gt; Grade {grade}"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Accuracy 96% -&gt; Grade C</pre></div>
+  <p class="lesson-p">Nothing crashes, and that is what makes this bug dangerous. The program runs and prints a plausible but wrong answer. Whenever you write a chain, check it with one value from every band, including the values exactly on a border. Also note the last part of the chain: <code>else</code> has no condition of its own. It catches everything the tests above did not.</p>
+  <div class="lesson-h3">Decisions inside decisions</div>
+  <p class="lesson-p">You can put an <code>if</code> inside the block of another <code>if</code>. This is called <strong>nesting</strong>, and it is the right tool when the second question only makes sense after the first one is answered. Here, we only care about overfitting once the accuracy looks good. <strong>Overfitting</strong> means a model that has memorised its training data: it does well on training examples but worse on new ones.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Nested conditions: detecting overfitting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">train_loss = <span class="nm">0.12</span>
+val_loss = <span class="nm">0.31</span>
+accuracy = <span class="nm">0.91</span>
+
+<span class="kw">if</span> accuracy &gt; <span class="nm">0.9</span>:
+    <span class="kw">if</span> val_loss &gt; train_loss * <span class="nm">1.5</span>:
+        <span class="bi">print</span>(<span class="st">"High accuracy, but OVERFITTING"</span>)
+    <span class="kw">else</span>:
+        <span class="bi">print</span>(<span class="st">"High accuracy and generalizing well"</span>)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"Accuracy too low: keep training"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>High accuracy, but OVERFITTING</pre></div>
+  <p class="lesson-p">Each level of nesting adds four more spaces, and every block must stay lined up. Deep nesting gets hard to read fast. Often you can flatten it with <code>and</code>. The check "accuracy above 0.9 and validation loss more than 1.5 times training loss" says the same as the two nested lines, in one condition.</p>
+  <details class="check"><summary>With <code>accuracy = 0.90</code>, which grade does the correct elif ladder give, and why?</summary><div class="ck-answer"><strong>B.</strong> The first test <code>0.90 &gt;= 0.95</code> is False, and the second <code>0.90 &gt;= 0.85</code> is True. Border values matter: <code>&gt;=</code> includes the boundary.</div></details>
+  <details class="check"><summary>In the nested overfitting example, what prints if <code>accuracy = 0.8</code>?</summary><div class="ck-answer">"Accuracy too low: keep training". The outer <code>if</code> is False, so the inner question is never asked.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the wrong-order block, change <code>accuracy</code> to 0.6. What is printed? Then reorder the chain (0.95 first) and confirm the 0.96 case gives an A.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Use <code>elif</code> for more than two roads. Python takes the <strong>first</strong> True branch and skips the rest.</li><li>Separate <code>if</code> statements are independent questions and can all run.</li><li>Put the strictest condition first. A wrong order runs without errors but gives wrong answers.</li><li>Nest an <code>if</code> only when the second question depends on the first, and flatten with <code>and</code> when you can.</li></ul></div>
+
+  <!-- S:2.7 -->
+  <div class="lesson-h2">2.7 — Why Loops Exist: The for Loop</div>
+  <p class="lesson-p">A model is trained over many rounds. After each round we record the loss, a number that says how wrong the model still is. Suppose we recorded six of them and want to print each one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Repetition by copy and paste</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.82</span>)
+<span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.61</span>)
+<span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.45</span>)
+<span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.30</span>)
+<span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.22</span>)
+<span class="bi">print</span>(<span class="st">"Loss:"</span>, <span class="nm">0.18</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Loss: 0.82
+Loss: 0.61
+Loss: 0.45
+Loss: 0.3
+Loss: 0.22
+Loss: 0.18</pre></div>
+  <p class="lesson-p">It works, but look at the cost. Every line is nearly identical. With 1000 rounds you would paste 1000 lines, and if you later wanted to change the text, you would edit all 1000. Repeating a job is exactly what computers are good at, so Python gives us a better tool: the <strong>loop</strong>.</p>
+  <p class="lesson-p">First we need a way to hold six numbers under one name. A <strong>list</strong> is an ordered collection of values written in square brackets and separated by commas: <code>[0.82, 0.61, 0.45]</code>. You will study lists properly in Chapter 4. For now, you only need to know that a list can be walked through, item by item.</p>
+  <p class="lesson-p">A <strong>for loop</strong> says: "for each item in this collection, do the following." Think of stamping a stack of envelopes. You pick up the top one, stamp it, put it aside, and pick up the next, until the stack is empty. The item currently in your hand is the <strong>loop variable</strong>, and a single trip through the block is called an <strong>iteration</strong>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The smallest for loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>]
+
 <span class="kw">for</span> loss <span class="kw">in</span> losses:
-    <span class="bi">print</span>(<span class="st">f'Loss: <span class="bi">{loss:.2f}</span>'</span>)
+    <span class="bi">print</span>(<span class="st">"Loss:"</span>, loss)
 
-<span class="cm"># range(start, stop) — 'do this N times', typical epoch loop:</span>
-<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">6</span>):
-    <span class="bi">print</span>(<span class="st">f'Training epoch <span class="bi">{epoch}</span>'</span>)
-
-<span class="cm"># range(start, stop, step) — every 10th epoch, e.g. for checkpoints</span>
-<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">0</span>, <span class="nm">50</span>, <span class="nm">10</span>):
-    <span class="bi">print</span>(<span class="st">f'Checkpoint saved at epoch <span class="bi">{epoch}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">"Finished the loop"</span>)</div>
   </div>
-
-  <!-- 2.4 -->
-  <div class="lesson-h2">2.4 — while Loops: Repeating Until a Condition Changes</div>
-  <p class="lesson-p">A <code>while</code> loop keeps running <strong>as long as its condition stays True</strong>. Use it when you don't know in advance how many repetitions you need — like "keep training until the loss drops below a target," which is exactly how early stopping works.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Loss: 0.82
+Loss: 0.61
+Loss: 0.45
+Finished the loop</pre></div>
+  <div class="diagram"><div class="dg-title">One trip around the loop</div><pre>   +-----------------------------+
+   | Any items left in the list? |--- no --&gt; continue after the loop
+   +-----------------------------+
+                 | yes
+                 v
+   +-----------------------------+
+   | loss = next item            |
+   | run the indented block      |
+   +-----------------------------+
+                 |
+                 +--&gt; back to "Any items left?"</pre><div class="dg-cap">The loop asks the same question every time round. Only when the list is used up does Python leave the loop.</div></div>
+  <p class="lesson-p">The header <code>for loss in losses:</code> has four parts: the word <code>for</code>, a name you choose for the loop variable (<code>loss</code>), the word <code>in</code>, and the collection, ending with a colon. As with <code>if</code>, the indented lines are the block that repeats.</p>
+  <div class="lesson-h3">Tracing a loop by hand</div>
+  <p class="lesson-p">The best way to understand any loop is to trace it: write down the value of every variable after each iteration. Do this on paper whenever a loop surprises you. For the loop above, the table looks like this.</p>
+  <table class="lesson-table"><tr><th>Iteration</th><th><code>loss</code> at the start</th><th>Line that runs</th><th>What is printed</th></tr><tr><td>1</td><td>0.82</td><td><code>print("Loss:", loss)</code></td><td>Loss: 0.82</td></tr><tr><td>2</td><td>0.61</td><td><code>print("Loss:", loss)</code></td><td>Loss: 0.61</td></tr><tr><td>3</td><td>0.45</td><td><code>print("Loss:", loss)</code></td><td>Loss: 0.45</td></tr><tr><td>end</td><td>(list used up)</td><td>jump to the next line</td><td>Finished the loop</td></tr></table>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>It builds the list and stores it as <code>losses</code>.</div></li><li data-n="2"><div>It reaches the <code>for</code> line, takes the first item (0.82), and stores it in <code>loss</code>.</div></li><li data-n="3"><div>It runs the indented <code>print</code>, then jumps back to the <code>for</code> line and takes the next item.</div></li><li data-n="4"><div>After the third item there is nothing left, so Python moves on to the unindented <code>print</code>.</div></li></ul>
+  <div class="lesson-h3">Variations</div>
+  <p class="lesson-p">The loop variable name is your choice: <code>for x in losses</code> works exactly the same. Strings can be walked through too, one character at a time. An empty list is a sad path with no crash: the block simply runs zero times. And after the loop ends, the loop variable still exists and holds the last item.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Training until loss converges</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">loss  = <span class="nm">0.9</span>
+    <div class="cb-header"><span class="cb-label">Variations</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> letter <span class="kw">in</span> <span class="st">"cat"</span>:
+    <span class="bi">print</span>(letter)
+
+<span class="kw">for</span> loss <span class="kw">in</span> []:
+    <span class="bi">print</span>(<span class="st">"this never prints"</span>)
+
+<span class="kw">for</span> loss <span class="kw">in</span> [<span class="nm">0.5</span>, <span class="nm">0.4</span>, <span class="nm">0.3</span>]:
+    <span class="kw">pass</span>
+<span class="bi">print</span>(<span class="st">"Last value left over:"</span>, loss)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>c
+a
+t
+Last value left over: 0.3</pre></div>
+  <p class="lesson-p">The word <code>pass</code> means "do nothing". It is a placeholder for a block that must exist but has no work to do.</p>
+  <p class="lesson-p"><strong>Common mistake: the empty loop block.</strong> As with <code>if</code>, the block after the colon must be indented.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Forgetting to indent the loop body</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>]
+<span class="kw">for</span> loss <span class="kw">in</span> losses:
+<span class="bi">print</span>(loss)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 3
+    print(loss)
+    ^^^^^
+IndentationError: expected an indented block after 'for' statement on line 2</pre></div>
+  <details class="check"><summary>How many times does the block run for <code>for x in [10, 20, 30, 40]:</code> and what is <code>x</code> after the loop ends?</summary><div class="ck-answer">Four times, once per item. After the loop, <code>x</code> still holds the last value, 40.</div></details>
+  <details class="check"><summary>Why is a loop better than 1000 copy-pasted print lines?</summary><div class="ck-answer">You write the instruction once, so changing it means one edit, and the number of repeats follows the size of the data instead of being typed by hand.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the list in "The smallest for loop" to five losses of your choice, and re-run it. You never touch the loop itself.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>loop</strong> repeats a block so you write the instruction once.</li><li><code>for item in collection:</code> visits every item in order; the indented block runs once per item (one <strong>iteration</strong>).</li><li>Trace a loop with a table of variable values per iteration.</li><li>An empty collection runs the block zero times, and the loop variable keeps its last value afterwards.</li></ul></div>
+
+  <!-- S:2.8 -->
+  <div class="lesson-h2">2.8 — range(): Counting for the Loop</div>
+  <p class="lesson-p">Sometimes you have no list at all. You just want to do something five times, such as "train for five epochs". An <strong>epoch</strong> is one full pass of a model over its training data. To count without typing a list by hand, Python offers <code>range</code>, which hands out whole numbers on demand.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">range hands out numbers</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">5</span>)))
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>):
+    <span class="bi">print</span>(<span class="st">"Training epoch"</span>, epoch)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[0, 1, 2, 3, 4]
+Training epoch 0
+Training epoch 1
+Training epoch 2
+Training epoch 3
+Training epoch 4</pre></div>
+  <p class="lesson-p">Two surprises in that output. The counting starts at <strong>0</strong>, not 1, and it ends at <strong>4</strong>, not 5. Both are deliberate. <code>range(5)</code> produces exactly five numbers, and computers count from zero. The wrapper <code>list(...)</code> is only there to display the numbers, because a range is produced lazily and does not show itself when printed.</p>
+  <div class="lesson-h3">The three forms of range</div>
+  <p class="lesson-p"><code>range(stop)</code> counts from 0 up to, but <strong>not including</strong>, <code>stop</code>. <code>range(start, stop)</code> begins where you say. <code>range(start, stop, step)</code> jumps by <code>step</code> each time, and a negative step counts downwards. The rule to memorise is "the start is included, the stop is excluded".</p>
+  <div class="diagram"><div class="dg-title">The stop value is never produced</div><pre>range(2, 7)        -&gt;  2  3  4  5  6       (7 is NOT included)
+                       ^           ^
+                    start       stop - 1
+
+range(0, 10, 3)    -&gt;  0  3  6  9          (next would be 12)
+
+range(5, 0, -1)    -&gt;  5  4  3  2  1       (0 is NOT included)</pre><div class="dg-cap">How many numbers do you get? For a step of 1 it is stop minus start. So <code>range(2, 7)</code> gives 5 numbers.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Different forms of range</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">2</span>, <span class="nm">7</span>)))
+<span class="bi">print</span>(<span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">0</span>, <span class="nm">10</span>, <span class="nm">3</span>)))
+<span class="bi">print</span>(<span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">5</span>, <span class="nm">0</span>, -<span class="nm">1</span>)))
+<span class="bi">print</span>(<span class="bi">list</span>(<span class="bi">range</span>(<span class="nm">5</span>, <span class="nm">0</span>)))
+<span class="bi">print</span>(<span class="bi">len</span>(<span class="bi">range</span>(<span class="nm">2</span>, <span class="nm">7</span>)))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[2, 3, 4, 5, 6]
+[0, 3, 6, 9]
+[5, 4, 3, 2, 1]
+[]
+5</pre></div>
+  <p class="lesson-p">The fourth line is a sad path. The default step is +1, and you cannot climb from 5 up to 0, so Python gives you an empty range. It does not complain. The block of a loop over it would run zero times.</p>
+  <div class="lesson-h3">Off-by-one traps</div>
+  <p class="lesson-p">An <strong>off-by-one error</strong> means being wrong by exactly one: one iteration too many or too few. It is the number one range mistake. If a person says "epochs 1 to 5", they mean five epochs numbered 1, 2, 3, 4, 5. The obvious code <code>range(1, 5)</code> stops one short.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The classic off-by-one</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">5</span>):
+    <span class="bi">print</span>(<span class="st">"epoch"</span>, epoch)
+
+<span class="bi">print</span>(<span class="st">"--- fixed ---"</span>)
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">5</span> + <span class="nm">1</span>):
+    <span class="bi">print</span>(<span class="st">"epoch"</span>, epoch)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>epoch 1
+epoch 2
+epoch 3
+epoch 4
+--- fixed ---
+epoch 1
+epoch 2
+epoch 3
+epoch 4
+epoch 5</pre></div>
+  <div class="trace-h">How to avoid it</div>
+  <ul class="step-list"><li data-n="1"><div>Decide what the first and last numbers should be, for example 1 and 5.</div></li><li data-n="2"><div>Make the stop one larger than the last number you want: <code>range(1, 6)</code>.</div></li><li data-n="3"><div>Check the count with <code>stop - start</code>: 6 - 1 = 5 numbers. If that is not the count you wanted, adjust.</div></li></ul>
+  <p class="lesson-p">Only whole numbers are allowed in a range. Python reports a clear error if you slip in a float.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">range only accepts integers</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2.5</span>):
+    <span class="bi">print</span>(epoch)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 1, in &lt;module&gt;
+    for epoch in range(2.5):
+                 ^^^^^^^^^^
+TypeError: 'float' object cannot be interpreted as an integer</pre></div>
+  <p class="lesson-p">When you have a list and also want positions, you will meet a better tool in section 2.14. For now, remember that <code>range(len(items))</code> gives the positions 0 to the last one.</p>
+  <details class="check"><summary>What does <code>list(range(3, 8, 2))</code> produce?</summary><div class="ck-answer"><strong>[3, 5, 7].</strong> It starts at 3, adds 2 each time (3, 5, 7), and stops before reaching 9, which is past the stop of 8.</div></details>
+  <details class="check"><summary>You want to print the numbers 10, 9, 8, ..., 1. Which range call do you need?</summary><div class="ck-answer"><code>range(10, 0, -1)</code>. The start is 10, the step is -1, and the stop of 0 is excluded, so the last number is 1.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Run <code>print(list(range(0)))</code> and <code>print(list(range(3, 3)))</code>. What do you get, and why?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>range(n)</code> produces <code>0, 1, ..., n-1</code>. <code>range(a, b)</code> produces <code>a</code> up to <code>b-1</code>. <code>range(a, b, s)</code> steps by <code>s</code>.</li><li><strong>Start is included, stop is excluded.</strong> Count = stop - start when the step is 1.</li><li>A range that cannot reach the stop is empty, not an error.</li><li>Off-by-one errors: to include the last number, add 1 to the stop.</li></ul></div>
+
+  <!-- S:2.9 -->
+  <div class="lesson-h2">2.9 — Loop Patterns: Accumulator, Counter, Flag, Best-So-Far</div>
+  <p class="lesson-p">A loop that only prints is not very useful. The real power comes when a loop <strong>builds up an answer</strong> as it goes. Say we want the average of six losses, without any built-in help. A loop visits one number at a time, so it has to remember what it has seen. The trick is a variable created before the loop that each iteration updates. Four such shapes appear in almost every program you will write, so they are worth learning by name.</p>
+  <div class="diagram"><div class="dg-title">The four loop patterns</div><pre>ACCUMULATOR (running total)      COUNTER (how many?)
+  total = 0                        n = 0
+  for x in data:                   for x in data:
+      total += x                       if cond:
+                                           n += 1
+
+FLAG (did it happen?)            BEST-SO-FAR (smallest)
+  found = False                    best = float("inf")
+  for x in data:                   for x in data:
+      if cond:                         if x &lt; best:
+          found = True                     best = x</pre><div class="dg-cap">Every pattern has the same skeleton: set up a starting value before the loop, update it inside the loop, use it after the loop.</div></div>
+  <div class="lesson-h3">The accumulator</div>
+  <p class="lesson-p">An <strong>accumulator</strong> is a variable that collects a running result, like the total on a shop till. It starts at 0. Each iteration adds the current item: <code>total += x</code> is a shortcut for <code>total = total + x</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">An accumulator, with the state shown</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>, <span class="nm">0.30</span>]
+total = <span class="nm">0</span>
+
+<span class="kw">for</span> loss <span class="kw">in</span> losses:
+    total += loss
+    <span class="bi">print</span>(<span class="st">f"added {loss:.2f} -&gt; total is now {total:.2f}"</span>)
+
+<span class="bi">print</span>(<span class="st">"Average:"</span>, <span class="bi">round</span>(total / <span class="bi">len</span>(losses), <span class="nm">4</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>added 0.82 -&gt; total is now 0.82
+added 0.61 -&gt; total is now 1.43
+added 0.45 -&gt; total is now 1.88
+added 0.30 -&gt; total is now 2.18
+Average: 0.545</pre></div>
+  <table class="lesson-table"><tr><th>Iteration</th><th><code>loss</code></th><th><code>total</code> before</th><th><code>total</code> after</th></tr><tr><td>1</td><td>0.82</td><td>0</td><td>0.82</td></tr><tr><td>2</td><td>0.61</td><td>0.82</td><td>1.43</td></tr><tr><td>3</td><td>0.45</td><td>1.43</td><td>1.88</td></tr><tr><td>4</td><td>0.30</td><td>1.88</td><td>2.18</td></tr></table>
+  <p class="lesson-p">The <code>total</code> column carries information from one iteration to the next. That is how a loop "remembers". After the loop, dividing by <code>len(losses)</code>, which is the number of items, gives the average.</p>
+  <div class="lesson-h3">The counter, the flag, and best-so-far</div>
+  <p class="lesson-p">A <strong>counter</strong> is an accumulator that adds 1 whenever a condition is met, so it counts things. A <strong>flag</strong> is a bool that starts False and is switched to True when something happens, so afterwards you can ask "did it ever happen?". A <strong>best-so-far</strong> variable remembers the smallest or largest value seen. To start a search for the minimum, we need a number bigger than any real value. <code>float("inf")</code> is Python's "infinity", larger than every number, so the first real value always beats it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Counter, flag and best-so-far in one loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracies = [<span class="nm">0.72</span>, <span class="nm">0.81</span>, <span class="nm">0.79</span>, <span class="nm">0.95</span>, <span class="nm">0.66</span>]
+
+good_count = <span class="nm">0</span>
+found_perfect = <span class="kw">False</span>
+best = <span class="bi">float</span>(<span class="st">"inf"</span>)
+worst = <span class="nm">0</span>
+
+<span class="kw">for</span> acc <span class="kw">in</span> accuracies:
+    <span class="kw">if</span> acc &gt;= <span class="nm">0.8</span>:
+        good_count += <span class="nm">1</span>
+    <span class="kw">if</span> acc == <span class="nm">1.0</span>:
+        found_perfect = <span class="kw">True</span>
+    <span class="kw">if</span> acc &lt; best:
+        best = acc
+    <span class="kw">if</span> acc &gt; worst:
+        worst = acc
+
+<span class="bi">print</span>(<span class="st">"Models at 80% or better:"</span>, good_count)
+<span class="bi">print</span>(<span class="st">"Any perfect model?"</span>, found_perfect)
+<span class="bi">print</span>(<span class="st">"Lowest:"</span>, best, <span class="st">"Highest:"</span>, worst)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Models at 80% or better: 2
+Any perfect model? False
+Lowest: 0.66 Highest: 0.95</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Before the loop, four variables are set to safe starting values. They are the "memory" of the loop.</div></li><li data-n="2"><div>For each accuracy, three or four independent <code>if</code> checks may update them. Note the independent <code>if</code>s: we want every check to run, not just the first.</div></li><li data-n="3"><div>After the loop, the variables hold the final answers: 2 good models, no perfect one, lowest 0.66, highest 0.95.</div></li></ul>
+  <div class="lesson-h3">Two classic mistakes</div>
+  <p class="lesson-p"><strong>Resetting the accumulator inside the loop.</strong> If <code>total = 0</code> is written inside the block, it goes back to zero every iteration, so only the last item survives. <strong>Never creating it at all</strong> gives a clear error.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Initialising in the wrong place</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>]
+
+<span class="kw">for</span> loss <span class="kw">in</span> losses:
+    total = <span class="nm">0</span>
+    total += loss
+
+<span class="bi">print</span>(<span class="st">"Total should be 1.88, got:"</span>, total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Total should be 1.88, got: 0.45</pre></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Forgetting to create the accumulator</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">for</span> loss <span class="kw">in</span> [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>]:
+    running_total += loss
+<span class="bi">print</span>(running_total)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 2, in &lt;module&gt;
+    running_total += loss
+    ^^^^^^^^^^^^^
+NameError: name 'running_total' is not defined</pre></div>
+  <p class="lesson-p">The error message names the missing variable. <code>running_total += loss</code> needs an existing <code>running_total</code> to add to, so create it before the loop. (If you run this in the page console right after another block that created a variable with the same name, no error appears, because the console remembers earlier runs. That is why this example uses a fresh name.)</p>
+  <details class="check"><summary>Which starting value would you give a <strong>counter</strong>, and which one an <strong>accumulator that multiplies</strong> numbers together?</summary><div class="ck-answer">A counter starts at 0. A product accumulator starts at 1, because multiplying by 1 changes nothing, whereas starting at 0 would make the answer 0 forever.</div></details>
+  <details class="check"><summary>Why does the best-so-far example start <code>best</code> at <code>float("inf")</code> instead of 0?</summary><div class="ck-answer">Every real accuracy is below infinity, so the first one always replaces it. Starting at 0 would never be beaten by a smaller number, so the minimum would stay wrongly at 0.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the counter block, change the condition to <code>acc &gt;= 0.7</code> and predict <code>good_count</code> first.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Most loops build an answer: set a starting value <strong>before</strong> the loop, update it inside, read it after.</li><li><strong>Accumulator</strong> <code>total += x</code>, <strong>counter</strong> <code>n += 1</code> under an <code>if</code>, <strong>flag</strong> <code>found = True</code>, <strong>best-so-far</strong> with <code>float("inf")</code> as the initial minimum.</li><li>Initialise outside the loop. Inside the loop it resets each time; missing altogether it raises <code>NameError</code>.</li></ul></div>
+
+  <!-- S:2.10 -->
+  <div class="lesson-h2">2.10 — while Loops: Repeating Until the Condition Changes</div>
+  <p class="lesson-p">A <code>for</code> loop needs to know its material in advance: a list, or a <code>range(5)</code>. But often you do not know how many rounds you need. "Keep training until the loss is small enough" could take 7 rounds or 700. You would have to guess a number for <code>range</code>, and guessing wrong wastes time or stops too early.</p>
+  <p class="lesson-p">A <strong>while loop</strong> repeats <strong>as long as its condition stays True</strong>. Before every round, Python asks the condition again. It is like stirring paint: while it is still lumpy, keep stirring, and stop the moment it is smooth. You do not count the stirs in advance.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The smallest while loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">loss = <span class="nm">0.9</span>
 epoch = <span class="nm">0</span>
 
-<span class="kw">while</span> loss > <span class="nm">0.1</span>:
+<span class="kw">while</span> loss &gt; <span class="nm">0.1</span>:
     epoch += <span class="nm">1</span>
-    loss *= <span class="nm">0.7</span>   <span class="cm"># simulate loss shrinking 30% each epoch</span>
-    <span class="bi">print</span>(<span class="st">f'Epoch <span class="bi">{epoch}</span>: loss = <span class="bi">{loss:.4f}</span>'</span>)
+    loss = loss * <span class="nm">0.7</span>
+    <span class="bi">print</span>(<span class="st">f"Epoch {epoch}: loss = {loss:.4f}"</span>)
 
-<span class="bi">print</span>(<span class="st">f'Converged after <span class="bi">{epoch}</span> epochs'</span>)</div>
+<span class="bi">print</span>(<span class="st">"Stopped after"</span>, epoch, <span class="st">"epochs"</span>)</div>
   </div>
-  <div class="info-box danger"><div class="ib-icon">🛑</div><div class="ib-body"><strong>The #1 while-loop bug: forgetting to change the condition.</strong> If you write <code>while loss > 0.1:</code> and never update <code>loss</code> inside the loop, the condition is always True and your program hangs forever. Always double-check that something inside the loop moves you toward the exit.</div></div>
-
-  <!-- 2.5 -->
-  <div class="lesson-h2">2.5 — break and continue</div>
-  <p class="lesson-p"><code>continue</code> skips the rest of the current iteration and jumps to the next one — useful for skipping bad or missing data. <code>break</code> exits the loop entirely — useful for stopping the moment you find what you're looking for.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Epoch 1: loss = 0.6300
+Epoch 2: loss = 0.4410
+Epoch 3: loss = 0.3087
+Epoch 4: loss = 0.2161
+Epoch 5: loss = 0.1513
+Epoch 6: loss = 0.1059
+Epoch 7: loss = 0.0741
+Stopped after 7 epochs</pre></div>
+  <div class="diagram"><div class="dg-title">The while loop cycle</div><pre>        +----------------------+
+   +---&gt;|  Is the condition    |--- False ---&gt; leave the loop
+   |    |  still True?         |
+   |    +----------------------+
+   |               | True
+   |               v
+   |    +----------------------+
+   |    |  run the block       |
+   |    |  (it must change     |
+   |    |   something!)        |
+   |    +----------------------+
+   +---------------|</pre><div class="dg-cap">The check comes first, every time. If the condition is already False at the start, the block runs zero times.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Set up the starting state: <code>loss</code> is 0.9 and <code>epoch</code> is 0.</div></li><li data-n="2"><div>Ask <code>loss &gt; 0.1</code>. It is <code>0.9 &gt; 0.1</code>, so True: enter the block. Add 1 to <code>epoch</code> and shrink <code>loss</code> by 30 percent. Print.</div></li><li data-n="3"><div>Jump back to the condition and ask again with the new <code>loss</code>. Repeat.</div></li><li data-n="4"><div>When <code>loss</code> finally drops below 0.1, the condition is False and Python continues after the loop.</div></li></ul>
+  <div class="lesson-h3">Tracing it in a table</div>
+  <p class="lesson-p">Trace the values just as you did for <code>for</code>. The condition is tested at the top of each row, using the values left over by the previous row.</p>
+  <table class="lesson-table"><tr><th>Round</th><th><code>loss</code> when tested</th><th><code>loss &gt; 0.1</code>?</th><th><code>epoch</code> after the block</th><th><code>loss</code> after the block</th></tr><tr><td>1</td><td>0.9000</td><td>True</td><td>1</td><td>0.6300</td></tr><tr><td>2</td><td>0.6300</td><td>True</td><td>2</td><td>0.4410</td></tr><tr><td>3</td><td>0.4410</td><td>True</td><td>3</td><td>0.3087</td></tr><tr><td>4</td><td>0.3087</td><td>True</td><td>4</td><td>0.2161</td></tr><tr><td>5</td><td>0.2161</td><td>True</td><td>5</td><td>0.1513</td></tr><tr><td>6</td><td>0.1513</td><td>True</td><td>6</td><td>0.1059</td></tr><tr><td>7</td><td>0.1059</td><td>True</td><td>7</td><td>0.0741</td></tr><tr><td>test</td><td>0.0741</td><td>False</td><td>(loop ends)</td><td>7 epochs total</td></tr></table>
+  <p class="lesson-p">Notice that the condition was tested eight times but the block ran seven times. The final test is the one that says "stop".</p>
+  <div class="lesson-h3">Variations and the sad path</div>
+  <p class="lesson-p">If the condition is False from the start, Python skips the block entirely. And the condition can use any of the tools from earlier in this chapter, including <code>and</code>, so a loop can have two reasons to keep going.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">continue to skip missing values, break to stop early</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [<span class="nm">0.9</span>, <span class="nm">0.85</span>, <span class="kw">None</span>, <span class="nm">0.77</span>, <span class="kw">None</span>, <span class="nm">0.95</span>]
+    <div class="cb-header"><span class="cb-label">A loop that never starts, and one with two conditions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">loss = <span class="nm">0.05</span>
+<span class="kw">while</span> loss &gt; <span class="nm">0.1</span>:
+    <span class="bi">print</span>(<span class="st">"never printed"</span>)
+<span class="bi">print</span>(<span class="st">"Skipped: loss was already small"</span>)
 
-<span class="cm"># continue — skip missing (None) sensor readings</span>
-valid_scores = []
+loss = <span class="nm">0.9</span>
+epoch = <span class="nm">0</span>
+<span class="kw">while</span> loss &gt; <span class="nm">0.1</span> <span class="kw">and</span> epoch &lt; <span class="nm">3</span>:
+    epoch += <span class="nm">1</span>
+    loss = loss * <span class="nm">0.7</span>
+<span class="bi">print</span>(<span class="st">"Stopped at epoch"</span>, epoch, <span class="st">"with loss"</span>, <span class="bi">round</span>(loss, <span class="nm">3</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Skipped: loss was already small
+Stopped at epoch 3 with loss 0.309</pre></div>
+  <p class="lesson-p">The second loop stops for whichever reason arrives first. Here the epoch limit of 3 is reached before the loss gets small. Adding a cap like this is a very good habit, and the next section shows why.</p>
+  <details class="check"><summary>In the smallest while loop, what would be printed if <code>loss</code> started at 0.09?</summary><div class="ck-answer">Only "Stopped after 0 epochs". The condition <code>0.09 &gt; 0.1</code> is False the first time it is tested, so the block never runs.</div></details>
+  <details class="check"><summary>What is the difference between the condition of a <code>for</code> loop and a <code>while</code> loop?</summary><div class="ck-answer">A <code>for</code> loop has no condition. It ends when the collection is used up. A <code>while</code> loop tests a condition before every round and ends when it becomes False.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>0.7</code> to <code>0.5</code> in the first block. Predict whether it takes more or fewer epochs before you run it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>while condition:</code> tests the condition <strong>before every round</strong> and repeats while it is True.</li><li>The block must change something the condition depends on, otherwise the loop cannot end.</li><li>If the condition is False at the start, the block runs zero times.</li><li>Use <code>and</code> in the condition to add a second reason to stop, such as an epoch limit.</li></ul></div>
+
+  <!-- S:2.11 -->
+  <div class="lesson-h2">2.11 — Infinite Loops, and Choosing Between for and while</div>
+  <p class="lesson-p">Here is the danger of <code>while</code>. If the condition never becomes False, the loop never ends. This is an <strong>infinite loop</strong>, and the program appears to freeze. A <code>for</code> loop over a list cannot do this, since the list runs out. A <code>while</code> loop can, because you are in charge of making the condition change.</p>
+  <p class="lesson-p">Below is a loop that forgot to shrink the loss. To keep this page safe, we added an emergency exit that stops the loop after 5 rounds. The <code>break</code> line is explained in the next section: it means "leave the loop right now".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">An infinite loop, caught by a safety exit</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">loss = <span class="nm">0.9</span>
+rounds = <span class="nm">0</span>
+
+<span class="kw">while</span> loss &gt; <span class="nm">0.1</span>:
+    rounds += <span class="nm">1</span>
+    <span class="bi">print</span>(<span class="st">"round"</span>, rounds, <span class="st">"loss is still"</span>, loss)
+    <span class="kw">if</span> rounds == <span class="nm">5</span>:
+        <span class="bi">print</span>(<span class="st">"Emergency exit: the loss never changes!"</span>)
+        <span class="kw">break</span></div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>round 1 loss is still 0.9
+round 2 loss is still 0.9
+round 3 loss is still 0.9
+round 4 loss is still 0.9
+round 5 loss is still 0.9
+Emergency exit: the loss never changes!</pre></div>
+  <p class="lesson-p">Without the last three lines, this program would print forever. The condition <code>loss &gt; 0.1</code> never changes, because nothing in the block touches <code>loss</code>.</p>
+  <div class="lesson-h3">Three common causes</div>
+  <div class="diagram"><div class="dg-title">Why loops do not end</div><pre>1. Variable never updated
+     while loss &gt; 0.1:
+         epochs += 1          &lt;- loss is never touched
+
+2. Updated in the wrong direction
+     while loss &gt; 0.1:
+         loss = loss + 0.1    &lt;- moves away from 0.1
+
+3. Condition can be skipped over
+     while count != 10:
+         count += 3           &lt;- 0, 3, 6, 9, 12, ...</pre><div class="dg-cap">In every case the condition stays True forever. Ask yourself: what changes each round, and does it move toward making the condition False?</div></div>
+  <p class="lesson-p">The third cause is sneaky. Counting by 3 from 0 goes 0, 3, 6, 9, 12. It jumps over 10, so <code>count != 10</code> is always True. Using <code>&lt;</code> instead of <code>!=</code> is safer: <code>count &lt; 10</code> stops even when you overshoot.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The skipped-over condition</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">count = <span class="nm">0</span>
+rounds = <span class="nm">0</span>
+
+<span class="kw">while</span> count != <span class="nm">10</span>:
+    count += <span class="nm">3</span>
+    rounds += <span class="nm">1</span>
+    <span class="kw">if</span> rounds == <span class="nm">6</span>:
+        <span class="bi">print</span>(<span class="st">"Stuck: count is"</span>, count, <span class="st">"and never equals 10"</span>)
+        <span class="kw">break</span>
+
+<span class="bi">print</span>(<span class="st">"Safe version:"</span>)
+count = <span class="nm">0</span>
+<span class="kw">while</span> count &lt; <span class="nm">10</span>:
+    count += <span class="nm">3</span>
+<span class="bi">print</span>(<span class="st">"Stopped with count ="</span>, count)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Stuck: count is 18 and never equals 10
+Safe version:
+Stopped with count = 12</pre></div>
+  <div class="lesson-h3">How to stop a runaway loop</div>
+  <p class="lesson-p">In a terminal, press <strong>Ctrl+C</strong>. Python interrupts the program and prints <code>KeyboardInterrupt</code>. On this course page, Python runs inside your browser tab, so a truly infinite loop freezes the tab, and the only cure is to reload the page (your saved progress is kept). Prevention is far better. Put a limit in the condition, so the loop has two ways to end: "the goal is reached" or "the budget of rounds is used up".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Prevention: a maximum number of rounds</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">loss = <span class="nm">0.9</span>
+epoch = <span class="nm">0</span>
+max_epochs = <span class="nm">50</span>
+
+<span class="kw">while</span> loss &gt; <span class="nm">0.1</span> <span class="kw">and</span> epoch &lt; max_epochs:
+    epoch += <span class="nm">1</span>
+    loss = loss * <span class="nm">0.99</span>
+
+<span class="bi">print</span>(<span class="st">"Stopped at epoch"</span>, epoch, <span class="st">"with loss"</span>, <span class="bi">round</span>(loss, <span class="nm">3</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Stopped at epoch 50 with loss 0.545</pre></div>
+  <div class="lesson-h3">for or while? A simple rule</div>
+  <table class="lesson-table"><tr><th>Question</th><th>Use</th></tr><tr><td>Do I have a list, a string, or a known count (<code>range(n)</code>)?</td><td><code>for</code></td></tr><tr><td>Do I know beforehand how many rounds I need?</td><td><code>for</code></td></tr><tr><td>Do I repeat until something happens, with an unknown number of rounds?</td><td><code>while</code></td></tr><tr><td>Is the stopping rule a condition on a changing value, such as loss below a goal?</td><td><code>while</code></td></tr></table>
+  <p class="lesson-p">Both can do most jobs, but <code>for</code> is safer, because it is bounded by its data. Choose <code>for</code> whenever you can, and <code>while</code> when the stopping point depends on something that changes during the loop. Real training code often uses both: a <code>for</code> over epochs with a <code>break</code> when the model has stopped improving, which is exactly the mini project.</p>
+  <details class="check"><summary>What is the very first thing to check when a while loop never ends?</summary><div class="ck-answer">Whether something inside the block changes a variable used by the condition, and in the right direction so the condition can eventually become False.</div></details>
+  <details class="check"><summary>Why is <code>while count &lt; 10</code> safer than <code>while count != 10</code> when counting by 3?</summary><div class="ck-answer">Counting by 3 jumps over 10 (9, then 12). With <code>&lt;</code>, the value 12 makes the condition False and the loop ends. With <code>!=</code>, the condition is True forever.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the prevention block, change <code>0.99</code> to <code>1.0</code> so the loss never shrinks. Confirm that the loop still ends, by the epoch limit.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>while</strong> loop that never makes its condition False is an <strong>infinite loop</strong>.</li><li>Causes: not updating, updating the wrong way, or a <code>!=</code> test that gets skipped over.</li><li>Stop a runaway with Ctrl+C in a terminal; reload the page here. Better: add a maximum-rounds limit to the condition.</li><li>Use <code>for</code> when you have data or a known count, and <code>while</code> when you repeat until something happens.</li></ul></div>
+
+  <!-- S:2.12 -->
+  <div class="lesson-h2">2.12 — break and continue: Skipping and Stopping</div>
+  <p class="lesson-p">Real data is messy. A sensor fails and leaves a gap. A form is submitted half empty. In Python, a missing value is often <code>None</code> (section 2.3). Watch what happens when a loop tries to add up scores that contain one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A missing value breaks the loop</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">scores = [<span class="nm">0.9</span>, <span class="nm">0.85</span>, <span class="kw">None</span>, <span class="nm">0.77</span>]
+total = <span class="nm">0</span>
+
+<span class="kw">for</span> s <span class="kw">in</span> scores:
+    total += s</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 5, in &lt;module&gt;
+    total += s
+TypeError: unsupported operand type(s) for +=: 'float' and 'NoneType'</pre></div>
+  <p class="lesson-p">The loop crashed at the third item, because you cannot add nothing to a number. What we want is "if this item is missing, skip it and move on". That is the job of <strong>continue</strong>, one of two keywords that let you steer a loop from the inside.</p>
+  <p class="lesson-p"><strong>continue</strong> means "abandon the rest of this round and go straight to the next item". Picture a factory conveyor belt. A damaged part arrives, a worker pulls it off, and the belt carries on. <strong>break</strong> is the emergency stop: "leave the loop entirely, right now". The rest of the items are never looked at.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">continue skips a round</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">0.9</span>, <span class="nm">0.85</span>, <span class="kw">None</span>, <span class="nm">0.77</span>, <span class="kw">None</span>, <span class="nm">0.95</span>]
+valid = []
+
 <span class="kw">for</span> s <span class="kw">in</span> scores:
     <span class="kw">if</span> s <span class="kw">is</span> <span class="kw">None</span>:
-        <span class="kw">continue</span>          <span class="cm"># skip this one, go to the next</span>
-    valid_scores.append(s)
-<span class="bi">print</span>(<span class="st">'Valid scores:'</span>, valid_scores)
+        <span class="bi">print</span>(<span class="st">"skipping a missing value"</span>)
+        <span class="kw">continue</span>
+    valid.append(s)
 
-<span class="cm"># break — stop the moment we find a score below the 0.8 threshold</span>
-<span class="kw">for</span> i, s <span class="kw">in</span> <span class="bi">enumerate</span>(valid_scores):
-    <span class="kw">if</span> s < <span class="nm">0.8</span>:
-        <span class="bi">print</span>(<span class="st">f'First low score at index <span class="bi">{i}</span>: <span class="bi">{s}</span>'</span>)
-        <span class="kw">break</span>              <span class="cm"># stop looking — we found it</span></div>
+<span class="bi">print</span>(<span class="st">"Valid scores:"</span>, valid)</div>
   </div>
-
-  <!-- 2.6 -->
-  <div class="lesson-h2">2.6 — enumerate() and zip(): The Two Most-Used Loop Helpers in ML</div>
-  <p class="lesson-p"><code>enumerate(list)</code> gives you both the index and the value as you loop. <code>zip(list_a, list_b)</code> walks two (or more) lists in parallel, pairing them up element by element. Together they are how you compare predictions against ground-truth labels.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>skipping a missing value
+skipping a missing value
+Valid scores: [0.9, 0.85, 0.77, 0.95]</pre></div>
+  <div class="trace-h">What Python does with the None items</div>
+  <ul class="step-list"><li data-n="1"><div>For 0.9, the test <code>s is None</code> is False, so the <code>continue</code> is not run. The next line appends 0.9 to the list <code>valid</code>. The <code>.append</code> method adds an item to the end of a list.</div></li><li data-n="2"><div>For the first <code>None</code>, the test is True. Python prints the message, and <code>continue</code> sends it straight to the next item, so the <code>append</code> line is skipped.</div></li><li data-n="3"><div>The loop carries on until the list is used up. Only real numbers were appended.</div></li></ul>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Comparing predictions to targets</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">break stops the search</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">valid = [<span class="nm">0.9</span>, <span class="nm">0.85</span>, <span class="nm">0.77</span>, <span class="nm">0.95</span>, <span class="nm">0.60</span>]
+
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(valid)):
+    <span class="bi">print</span>(<span class="st">"checking index"</span>, i)
+    <span class="kw">if</span> valid[i] &lt; <span class="nm">0.8</span>:
+        <span class="bi">print</span>(<span class="st">"First low score:"</span>, valid[i], <span class="st">"at index"</span>, i)
+        <span class="kw">break</span>
+
+<span class="bi">print</span>(<span class="st">"Search finished"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>checking index 0
+checking index 1
+checking index 2
+First low score: 0.77 at index 2
+Search finished</pre></div>
+  <p class="lesson-p">Only three indexes were checked. Once the first score below 0.8 was found, <code>break</code> ended the loop, and indexes 3 and 4 were never touched. That saves work when the list is huge. The <code>valid[i]</code> notation picks the item at position <code>i</code>, counting from 0, just like <code>range</code>.</p>
+  <div class="diagram"><div class="dg-title">continue versus break</div><pre>continue                            break
+--------                            -----
+for item in items:                  for item in items:
+    ...                                 ...
+    continue  ---+                      break  -----------+
+    ...          | skipped              ...              | skipped, and
+    ...          |                      ...              | all later items
+  &lt;--------------+                    &lt;-- loop is over ---+
+  go to the NEXT item                 continue after the loop</pre><div class="dg-cap"><code>continue</code> ends only this round. <code>break</code> ends the whole loop.</div></div>
+  <div class="lesson-h3">Using them in a while loop, and the trap</div>
+  <p class="lesson-p">Both keywords work in <code>while</code> loops too. Here we simulate training and skip a few "corrupted" epochs, whose numbers we keep in a <strong>set</strong>. A set, written in curly braces like <code>{2, 4}</code>, is a collection that is quick to ask "is this in there?" with <code>in</code>. There is a trap: <code>continue</code> jumps back to the condition immediately, so any line after it is skipped, including a counter update. Update the counter <strong>before</strong> the <code>continue</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">continue and break inside while</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">corrupted = {<span class="nm">2</span>, <span class="nm">4</span>}
+epoch = <span class="nm">0</span>
+
+<span class="kw">while</span> epoch &lt; <span class="nm">10</span>:
+    epoch += <span class="nm">1</span>
+    <span class="kw">if</span> epoch <span class="kw">in</span> corrupted:
+        <span class="bi">print</span>(<span class="st">"epoch"</span>, epoch, <span class="st">"corrupted, skipping"</span>)
+        <span class="kw">continue</span>
+    <span class="bi">print</span>(<span class="st">"epoch"</span>, epoch, <span class="st">"trained"</span>)
+    <span class="kw">if</span> epoch == <span class="nm">5</span>:
+        <span class="bi">print</span>(<span class="st">"Enough training, stopping"</span>)
+        <span class="kw">break</span></div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>epoch 1 trained
+epoch 2 corrupted, skipping
+epoch 3 trained
+epoch 4 corrupted, skipping
+epoch 5 trained
+Enough training, stopping</pre></div>
+  <p class="lesson-p">If <code>epoch += 1</code> had come after the <code>continue</code>, epoch 2 would be found corrupted, <code>continue</code> would jump back without adding 1, and the loop would meet epoch 2 forever. That is an infinite loop, made by a misplaced line.</p>
+  <details class="check"><summary>What does the loop <code>for i in range(5): if i == 3: continue; print(i)</code> print?</summary><div class="ck-answer">It prints 0, 1, 2, 4. When <code>i</code> is 3, <code>continue</code> skips the <code>print</code> and moves to the next number. This is the same idea as the quiz question at the end of the chapter.</div></details>
+  <details class="check"><summary>What is the difference between <code>break</code> and <code>continue</code>?</summary><div class="ck-answer"><code>continue</code> skips the rest of the current round and carries on with the next item. <code>break</code> ends the loop completely.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the <code>break</code> example, change the threshold from 0.8 to 0.99. How many indexes are checked now?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>continue</code> skips the rest of this round, and the loop carries on with the next item.</li><li><code>break</code> leaves the loop immediately; nothing after it in the block runs, and the remaining items are never visited.</li><li>Both are usually inside an <code>if</code>, so they trigger only on a special case.</li><li>In a <code>while</code> loop, update the counter <strong>before</strong> <code>continue</code>, or the loop may never end.</li></ul></div>
+
+  <!-- S:2.13 -->
+  <div class="lesson-h2">2.13 — Nested Loops: A Loop Inside a Loop</div>
+  <p class="lesson-p">Machine-learning engineers often try every combination of settings. Say two learning rates (how big a step the model takes when it learns) and three batch sizes (how many examples it looks at per step). That is 2 x 3 = 6 combinations. Writing six separate lines is tedious, and adding a fourth batch size means editing more lines.</p>
+  <p class="lesson-p">A loop can contain another loop. This is called <strong>nesting</strong>. Think of a clock: for each hour, the minute hand goes all the way round the dial. The <strong>outer loop</strong> picks one learning rate. For each one, the <strong>inner loop</strong> runs through all the batch sizes from start to end before the outer loop moves on.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The smallest nested loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> lr <span class="kw">in</span> [<span class="nm">0.1</span>, <span class="nm">0.01</span>]:
+    <span class="kw">for</span> batch_size <span class="kw">in</span> [<span class="nm">16</span>, <span class="nm">32</span>, <span class="nm">64</span>]:
+        <span class="bi">print</span>(<span class="st">"learning rate"</span>, lr, <span class="st">"batch size"</span>, batch_size)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>learning rate 0.1 batch size 16
+learning rate 0.1 batch size 32
+learning rate 0.1 batch size 64
+learning rate 0.01 batch size 16
+learning rate 0.01 batch size 32
+learning rate 0.01 batch size 64</pre></div>
+  <div class="diagram"><div class="dg-title">The grid of combinations</div><pre>                    batch_size
+                 16        32        64
+              +---------+---------+---------+
+   lr = 0.1   |  (1)    |  (2)    |  (3)    |   &lt;- outer round 1
+              +---------+---------+---------+
+   lr = 0.01  |  (4)    |  (5)    |  (6)    |   &lt;- outer round 2
+              +---------+---------+---------+</pre><div class="dg-cap">The numbers show the order of the prints. The inner loop sweeps along a row; the outer loop moves down to the next row.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>The outer loop sets <code>lr = 0.1</code>. The inner loop then runs completely: 16, 32, 64. That gives prints (1), (2) and (3).</div></li><li data-n="2"><div>The inner loop is finished, so control goes back to the outer loop, which sets <code>lr = 0.01</code>.</div></li><li data-n="3"><div>The inner loop <strong>starts again from its beginning</strong> and runs completely once more, giving (4), (5) and (6).</div></li><li data-n="4"><div>The outer list is used up, so the whole thing ends.</div></li></ul>
+  <div class="lesson-h3">Counting the work</div>
+  <p class="lesson-p">The block of the inner loop runs (outer count) x (inner count) times. Here that is 2 x 3 = 6. Nested loops grow quickly: 100 x 100 is 10,000 runs, and three levels deep gets very large. A trace table shows the order of the values.</p>
+  <table class="lesson-table"><tr><th>Step</th><th><code>lr</code> (outer)</th><th><code>batch_size</code> (inner)</th><th>Printed</th></tr><tr><td>1</td><td>0.1</td><td>16</td><td>learning rate 0.1 batch size 16</td></tr><tr><td>2</td><td>0.1</td><td>32</td><td>learning rate 0.1 batch size 32</td></tr><tr><td>3</td><td>0.1</td><td>64</td><td>learning rate 0.1 batch size 64</td></tr><tr><td>4</td><td>0.01</td><td>16</td><td>learning rate 0.01 batch size 16</td></tr></table>
+  <p class="lesson-p">(The rows for steps 5 and 6 continue the same pattern.) The outer variable changes slowly, the inner one quickly.</p>
+  <div class="lesson-h3">Drawing a grid, and where the indentation matters</div>
+  <p class="lesson-p">Nested loops are the natural way to build a table. Here each row is built as a string, and the second <code>print</code> is indented at the outer level, so it runs once per row, not once per cell.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Building a grid row by row</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> row <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>):
+    line = <span class="st">""</span>
+    <span class="kw">for</span> col <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">4</span>):
+        line += <span class="bi">str</span>(row * col) + <span class="st">" "</span>
+    <span class="bi">print</span>(line)
+
+<span class="bi">print</span>(<span class="st">"--- break only leaves the inner loop ---"</span>)
+<span class="kw">for</span> row <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>):
+    <span class="kw">for</span> col <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">4</span>):
+        <span class="kw">if</span> col == <span class="nm">2</span>:
+            <span class="kw">break</span>
+        <span class="bi">print</span>(<span class="st">"row"</span>, row, <span class="st">"col"</span>, col)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>0 0 0 0 
+0 1 2 3 
+0 2 4 6 
+--- break only leaves the inner loop ---
+row 0 col 0
+row 0 col 1
+row 1 col 0
+row 1 col 1
+row 2 col 0
+row 2 col 1</pre></div>
+  <p class="lesson-p">The first half prints a small multiplication table. The second half shows an important rule: <code>break</code> only exits the loop it is written in, which here is the inner one. The outer loop continues with the next row.</p>
+  <p class="lesson-p"><strong>A common mistake</strong> is reusing the same variable name for both loops. Python allows it, but the inner loop overwrites the outer variable, which confuses everyone reading the code.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same name in both loops: legal but confusing</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2</span>):
+    <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">3</span>):
+        <span class="kw">pass</span>
+    <span class="bi">print</span>(<span class="st">"after inner loop, i is"</span>, i)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>after inner loop, i is 2
+after inner loop, i is 2</pre></div>
+  <p class="lesson-p">The outer loop said <code>i</code> would be 0 and 1, yet the print shows 2 both times. Give each loop its own meaningful name, like <code>row</code> and <code>col</code> or <code>lr</code> and <code>batch_size</code>.</p>
+  <details class="check"><summary>How many times does <code>print</code> run in <code>for a in range(4): for b in range(5): print(a, b)</code>?</summary><div class="ck-answer">4 x 5 = <strong>20</strong> times. The inner block runs five times for each of the four outer rounds.</div></details>
+  <details class="check"><summary>If <code>break</code> runs inside the inner loop, does the outer loop stop too?</summary><div class="ck-answer">No. <code>break</code> leaves only the innermost loop it is inside. The outer loop simply goes on to its next item.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a third batch size of 128 to the first block. Predict how many lines it prints before running.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>nested loop</strong> puts one loop in the block of another. The inner loop runs completely for every round of the outer loop.</li><li>Total runs = outer count x inner count.</li><li><code>break</code> and <code>continue</code> affect only the innermost loop.</li><li>Use distinct names for the loop variables, such as <code>row</code> and <code>col</code>.</li></ul></div>
+
+  <!-- S:2.14 -->
+  <div class="lesson-h2">2.14 — enumerate() and zip(): Position and Parallel Lists</div>
+  <p class="lesson-p">Two situations come up constantly. First, you want the <strong>position</strong> of each item as well as the item, for example "epoch 3 had loss 0.45". Second, you have <strong>two lists that belong together</strong>, like a model's predictions and the true answers. Here is the awkward way to solve the first one.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Tracking the position by hand</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>]
+
+position = <span class="nm">0</span>
+<span class="kw">for</span> loss <span class="kw">in</span> losses:
+    <span class="bi">print</span>(<span class="st">"epoch"</span>, position, <span class="st">"loss"</span>, loss)
+    position += <span class="nm">1</span></div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>epoch 0 loss 0.82
+epoch 1 loss 0.61
+epoch 2 loss 0.45</pre></div>
+  <p class="lesson-p">It works, but you must remember to create and update <code>position</code> yourself, and forgetting either is a bug. <code>range(len(losses))</code> avoids that, yet forces you to write <code>losses[i]</code> everywhere. Python has a tool designed for exactly this: <strong>enumerate</strong>. It hands you a pair for each item: the position first, then the value. Think of numbering the seats in a cinema as people walk in.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">enumerate</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>, <span class="nm">0.45</span>]
+
+<span class="kw">for</span> i, loss <span class="kw">in</span> <span class="bi">enumerate</span>(losses):
+    <span class="bi">print</span>(<span class="st">"index"</span>, i, <span class="st">"-&gt;"</span>, loss)
+
+<span class="kw">for</span> epoch, loss <span class="kw">in</span> <span class="bi">enumerate</span>(losses, start=<span class="nm">1</span>):
+    <span class="bi">print</span>(<span class="st">"epoch"</span>, epoch, <span class="st">"-&gt;"</span>, loss)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>index 0 -&gt; 0.82
+index 1 -&gt; 0.61
+index 2 -&gt; 0.45
+epoch 1 -&gt; 0.82
+epoch 2 -&gt; 0.61
+epoch 3 -&gt; 0.45</pre></div>
+  <p class="lesson-p">The second loop passes <code>start=1</code> so the numbering begins at 1, which is friendlier for epochs. In <code>for i, loss in ...</code>, the two names on the left take the two parts of each pair. This is called <strong>unpacking</strong>: a pair such as <code>(0, 0.82)</code> is split into <code>i = 0</code> and <code>loss = 0.82</code>.</p>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>enumerate(losses)</code> prepares pairs: (0, 0.82), (1, 0.61), (2, 0.45).</div></li><li data-n="2"><div>On the first round the pair (0, 0.82) is unpacked into <code>i</code> and <code>loss</code>.</div></li><li data-n="3"><div>The block runs with those values, then the next pair is taken. The bookkeeping is done for you.</div></li></ul>
+  <p class="lesson-p">The second helper is <strong>zip</strong>. Just like the zipper on a jacket, it pulls two sides together, tooth by tooth: the first item of each list, then the second of each, and so on. This is how you compare predictions against targets, the correct answers.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">zip walks two lists together</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code">predictions = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>]
 targets     = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>]
 
-<span class="cm"># enumerate + zip: index AND both values, all at once</span>
-<span class="kw">for</span> i, (p, t) <span class="kw">in</span> <span class="bi">enumerate</span>(<span class="bi">zip</span>(predictions, targets)):
-    status = <span class="st">'correct'</span> <span class="kw">if</span> p == t <span class="kw">else</span> <span class="st">'WRONG'</span>
-    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: predicted=<span class="bi">{p}</span> actual=<span class="bi">{t}</span> → <span class="bi">{status}</span>'</span>)
-
-<span class="cm"># zip() stops at the SHORTER list if lengths don't match — watch out for this</span>
-correct = <span class="bi">sum</span>(<span class="nm">1</span> <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets) <span class="kw">if</span> p == t)
-accuracy = correct / <span class="bi">len</span>(targets)
-<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy:.2%}</span>'</span>)</div>
+<span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
+    <span class="bi">print</span>(<span class="st">"predicted"</span>, p, <span class="st">"actual"</span>, t, <span class="st">"match:"</span>, p == t)</div>
   </div>
-
-  <!-- 2.7 -->
-  <div class="lesson-h2">2.7 — List and Dict Comprehensions</div>
-  <p class="lesson-p">A comprehension builds a new list (or dict) from an existing one, in a single readable line. It's the same idea as a for loop that appends to a list — just more compact, and it's the style you'll see constantly in real ML code before you ever touch NumPy.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>predicted 1 actual 1 match: True
+predicted 0 actual 0 match: True
+predicted 1 actual 0 match: False
+predicted 1 actual 1 match: True
+predicted 0 actual 0 match: True</pre></div>
+  <div class="lesson-h3">Both at once, and the sad path</div>
+  <p class="lesson-p">Combine them when you need the sample number too: <code>enumerate(zip(a, b))</code> gives pairs whose second half is itself a pair, so we unpack as <code>i, (p, t)</code>. The parentheses mirror the shape of the data. Then add the accumulator from section 2.9 to count the correct answers.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Filter, transform, and map — the three comprehension patterns</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">enumerate and zip together</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">predictions = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>]
+targets     = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">0</span>]
+correct = <span class="nm">0</span>
+
+<span class="kw">for</span> i, (p, t) <span class="kw">in</span> <span class="bi">enumerate</span>(<span class="bi">zip</span>(predictions, targets)):
+    <span class="kw">if</span> p == t:
+        correct += <span class="nm">1</span>
+        <span class="bi">print</span>(<span class="st">"sample"</span>, i, <span class="st">"correct"</span>)
+    <span class="kw">else</span>:
+        <span class="bi">print</span>(<span class="st">"sample"</span>, i, <span class="st">"WRONG"</span>)
+
+<span class="bi">print</span>(<span class="st">"Accuracy:"</span>, correct / <span class="bi">len</span>(targets))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>sample 0 correct
+sample 1 correct
+sample 2 WRONG
+sample 3 correct
+sample 4 correct
+Accuracy: 0.8</pre></div>
+  <div class="diagram"><div class="dg-title">The shape of enumerate(zip(a, b))</div><pre>predictions = [1, 0, 1]     targets = [1, 0, 0]
+
+zip(predictions, targets)
+    -&gt;  (1, 1)   (0, 0)   (1, 0)
+enumerate( zip(...) )
+    -&gt;  (0, (1, 1))   (1, (0, 0))   (2, (1, 0))
+for i, (p, t) in ...
+         i   p  t</pre><div class="dg-cap">The names on the left of <code>in</code> must have the same shape as the data: an index, then a pair.</div></div>
+  <p class="lesson-p"><strong>Sad path 1: unequal lengths.</strong> <code>zip</code> stops silently when the shorter list is used up, so extra items are dropped without any error. <strong>Sad path 2: a wrong unpacking shape.</strong> If you write two names but each item is a single number, Python cannot split it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">zip stops at the shorter list</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">predictions = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">0</span>]
+targets = [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>]
+
+<span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
+    <span class="bi">print</span>(p, t)
+<span class="bi">print</span>(<span class="st">"len(predictions) ="</span>, <span class="bi">len</span>(predictions), <span class="st">"but zip only gave 3 pairs"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>1 1
+0 0
+1 0
+len(predictions) = 5 but zip only gave 3 pairs</pre></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Unpacking a single number into two names</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">losses = [<span class="nm">0.82</span>, <span class="nm">0.61</span>]
+<span class="kw">for</span> i, loss <span class="kw">in</span> losses:
+    <span class="bi">print</span>(i, loss)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 2, in &lt;module&gt;
+    for i, loss in losses:
+        ^^^^^^^
+TypeError: cannot unpack non-iterable float object</pre></div>
+  <p class="lesson-p">The message says Python cannot unpack a "non-iterable float object". In plain words, a single number is not a pair, so it cannot be split into two names. The fix is <code>enumerate(losses)</code>, which supplies the pairs.</p>
+  <details class="check"><summary>What does <code>for i, x in enumerate(["a", "b"], start=10)</code> give for <code>i</code> on each round?</summary><div class="ck-answer">10, then 11. The <code>start</code> value only changes the counting, not which item you get.</div></details>
+  <details class="check"><summary><code>zip([1, 2, 3], ["a", "b"])</code> makes how many pairs?</summary><div class="ck-answer"><strong>Two.</strong> It stops when the shorter list runs out, and the 3 is dropped silently. This matches the quiz question at the end of the chapter.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>targets</code> in the unequal-lengths block to be one item longer than <code>predictions</code>. What does zip give now?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>enumerate(items)</code> gives <code>(position, item)</code> pairs; <code>start=1</code> changes the first number.</li><li><code>zip(a, b)</code> walks two lists in parallel, pair by pair, and stops at the shorter one.</li><li>Write <code>for i, (p, t) in enumerate(zip(a, b))</code> when you need both, with names shaped like the data.</li><li>Unpacking <code>a, b = pair</code> splits a pair into two names.</li></ul></div>
+
+  <!-- S:2.15 -->
+  <div class="lesson-h2">2.15 — List and Dict Comprehensions: A Loop That Builds a Collection</div>
+  <p class="lesson-p">A very common job is "make a new list from an old one". Say we have raw exam-style scores from 0 to 100 and want only the passing ones (60 or more). You already know how to do it with the tools from this chapter: create an empty list, loop, test, append.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Building a list with a loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>, <span class="nm">61</span>, <span class="nm">95</span>]
 
-<span class="cm"># Filter — keep only scores that pass (>= 60)</span>
-passing = [s <span class="kw">for</span> s <span class="kw">in</span> raw_scores <span class="kw">if</span> s >= <span class="nm">60</span>]
-<span class="bi">print</span>(<span class="st">'Passing:'</span>, passing)
+passing = []
+<span class="kw">for</span> s <span class="kw">in</span> raw_scores:
+    <span class="kw">if</span> s &gt;= <span class="nm">60</span>:
+        passing.append(s)
 
-<span class="cm"># Transform — divide every score by 100 to normalize to 0-1</span>
+<span class="bi">print</span>(<span class="st">"Passing:"</span>, passing)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Passing: [78, 92, 88, 61, 95]</pre></div>
+  <p class="lesson-p">That is four lines for a very small idea. Python has a compact form, the <strong>list comprehension</strong>, which puts the whole recipe inside square brackets. It is not a new kind of loop. It is a shorter way of writing the loop above, and it gives exactly the same result.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The same thing as a comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>, <span class="nm">61</span>, <span class="nm">95</span>]
+
+passing = [s <span class="kw">for</span> s <span class="kw">in</span> raw_scores <span class="kw">if</span> s &gt;= <span class="nm">60</span>]
+<span class="bi">print</span>(<span class="st">"Passing:"</span>, passing)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Passing: [78, 92, 88, 61, 95]</pre></div>
+  <div class="diagram"><div class="dg-title">The loop and the comprehension, side by side</div><pre>LOOP
+  passing = []
+  for s in raw_scores:
+      if s &gt;= 60:
+          passing.append(s)
+
+COMPREHENSION
+  passing = [ s   for s in raw_scores   if s &gt;= 60 ]
+             (1)  (2)                   (3)
+
+  (1) what to put in the new list
+  (2) where the items come from
+  (3) optional filter: keep only if True</pre><div class="dg-cap">Read it as English: "s, for each s in raw_scores, if s is at least 60". The pieces are the same as in the loop, just rearranged.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>It starts with an empty new list, which you never have to create yourself.</div></li><li data-n="2"><div>It takes each <code>s</code> from <code>raw_scores</code>, one by one, just like a <code>for</code> loop.</div></li><li data-n="3"><div>It evaluates the <code>if</code> test. If it is False, the item is dropped. If it is True, the expression at the front (here just <code>s</code>) is appended.</div></li><li data-n="4"><div>When the source is used up, the finished list is stored in <code>passing</code>.</div></li></ul>
+  <div class="lesson-h3">Filter, transform, or both</div>
+  <p class="lesson-p">The front part can do work on each item. That is a <strong>transform</strong>. Dividing every score by 100 rescales scores to the range 0 to 1, a common preparation step in machine learning. Leaving out the <code>if</code> keeps all items. Using both gives "transform the ones that pass".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Three shapes of comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>, <span class="nm">61</span>, <span class="nm">95</span>]
+
 normalized = [s / <span class="nm">100</span> <span class="kw">for</span> s <span class="kw">in</span> raw_scores]
-<span class="bi">print</span>(<span class="st">'Normalized:'</span>, normalized)
+<span class="bi">print</span>(<span class="st">"Normalized:"</span>, normalized)
 
-<span class="cm"># Filter + transform together</span>
-passing_normalized = [s / <span class="nm">100</span> <span class="kw">for</span> s <span class="kw">in</span> raw_scores <span class="kw">if</span> s >= <span class="nm">60</span>]
-<span class="bi">print</span>(<span class="st">'Passing, normalized:'</span>, passing_normalized)
+passing_normalized = [s / <span class="nm">100</span> <span class="kw">for</span> s <span class="kw">in</span> raw_scores <span class="kw">if</span> s &gt;= <span class="nm">60</span>]
+<span class="bi">print</span>(<span class="st">"Passing, normalized:"</span>, passing_normalized)
 
-<span class="cm"># Dict comprehension — map each score to a pass/fail label</span>
-grades = {s: (<span class="st">'pass'</span> <span class="kw">if</span> s >= <span class="nm">60</span> <span class="kw">else</span> <span class="st">'fail'</span>) <span class="kw">for</span> s <span class="kw">in</span> raw_scores}
-<span class="bi">print</span>(grades)</div>
+nums = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>]
+even_squares = [n * n <span class="kw">for</span> n <span class="kw">in</span> nums <span class="kw">if</span> n % <span class="nm">2</span> == <span class="nm">0</span>]
+<span class="bi">print</span>(<span class="st">"Even squares:"</span>, even_squares)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Read it as English:</strong> <code>[s/100 for s in raw_scores if s >= 60]</code> reads as "s divided by 100, for each s in raw_scores, if s is at least 60." Once you can read comprehensions this way, they stop feeling like a trick and start feeling obvious.</div></div>
-
-  <!-- 2.8 -->
-  <div class="lesson-h2">2.8 — Set & Generator Comprehensions, Nested Comprehensions</div>
-  <p class="lesson-p">The same <code>for ... if</code> shape from 2.7 works with curly braces for a <strong>set comprehension</strong> (dedupe while you build), and with plain parentheses for a <strong>generator expression</strong> — which doesn't build a list in memory at all, it produces values one at a time. That matters once your data gets large: <code>sum(x for x in huge_list)</code> never holds the whole list twice in memory, while <code>sum([x for x in huge_list])</code> does. You can also nest comprehensions to flatten or reshape nested data.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Normalized: [0.45, 0.78, 0.92, 0.33, 0.88, 0.61, 0.95]
+Passing, normalized: [0.78, 0.92, 0.88, 0.61, 0.95]
+Even squares: [4, 16, 36]</pre></div>
+  <p class="lesson-p">The <code>%</code> sign gives the remainder after division, so <code>n % 2 == 0</code> is a test for even numbers. In the last line, only 2, 4, 6 pass the test, and each is squared before being kept.</p>
+  <div class="lesson-h3">Dict comprehensions</div>
+  <p class="lesson-p">A <strong>dictionary</strong> stores pairs of a label and a value, written <code>{label: value}</code>; Chapter 4 covers it fully. A <strong>dict comprehension</strong> builds one the same way. You write <code>key: value</code> at the front. Here the front part uses a small <code>a if condition else b</code> expression to pick the word "pass" or "fail".</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Set comprehension, generator expression, nested comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">labels = [<span class="st">'cat'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>, <span class="st">'bird'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>]
+    <div class="cb-header"><span class="cb-label">A dict comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>]
 
-<span class="cm"># Set comprehension — {expr for x in iterable} — dedupes automatically</span>
+grades = {s: (<span class="st">"pass"</span> <span class="kw">if</span> s &gt;= <span class="nm">60</span> <span class="kw">else</span> <span class="st">"fail"</span>) <span class="kw">for</span> s <span class="kw">in</span> raw_scores}
+<span class="bi">print</span>(grades)
+<span class="bi">print</span>(grades[<span class="nm">78</span>])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>{45: 'fail', 78: 'pass', 92: 'pass', 33: 'fail'}
+pass</pre></div>
+  <p class="lesson-p"><strong>Common mistake: putting <code>else</code> in the filter position.</strong> The filter at the end of a comprehension only decides whether to keep an item, so it has no <code>else</code>. If you want a different value for the other case, that choice goes at the front, in the <code>a if condition else b</code> form.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">else at the end of a comprehension</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>]
+labels = [<span class="st">"pass"</span> <span class="kw">for</span> s <span class="kw">in</span> raw_scores <span class="kw">if</span> s &gt;= <span class="nm">60</span> <span class="kw">else</span> <span class="st">"fail"</span>]</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 2
+    labels = ["pass" for s in raw_scores if s &gt;= 60 else "fail"]
+                                                    ^^^^
+SyntaxError: invalid syntax</pre></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The correct way: the choice goes at the front</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>]
+labels = [<span class="st">"pass"</span> <span class="kw">if</span> s &gt;= <span class="nm">60</span> <span class="kw">else</span> <span class="st">"fail"</span> <span class="kw">for</span> s <span class="kw">in</span> raw_scores]
+<span class="bi">print</span>(labels)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['fail', 'pass', 'pass']</pre></div>
+  <p class="lesson-p">When should you keep the plain loop? Whenever the body needs several statements, or when a comprehension would be hard to read out loud. Readability is the goal, not fewer lines.</p>
+  <details class="check"><summary>Rewrite <code>result = []</code> / <code>for n in [1,2,3]:</code> / <code>result.append(n * 10)</code> as a comprehension.</summary><div class="ck-answer"><code>result = [n * 10 for n in [1, 2, 3]]</code>, which gives [10, 20, 30]. The expression is the appended value, and the <code>for</code> part stays the same.</div></details>
+  <details class="check"><summary>What does <code>[x for x in [5, 8, 12] if x &gt; 100]</code> give?</summary><div class="ck-answer">An empty list, <code>[]</code>. No item passes the test, and that is not an error.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Write a comprehension that keeps only the failing scores (below 60) from <code>raw_scores</code>, then print it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>comprehension</strong> builds a new list in one line: <code>[expression for item in source if test]</code>.</li><li>It is the same recipe as a loop with <code>append</code>. Read it aloud as English.</li><li>Front part = transform, <code>if</code> at the end = filter, <code>a if c else b</code> at the front = choose between two values.</li><li><code>{key: value for ...}</code> builds a dictionary. Keep a plain loop when the body gets complicated.</li></ul></div>
+
+  <!-- S:2.16 -->
+  <div class="lesson-h2">2.16 — Set and Generator Comprehensions, and Nested Comprehensions</div>
+  <p class="lesson-p">The same <code>for ... if</code> recipe works with other brackets, and each choice of bracket changes what you get. Square brackets build a list, curly braces without a colon build a set, and round brackets build a generator. First the problem: a list of labels with repeats, and you want to know which different labels exist.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The unique labels, the long way</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">labels = [<span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span>, <span class="st">"bird"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span>]
+
+unique = []
+<span class="kw">for</span> label <span class="kw">in</span> labels:
+    <span class="kw">if</span> label <span class="kw">not</span> <span class="kw">in</span> unique:
+        unique.append(label)
+
+<span class="bi">print</span>(unique)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['cat', 'dog', 'bird']</pre></div>
+  <p class="lesson-p">A <strong>set</strong> is a collection that keeps only one copy of each value and does not care about order. A <strong>set comprehension</strong> uses curly braces, and duplicates disappear on their own. Because a set has no fixed order, wrap it in <code>sorted(...)</code> when you want the same printed order every time.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Set comprehension</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">labels = [<span class="st">"cat"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span>, <span class="st">"bird"</span>, <span class="st">"dog"</span>, <span class="st">"cat"</span>]
+
 unique_labels = {label <span class="kw">for</span> label <span class="kw">in</span> labels}
-<span class="bi">print</span>(unique_labels)          <span class="cm"># {'cat', 'dog', 'bird'} — order not guaranteed</span>
+<span class="bi">print</span>(<span class="bi">sorted</span>(unique_labels))
+<span class="bi">print</span>(<span class="bi">len</span>(unique_labels), <span class="st">"different labels"</span>)
 
-<span class="cm"># Generator expression — (expr for x in iterable) — no brackets, lazy</span>
-scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>]
-total_passing = <span class="bi">sum</span>(s <span class="kw">for</span> s <span class="kw">in</span> scores <span class="kw">if</span> s >= <span class="nm">60</span>)   <span class="cm"># sum() consumes it directly</span>
-<span class="bi">print</span>(<span class="st">'Total of passing scores:'</span>, total_passing)
-
-<span class="cm"># A generator is single-use — once consumed, it's empty</span>
-gen = (s <span class="kw">for</span> s <span class="kw">in</span> scores)
-<span class="bi">print</span>(<span class="bi">list</span>(gen))   <span class="cm"># [45, 78, 92, 33, 88]</span>
-<span class="bi">print</span>(<span class="bi">list</span>(gen))   <span class="cm"># [] — already exhausted</span>
-
-<span class="cm"># Nested comprehension — flatten a list of lists</span>
-batches = [[<span class="nm">1</span>, <span class="nm">2</span>], [<span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>], [<span class="nm">6</span>]]
-flat = [item <span class="kw">for</span> batch <span class="kw">in</span> batches <span class="kw">for</span> item <span class="kw">in</span> batch]
-<span class="bi">print</span>(<span class="st">'Flattened:'</span>, flat)   <span class="cm"># [1, 2, 3, 4, 5, 6]</span></div>
+lengths = {<span class="bi">len</span>(label) <span class="kw">for</span> label <span class="kw">in</span> labels}
+<span class="bi">print</span>(<span class="bi">sorted</span>(lengths))</div>
   </div>
-
-  <!-- 2.9 -->
-  <div class="lesson-h2">2.9 — for...else and the Walrus Operator (:=)</div>
-  <p class="lesson-p">A <code>for</code> loop can have an <code>else</code> clause — it runs only if the loop finished WITHOUT hitting a <code>break</code>. It's the cleanest way to express "search for something, and do X if it was never found." The walrus operator <code>:=</code> lets you assign a value AND use it in the same expression — handy inside a <code>while</code> or an <code>if</code> condition, so you don't have to compute something twice.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>['bird', 'cat', 'dog']
+3 different labels
+[3, 4]</pre></div>
+  <p class="lesson-p">The last two lines show a set of word lengths: "cat" and "dog" both have length 3, so 3 appears once, next to 4 for "bird".</p>
+  <div class="lesson-h3">Generator expressions: values on demand</div>
+  <p class="lesson-p">A <strong>generator expression</strong> has round brackets. Instead of building the whole list at once, it prepares a recipe and hands out one value at a time when something asks. This matters for big data: a list of ten million items fills memory, while a generator holds only one item at a time. It fits naturally with functions that read values one by one, such as <code>sum</code>, <code>max</code> and <code>min</code>.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">for...else and the walrus operator</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">A generator feeding sum</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>, <span class="nm">33</span>, <span class="nm">88</span>]
+
+<span class="bi">print</span>(<span class="bi">sum</span>([s <span class="kw">for</span> s <span class="kw">in</span> scores <span class="kw">if</span> s &gt;= <span class="nm">60</span>]))
+<span class="bi">print</span>(<span class="bi">sum</span>(s <span class="kw">for</span> s <span class="kw">in</span> scores <span class="kw">if</span> s &gt;= <span class="nm">60</span>))
+<span class="bi">print</span>(<span class="bi">max</span>(s / <span class="nm">100</span> <span class="kw">for</span> s <span class="kw">in</span> scores))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>258
+258
+0.92</pre></div>
+  <p class="lesson-p">Both <code>sum</code> lines give 258. The first builds a temporary list, the second does not. When a generator is the only thing inside a function call, its own brackets can be left out, as in <code>sum(s for ...)</code>.</p>
+  <p class="lesson-p">A generator is <strong>single-use</strong>, like a ticket that is stamped once. After it has handed out all its values, it is empty. Asking again gives nothing, and no error.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A generator is used up after one pass</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">45</span>, <span class="nm">78</span>, <span class="nm">92</span>]
+gen = (s <span class="kw">for</span> s <span class="kw">in</span> scores)
+
+<span class="bi">print</span>(<span class="bi">type</span>(gen))
+<span class="bi">print</span>(<span class="bi">list</span>(gen))
+<span class="bi">print</span>(<span class="bi">list</span>(gen))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>&lt;class 'generator'&gt;
+[45, 78, 92]
+[]</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Line 2 creates the generator, but computes nothing yet. It is a recipe.</div></li><li data-n="2"><div><code>list(gen)</code> asks for every value. The generator produces 45, 78, 92, and is now used up.</div></li><li data-n="3"><div>The second <code>list(gen)</code> finds nothing left, so it returns an empty list.</div></li></ul>
+  <div class="lesson-h3">Nested comprehensions</div>
+  <p class="lesson-p">A comprehension can have two <code>for</code> parts, to walk a list of lists and flatten it. The important rule: <strong>the <code>for</code> parts are written in the same order as the nested loops would be</strong>, the outer one first.</p>
+  <div class="diagram"><div class="dg-title">Nested loops versus nested comprehension</div><pre>LOOPS
+  flat = []
+  for batch in batches:          &lt;- outer
+      for item in batch:         &lt;- inner
+          flat.append(item)
+
+COMPREHENSION
+  flat = [ item   for batch in batches   for item in batch ]
+                  (outer first)          (inner second)</pre><div class="dg-cap">Read the <code>for</code> parts left to right, and it is the same order as reading the loops top to bottom.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Flattening a list of lists</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">batches = [[<span class="nm">1</span>, <span class="nm">2</span>], [<span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>], [<span class="nm">6</span>]]
+
+flat_loop = []
+<span class="kw">for</span> batch <span class="kw">in</span> batches:
+    <span class="kw">for</span> item <span class="kw">in</span> batch:
+        flat_loop.append(item)
+<span class="bi">print</span>(flat_loop)
+
+flat = [item <span class="kw">for</span> batch <span class="kw">in</span> batches <span class="kw">for</span> item <span class="kw">in</span> batch]
+<span class="bi">print</span>(flat)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[1, 2, 3, 4, 5, 6]
+[1, 2, 3, 4, 5, 6]</pre></div>
+  <p class="lesson-p"><strong>Common mistake: the order of the two <code>for</code> parts reversed.</strong> Then <code>batch</code> is used before it has been created.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The for parts in the wrong order</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">batches = [[<span class="nm">1</span>, <span class="nm">2</span>], [<span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>], [<span class="nm">6</span>]]
+flat = [item <span class="kw">for</span> item <span class="kw">in</span> batch <span class="kw">for</span> batch <span class="kw">in</span> batches]</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 2, in &lt;module&gt;
+    flat = [item for item in batch for batch in batches]
+                              ^^^^^
+NameError: name 'batch' is not defined</pre></div>
+  <p class="lesson-p">Deeply nested comprehensions become puzzles. If you cannot read one aloud in a single breath, write the loops out instead.</p>
+  <details class="check"><summary>What is the difference between <code>[x for x in data]</code> and <code>{x for x in data}</code>?</summary><div class="ck-answer">The first is a list and keeps every item in order, including repeats. The second is a set: duplicates vanish, and the order is not guaranteed.</div></details>
+  <details class="check"><summary>Why does the second <code>list(gen)</code> in the example print <code>[]</code>?</summary><div class="ck-answer">A generator is single-use. The first <code>list(gen)</code> consumed all its values, so nothing is left for the second.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add <code>print(sum(1 for s in scores if s &gt; 50))</code> to the generator block. What does counting with <code>1 for ...</code> tell you?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>[...]</code> builds a list, <code>{...}</code> (no colon) builds a set that removes duplicates, <code>(...)</code> builds a lazy generator.</li><li>Use <code>sorted(a_set)</code> for a predictable print order.</li><li>A generator hands out values on demand, saves memory with <code>sum</code>, <code>max</code> and friends, and can be used only once.</li><li>In a nested comprehension the <code>for</code> parts go in the same order as the nested loops: outer first.</li></ul></div>
+
+  <!-- S:2.17 -->
+  <div class="lesson-h2">2.17 — for...else and the Walrus Operator</div>
+  <p class="lesson-p">Two smaller tools finish the chapter. Both remove a bit of clutter you have already met. The first clutter is the <strong>flag</strong> from section 2.9 in a search: a variable that says "did I find it?". To search a list of accuracies for a model at or above 95%, the flag version needs three extra ideas: create the flag, set it, test it afterwards.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A search with a flag</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code">accuracies = [<span class="nm">0.72</span>, <span class="nm">0.81</span>, <span class="nm">0.79</span>, <span class="nm">0.85</span>]
 
-<span class="cm"># for...else — the else only runs if break was NEVER hit</span>
+found = <span class="kw">False</span>
 <span class="kw">for</span> acc <span class="kw">in</span> accuracies:
-    <span class="kw">if</span> acc >= <span class="nm">0.95</span>:
-        <span class="bi">print</span>(<span class="st">'Found a model above 95%!'</span>)
+    <span class="kw">if</span> acc &gt;= <span class="nm">0.95</span>:
+        <span class="bi">print</span>(<span class="st">"Found a model above 95%!"</span>)
+        found = <span class="kw">True</span>
+        <span class="kw">break</span>
+
+<span class="kw">if</span> <span class="kw">not</span> found:
+    <span class="bi">print</span>(<span class="st">"No model reached 95% accuracy."</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>No model reached 95% accuracy.</pre></div>
+  <p class="lesson-p">Python lets a loop have its own <code>else</code> block, and its meaning is not what the word suggests. The <strong>else of a loop</strong> runs only if the loop <strong>finished without hitting <code>break</code></strong>. Read it as "no break happened". It turns "search, and do something if not found" into one structure. Think of looking for your keys in every pocket: if you never stop early (never <code>break</code>), you end up at the <code>else</code>: "keys not found".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">for...else, with a miss and with a hit</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">accuracies = [<span class="nm">0.72</span>, <span class="nm">0.81</span>, <span class="nm">0.79</span>, <span class="nm">0.85</span>]
+
+<span class="kw">for</span> acc <span class="kw">in</span> accuracies:
+    <span class="kw">if</span> acc &gt;= <span class="nm">0.95</span>:
+        <span class="bi">print</span>(<span class="st">"Found a model above 95%!"</span>)
         <span class="kw">break</span>
 <span class="kw">else</span>:
-    <span class="bi">print</span>(<span class="st">'No model reached 95% accuracy.'</span>)   <span class="cm"># this runs — no break happened</span>
+    <span class="bi">print</span>(<span class="st">"No model reached 95% accuracy."</span>)
 
-<span class="cm"># The walrus operator := assigns AND returns the value in one step</span>
-readings = [<span class="nm">12</span>, <span class="nm">45</span>, <span class="nm">99</span>, <span class="nm">7</span>, <span class="nm">150</span>]
-i = <span class="nm">0</span>
-<span class="kw">while</span> i < <span class="bi">len</span>(readings) <span class="kw">and</span> (r := readings[i]) < <span class="nm">100</span>:
-    <span class="bi">print</span>(<span class="st">'Reading:'</span>, r)
-    i += <span class="nm">1</span>
-<span class="bi">print</span>(<span class="st">'Stopped at:'</span>, readings[i] <span class="kw">if</span> i < <span class="bi">len</span>(readings) <span class="kw">else</span> <span class="st">'end'</span>)</div>
+accuracies.append(<span class="nm">0.97</span>)
+<span class="kw">for</span> acc <span class="kw">in</span> accuracies:
+    <span class="kw">if</span> acc &gt;= <span class="nm">0.95</span>:
+        <span class="bi">print</span>(<span class="st">"Found a model above 95%!"</span>, acc)
+        <span class="kw">break</span>
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">"(not printed: a break happened)"</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Without the walrus operator, that last loop would need <code>r = readings[i]</code> as a separate line before the condition — <code>:=</code> just lets you skip the extra line when the assigned value is only needed inside the loop.</div></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>No model reached 95% accuracy.
+Found a model above 95%! 0.97</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>First search: no value passes the test, so <code>break</code> never runs. The loop ends naturally and Python runs the <code>else</code> block.</div></li><li data-n="2"><div><code>accuracies.append(0.97)</code> adds a fifth value at the end of the list.</div></li><li data-n="3"><div>Second search: the fifth value passes, <code>break</code> runs, and Python skips the <code>else</code> block entirely.</div></li></ul>
+  <p class="lesson-p">The <code>else</code> lines up with <code>for</code>, not with the <code>if</code> inside it. That is the classic slip: an <code>else</code> indented under the <code>if</code> means something quite different, "for this one item, it did not pass", and would print at every non-matching item.</p>
+  <div class="diagram"><div class="dg-title">Which else is which?</div><pre>for acc in accuracies:
+    if acc &gt;= 0.95:
+        ...
+        break
+    else:         &lt;- belongs to the IF: runs for every item that
+        ...          fails the test
+else:             &lt;- belongs to the FOR: runs once, only if no
+    ...              break happened</pre><div class="dg-cap">The indentation tells Python which statement an else belongs to.</div></div>
+  <div class="lesson-h3">The walrus operator :=</div>
+  <p class="lesson-p">The second bit of clutter is computing something twice. Suppose you want to print the number of scores, but only when there are many of them. The plain way asks for <code>len(scores)</code> in the test and again in the message. The <strong>walrus operator</strong> <code>:=</code>, named because it looks like a walrus lying on its side, assigns a value and also uses it in the same expression. It is a normal <code>=</code> that can live inside a condition.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Assign and test at the same time</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = [<span class="nm">0.9</span>, <span class="nm">0.8</span>, <span class="nm">0.7</span>, <span class="nm">0.95</span>, <span class="nm">0.6</span>]
+
+n = <span class="bi">len</span>(scores)
+<span class="kw">if</span> n &gt; <span class="nm">3</span>:
+    <span class="bi">print</span>(<span class="st">"Plain way, n ="</span>, n)
+
+<span class="kw">if</span> (count := <span class="bi">len</span>(scores)) &gt; <span class="nm">3</span>:
+    <span class="bi">print</span>(<span class="st">"Walrus way, count ="</span>, count)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Plain way, n = 5
+Walrus way, count = 5</pre></div>
+  <p class="lesson-p">Both do the same. In the walrus form, Python computes <code>len(scores)</code>, stores the result in <code>count</code>, and compares that result with 3, all in one line. The parentheses around the assignment are needed here. The <code>count</code> name stays available afterwards, just like any variable.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The walrus inside a while condition</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">readings = [<span class="nm">12</span>, <span class="nm">45</span>, <span class="nm">99</span>, <span class="nm">7</span>, <span class="nm">150</span>]
+i = <span class="nm">0</span>
+
+<span class="kw">while</span> i &lt; <span class="bi">len</span>(readings) <span class="kw">and</span> (r := readings[i]) &lt; <span class="nm">100</span>:
+    <span class="bi">print</span>(<span class="st">"Reading:"</span>, r)
+    i += <span class="nm">1</span>
+
+<span class="bi">print</span>(<span class="st">"Stopped at position"</span>, i, <span class="st">"because"</span>, readings[i], <span class="st">"is too big"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Reading: 12
+Reading: 45
+Reading: 99
+Reading: 7
+Stopped at position 4 because 150 is too big</pre></div>
+  <p class="lesson-p">This loop reads values until one reaches 100. The walrus grabs <code>readings[i]</code> once, tests it, and lets the block use it as <code>r</code>. Thanks to short-circuiting from section 2.5, <code>readings[i]</code> is only reached when <code>i &lt; len(readings)</code> holds, so we never index past the end.</p>
+  <p class="lesson-p"><strong>Common mistake: a bare walrus statement.</strong> As a stand-alone line, <code>:=</code> is not allowed. Use plain <code>=</code> there.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A walrus on its own line</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">count := <span class="nm">5</span></div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 1
+    count := 5
+          ^^
+SyntaxError: invalid syntax</pre></div>
+  <p class="lesson-p">Use the walrus sparingly. When it makes a line harder to read than two simple lines, use the two lines.</p>
+  <details class="check"><summary>In a for...else, when does the else block run?</summary><div class="ck-answer">Only when the loop finishes all its items without executing a <code>break</code>. It also runs when the loop had nothing to visit at all.</div></details>
+  <details class="check"><summary>What does <code>if (n := len(items)) &gt; 3:</code> do that <code>if len(items) &gt; 3:</code> does not?</summary><div class="ck-answer">It also stores the length in <code>n</code>, so the block can use <code>n</code> without computing <code>len(items)</code> again.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the reading <code>99</code> to <code>199</code> in the last block. Where does the loop stop now?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>The <code>else</code> of a <code>for</code> loop runs only if the loop finished without a <code>break</code>. It replaces the "found" flag in searches.</li><li>The <code>else</code> must line up with <code>for</code>. Under the <code>if</code> it means something different.</li><li><code>:=</code> (walrus) assigns a value and uses it in one expression, for example <code>if (n := len(x)) &gt; 3:</code>.</li><li>Both tools are optional; use them when they make code shorter and clearer.</li></ul></div>
 
   <!-- Summary -->
   <div class="lesson-h2">Chapter 2 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>and / or / not</strong> combine conditions. Python short-circuits — it stops evaluating as soon as the answer is known.</div></li>
-    <li data-n="2"><div><strong>if / elif / else</strong> checks conditions top to bottom and runs only the first one that's True. Indentation defines the block.</div></li>
-    <li data-n="3"><div><strong>for loops</strong> repeat over a sequence or over <code>range(n)</code>. <strong>while loops</strong> repeat until a condition becomes False — always make sure that condition can actually change.</div></li>
-    <li data-n="4"><div><strong>continue</strong> skips to the next iteration. <strong>break</strong> exits the loop immediately.</div></li>
-    <li data-n="5"><div><strong>enumerate()</strong> gives you the index; <strong>zip()</strong> walks two lists together. Combine them to compare predictions against targets.</div></li>
-    <li data-n="6"><div><strong>Comprehensions</strong> — <code>[expr for x in list if condition]</code> — build a new list in one line: filter, transform, or both. <code>{...}</code> makes a set comprehension, <code>(...)</code> makes a lazy generator expression.</div></li>
-    <li data-n="7"><div><strong>for...else</strong> runs the else only if the loop never hit break. <strong>Walrus (:=)</strong> assigns and returns a value in the same expression.</div></li>
+    <li data-n="1"><div><strong>Conditions (2.1)</strong> are questions Python answers with True or False. Use <code>==</code> to compare, <code>0 &lt;= x &lt;= 1</code> for ranges, and a tolerance for computed floats.</div></li>
+    <li data-n="2"><div><strong>if / else (2.2)</strong> runs a block only when the condition holds. The colon and four-space <strong>indentation</strong> define the block.</div></li>
+    <li data-n="3"><div><strong>Truthiness (2.3)</strong>: zero, empty things, <code>None</code> and <code>False</code> are falsy; everything else is truthy. Use <code>is None</code> when 0 is a real value.</div></li>
+    <li data-n="4"><div><strong>and / or / not (2.4)</strong> combine conditions; precedence is not, and, or. <strong>Short-circuiting (2.5)</strong> stops as soon as the answer is known, so put guards on the left.</div></li>
+    <li data-n="5"><div><strong>elif chains (2.6)</strong> take the first True branch, so put the strictest test first. Nest only when the second question depends on the first.</div></li>
+    <li data-n="6"><div><strong>for loops (2.7)</strong> repeat over a collection; trace them with a table. <strong>range (2.8)</strong> includes the start and excludes the stop.</div></li>
+    <li data-n="7"><div><strong>Loop patterns (2.9)</strong>: accumulator, counter, flag and best-so-far, each created before the loop.</div></li>
+    <li data-n="8"><div><strong>while loops (2.10, 2.11)</strong> repeat until the condition is False. Make sure the block changes it, add a maximum-rounds limit, and prefer <code>for</code> when you have data or a known count.</div></li>
+    <li data-n="9"><div><strong>break and continue (2.12)</strong>: stop the loop, or skip to the next round. <strong>Nested loops (2.13)</strong> run the inner loop fully for each outer round.</div></li>
+    <li data-n="10"><div><strong>enumerate() and zip() (2.14)</strong> give positions and walk lists in parallel; zip stops at the shorter list.</div></li>
+    <li data-n="11"><div><strong>Comprehensions (2.15, 2.16)</strong> are compact loops that build a list, dict, set or generator. <strong>for...else and := (2.17)</strong> remove a search flag and a repeated calculation.</div></li>
   </ul>
+
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>What you can now do</strong>Decide with if / elif / else and read the errors when a block is wrong. Repeat work with for and while, and stop it safely. Count, total and search with loop patterns. Compare predictions with targets using zip and enumerate. Turn a simple loop into a comprehension and back again. These are the moves behind every training loop, the mini project in the next tab.</div></div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
