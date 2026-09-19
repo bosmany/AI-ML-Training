@@ -1,0 +1,488 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "metadata": {
+    "resourceVersion": ""
+  },
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "web-ok",
+        "namespace": "prod",
+        "uid": "prod-web-ok",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "web",
+            "image": "nginx:1.25",
+            "resources": {
+              "requests": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              },
+              "limits": {
+                "cpu": "500m",
+                "memory": "256Mi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Running",
+        "qosClass": "Guaranteed",
+        "containerStatuses": [
+          {
+            "name": "web",
+            "state": {
+              "running": {
+                "startedAt": "2024-03-10T10:00:05Z"
+              }
+            },
+            "ready": true,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "api-crash",
+        "namespace": "prod",
+        "uid": "prod-api-crash",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "api",
+            "image": "registry.local/api:2.1",
+            "resources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "128Mi"
+              },
+              "limits": {
+                "cpu": "200m",
+                "memory": "256Mi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Running",
+        "qosClass": "Burstable",
+        "containerStatuses": [
+          {
+            "name": "api",
+            "state": {
+              "waiting": {
+                "reason": "CrashLoopBackOff",
+                "message": "back-off 5m0s restarting failed container=api"
+              }
+            },
+            "ready": false,
+            "restartCount": 12,
+            "image": "img",
+            "imageID": "",
+            "lastState": {
+              "terminated": {
+                "exitCode": 1,
+                "reason": "Error",
+                "finishedAt": "2024-03-10T10:05:00Z"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "worker-oom",
+        "namespace": "batch",
+        "uid": "batch-worker-oom",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "worker",
+            "image": "registry.local/worker:1.0",
+            "resources": {
+              "requests": {
+                "cpu": "250m",
+                "memory": "512Mi"
+              },
+              "limits": {
+                "cpu": "1",
+                "memory": "1Gi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Running",
+        "qosClass": "Burstable",
+        "containerStatuses": [
+          {
+            "name": "worker",
+            "state": {
+              "running": {
+                "startedAt": "2024-03-10T10:00:05Z"
+              }
+            },
+            "ready": true,
+            "restartCount": 3,
+            "image": "img",
+            "imageID": "",
+            "lastState": {
+              "terminated": {
+                "exitCode": 137,
+                "reason": "OOMKilled"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "img-bad",
+        "namespace": "prod",
+        "uid": "prod-img-bad",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "app",
+            "image": "registry.local/typo:latest",
+            "resources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              },
+              "limits": {
+                "cpu": "100m",
+                "memory": "64Mi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-2"
+      },
+      "status": {
+        "phase": "Pending",
+        "qosClass": "Guaranteed",
+        "containerStatuses": [
+          {
+            "name": "app",
+            "state": {
+              "waiting": {
+                "reason": "ImagePullBackOff",
+                "message": "Back-off pulling image \"registry.local/typo:latest\""
+              }
+            },
+            "ready": false,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "img-err",
+        "namespace": "dev",
+        "uid": "dev-img-err",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "app",
+            "image": "nope/nope:1",
+            "resources": {}
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Pending",
+        "qosClass": "BestEffort",
+        "containerStatuses": [
+          {
+            "name": "app",
+            "state": {
+              "waiting": {
+                "reason": "ErrImagePull",
+                "message": "pull access denied"
+              }
+            },
+            "ready": false,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "big-pending",
+        "namespace": "dev",
+        "uid": "dev-big-pending",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "big",
+            "image": "registry.local/big:1",
+            "resources": {
+              "requests": {
+                "cpu": "8",
+                "memory": "16Gi"
+              }
+            }
+          }
+        ]
+      },
+      "status": {
+        "phase": "Pending",
+        "qosClass": "Burstable",
+        "conditions": [
+          {
+            "type": "PodScheduled",
+            "status": "False",
+            "reason": "Unschedulable",
+            "message": "0/3 nodes are available: 1 node(s) had untolerated taint {node-role.kubernetes.io/control-plane: }, 2 Insufficient cpu. preemption: 0/3 nodes are available: 3 No preemption victims found for incoming pod."
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "evicted-pod",
+        "namespace": "prod",
+        "uid": "prod-evicted-pod",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "cache",
+            "image": "redis:7",
+            "resources": {}
+          }
+        ],
+        "nodeName": "node-3"
+      },
+      "status": {
+        "phase": "Failed",
+        "qosClass": "BestEffort",
+        "reason": "Evicted",
+        "message": "The node was low on resource: memory. Threshold quantity: 100Mi, available: 48Mi."
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "init-fail",
+        "namespace": "dev",
+        "uid": "dev-init-fail",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "main",
+            "image": "registry.local/main:1",
+            "resources": {
+              "requests": {
+                "cpu": "100m",
+                "memory": "100Mi"
+              },
+              "limits": {
+                "cpu": "200m",
+                "memory": "200Mi"
+              }
+            }
+          }
+        ],
+        "initContainers": [
+          {
+            "name": "wait-for-db",
+            "image": "busybox:1.36",
+            "resources": {
+              "requests": {
+                "cpu": "50m",
+                "memory": "32Mi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Pending",
+        "qosClass": "Burstable",
+        "containerStatuses": [
+          {
+            "name": "main",
+            "state": {
+              "waiting": {
+                "reason": "PodInitializing"
+              }
+            },
+            "ready": false,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ],
+        "initContainerStatuses": [
+          {
+            "name": "wait-for-db",
+            "state": {
+              "waiting": {
+                "reason": "CrashLoopBackOff",
+                "message": "back-off 40s restarting failed container=wait-for-db"
+              }
+            },
+            "ready": false,
+            "restartCount": 4,
+            "image": "img",
+            "imageID": "",
+            "lastState": {
+              "terminated": {
+                "exitCode": 1,
+                "reason": "Error"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "nightly-done",
+        "namespace": "batch",
+        "uid": "batch-nightly-done",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "job",
+            "image": "registry.local/job:1",
+            "resources": {
+              "requests": {
+                "cpu": "2",
+                "memory": "4Gi"
+              },
+              "limits": {
+                "cpu": "2",
+                "memory": "4Gi"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Succeeded",
+        "qosClass": "Guaranteed",
+        "containerStatuses": [
+          {
+            "name": "job",
+            "state": {
+              "terminated": {
+                "exitCode": 0,
+                "reason": "Completed"
+              }
+            },
+            "ready": false,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Pod",
+      "metadata": {
+        "name": "metrics-agent",
+        "namespace": "kube-system",
+        "uid": "kube-system-metrics-agent",
+        "creationTimestamp": "2024-03-10T10:00:00Z"
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "agent",
+            "image": "registry.local/agent:1",
+            "resources": {
+              "requests": {
+                "cpu": "1.5",
+                "memory": "129e6"
+              },
+              "limits": {
+                "cpu": "2",
+                "memory": "129M"
+              }
+            }
+          }
+        ],
+        "nodeName": "node-1"
+      },
+      "status": {
+        "phase": "Running",
+        "qosClass": "Burstable",
+        "containerStatuses": [
+          {
+            "name": "agent",
+            "state": {
+              "running": {
+                "startedAt": "2024-03-10T10:00:05Z"
+              }
+            },
+            "ready": true,
+            "restartCount": 0,
+            "image": "img",
+            "imageID": ""
+          }
+        ]
+      }
+    }
+  ]
+}
