@@ -1,0 +1,60 @@
+name: Labs
+
+# Runs labs/run_all.sh when the labs/ directory exists (it is added separately); a no-op otherwise.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: labs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  labs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect labs
+        id: detect
+        run: |
+          if [ -f labs/run_all.sh ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::labs/run_all.sh not found - nothing to run"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.detect.outputs.present == 'true'
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-node@v4
+        if: steps.detect.outputs.present == 'true'
+        with:
+          node-version: "20"
+
+      - name: Cache pip downloads
+        if: steps.detect.outputs.present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: labs-pip-${{ runner.os }}-${{ hashFiles('labs/*/requirements*.txt') }}
+          restore-keys: |
+            labs-pip-${{ runner.os }}-
+
+      # run_all.sh creates the venv named by VENV and pip-installs each lab's requirements.txt into it
+      - name: Run labs/run_all.sh
+        if: steps.detect.outputs.present == 'true'
+        env:
+          VENV: ${{ runner.temp }}/labs-venv
+          PYTHON: python
+        run: bash labs/run_all.sh

@@ -1,0 +1,75 @@
+name: Pyodide exercises
+
+# Runs every chapter's lesson blocks, exercise solutions, starters and project graders under
+# Pyodide 0.26.4 (see scripts/pyodide-grade.js). One job per chapter folder.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pyodide-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  grade:
+    name: grade ${{ matrix.folder }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        folder:
+          - python
+          - math
+          - data
+          - ml
+          - dl
+          - nlp
+          - mlops
+          - projects
+          - systems
+          - dsa
+          - devops
+          - mlops-practice
+          - fastapi
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Pyodide core (npm tarball) + wheel cache; both live in one directory, see the script header.
+      - name: Restore Pyodide runtime cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/aiml-pyodide-0.26.4
+          key: aiml-pyodide-0.26.4-${{ hashFiles('scripts/pyodide-grade.js') }}
+          restore-keys: |
+            aiml-pyodide-0.26.4-
+
+      - name: Fetch Pyodide runtime and wheels (retried once)
+        run: node scripts/pyodide-grade.js --setup || { echo "retrying after network error"; sleep 10; node scripts/pyodide-grade.js --setup; }
+
+      - name: Grade ${{ matrix.folder }}
+        run: >
+          node scripts/pyodide-grade.js
+          --folder ${{ matrix.folder }}
+          --baseline scripts/pyodide-known-failures.json
+          --timeout 90
+          --json=pyodide-${{ matrix.folder }}.json
+
+      - name: Upload result summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyodide-${{ matrix.folder }}
+          path: pyodide-${{ matrix.folder }}.json
+          if-no-files-found: ignore
+          retention-days: 14
