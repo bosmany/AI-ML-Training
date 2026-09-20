@@ -1279,6 +1279,11 @@ async function runPy(code){
   pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
   try{
     await pyodide.loadPackagesFromImports(code);
+    if(/\bseaborn\b/.test(code) && !window.__seabornReady){
+      await pyodide.loadPackage('micropip');
+      await pyodide.runPythonAsync("import micropip\nawait micropip.install('seaborn')");
+      window.__seabornReady=true;
+    }
     await pyodide.runPythonAsync(code);
     let img=null;
     try{

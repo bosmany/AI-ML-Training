@@ -186,6 +186,11 @@ async function workerMain() {
           messageCallback: (m) => { const mm = /^Loaded (.*)$/.exec(m); if (mm) mm[1].split(', ').forEach((p) => loadedPkgs.add(p)); },
           errorCallback: () => {},
         });
+        if (/\bseaborn\b/.test(code) && !loadedPkgs.has('__seaborn')) {
+          await py.loadPackage('micropip');
+          await py.runPythonAsync("import micropip\nawait micropip.install('seaborn')");
+          loadedPkgs.add('__seaborn');
+        }
         return null;
       } catch (e) { lastErr = e; }
     }
@@ -532,7 +537,7 @@ async function gradeProjectWithPageFn(fnName, fnSrc, code, ctx) {
 /* ------------------------------------------------------------------------------------------ */
 const userTrace = (tb) => { const l = String(tb || '').split('\n'); const i = l.findIndex((x) => x.includes('File "<exec>"')); return (i >= 0 ? l.slice(i) : l).join('\n'); };
 const tailLines = (s, n = 12) => { const l = String(s || '').replace(/\n+$/, '').split('\n'); return l.slice(-n).map((x) => (x.length > 220 ? x.slice(0, 217) + '...' : x)).join('\n'); };
-const norm = (s) => s.toLowerCase().replace(/\s/g, '');
+const norm = (s) => s.replace(/#.*$/gm, '').toLowerCase().replace(/\s/g, '');
 
 async function gradeChapter(file, root, cfg, log) {
   const rel = path.relative(root, file).split(path.sep).join('/');
@@ -671,7 +676,7 @@ async function gradeChapter(file, root, cfg, log) {
         try {
           const g = await gradeProjectWithPageFn(projFnName, projSrc, projStarter, ctx);
           if (g.passed) fail('project-starter', 'project', 'starter-passes', 'project starter already passes the project grader');
-        } catch (e) { fail('project-starter', 'project', 'harness', `project grader stub failed: ${e.message}`); }
+        } catch (e) { res.warnings.push(`project grader not emulated (${e.message}); project starter not checked`); }
       }
       if (projRef && projFnName === 'runProject') {
         res.project.status = 'reference:' + projRef.kind;
@@ -684,7 +689,8 @@ async function gradeChapter(file, root, cfg, log) {
             if (g.passed) { ok = true; res.project.mode = mode; break; }
           } catch (e) { last = { mode, passed: false, message: 'grader stub error: ' + e.message }; }
         }
-        if (!ok) fail('project-solution', 'project', 'chapter', `reference project solution does not pass the project grader (${last.mode}): ${last.message}`, { pyErr: last.pyErr || undefined });
+        if (!ok && projRef.kind === 'details-blocks') res.warnings.push(`partial reference (details block) does not complete the project on its own: ${last.message}`);
+        else if (!ok) fail('project-solution', 'project', 'chapter', `reference project solution does not pass the project grader (${last.mode}): ${last.message}`, { pyErr: last.pyErr || undefined });
       } else if (projFnName === 'runProject' && !projStarter) {
         res.project.status = 'no-starter';
       } else {

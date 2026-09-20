@@ -1202,7 +1202,7 @@ def create_candidate(candidate: CandidateIn, current_user: str = Depends(get_cur
 
 window.checkTextEx=function(n){
   const raw=document.getElementById(`ex${n}-code`).value;
-  const noSpaces=raw.toLowerCase().replace(/\s/g,'');
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
   const resEl=document.getElementById(`ex${n}-result`);
   const ex=EXERCISES[n];
   const passed=ex.checks.every(c=>noSpaces.includes(c.toLowerCase().replace(/\s/g,'')));
@@ -1234,7 +1234,7 @@ window.resetEx=function(n){
 
 window.checkProject=function(){
   const raw=document.getElementById('project-editor').value;
-  const noSpaces=raw.toLowerCase().replace(/\s/g,'');
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
   const res=document.getElementById('project-result');
   const checks=['@app.post("/token"','oauth2passwordrequestform','jwt.encode','depends(get_current_user)','401'];
   const verifiesPassword=noSpaces.includes('verify_password(')||noSpaces.includes('bcrypt.checkpw(');

@@ -713,6 +713,8 @@ km_orig.fit(X4_scaled)
     </div>
     <div class="ex-task">Task:
 import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 (already given)
@@ -721,11 +723,13 @@ km1 = KMeans(n_clusters=2, random_state=42, n_init=10)
 km1.fit(X1)
 
 Print exactly:
-  f'Labels: {km1.labels_.tolist()}'
+  f'Labels: {canon(km1.labels_.tolist(), km1.labels_[0])}'
   f'Inertia: {km1.inertia_:.4f}'
-(Correct: Labels: [0, 0, 1, 1, 0, 1, 0, 1] / Inertia: 37.5000)</div>
+(canon() is given: it renames clusters so the one containing sample 0 is always 0, because KMeans numbers them arbitrarily. Correct: Labels: [0, 0, 1, 1, 0, 1, 0, 1] / Inertia: 37.5000)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex1-code">import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 
@@ -754,6 +758,8 @@ X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
     </div>
     <div class="ex-task">Task:
 import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 km1 = KMeans(n_clusters=2, random_state=42, n_init=10)
@@ -764,10 +770,12 @@ new2 = np.array([[10,10],[50,50]])
 new_labels2 = km1.predict(new2)
 
 Print exactly:
-  f'New labels: {new_labels2.tolist()}'
+  f'New labels: {canon(new_labels2.tolist(), km1.labels_[0])}'
 (Correct: New labels: [0, 1])</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex2-code">import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 km1 = KMeans(n_clusters=2, random_state=42, n_init=10)
@@ -892,6 +900,8 @@ X4 = np.array([
     </div>
     <div class="ex-task">Task:
 import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -909,12 +919,14 @@ km_pca5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_pca)
 km_scaled5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_scaled)
 
 Print exactly:
-  f'PCA labels: {km_pca5.labels_.tolist()}'
-  f'Scaled labels: {km_scaled5.labels_.tolist()}'
-  f'Match: {(km_pca5.labels_ == km_scaled5.labels_).all()}'
+  f'PCA labels: {canon(km_pca5.labels_.tolist(), km_pca5.labels_[0])}'
+  f'Scaled labels: {canon(km_scaled5.labels_.tolist(), km_scaled5.labels_[0])}'
+  f'Match: {canon(km_pca5.labels_.tolist(), km_pca5.labels_[0]) == canon(km_scaled5.labels_.tolist(), km_scaled5.labels_[0])}'
 (Correct: PCA labels: [1, 1, 0, 1, 0, 1, 0, 1] / Scaled labels: [1, 1, 0, 1, 0, 1, 0, 1] / Match: True)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -1234,26 +1246,30 @@ function showSection(name){
 const EXERCISES = {
   1:{
     checks:['labels: [0, 0, 1, 1, 0, 1, 0, 1]','inertia: 37.5000'],
-    hint:"km1 = KMeans(n_clusters=2, random_state=42, n_init=10); km1.fit(X1); use km1.labels_.tolist() and km1.inertia_",
+    hint:"km1 = KMeans(n_clusters=2, random_state=42, n_init=10); km1.fit(X1); use canon(km1.labels_.tolist(), km1.labels_[0]) and km1.inertia_",
     solution:`import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 km1 = KMeans(n_clusters=2, random_state=42, n_init=10)
 km1.fit(X1)
-print(f'Labels: {km1.labels_.tolist()}')
+print(f'Labels: {canon(km1.labels_.tolist(), km1.labels_[0])}')
 print(f'Inertia: {km1.inertia_:.4f}')`
   },
   2:{
     checks:['new labels: [0, 1]'],
-    hint:"new_labels2 = km1.predict(new2); print(f'New labels: {new_labels2.tolist()}')",
+    hint:"new_labels2 = km1.predict(new2); print(f'New labels: {canon(new_labels2.tolist(), km1.labels_[0])}')",
     solution:`import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.cluster import KMeans
 X1 = np.array([[10,12],[11,9],[50,52],[48,55],[9,11],[52,49],[12,10],[51,53]])
 km1 = KMeans(n_clusters=2, random_state=42, n_init=10)
 km1.fit(X1)
 new2 = np.array([[10,10],[50,50]])
 new_labels2 = km1.predict(new2)
-print(f'New labels: {new_labels2.tolist()}')`
+print(f'New labels: {canon(new_labels2.tolist(), km1.labels_[0])}')`
   },
   3:{
     checks:['k=1: inertia=17975.3000','k=2: inertia=4106.1667','k=3: inertia=46.0000'],
@@ -1285,9 +1301,11 @@ print(f'Explained variance ratio: {[round(v,4) for v in pca4.explained_variance_
 print(f'Total variance: {sum(pca4.explained_variance_ratio_):.4f}')`
   },
   5:{
-    checks:['pca labels: [1, 1, 0, 1, 0, 1, 0, 1]','scaled labels: [1, 1, 0, 1, 0, 1, 0, 1]','match: true'],
+    checks:['pca labels: [0, 0, 1, 0, 1, 0, 1, 0]','scaled labels: [0, 0, 1, 0, 1, 0, 1, 0]','match: true'],
     hint:"km_pca5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_pca); km_scaled5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_scaled)",
     solution:`import numpy as np
+def canon(labels, ref):
+    return [0 if l == ref else 1 for l in labels]   # KMeans numbers clusters arbitrarily: the cluster containing sample 0 is always called 0
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from sklearn.cluster import KMeans
@@ -1301,9 +1319,9 @@ pca4 = PCA(n_components=2)
 X4_pca = pca4.fit_transform(X4_scaled)
 km_pca5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_pca)
 km_scaled5 = KMeans(n_clusters=2, random_state=42, n_init=10).fit(X4_scaled)
-print(f'PCA labels: {km_pca5.labels_.tolist()}')
-print(f'Scaled labels: {km_scaled5.labels_.tolist()}')
-print(f'Match: {(km_pca5.labels_ == km_scaled5.labels_).all()}')`
+print(f'PCA labels: {canon(km_pca5.labels_.tolist(), km_pca5.labels_[0])}')
+print(f'Scaled labels: {canon(km_scaled5.labels_.tolist(), km_scaled5.labels_[0])}')
+print(f'Match: {canon(km_pca5.labels_.tolist(), km_pca5.labels_[0]) == canon(km_scaled5.labels_.tolist(), km_scaled5.labels_[0])}')`
   }
 };
 
