@@ -508,6 +508,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
 
 
+
 <!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
@@ -967,7 +968,7 @@ ValueError: not enough values to unpack (expected 3, got 2)</pre></div>
   <div class="run-out"><div class="ro-label">Output</div><pre>loss: 0.1235
 accuracy: 0.94
 f1: 0.9</pre></div>
-  <p class="lesson-p">The first call omits <code>decimals</code>, so Python uses <code>4</code>. The second overrides it with a keyword. The third overrides it by position. One rule keeps this readable: parameters <strong>with</strong> defaults must come after those <strong>without</strong>. Python enforces it.</p>
+  <p class="lesson-p">The odd-looking <code>{value:.{decimals}f}</code> inside the f-string means "show <code>value</code> with this many decimal places, where the number of places is taken from the variable <code>decimals</code>". The first call omits <code>decimals</code>, so Python uses <code>4</code>. The second overrides it with a keyword. The third overrides it by position. One rule keeps this readable: parameters <strong>with</strong> defaults must come after those <strong>without</strong>. Python enforces it.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">A default before a required parameter</span><span class="cb-tag">read-only</span></div>
     <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(decimals<span class="op">=</span><span class="nm">4</span>, name, value):
@@ -994,7 +995,7 @@ SyntaxError: parameter without a default follows parameter with a default</pre><
 ['apple', 'pear']
 ['apple', 'pear', 'plum']
 (['apple', 'pear', 'plum'],)</pre></div>
-  <p class="lesson-p">The three baskets are not separate: it is the same list, growing. The last line shows the culprit sitting inside the function object, holding all three items. Python built that empty list once when it read the <code>def</code>, and every call that omitted <code>basket</code> used it.</p>
+  <p class="lesson-p">The three baskets are not separate: it is the same list, growing. The last line prints <code>__defaults__</code>, the place inside a function object where Python stores its default values, and it shows the culprit, holding all three items. Python built that empty list once when it read the <code>def</code>, and every call that omitted <code>basket</code> used it.</p>
   <div class="diagram"><div class="dg-title">When the default is created</div><pre> def add_item(item, basket=[]):  &lt;- runs ONCE: the empty list is created here
      ...
  add_item("apple")   -&gt; basket is that same list -&gt; ['apple']
@@ -1536,7 +1537,7 @@ random.<span class="fn">shuffle</span>(cards)
 [6, 1, 1, 6, 3]
 green
 [5, 1, 3, 4, 2]</pre></div>
-  <p class="lesson-p">The first two lines are identical because the seed was reset to 42 in between. <code>randint(1, 6)</code> picks a whole number from 1 to 6, including both ends. <code>choice</code> picks one item from a list, and <code>shuffle</code> reorders a list in place. Without the seed lines, every run would differ.</p>
+  <p class="lesson-p">(In <code>for _ in range(5)</code> the underscore is an ordinary variable name, used by convention when we need to repeat something five times but never use the counter.) The first two lines are identical because the seed was reset to 42 in between. <code>randint(1, 6)</code> picks a whole number from 1 to 6, including both ends. <code>choice</code> picks one item from a list, and <code>shuffle</code> reorders a list in place. Without the seed lines, every run would differ.</p>
   <div class="lesson-h3">datetime: dates without the arithmetic headaches</div>
   <p class="lesson-p">Days per month, leap years and weekdays are painful to compute by hand. The <strong>datetime</strong> module does it for you. A <code>date</code> holds a year, month and day. A <code>timedelta</code> is a length of time, and you can add or subtract it. We use fixed dates here so the answers never change; <code>date.today()</code> gives the real current date.</p>
   <div class="code-block">
@@ -1555,7 +1556,7 @@ gap <span class="op">=</span> end <span class="op">-</span> start
 in 30 days: 2024-04-14
 days until: 285</pre></div>
   <div class="lesson-h3">collections: better containers</div>
-  <p class="lesson-p">The <strong>collections</strong> module adds specialised containers. <code>Counter</code> counts how often each item appears, which used to need a loop and an <code>if</code>. <code>defaultdict</code> is a dictionary that creates a missing entry for you, using the type you give it.</p>
+  <p class="lesson-p">The <strong>collections</strong> module adds specialised containers. <code>Counter</code> counts how often each item appears, which used to need a loop and an <code>if</code>. <code>defaultdict</code> is a dictionary that creates a missing entry for you, using the type you give it. In the example, <code>.split()</code> cuts a sentence into a list of words, and <code>w[0]</code> is the first letter of a word, so the words are grouped by their first letter.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Counter and defaultdict</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter, defaultdict

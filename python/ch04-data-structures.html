@@ -505,12 +505,13 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 4:<br/><span>Data Structures</span></h1>
     <p>Real datasets don't arrive as five neat variables — they arrive as thousands of records, each with several fields, often nested inside each other. This chapter covers the four containers Python gives you to hold that data: lists, tuples, dicts, and sets — and the shape you'll see constantly once you start loading real data: lists of dictionaries.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~2 hours with practice</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
+
 
 
 
@@ -677,7 +678,7 @@ IndexError: list index out of range</pre></div>
 []
 [72, 85, 60, 91, 78]</pre></div>
   <div class="trace-h">What Python does, line by line</div>
-  <ul class="step-list"><li data-n="1"><div><code>scores[1:4]</code> keeps items at index 1, 2 and 3: <code>[85, 60, 91]</code>.</div></li><li data-n="2"><div><code>scores[:2]</code> leaves the start out, so it starts at the beginning: the first two items.</div></li><li data-n="3"><div><code>scores[2:]</code> leaves the stop out, so it runs to the end.</div></li><li data-n="4"><div><code>scores[-2:]</code> is the last two items, a handy way to say "the most recent two".</div></li><li data-n="5"><div><code>scores[::2]</code> adds a third number, the <strong>step</strong>: take every second item. <code>scores[::-1]</code> uses a step of -1, which walks backwards and gives a reversed copy.</div></li><li data-n="6"><div><code>scores[10:20]</code> is far beyond the end, yet there is no error. Slices are forgiving and simply return an empty list.</div></li><li data-n="7"><div>The last line prints the original: slicing never changes <code>scores</code>. It builds a new list each time.</div></li></ul>
+  <ul class="step-list"><li data-n="1"><div><code>scores[1:4]</code> keeps items at index 1, 2 and 3: <code>[85, 60, 91]</code>.</div></li><li data-n="2"><div><code>scores[:2]</code> leaves the start out, so it starts at the beginning: the first two items.</div></li><li data-n="3"><div><code>scores[2:]</code> leaves the stop out, so it runs to the end.</div></li><li data-n="4"><div><code>scores[-2:]</code> is the last two items, a handy way to say "the most recent two".</div></li><li data-n="5"><div><code>scores[::2]</code> adds a third number, the <strong>step</strong>: take every second item. <code>scores[::-1]</code> uses a step of -1, which walks backwards and gives a reversed copy.</div></li><li data-n="6"><div><code>scores[10:20]</code> is far beyond the end, yet there is no error. Slices are forgiving and return an empty list.</div></li><li data-n="7"><div>The last line prints the original: slicing never changes <code>scores</code>. It builds a new list each time.</div></li></ul>
   <p class="lesson-p">Notice the contrast. A single index past the end raises <code>IndexError</code>, but a slice past the end quietly returns fewer items or none. That forgiving behaviour is convenient, and also a place where bugs hide, because a typo in a slice number does not shout.</p>
   <p class="lesson-p">Because a list is mutable, you can also change one item by assigning to its index. Assigning to a position that does not exist raises the same <code>IndexError</code>, since there is nothing there to replace.</p>
   <div class="code-block">
@@ -813,19 +814,18 @@ backup: [0, 85, 60, 99]
 same object? True</pre></div>
   <p class="lesson-p">The backup changed too, and it did not need to be touched. The last line, <code>scores is backup</code>, is <code>True</code>. To see why, we need the truth about what a variable really is.</p>
   <p class="lesson-p">A common picture is that a variable is a box with the value inside. For numbers and short text that picture is good enough. For collections it is misleading. A better picture: <strong>the list lives somewhere in memory, and a variable is a name tag stuck onto it.</strong> Writing <code>backup = scores</code> does not build a second list. It sticks a second name tag on the same list. Two tags, one object. This is called <strong>aliasing</strong>: two names for the same thing.</p>
-  <div class="diagram"><div class="dg-title">Aliasing: two name tags on one list</div><pre>  BEFORE                          AFTER  scores.append(99)
+  <div class="diagram"><div class="dg-title">Aliasing: two name tags on one list</div><pre> BEFORE:
+   scores --+
+            +--&gt; [ 72 | 85 | 60 ]
+   backup --+
 
-  scores --+                      scores --+
-           |                               |
-           v                               v
-        +----------------+             +--------------------+
-        | 72 | 85 | 60   |             | 72 | 85 | 60 | 99  |
-        +----------------+             +--------------------+
-           ^                               ^
-           |                               |
-  backup --+                      backup --+
+ AFTER scores.append(99):
+   scores --+
+            +--&gt; [ 72 | 85 | 60 | 99 ]
+   backup --+
 
-  ONE list, TWO names: changing it through one name shows up through the other.</pre><div class="dg-cap">Assignment copies the name tag, never the list. <code>is</code> asks "are these two names on the same object?".</div></div>
+ ONE list, TWO names: a change made
+ through one name shows in the other.</pre><div class="dg-cap">Assignment copies the name tag, never the list. The word is asks: are these two names on the same object?</div></div>
   <div class="trace-h">What Python does, line by line</div>
   <ul class="step-list"><li data-n="1"><div><code>scores = [72, 85, 60]</code> creates a list in memory and sticks the name <code>scores</code> on it.</div></li><li data-n="2"><div><code>backup = scores</code> finds the object that <code>scores</code> points to and sticks a second name on that same object. No new list is made.</div></li><li data-n="3"><div><code>scores.append(99)</code> changes the one shared list. Both names see it because both point to it.</div></li><li data-n="4"><div><code>scores[0] = 0</code> also edits the shared list, so <code>backup</code> shows the 0 too.</div></li><li data-n="5"><div><code>scores is backup</code> compares identity, "is it literally the same object?", and answers <code>True</code>.</div></li></ul>
   <div class="lesson-h3">Making a real copy</div>
@@ -923,7 +923,7 @@ point[<span class="nm">0</span>] = <span class="nm">10</span></div>
   File "&lt;exec&gt;", line 2, in &lt;module&gt;
 TypeError: 'tuple' object does not support item assignment</pre></div>
   <p class="lesson-p"><code>TypeError</code> means "you used this kind of object in a way it does not support". The message spells it out: a tuple does not support item assignment. There is no fix that keeps it a tuple. If you need a changeable version, build a new tuple with the changed value, or use a list.</p>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The one-item trap:</strong> <code>(5)</code> is just the number 5 in brackets. A tuple of one item needs a trailing comma: <code>(5,)</code>. In fact it is the commas that make a tuple, not the brackets: <code>x = 1, 2</code> is also a tuple.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>The one-item trap:</strong> <code>(5)</code> is only the number 5 inside brackets. A tuple of one item needs a trailing comma: <code>(5,)</code>. In fact it is the commas that make a tuple, not the brackets: <code>x = 1, 2</code> is also a tuple.</div></div>
   <div class="lesson-h3">Unpacking: giving each part its own name</div>
   <p class="lesson-p">Indexing a record as <code>point[0]</code> and <code>point[1]</code> is hard to read. <strong>Unpacking</strong> lets you split a tuple into separate variables in one line, matching values to names by position. It works on lists too.</p>
   <div class="code-block">
@@ -972,7 +972,7 @@ ValueError: not enough values to unpack (expected 3, got 2)</pre></div>
   <p class="lesson-p">Both messages come from <code>ValueError</code>: the type is right, the count is wrong. Read them as a receipt. "Expected 2" is how many names you wrote. The first message tells you there were too many values; the second tells you how many really arrived ("got 2") so you can compare with the 3 names. Section 4.13 shows a way to soak up any extra values with a star.</p>
   <div class="lesson-h3">Why bother with a tuple at all?</div>
   <p class="lesson-p">Three reasons. It <strong>signals intent</strong>: a reader who sees <code>(3, 4)</code> knows the two values are a fixed pair. It is <strong>safe</strong>: nobody can change it by mistake. And, as section 4.7 shows, only immutable things can be used as dictionary keys, so a tuple can be a key where a list cannot. Functions in libraries you will meet later, such as the split of a dataset into training and test parts, return tuples for exactly these reasons.</p>
-  <details class="check"><summary>What is <code>type((7))</code> and what is <code>type((7,))</code>?</summary><div class="ck-answer"><code>(7)</code> is just the int 7, so its type is <code>int</code>. <code>(7,)</code> has the trailing comma, so it is a <code>tuple</code>.</div></details>
+  <details class="check"><summary>What is <code>type((7))</code> and what is <code>type((7,))</code>?</summary><div class="ck-answer"><code>(7)</code> is plain int 7, so its type is <code>int</code>. <code>(7,)</code> has the trailing comma, so it is a <code>tuple</code>.</div></details>
   <details class="check"><summary><code>x, y, z = [1, 2]</code> fails. Which error, and why?</summary><div class="ck-answer"><code>ValueError: not enough values to unpack (expected 3, got 2)</code>. Three names were given but the list holds only two values.</div></details>
   <div class="try-it"><strong>Try it.</strong> In the unpacking block, change the <code>pairs</code> list to hold three-part tuples such as <code>("Asha", 72, "morning")</code> without changing the loop. Read the error, then fix the loop header.</div>
   <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>tuple</strong> is an ordered, <strong>immutable</strong> collection written with <code>()</code>; indexing and slicing work like a list.</li><li>Assigning to a tuple item raises <code>TypeError</code>.</li><li>A one-item tuple needs a trailing comma: <code>(5,)</code>.</li><li><strong>Unpacking</strong> (<code>x, y = pair</code>) splits a tuple or list into names by position, and the counts must match or you get a <code>ValueError</code>.</li></ul></div>
@@ -1065,7 +1065,7 @@ NameError: name 'Asha' is not defined</pre></div>
   </div>
   <div class="run-out"><div class="ro-label">Output</div><pre>{'Asha': '555-0999'}
 1</pre></div>
-  <p class="lesson-p"><code>NameError: name 'Asha' is not defined</code> means Python tried to use <code>Asha</code> as a variable. Quotes turn it into text. And the duplicate-key result shows one entry, holding the second number. Nothing crashed, so this kind of bug hides easily when a dict is built by a long literal.</p>
+  <p class="lesson-p"><code>NameError: name 'Asha' is not defined</code> means Python tried to use <code>Asha</code> as a variable. Quotes turn it into text. And the duplicate-key result shows one entry, holding the second number. Nothing crashed, so this kind of bug can hide when a dict is built by a long literal.</p>
   <details class="check"><summary>For <code>d = {"a": 1, "b": 2}</code>, what do <code>"a" in d</code> and <code>1 in d</code> give?</summary><div class="ck-answer"><code>True</code> and <code>False</code>. <code>in</code> checks the keys only. <code>1</code> is a value, not a key.</div></details>
   <details class="check"><summary>What happens with <code>d["c"] = 3</code> when <code>"c"</code> is not in <code>d</code> yet?</summary><div class="ck-answer">It adds a new pair, so <code>d</code> becomes <code>{"a": 1, "b": 2, "c": 3}</code>. Assignment works for both new and existing keys. Only <strong>reading</strong> a missing key raises <code>KeyError</code>.</div></details>
   <div class="try-it"><strong>Try it.</strong> Add your own entry to the change block, then delete one with <code>del</code>. Then try <code>del phones["Nobody"]</code> and read the error message. Is it the same kind of error as a missing lookup?</div>
@@ -1131,7 +1131,7 @@ Ben -&gt; 85
 Chen -&gt; 60
 ['Asha', 'Ben', 'Chen']
 Ben</pre></div>
-  <p class="lesson-p">The last two lines are worth a second look. <code>sorted(scores)</code> sorts the <strong>keys</strong> alphabetically and returns a list. <code>max(scores, key=scores.get)</code> finds the key whose value is largest, by telling <code>max</code> to compare keys using their values. Here the answer is <code>Ben</code>, the highest scorer.</p>
+  <p class="lesson-p">The last two lines are worth a second look. <code>sorted(scores)</code> sorts the <strong>keys</strong> alphabetically and returns a list. <code>max(scores, key=scores.get)</code> finds the key whose value is largest, by telling <code>max</code> to compare keys using their values. The <code>key=</code> argument is the same idea you met in Chapter 3, and section 4.10 explains it in detail for records. Here the answer is <code>Ben</code>, the highest scorer.</p>
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Do not add or remove keys while looping over the same dict.</strong> Python cannot keep track of where it is. Loop over a copy of the keys instead: <code>for k in list(d):</code>.</div></div>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Changing a dict during a loop</span><span class="cb-tag">read-only</span></div>
@@ -1233,7 +1233,7 @@ large_set = <span class="bi">set</span>(large)   <span class="cm"># built once, 
   <div class="run-out"><div class="ro-label">Output</div><pre>small list, last value: 100
 large list, last value: 100000
 set lookup, one hash jump -&gt; True</pre></div>
-  <p class="lesson-p">The list needed 100 checks for the small list and 100,000 for the large one: cost grows in step with size. The set lookup is one jump either way. (Building the set costs time once, so a set pays off when you ask <strong>many</strong> membership questions, not just one.) Programmers write this as "list lookup is proportional to the size, set lookup is roughly constant".</p>
+  <p class="lesson-p">The list needed 100 checks for the small list and 100,000 for the large one: cost grows in step with size. The set lookup is one jump either way. (Building the set costs time once, so a set pays off when you ask <strong>many</strong> membership questions, not only one.) Programmers write this as "list lookup is proportional to the size, set lookup is roughly constant".</p>
   <div class="lesson-h3">Comparing groups: union, intersection, difference</div>
   <p class="lesson-p">Sets also model the everyday idea of overlapping groups. Two study groups each list the topics they have covered.</p>
   <div class="diagram"><div class="dg-title">Two overlapping groups</div><pre>      group_a                     group_b
@@ -1301,7 +1301,7 @@ True</pre></div>
         yes -&gt; TUPLE
         no  v
   Otherwise an ordered, growing sequence     -&gt; LIST</pre><div class="dg-cap">This is a rule of thumb, not a law. Real programs mix them, as the next sections show: a list of dicts, or dicts holding lists.</div></div>
-  <table class="lesson-table"><tr><th>You want to...</th><th>Use</th><th>Because</th></tr><tr><td>keep items in order and add or remove them</td><td>list</td><td>ordered and mutable</td></tr><tr><td>return several values, or hold a fixed pair</td><td>tuple</td><td>immutable, unpackable</td></tr><tr><td>find a value from a name, an id or a setting</td><td>dict</td><td>lookup by key is fast</td></tr><tr><td>remove duplicates, or test "is it in there?"</td><td>set</td><td>unique items, fast <code>in</code></td></tr><tr><td>count how often things occur</td><td>dict (or <code>Counter</code>)</td><td>a key per item, a number per value</td></tr><tr><td>use a compound thing as a dict key</td><td>tuple</td><td>lists cannot be keys</td></tr></table>
+  <table class="lesson-table"><tr><th>You want to...</th><th>Use</th><th>Because</th></tr><tr><td>keep items in order and add or remove them</td><td>list</td><td>ordered and mutable</td></tr><tr><td>return several values, or hold a fixed pair</td><td>tuple</td><td>immutable, unpackable</td></tr><tr><td>find a value from a name, an id or a setting</td><td>dict</td><td>lookup by key is fast</td></tr><tr><td>remove duplicates, or test "is it in there?"</td><td>set</td><td>unique items, fast <code>in</code></td></tr><tr><td>count how often things occur</td><td>dict (or <code>Counter</code>, section 4.12)</td><td>a key per item, a number per value</td></tr><tr><td>use a compound thing as a dict key</td><td>tuple</td><td>lists cannot be keys</td></tr></table>
   <p class="lesson-p">A quick check on the sad path: what if you choose badly? Storing phone numbers in a list of <code>(name, number)</code> tuples forces you to scan the whole list each time you want one person. It works and it is slow and clumsy. Turning it into a dict is one line, and every lookup becomes direct.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">From a list of pairs to a dict</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
@@ -1391,7 +1391,7 @@ ranked = <span class="bi">sorted</span>(learners, key=get_score, reverse=<span c
 2 Asha 72
 3 Chen 60</pre></div>
   <p class="lesson-p">Note that <code>key=get_score</code> has <strong>no brackets</strong>. We hand over the function itself and let <code>sorted</code> call it. It calls <code>get_score</code> once for each learner, gets 72, 85 and 60, sorts the learners by those numbers, and <code>reverse=True</code> puts the highest first. <code>enumerate(ranked, start=1)</code> numbers the results from 1 instead of 0. Because we only need this tiny function once, Python offers a shortcut.</p>
-  <p class="lesson-p">A <strong>lambda</strong> is a small function without a name, written on one line: <code>lambda learner: learner["score"]</code>. Read it as "given a <code>learner</code>, give back its score". The word before the colon is the parameter, and whatever follows the colon is the returned value. It is exactly the same function as <code>get_score</code>, just written in place.</p>
+  <p class="lesson-p">A <strong>lambda</strong> is a small function without a name, written on one line: <code>lambda learner: learner["score"]</code>. Read it as "given a <code>learner</code>, give back its score". The word before the colon is the parameter, and whatever follows the colon is the returned value. It is exactly the same function as <code>get_score</code>, written in place.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">The same ranking with a lambda</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code">learners = [
@@ -1413,7 +1413,7 @@ by_group = <span class="bi">sorted</span>(learners, key=<span class="kw">lambda<
   <div class="run-out"><div class="ro-label">Output</div><pre>['Dana', 'Ben', 'Asha', 'Chen']
 Dana
 ['Asha', 'Chen', 'Dana', 'Ben']</pre></div>
-  <p class="lesson-p">Three variations in one block. <code>max</code> accepts the same <code>key=</code>, and returns the whole best record. The last sort uses a <strong>tuple</strong> as the key: Python compares tuples position by position, so this orders by group first, and inside each group by highest score (the minus sign flips the numbers so bigger scores come first). Just like with a list of numbers, <code>sorted</code> builds a new list and <code>.sort(key=...)</code> reorders in place and returns <code>None</code>.</p>
+  <p class="lesson-p">Three variations in one block. <code>max</code> accepts the same <code>key=</code>, and returns the whole best record. The last sort uses a <strong>tuple</strong> as the key: Python compares tuples position by position, so this orders by group first, and inside each group by highest score (the minus sign flips the numbers so bigger scores come first). As with a list of numbers, <code>sorted</code> builds a new list and <code>.sort(key=...)</code> reorders in place and returns <code>None</code>.</p>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Sad path:</strong> if one record lacks the key, the lambda raises <code>KeyError</code> while sorting. When data may be incomplete, use <code>.get</code>: <code>key=lambda l: l.get("score", 0)</code>.</div></div>
   <details class="check"><summary>What do the parts of <code>lambda p: p["age"]</code> mean?</summary><div class="ck-answer"><code>p</code> is the parameter (one item from the list), and <code>p["age"]</code> is the value the lambda returns for it. It is a function that reads the <code>"age"</code> field of whatever it is given.</div></details>
   <details class="check"><summary>Why does <code>sorted(learners, key=get_score())</code> fail?</summary><div class="ck-answer">The brackets call <code>get_score</code> immediately with no argument, instead of passing the function. Pass <code>key=get_score</code> without brackets.</div></details>
@@ -1462,12 +1462,12 @@ step2 = step1[<span class="nm">1</span>]
 step3 = step2[<span class="st">"scores"</span>]
 step4 = step3[<span class="st">"quiz2"</span>]
 <span class="kw">for</span> step <span class="kw">in</span> (step1, step2, step3, step4):
-    <span class="bi">print</span>(<span class="bi">type</span>(step).<span class="bi">__name__</span>, <span class="st">"-&gt;"</span>, step)</div>
+    <span class="bi">print</span>(<span class="bi">type</span>(step), <span class="st">"-&gt;"</span>, step)</div>
   </div>
-  <div class="run-out"><div class="ro-label">Output</div><pre>list -&gt; [{'name': 'Asha', 'scores': {'quiz1': 72, 'quiz2': 80}}, {'name': 'Ben', 'scores': {'quiz1': 85, 'quiz2': 78}}]
-dict -&gt; {'name': 'Ben', 'scores': {'quiz1': 85, 'quiz2': 78}}
-dict -&gt; {'quiz1': 85, 'quiz2': 78}
-int -&gt; 78</pre></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>&lt;class 'list'&gt; -&gt; [{'name': 'Asha', 'scores': {'quiz1': 72, 'quiz2': 80}}, {'name': 'Ben', 'scores': {'quiz1': 85, 'quiz2': 78}}]
+&lt;class 'dict'&gt; -&gt; {'name': 'Ben', 'scores': {'quiz1': 85, 'quiz2': 78}}
+&lt;class 'dict'&gt; -&gt; {'quiz1': 85, 'quiz2': 78}
+&lt;class 'int'&gt; -&gt; 78</pre></div>
   <div class="trace-h">What Python does, line by line</div>
   <ul class="step-list"><li data-n="1"><div><code>response["learners"]</code> looks up a key in a dict. The result is a <code>list</code> of two dicts.</div></li><li data-n="2"><div><code>step1[1]</code> indexes that list. The result is the <code>dict</code> for Ben.</div></li><li data-n="3"><div><code>step2["scores"]</code> looks up a key in Ben's dict. The result is another <code>dict</code>.</div></li><li data-n="4"><div><code>step3["quiz2"]</code> looks up a key in that inner dict. The result is a plain <code>int</code>, 78, and we have arrived.</div></li><li data-n="5"><div>Written in one go: <code>response["learners"][1]["scores"]["quiz2"]</code>. It is the same four steps.</div></li></ul>
   <div class="lesson-h3">When the path is wrong</div>
@@ -1566,7 +1566,7 @@ totals = defaultdict(<span class="bi">int</span>)
   <div class="run-out"><div class="ro-label">Output</div><pre>{'A': ['Asha', 'Chen'], 'B': ['Ben']}
 {'Asha': 7, 'Ben': 5}</pre></div>
   <div class="trace-h">What Python does, line by line</div>
-  <ul class="step-list"><li data-n="1"><div><code>defaultdict(list)</code> makes an empty dict that knows how to create a list on demand.</div></li><li data-n="2"><div>For <code>("Asha", "A")</code> the code reads <code>groups["A"]</code>. The key is missing, so the dict quietly creates <code>[]</code>, stores it, and hands it back. Then <code>.append("Asha")</code> fills it.</div></li><li data-n="3"><div><code>("Chen", "A")</code> finds the key already there and just appends.</div></li><li data-n="4"><div><code>defaultdict(int)</code> creates 0 for a missing key (<code>int()</code> returns 0), so <code>totals[name] += points</code> works on the first visit.</div></li></ul>
+  <ul class="step-list"><li data-n="1"><div><code>defaultdict(list)</code> makes an empty dict that knows how to create a list on demand.</div></li><li data-n="2"><div>For <code>("Asha", "A")</code> the code reads <code>groups["A"]</code>. The key is missing, so the dict quietly creates <code>[]</code>, stores it, and hands it back. Then <code>.append("Asha")</code> fills it.</div></li><li data-n="3"><div><code>("Chen", "A")</code> finds the key already there and only appends.</div></li><li data-n="4"><div><code>defaultdict(int)</code> creates 0 for a missing key (<code>int()</code> returns 0), so <code>totals[name] += points</code> works on the first visit.</div></li></ul>
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Side effect:</strong> merely reading a missing key from a <code>defaultdict</code> <strong>adds</strong> it. If you only want to peek, use <code>key in d</code> or <code>d.get(key)</code>.</div></div>
   <div class="lesson-h3">namedtuple: a tuple with field names</div>
   <p class="lesson-p">A plain tuple <code>("Asha", 72)</code> makes you remember that position 1 is the score. A <code>namedtuple</code> is a tuple whose parts also have names. You define the shape once, then create records that read like <code>learner.score</code>. It stays immutable, and it is lighter than a dict.</p>
@@ -1597,7 +1597,7 @@ asha.score = <span class="nm">80</span></div>
   <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
   File "&lt;exec&gt;", line 4, in &lt;module&gt;
 AttributeError: can't set attribute</pre></div>
-  <p class="lesson-p"><code>AttributeError</code> tells you there is no way to set that attribute: the record is frozen, just like the tuple it is built on. To "change" one, build a new one: <code>asha._replace(score=80)</code>.</p>
+  <p class="lesson-p"><code>AttributeError</code> tells you there is no way to set that attribute: the record is frozen, like the tuple it is built on. To "change" one, build a new one: <code>asha._replace(score=80)</code>.</p>
   <details class="check"><summary>You want to count how often each word appears in a list of words. Which tool?</summary><div class="ck-answer"><code>Counter(words)</code>. It counts in one line, and <code>counts.most_common(3)</code> gives the top three.</div></details>
   <details class="check"><summary>Why is <code>Counter(...)["missing"]</code> safe but <code>{}["missing"]</code> not?</summary><div class="ck-answer">A <code>Counter</code> returns 0 for items it has never seen, because a count of "not there" is naturally 0. A plain dict raises <code>KeyError</code>.</div></details>
   <div class="try-it"><strong>Try it.</strong> In the Counter block, feed it <code>list("mississippi")</code> and read the most common letters. Then change <code>most_common(2)</code> to <code>most_common()</code> with no number.</div>
@@ -1684,223 +1684,109 @@ tweaked = {**defaults, <span class="st">"epochs"</span>: <span class="nm">50</sp
   <div class="try-it"><strong>Try it.</strong> Add a third dict called <code>cli = {"epochs": 3}</code> and merge all three in the order <code>defaults</code>, <code>overrides</code>, <code>cli</code>. Which value of <code>epochs</code> wins, and what happens if you change the order?</div>
   <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>first, *rest = items</code> gives the leftovers to the starred name, always as a list (possibly empty); only one star is allowed.</li><li><code>[*a, *b]</code> builds a list from two lists, and <code>f(*items)</code> passes items as separate arguments.</li><li><code>{**a, **b}</code> merges dicts into a new one; on a clash the <strong>later</strong> dict wins.</li><li>Merging copies only one layer: inner collections are still shared.</li></ul></div>
   <!-- S:END:S:4.13 -->
-  <!-- OLD-START -->
-  <!-- 4.1 -->
-  <div class="lesson-h2">4.1 — Lists in Depth: Mutable, Ordered Collections</div>
-  <p class="lesson-p">You've used lists since Chapter 1. A list is <strong>mutable</strong> — you can change it after creating it — and <strong>ordered</strong> — items keep the position you put them in. Its methods change the list <em>in place</em> and usually return <code>None</code>, which is a common source of confusion.</p>
-
+  <!-- S:4.14 -->
+  <div class="lesson-h2">4.14 — Comprehensions over Lists, Dicts and Sets</div>
+  <p class="lesson-p">In Chapter 2 you met the list comprehension: a loop that builds a list, written on one line. Now that you know dicts and sets, the same idea builds them too. Here is the long way to pick out the names of learners who scored 80 or more, and to make a name-to-score dict.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">List methods — building and reordering a scores list</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [<span class="nm">72</span>, <span class="nm">85</span>, <span class="nm">60</span>, <span class="nm">91</span>, <span class="nm">78</span>]
-
-scores.append(<span class="nm">95</span>)        <span class="cm"># adds to the end — modifies scores in place</span>
-<span class="bi">print</span>(scores)
-
-scores.remove(<span class="nm">60</span>)        <span class="cm"># removes the FIRST 60 it finds</span>
-<span class="bi">print</span>(scores)
-
-scores.sort(reverse=<span class="kw">True</span>)  <span class="cm"># sorts in place, highest first</span>
-<span class="bi">print</span>(scores)
-<span class="bi">print</span>(<span class="st">f'Top score: <span class="bi">{scores[0]}</span>'</span>)
-
-last = scores.pop()      <span class="cm"># removes AND returns the last item</span>
-<span class="bi">print</span>(<span class="st">f'Removed: <span class="bi">{last}</span>, remaining: <span class="bi">{scores}</span>'</span>)</div>
-  </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> <code>scores = scores.sort()</code> sets <code>scores</code> to <code>None</code>! <code>.sort()</code> reorders the list in place and returns nothing. Just call <code>scores.sort()</code> on its own line — don't reassign it.</div></div>
-
-  <!-- 4.2 -->
-  <div class="lesson-h2">4.2 — Tuples: Immutable, Ordered Collections</div>
-  <p class="lesson-p">A tuple looks like a list but uses <code>()</code> instead of <code>[]</code>, and once created, <strong>it cannot be changed</strong>. Use a tuple when a value shouldn't ever be modified — coordinates, a fixed record, a return value made of several parts.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Tuples and unpacking</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">point = (<span class="nm">3</span>, <span class="nm">4</span>)
-x, y = point               <span class="cm"># unpacking — x=3, y=4</span>
-<span class="bi">print</span>(<span class="st">f'x=<span class="bi">{x}</span>, y=<span class="bi">{y}</span>'</span>)
-
-<span class="cm"># point[0] = 5   # <-- TypeError! tuples don't support item assignment</span>
-
-<span class="cm"># Unpacking a list of tuples in a loop — a very common ML pattern</span>
-records = [(<span class="st">'alice'</span>, <span class="nm">28</span>, <span class="st">'Hubli'</span>), (<span class="st">'bob'</span>, <span class="nm">34</span>, <span class="st">'Pune'</span>)]
-<span class="kw">for</span> name, age, city <span class="kw">in</span> records:
-    <span class="bi">print</span>(<span class="st">f'<span class="bi">{name}</span> is <span class="bi">{age}</span> from <span class="bi">{city}</span>'</span>)</div>
-  </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why this matters in ML:</strong> a dataset row is often naturally a tuple — fixed fields, in a fixed order, that shouldn't change once loaded. Functions that return multiple values (like <code>train_test_split()</code> in sklearn) return them as a tuple.</div></div>
-
-  <!-- 4.3 -->
-  <div class="lesson-h2">4.3 — Dictionaries: Key-Value Pairs</div>
-  <p class="lesson-p">A dict maps <strong>keys</strong> to <strong>values</strong>. It's the single most-used data structure in real ML code — model configs, API responses, and JSON files are all, fundamentally, dicts.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Building and reading a model config</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">model_config = {<span class="st">'name'</span>: <span class="st">'ResNet50'</span>, <span class="st">'epochs'</span>: <span class="nm">50</span>, <span class="st">'lr'</span>: <span class="nm">0.001</span>}
-
-<span class="bi">print</span>(model_config[<span class="st">'epochs'</span>])            <span class="cm"># 50 — direct access by key</span>
-<span class="bi">print</span>(model_config.get(<span class="st">'batch_size'</span>, <span class="nm">32</span>))  <span class="cm"># 32 — .get() returns a default instead of crashing</span>
-<span class="cm"># model_config['batch_size']  # <-- this would raise a KeyError! the key doesn't exist yet</span>
-
-model_config[<span class="st">'batch_size'</span>] = <span class="nm">32</span>   <span class="cm"># adding a new key is just an assignment</span>
-
-<span class="kw">for</span> key, value <span class="kw">in</span> model_config.items():
-    <span class="bi">print</span>(<span class="st">f'<span class="bi">{key}</span>: <span class="bi">{value}</span>'</span>)</div>
-  </div>
-  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Real bug that kills real ML pipelines:</strong> <code>config['batch_size']</code> raises <code>KeyError</code> the instant that key is missing — and it WILL be missing sometimes, from an incomplete config file or an old dataset version. <code>config.get('batch_size', 32)</code> never crashes; it just uses your default.</div></div>
-
-  <!-- 4.4 -->
-  <div class="lesson-h2">4.4 — Sets: Unique, Unordered Collections</div>
-  <p class="lesson-p">A set holds only <strong>unique</strong> values, with no guaranteed order, and supports fast mathematical operations: union, intersection, difference. Use it to deduplicate, or to compare two collections of things.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Comparing feature sets between two model versions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">model_a_features = {<span class="st">'age'</span>, <span class="st">'income'</span>, <span class="st">'education'</span>, <span class="st">'city'</span>}
-model_b_features = {<span class="st">'age'</span>, <span class="st">'income'</span>, <span class="st">'job_title'</span>}
-
-common   = model_a_features & model_b_features   <span class="cm"># intersection — in BOTH</span>
-only_a   = model_a_features - model_b_features   <span class="cm"># difference — in A but not B</span>
-combined = model_a_features | model_b_features   <span class="cm"># union — in EITHER</span>
-
-<span class="cm"># sorted() gives a stable, printable order — sets themselves have none</span>
-<span class="bi">print</span>(<span class="st">f'Common: <span class="bi">{sorted(common)}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Only in A: <span class="bi">{sorted(only_a)}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'All features: <span class="bi">{sorted(combined)}</span>'</span>)
-
-<span class="cm"># A classic use: removing duplicate labels</span>
-raw_labels = [<span class="st">'cat'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>, <span class="st">'bird'</span>, <span class="st">'dog'</span>, <span class="st">'cat'</span>]
-unique_labels = <span class="bi">set</span>(raw_labels)
-<span class="bi">print</span>(<span class="st">f'Unique classes: <span class="bi">{sorted(unique_labels)}</span>'</span>)</div>
-  </div>
-
-  <!-- 4.5 -->
-  <div class="lesson-h2">4.5 — The Shape of Real Data: Lists of Dictionaries</div>
-  <p class="lesson-p">This is the pattern you'll see everywhere once you start loading real datasets — CSV rows, API responses, JSON files. Each record is a dict, and the whole dataset is a list of them.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A tiny dataset, ML-shaped</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">candidates = [
-    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'skills'</span>: [<span class="st">'Python'</span>, <span class="st">'SQL'</span>], <span class="st">'score'</span>: <span class="nm">0.92</span>},
-    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'skills'</span>: [<span class="st">'Java'</span>],           <span class="st">'score'</span>: <span class="nm">0.75</span>},
+    <div class="cb-header"><span class="cb-label">The long way</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">learners = [
+    {<span class="st">"name"</span>: <span class="st">"Asha"</span>, <span class="st">"score"</span>: <span class="nm">72</span>},
+    {<span class="st">"name"</span>: <span class="st">"Ben"</span>,  <span class="st">"score"</span>: <span class="nm">85</span>},
+    {<span class="st">"name"</span>: <span class="st">"Chen"</span>, <span class="st">"score"</span>: <span class="nm">60</span>},
+    {<span class="st">"name"</span>: <span class="st">"Dana"</span>, <span class="st">"score"</span>: <span class="nm">91</span>},
 ]
 
-<span class="kw">for</span> c <span class="kw">in</span> candidates:
-    <span class="bi">print</span>(<span class="st">f"<span class="bi">{c['name']}</span>: <span class="bi">{c['score']:.0%}</span> — skills: <span class="bi">{', '.join(c['skills'])}</span>"</span>)</div>
+top = []
+<span class="kw">for</span> l <span class="kw">in</span> learners:
+    <span class="kw">if</span> l[<span class="st">"score"</span>] &gt;= <span class="nm">80</span>:
+        top.append(l[<span class="st">"name"</span>])
+
+by_name = {}
+<span class="kw">for</span> l <span class="kw">in</span> learners:
+    by_name[l[<span class="st">"name"</span>]] = l[<span class="st">"score"</span>]
+<span class="bi">print</span>(top)
+<span class="bi">print</span>(by_name)</div>
   </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['Ben', 'Dana']
+{'Asha': 72, 'Ben': 85, 'Chen': 60, 'Dana': 91}</pre></div>
+  <p class="lesson-p">A <strong>comprehension</strong> packs "loop, optionally filter, build" into one expression. The pattern is the same for all three collections, and only the brackets change: <code>[...]</code> builds a list, <code>{k: v ...}</code> builds a dict, and <code>{x ...}</code> (one value, no colon) builds a set. Read it in the order of the sentence: "give me THIS, for each item in THAT, if CONDITION".</p>
+  <div class="diagram"><div class="dg-title">Anatomy of a comprehension</div><pre>  [ l["name"]   for l in learners   if l["score"] &gt;= 80 ]
+    ^             ^                   ^
+    what to       loop over           optional filter:
+    collect       the source          keep only these
 
-  <!-- 4.6 -->
-  <div class="lesson-h2">4.6 — Sorting Complex Structures</div>
-  <p class="lesson-p">You already met <code>sorted(..., key=lambda ...)</code> in Chapter 3. It works exactly the same way on a list of dicts — the lambda just picks which field to sort by.</p>
-
+  {  name : score   for ...  }    -&gt; dict  (key: value)
+  {  name           for ...  }    -&gt; set   (one value, no colon)</pre><div class="dg-cap">The first part is the value that goes into the new collection. The <code>for</code> part is the same loop you would write on several lines. The <code>if</code> part is optional and keeps only items that pass.</div></div>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Ranking candidates by score</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">candidates = [
-    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'score'</span>: <span class="nm">0.92</span>},
-    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'score'</span>: <span class="nm">0.75</span>},
-    {<span class="st">'name'</span>: <span class="st">'Carol'</span>, <span class="st">'score'</span>: <span class="nm">0.81</span>},
+    <div class="cb-header"><span class="cb-label">The same jobs as comprehensions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">learners = [
+    {<span class="st">"name"</span>: <span class="st">"Asha"</span>, <span class="st">"score"</span>: <span class="nm">72</span>, <span class="st">"group"</span>: <span class="st">"A"</span>},
+    {<span class="st">"name"</span>: <span class="st">"Ben"</span>,  <span class="st">"score"</span>: <span class="nm">85</span>, <span class="st">"group"</span>: <span class="st">"B"</span>},
+    {<span class="st">"name"</span>: <span class="st">"Chen"</span>, <span class="st">"score"</span>: <span class="nm">60</span>, <span class="st">"group"</span>: <span class="st">"A"</span>},
+    {<span class="st">"name"</span>: <span class="st">"Dana"</span>, <span class="st">"score"</span>: <span class="nm">91</span>, <span class="st">"group"</span>: <span class="st">"B"</span>},
 ]
 
-ranked = <span class="bi">sorted</span>(candidates, key=<span class="kw">lambda</span> c: c[<span class="st">'score'</span>], reverse=<span class="kw">True</span>)
-<span class="kw">for</span> i, c <span class="kw">in</span> <span class="bi">enumerate</span>(ranked, start=<span class="nm">1</span>):
-    <span class="bi">print</span>(<span class="st">f'#<span class="bi">{i}</span>: <span class="bi">{c["name"]}</span> — <span class="bi">{c["score"]:.0%}</span>'</span>)</div>
+top     = [l[<span class="st">"name"</span>] <span class="kw">for</span> l <span class="kw">in</span> learners <span class="kw">if</span> l[<span class="st">"score"</span>] &gt;= <span class="nm">80</span>]
+by_name = {l[<span class="st">"name"</span>]: l[<span class="st">"score"</span>] <span class="kw">for</span> l <span class="kw">in</span> learners}
+groups  = {l[<span class="st">"group"</span>] <span class="kw">for</span> l <span class="kw">in</span> learners}
+bonus   = {name: score + <span class="nm">5</span> <span class="kw">for</span> name, score <span class="kw">in</span> by_name.items()}
+
+<span class="bi">print</span>(top)
+<span class="bi">print</span>(by_name)
+<span class="bi">print</span>(<span class="bi">sorted</span>(groups))
+<span class="bi">print</span>(bonus)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong><code>enumerate(ranked, start=1)</code></strong> — the optional <code>start</code> argument you haven't seen yet lets ranks begin at 1 instead of 0. Small thing, very commonly used for leaderboards and reports.</div></div>
-
-  <!-- 4.7 -->
-  <div class="lesson-h2">4.7 — Nested Dicts: The JSON Shape</div>
-  <p class="lesson-p">Config files and API responses often nest a dict inside a dict. Accessing a nested value just means chaining the keys: <code>data['train']['accuracy']</code>.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>['Ben', 'Dana']
+{'Asha': 72, 'Ben': 85, 'Chen': 60, 'Dana': 91}
+['A', 'B']
+{'Asha': 77, 'Ben': 90, 'Chen': 65, 'Dana': 96}</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>top</code> loops over each dict, keeps those with a score of 80 or more, and collects the <code>"name"</code> field into a list.</div></li><li data-n="2"><div><code>by_name</code> uses <code>key: value</code>, so it builds a dict, one entry per learner.</div></li><li data-n="3"><div><code>groups</code> has one value and no colon, so it builds a <strong>set</strong>. Duplicate groups collapse, leaving <code>A</code> and <code>B</code>.</div></li><li data-n="4"><div><code>bonus</code> loops over <code>by_name.items()</code> (the pairs from section 4.7) and builds a new dict with each score raised by 5. The original <code>by_name</code> is untouched.</div></li></ul>
+  <p class="lesson-p">You can also hand a comprehension to a function without building a list. <code>sum(l["score"] for l in learners)</code> adds the scores directly. Leaving off the square brackets makes it a <strong>generator expression</strong>, which yields values one at a time. That is fine for <code>sum</code>, <code>max</code> and <code>any</code>, but do not print it, because it is not a list.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A nested dataset-stats structure</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">dataset_stats = {
-    <span class="st">'train'</span>: {<span class="st">'size'</span>: <span class="nm">8000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.91</span>},
-    <span class="st">'val'</span>:   {<span class="st">'size'</span>: <span class="nm">1000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.87</span>},
-    <span class="st">'test'</span>:  {<span class="st">'size'</span>: <span class="nm">1000</span>, <span class="st">'accuracy'</span>: <span class="nm">0.85</span>},
-}
+    <div class="cb-header"><span class="cb-label">Using the result straight away</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">scores = {<span class="st">"Asha"</span>: <span class="nm">72</span>, <span class="st">"Ben"</span>: <span class="nm">85</span>, <span class="st">"Chen"</span>: <span class="nm">60</span>}
 
-<span class="kw">for</span> split, stats <span class="kw">in</span> dataset_stats.items():
-    <span class="bi">print</span>(<span class="st">f"<span class="bi">{split}</span>: <span class="bi">{stats['size']}</span> samples, <span class="bi">{stats['accuracy']:.0%}</span> accuracy"</span>)
-
-<span class="cm"># Direct nested access — chain the keys:</span>
-<span class="bi">print</span>(<span class="st">f"Test accuracy specifically: <span class="bi">{dataset_stats['test']['accuracy']:.0%}</span>"</span>)</div>
+<span class="bi">print</span>(<span class="bi">sum</span>(s <span class="kw">for</span> s <span class="kw">in</span> scores.values()))
+<span class="bi">print</span>(<span class="bi">any</span>(s &lt; <span class="nm">65</span> <span class="kw">for</span> s <span class="kw">in</span> scores.values()))
+<span class="bi">print</span>({score: name <span class="kw">for</span> name, score <span class="kw">in</span> scores.items()})
+<span class="bi">print</span>([name <span class="kw">for</span> name <span class="kw">in</span> scores <span class="kw">if</span> name != <span class="st">"Ben"</span>])
+<span class="bi">print</span>({n.upper(): s <span class="kw">for</span> n, s <span class="kw">in</span> scores.items() <span class="kw">if</span> s &gt; <span class="nm">65</span>})</div>
   </div>
-
-  <!-- 4.8 -->
-  <div class="lesson-h2">4.8 — The collections Module: Counter, defaultdict, namedtuple</div>
-  <p class="lesson-p">The built-in <code>collections</code> module gives you three specialized containers that solve extremely common data-wrangling problems in one line instead of five. You'll reach for these constantly once you're working with real, messy data.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>217
+True
+{72: 'Asha', 85: 'Ben', 60: 'Chen'}
+['Asha', 'Chen']
+{'ASHA': 72, 'BEN': 85}</pre></div>
+  <p class="lesson-p">The third line <strong>inverts</strong> the dict, swapping keys and values. That only works when the old values are hashable and unique. If two learners had the same score, one would silently overwrite the other. Now a mistake you will make at least once: iterating a dict without <code>.items()</code> when you want pairs.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Counter — counting things without a manual loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter, defaultdict, namedtuple
-
-<span class="cm"># Counter: count occurrences of each item — one line instead of a manual dict+loop</span>
-skill_mentions = [<span class="st">'python'</span>, <span class="st">'sql'</span>, <span class="st">'python'</span>, <span class="st">'ml'</span>, <span class="st">'sql'</span>, <span class="st">'python'</span>]
-counts = Counter(skill_mentions)
-<span class="bi">print</span>(counts)                      <span class="cm"># Counter({'python': 3, 'sql': 2, 'ml': 1})</span>
-<span class="bi">print</span>(counts.most_common(<span class="nm">1</span>))     <span class="cm"># [('python', 3)] — the single most common item, as a list of tuples</span></div>
+    <div class="cb-header"><span class="cb-label">Forgetting .items()</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">scores = {<span class="st">"Asha"</span>: <span class="nm">72</span>, <span class="st">"Ben"</span>: <span class="nm">85</span>}
+doubled = {name: score * <span class="nm">2</span> <span class="kw">for</span> name, score <span class="kw">in</span> scores}</div>
   </div>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">defaultdict — grouping without checking "does this key exist yet?"</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">candidates = [
-    {<span class="st">'name'</span>: <span class="st">'Alice'</span>, <span class="st">'city'</span>: <span class="st">'Hubli'</span>},
-    {<span class="st">'name'</span>: <span class="st">'Bob'</span>,   <span class="st">'city'</span>: <span class="st">'Pune'</span>},
-    {<span class="st">'name'</span>: <span class="st">'Eve'</span>,   <span class="st">'city'</span>: <span class="st">'Hubli'</span>},
-]
-
-<span class="cm"># Without defaultdict you'd need: if city not in groups: groups[city] = []</span>
-groups = defaultdict(<span class="bi">list</span>)   <span class="cm"># any missing key auto-creates an empty list</span>
-<span class="kw">for</span> c <span class="kw">in</span> candidates:
-    groups[c[<span class="st">'city'</span>]].append(c[<span class="st">'name'</span>])
-<span class="bi">print</span>(<span class="bi">dict</span>(groups))   <span class="cm"># {'Hubli': ['Alice', 'Eve'], 'Pune': ['Bob']}</span></div>
-  </div>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">namedtuple — a lightweight, immutable record with named fields</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">Candidate = namedtuple(<span class="st">'Candidate'</span>, [<span class="st">'name'</span>, <span class="st">'score'</span>])
-
-alice = Candidate(<span class="st">'Alice'</span>, <span class="nm">0.92</span>)
-<span class="bi">print</span>(alice.name, alice.score)   <span class="cm"># access by NAME, not index — reads like a dict, immutable like a tuple</span>
-<span class="bi">print</span>(alice)                  <span class="cm"># Candidate(name='Alice', score=0.92) — a readable repr for free</span></div>
-  </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>When to reach for which:</strong> <code>Counter</code> for "how many of each," <code>defaultdict</code> for "group these by some key," <code>namedtuple</code> when a plain tuple's <code>record[0]</code>/<code>record[1]</code> access gets hard to read and you want <code>record.name</code> instead — without the overhead of a full class.</div></div>
-
-  <!-- 4.9 -->
-  <div class="lesson-h2">4.9 — Star- and Dict-Unpacking</div>
-  <p class="lesson-p">Plain unpacking (<code>x, y = point</code>) requires an exact count match. <strong>Star-unpacking</strong> lets one variable soak up "everything else," and <strong>dict-unpacking</strong> (<code>**</code>) lets you merge or override dictionaries without writing a loop.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Star-unpacking — first, rest, and last</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [<span class="nm">72</span>, <span class="nm">85</span>, <span class="nm">60</span>, <span class="nm">91</span>, <span class="nm">78</span>]
-
-first, *rest = scores
-<span class="bi">print</span>(<span class="st">f'first=<span class="bi">{first}</span>, rest=<span class="bi">{rest}</span>'</span>)     <span class="cm"># first=72, rest=[85, 60, 91, 78]</span>
-
-*most, last = scores
-<span class="bi">print</span>(<span class="st">f'most=<span class="bi">{most}</span>, last=<span class="bi">{last}</span>'</span>)     <span class="cm"># most=[72, 85, 60, 91], last=78</span>
-
-first, *middle, last = scores
-<span class="bi">print</span>(<span class="st">f'first=<span class="bi">{first}</span>, middle=<span class="bi">{middle}</span>, last=<span class="bi">{last}</span>'</span>)</div>
-  </div>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Dict-unpacking — merging and overriding configs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">base_config = {<span class="st">'epochs'</span>: <span class="nm">50</span>, <span class="st">'lr'</span>: <span class="nm">0.001</span>, <span class="st">'batch_size'</span>: <span class="nm">32</span>}
-overrides   = {<span class="st">'lr'</span>: <span class="nm">0.01</span>}   <span class="cm"># a per-experiment override</span>
-
-<span class="cm"># Later keys win — overrides['lr'] replaces base_config['lr']</span>
-merged = {**base_config, **overrides}
-<span class="bi">print</span>(merged)   <span class="cm"># {'epochs': 50, 'lr': 0.01, 'batch_size': 32}</span></div>
-  </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why this matters in ML:</strong> <code>{**default_config, **experiment_overrides}</code> is the standard one-liner for "start from defaults, then apply just what this run changes" — you'll see it in almost every training script.</div></div>
-
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 2, in &lt;module&gt;
+ValueError: too many values to unpack (expected 2)</pre></div>
+  <p class="lesson-p">Looping over a dict yields only the <strong>keys</strong>, as section 4.7 explained. Here each key is a string like <code>"Asha"</code>, and Python tries to split that string into two names, one per character. <code>"Asha"</code> has four characters, so the count does not match and you get the <code>ValueError</code> for too many values. The fix is <code>scores.items()</code>, as in the working block above.</p>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Keep comprehensions short.</strong> If it needs more than one <code>if</code>, or does not fit on a line, write the plain loop from the first block. Clear code beats clever code.</div></div>
+  <details class="check"><summary>Write a comprehension that gives the squares of the numbers 1 to 5 as a dict, like <code>{1: 1, 2: 4, ...}</code>.</summary><div class="ck-answer"><code>{n: n * n for n in range(1, 6)}</code>. The <code>n: n * n</code> part builds each key and value, and the <code>for</code> part supplies the numbers.</div></details>
+  <details class="check"><summary>What does <code>{c for c in "hello"}</code> give, and does the order matter?</summary><div class="ck-answer">A set of the distinct letters: <code>h</code>, <code>e</code>, <code>l</code>, <code>o</code> (the second <code>l</code> collapses). Sets have no order, so use <code>sorted(...)</code> when printing.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the <code>top</code> comprehension to keep learners from group <code>"A"</code> instead, then to keep those with a score between 60 and 90 (use a chained comparison from Chapter 2).</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>comprehension</strong> is <code>[value for item in source if condition]</code>; the brackets decide the result: <code>[...]</code> list, <code>{k: v ...}</code> dict, <code>{x ...}</code> set.</li><li>Loop over <code>d.items()</code> to get key and value together; a bare <code>for k, v in d</code> fails with a <code>ValueError</code>.</li><li>Round brackets around a comprehension make a generator: handy inside <code>sum</code> or <code>any</code>, not for printing.</li><li>If a comprehension gets hard to read, use a normal loop.</li></ul></div>
+  <!-- S:END:S:4.14 -->
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 4 Summary</div>
+  <div class="lesson-h2">Chapter 4 Summary: what you can now do</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>Lists</strong> are mutable and ordered. Methods like <code>.sort()</code> and <code>.append()</code> change the list in place and return <code>None</code> — never reassign their result.</div></li>
-    <li data-n="2"><div><strong>Tuples</strong> are immutable and ordered — use them for fixed records, and for unpacking multiple values at once.</div></li>
-    <li data-n="3"><div><strong>Dicts</strong> map keys to values. Use <code>.get(key, default)</code> instead of <code>[key]</code> whenever the key might not exist.</div></li>
-    <li data-n="4"><div><strong>Sets</strong> hold unique values and support <code>&amp;</code> (intersection), <code>-</code> (difference), <code>|</code> (union).</div></li>
-    <li data-n="5"><div><strong>Lists of dicts</strong> are the shape of real datasets. <strong>Nested dicts</strong> are the shape of real configs and JSON.</div></li>
-    <li data-n="6"><div><strong>sorted(data, key=lambda x: x['field'])</strong> ranks any list of dicts by any field.</div></li>
-    <li data-n="7"><div><strong>collections</strong> gives you <code>Counter</code> (count things), <code>defaultdict</code> (group things), and <code>namedtuple</code> (a lightweight named record). <strong>Star-unpacking</strong> (<code>first, *rest = ...</code>) and <strong>dict-unpacking</strong> (<code>{**a, **b}</code>) merge and split structures without a manual loop.</div></li>
+    <li data-n="1"><div><strong>Collections</strong> hold many values under one name, so code does not depend on how many values there are. Choose by the question you will ask: position (list), fixed record (tuple), label lookup (dict), uniqueness and membership (set).</div></li>
+    <li data-n="2"><div><strong>Lists</strong> are ordered and mutable. Indexes count from 0 (negative from the end); slices <code>[start:stop:step]</code> build new lists and exclude the stop. An index past the end raises <code>IndexError</code>.</div></li>
+    <li data-n="3"><div><strong>In-place methods</strong> (<code>append</code>, <code>sort</code>, <code>remove</code>, ...) return <code>None</code>, so never write <code>x = x.sort()</code>. <code>sorted(x)</code> returns a new list.</div></li>
+    <li data-n="4"><div><strong>Assignment</strong> copies name tags, not objects: <code>b = a</code> is an alias. Use <code>.copy()</code>, <code>list(x)</code> or <code>x[:]</code> for a copy, and <code>copy.deepcopy</code> for nested data.</div></li>
+    <li data-n="5"><div><strong>Tuples</strong> are immutable. Unpacking (<code>x, y = pair</code>) splits them by position, and the counts must match or you get a <code>ValueError</code>.</div></li>
+    <li data-n="6"><div><strong>Dicts</strong> map hashable keys to values. Use <code>d.get(key, default)</code> when the key may be missing, <code>d.items()</code> to loop over pairs, and expect <code>KeyError</code> from <code>d[key]</code> on a missing key.</div></li>
+    <li data-n="7"><div><strong>Sets</strong> store unique values with fast <code>in</code> tests. <code>&amp;</code>, <code>|</code>, <code>-</code>, <code>^</code> compare groups; print with <code>sorted(...)</code>. An empty set is <code>set()</code>, not <code>{}</code>.</div></li>
+    <li data-n="8"><div><strong>Lists of dicts</strong> are the shape of real datasets and nested dicts are the shape of JSON. Read <code>d["a"][0]["b"]</code> one step at a time, and rank records with <code>sorted(data, key=lambda r: r["field"])</code>.</div></li>
+    <li data-n="9"><div><strong>collections and unpacking:</strong> <code>Counter</code> counts, <code>defaultdict</code> groups, <code>namedtuple</code> names the parts of a record; <code>first, *rest = items</code> splits a list and <code>{**a, **b}</code> merges dicts (later wins).</div></li>
+    <li data-n="10"><div><strong>Comprehensions</strong> build lists, dicts and sets from another collection: <code>[x for ...]</code>, <code>{k: v for ...}</code>, <code>{x for ...}</code>.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
