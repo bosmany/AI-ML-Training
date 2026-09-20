@@ -117,6 +117,36 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
+/* lesson deepen: teaching components */
+.lesson-h3{font-size:15px;font-weight:700;color:var(--text);margin:22px 0 8px}
+.trace-h{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--violet);margin:18px 0 2px}
+.cb-tag{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);border:1px solid var(--border);border-radius:5px;padding:2px 7px}
+.run-out{background:#050608;border:1px solid var(--border);border-radius:0 0 10px 10px;margin:-9px 0 16px;overflow:hidden}
+.run-out .ro-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#8B91A5;padding:6px 14px 0}
+.run-out pre{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C9D5E5;padding:4px 14px 12px;margin:0;white-space:pre;overflow-x:auto}
+.run-out.ro-err{border-color:rgba(255,87,87,.35)}
+.run-out.ro-err pre{color:#FCA5A5}
+.diagram{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:16px 0;overflow-x:auto}
+.diagram pre{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--text);white-space:pre;margin:0}
+.diagram .dg-cap{font-size:12px;color:var(--t2);margin-top:10px;font-style:italic;white-space:normal}
+.diagram .dg-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:8px}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:4px solid var(--violet);border-radius:10px;padding:14px 18px;margin:20px 0 8px;font-size:13.5px;color:var(--t2);line-height:1.7}
+.recap strong.rc-title{display:block;color:var(--text);font-size:13px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
+.recap ul{margin:0 0 0 18px}
+.recap li{margin-bottom:3px}
+.recap code,.ck-answer code,details.check summary code,.try-it code,.info-box code,.step-list code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+details.check{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:14px 0;padding:0}
+details.check summary{cursor:pointer;padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--text);list-style:none}
+details.check summary::-webkit-details-marker{display:none}
+details.check summary::before{content:'\1F914  Check yourself: ';color:var(--gold);font-weight:700}
+details.check[open] summary{border-bottom:1px solid var(--border)}
+details.check .ck-answer{padding:12px 16px;font-size:13.5px;color:var(--t2);line-height:1.7}
+details.check .ck-answer strong{color:var(--cyan)}
+.try-it{background:var(--card);border:1px dashed var(--violet);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--t2);line-height:1.7}
+.try-it strong{color:var(--violet)}
+.lesson-p a{color:var(--violet)}
+.lesson-table td{overflow-wrap:anywhere}
+@media(max-width:560px){.lesson-table{display:block;overflow-x:auto}}
 
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
@@ -421,7 +451,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 5: OOP, Files &amp; Errors</div>
+  <div id="mob-title">Ch 5: Files, Errors &amp; More</div>
   <button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -448,7 +478,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 <div id="content">
   <div id="topbar">
     <div class="tb-chapter">Chapter 5</div>
-    <div class="tb-title">OOP, Files &amp; Errors</div>
+    <div class="tb-title">Files, Errors &amp; More</div>
     <div class="tb-gap"></div>
     <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
     <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
@@ -467,15 +497,17 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
   <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 4 quiz in this browser yet. This chapter assumes you're comfortable with lists, dicts, and functions.</span></div>
 
   <div class="lesson-intro">
-    <h1>Chapter 5:<br/><span>OOP, Files &amp; Errors</span></h1>
-    <p>Everything from Chapters 1-4 comes together here. Classes let you bundle data and behavior into one reusable unit (this is what a <code>DataFrame</code> or a PyTorch <code>Model</code> actually is). try/except lets your code survive bad data instead of crashing on it. And file I/O is how data gets from disk into your program in the first place. By the end, you'll build a Dataset class that loads, cleans, and reports on real messy data — then Chapters 6-7 turn this into professional, production-ready Python.</p>
+    <h1>Chapter 5:<br/><span>Files, Errors &amp; More</span></h1>
+    <p>So far your programs have only worked on data typed into the code. Real programs read data from files, and files are messy: missing, half-written, in the wrong encoding, full of values that are not numbers. This chapter teaches you to read the messages Python prints when something breaks, to catch and raise errors on purpose, and to read and write files, paths, CSV and JSON safely. You already know classes from the OOP track, and you will see them again here, because errors are classes too. By the end you will finish a small Dataset project that loads and cleans a deliberately messy file, and Chapters 6-7 turn this into professional, production-ready Python.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~90 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
+
+
 
 
 
@@ -535,328 +567,1385 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-  <!-- 5.1 -->
-  <div class="lesson-h2">5.1 — Classes: Bundling Data and Behavior</div>
-  <p class="lesson-p">Every object you've used so far — a list, a string, a dict — is an <strong>instance</strong> of a class someone else wrote. A <strong>class</strong> is a blueprint for creating your own objects that carry both data (<strong>attributes</strong>) and behavior (<strong>methods</strong>) together. <code>self</code> refers to "this particular instance" inside the class.</p>
-
+  <!-- S:5.1 -->
+  <div class="lesson-h2">5.1 — Bridge: From Objects to the Outside World</div>
+  <p class="lesson-p">You have just finished the OOP track, so you already know how to build objects: a <strong>class</strong> is a blueprint, an <strong>instance</strong> is one thing made from it, and methods, inheritance, <code>__str__</code>, properties, dataclasses and <code>unittest</code> are the tools that keep such objects tidy. This chapter does not repeat any of that. If a word like <code>super()</code> or <code>@property</code> feels rusty, the track is one click away: <a href="oop01-classes-and-objects.html">OOP 1: Classes and Objects</a>, <a href="oop02-encapsulation-special-methods.html">OOP 2: Encapsulation and Special Methods</a>, <a href="oop03-inheritance-polymorphism.html">OOP 3: Inheritance and Polymorphism</a>, <a href="oop04-composition-dataclasses-design.html">OOP 4: Composition, Dataclasses and Design</a> and <a href="oop05-oop-project-testing-pitfalls.html">OOP 5: Project, Testing and Pitfalls</a>.</p>
+  <p class="lesson-p">Here is the problem this chapter solves. Every object you build lives only while the program runs, and everything it works on is data you typed into the code. Real programs are different. The data sits in <strong>files</strong> on disk, written by other people or other programs. Those files may be missing, half-written, in the wrong text encoding, or full of values like <code>'absent'</code> where a number should be. Any step can fail, and a program that has no plan for failure simply stops with a wall of red text.</p>
+  <p class="lesson-p">So this chapter has two halves that belong together. First, <strong>errors</strong>: how to read the message Python prints when something breaks, how to catch an error and carry on, how to raise your own errors, and how to keep a trail from a friendly message back to the real cause. Second, <strong>files and formats</strong>: how to open and close a file safely, how to handle paths, and how to read and write the two formats you will meet constantly, <strong>CSV</strong> (tables) and <strong>JSON</strong> (nested data).</p>
+  <div class="diagram"><div class="dg-title">The journey of a piece of data</div><pre>  disk            your program                              result
+ +---------+ open +---------+ parse +---------+ check +---------+
+ |scores.csv|----&gt;|  text   |------&gt;| dicts &amp; |------&gt;|  clean  |
+ | (a file) |     |(strings)| csv,  | lists   | raise |  data   |
+ +---------+      +---------+ json  +---------+       +---------+
+     ^                 ^                ^                  ^
+     |                 |                |                  |
+ FileNotFound-     UnicodeDecode-   ValueError,       your own errors
+ Error,            Error, wrong     KeyError,         (raise), caught
+ PermissionError   newlines         JSONDecodeError   with try/except</pre><div class="dg-cap">At every arrow something can go wrong. The names underneath are the errors you will learn to read, catch and raise in this chapter.</div></div>
+  <p class="lesson-p">Notice the second connection to the OOP track: <strong>errors are objects too</strong>. Every error name you have ever seen, such as <code>ValueError</code>, is a class, and the classes form a family tree with parents and children, exactly like the inheritance you just studied. That is why you will be able to write your own error class in one short line later on. Let us prove it with a tiny run.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Your first class</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
-        self.name = name           <span class="cm"># attribute — data that belongs to THIS instance</span>
-        self.accuracy = accuracy
+    <div class="cb-header"><span class="cb-label">Errors are classes with parents</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="bi">print</span>(<span class="cls">ValueError</span>.__mro__)
+<span class="bi">print</span>(<span class="bi">issubclass</span>(<span class="cls">FileNotFoundError</span>, <span class="cls">OSError</span>))
 
-    <span class="kw">def</span> <span class="fn">report</span>(self):
-        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>   <span class="cm"># method — behavior that uses the data</span>
-
-    <span class="kw">def</span> <span class="fn">is_production_ready</span>(self):
-        <span class="kw">return</span> self.accuracy >= <span class="nm">0.9</span>
-
-<span class="cm"># __init__ runs automatically when you create an instance:</span>
-model_a = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
-model_b = <span class="cls">Model</span>(<span class="st">'MobileNet'</span>, <span class="nm">0.847</span>)
-
-<span class="bi">print</span>(model_a.report())
-<span class="bi">print</span>(model_b.report())
-<span class="bi">print</span>(<span class="st">f'model_a production ready? <span class="bi">{model_a.is_production_ready()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'model_b production ready? <span class="bi">{model_b.is_production_ready()}</span>'</span>)</div>
+problem = <span class="cls">ValueError</span>(<span class="st">'score must be a number'</span>)
+<span class="bi">print</span>(<span class="bi">type</span>(problem).__name__)
+<span class="bi">print</span>(problem.args)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>This is exactly what real ML classes look like.</strong> <code>sklearn.LinearRegression()</code> is a class. When you call <code>.fit(X, y)</code>, you're calling a method that reads and writes attributes on <code>self</code> (like the learned weights). You've been using this pattern since Chapter 1 — now you know how to build one.</div></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>(&lt;class 'ValueError'&gt;, &lt;class 'Exception'&gt;, &lt;class 'BaseException'&gt;, &lt;class 'object'&gt;)
+True
+ValueError
+('score must be a number',)</pre></div>
+  <p class="lesson-p"><code>__mro__</code> lists a class followed by its parents, in order. So <code>ValueError</code> is a kind of <code>Exception</code>, which is a kind of <code>BaseException</code>, which is a kind of plain <code>object</code>. The <code>issubclass</code> line confirms that a <code>FileNotFoundError</code> counts as an <code>OSError</code>. On the last two lines we built an error object by hand, the same way you would build any instance, and asked it for its type and its message. Nothing is raised yet: an error is only an object until somebody raises it.</p>
+  <p class="lesson-p">Throughout the chapter we follow one small running example, a class quiz log. It starts as a list of strings such as <code>'Asha,92'</code>, and by the end it is read from files, parsed, validated and written back out. Each section adds one safety feature.</p>
+  <details class="check"><summary>Which idea from the OOP track lets you write your own kind of error that still counts as a <code>ValueError</code>?</summary><div class="ck-answer"><strong>Inheritance.</strong> A subclass of <code>ValueError</code> is also a <code>ValueError</code>, so any handler that catches <code>ValueError</code> also catches your new error.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>ValueError</code> in the first line to <code>KeyError</code> and to <code>ZeroDivisionError</code>, and compare the parent lists. Which two names appear in every list?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Classes, inheritance, dunder methods, properties, dataclasses and <code>unittest</code> are taught in the OOP track. This chapter uses them but does not re-teach them.</li><li>Real data lives in files and is often messy, so a real program must expect failure at every step.</li><li>Errors are objects made from classes in a family tree; <code>__mro__</code> shows a class and its parents.</li><li>This chapter covers reading errors, catching them, raising them, then files, paths, CSV and JSON.</li></ul></div>
+  <!-- /S:5.1 -->
 
-  <!-- 5.2 -->
-  <div class="lesson-h2">5.2 — Methods Calling Other Methods</div>
-  <p class="lesson-p">Methods on the same object can call each other through <code>self</code>. This lets you build up complex behavior from small, single-purpose pieces — exactly like functions in Chapter 3, but scoped to one object's data.</p>
-
+  <!-- S:5.2 -->
+  <div class="lesson-h2">5.2 — Reading a Traceback: What Python Is Telling You</div>
+  <p class="lesson-p">Before we learn to catch errors, we need to read them, because the message Python prints is the best debugging help you will ever get for free. Beginners often glance at the wall of red text and panic. It is much friendlier than it looks. Let us build a small program on our running example that fails three function calls deep, and look at the whole message.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A class with several cooperating methods</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">TrainingRun</span>:
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, model_name, train_loss, val_loss):
-        self.model_name = model_name
-        self.train_loss = train_loss
-        self.val_loss = val_loss
+    <div class="cb-header"><span class="cb-label">Three functions deep, then a crash</span><span class="cb-tag">real traceback</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> traceback
 
-    <span class="kw">def</span> <span class="fn">is_overfitting</span>(self):
-        <span class="kw">return</span> self.val_loss > self.train_loss * <span class="nm">1.2</span>
+<span class="kw">def</span> <span class="fn">parse_score</span>(text):
+    <span class="kw">return</span> <span class="bi">int</span>(text)
 
-    <span class="kw">def</span> <span class="fn">verdict</span>(self):
-        <span class="kw">if</span> self.is_overfitting():          <span class="cm"># calling another method on self</span>
-            <span class="kw">return</span> <span class="st">'Watch for overfitting'</span>
-        <span class="kw">return</span> <span class="st">'On track'</span>
+<span class="kw">def</span> <span class="fn">average_score</span>(lines):
+    total = <span class="nm">0</span>
+    <span class="kw">for</span> line <span class="kw">in</span> lines:
+        name, raw = line.split(<span class="st">','</span>)
+        total += parse_score(raw)
+    <span class="kw">return</span> total / <span class="bi">len</span>(lines)
 
-    <span class="kw">def</span> <span class="fn">summary</span>(self):
-        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.model_name}</span>: train=<span class="bi">{self.train_loss:.4f}</span>, val=<span class="bi">{self.val_loss:.4f}</span> → <span class="bi">{self.verdict()}</span>'</span>
-
-run = <span class="cls">TrainingRun</span>(<span class="st">'CandidateScorer-v1'</span>, <span class="nm">0.12</span>, <span class="nm">0.31</span>)
-<span class="bi">print</span>(run.summary())</div>
+<span class="kw">try</span>:
+    <span class="bi">print</span>(average_score([<span class="st">'Asha,92'</span>, <span class="st">'Ben,eighty'</span>]))
+<span class="kw">except</span> <span class="cls">Exception</span>:
+    traceback.print_exc()</div>
   </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 14, in &lt;module&gt;
+  File "&lt;exec&gt;", line 10, in average_score
+  File "&lt;exec&gt;", line 4, in parse_score
+ValueError: invalid literal for int() with base 10: 'eighty'</pre></div>
+  <p class="lesson-p">The <code>try/except</code> around the call is there only so this page can show you the message and carry on; it is explained fully in the next section. <code>traceback.print_exc()</code> prints the same text Python would have printed if the program had really crashed. That is worth doing here for a specific reason: this page's console shows only the last line of an uncaught error, while desktop Python prints the whole traceback, so we ask for it explicitly.</p>
+  <p class="lesson-p">A <strong>traceback</strong> is the list of function calls that were active when the error happened, printed so that the newest call is at the bottom. Think of a stack of paper trays on a desk: <code>average_score</code> handed a sheet to <code>parse_score</code>, which handed a piece to <code>int</code>, and <code>int</code> is where it tore. Python walks you down the stack from the first call to the exact place of the failure.</p>
+  <div class="diagram"><div class="dg-title">Anatomy of a traceback</div><pre> Traceback (most recent call last):     &lt;- header: newest call LAST
+   File "&lt;exec&gt;", line 14, in &lt;module&gt;       &lt;- main program called...
+   File "&lt;exec&gt;", line 10, in average_score &lt;- ...average_score, which
+   File "&lt;exec&gt;", line 4, in parse_score    &lt;- ...called parse_score
+ ValueError: invalid literal for int() with base 10: 'eighty'
+ ^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ |           +-- message: WHAT was wrong, often with the bad value
+ +-- error type: WHAT KIND of problem (what `except` matches)
 
-  <!-- 5.3 -->
-  <div class="lesson-h2">5.3 — Inheritance and super()</div>
-  <p class="lesson-p">A subclass inherits everything from its parent class, then can add new behavior or override existing methods. <code>super().__init__(...)</code> calls the parent's constructor so you don't have to repeat its logic — this is how you extend a class without copy-pasting it.</p>
-
+ Read order: 1) last line  2) last File line  3) go upwards if needed</pre><div class="dg-cap">On your own computer each File line is followed by the source line itself. Inside the browser the code has no file name, so Python leaves the source out and shows <code>&lt;exec&gt;</code> instead. The line numbers still count from the first line of the block.</div></div>
+  <div class="trace-h">How to read it, step by step</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Start at the bottom.</strong> <code>ValueError: invalid literal for int() with base 10: 'eighty'</code> names the type of the problem and the offending value. It already says most of what you need.</div></li>
+    <li data-n="2"><div><strong>Look at the last <code>File</code> line above it.</strong> <code>line 4, in parse_score</code> is where Python was standing when it gave up: the line <code>return int(text)</code>.</div></li>
+    <li data-n="3"><div><strong>Ask who called that function.</strong> The <code>File</code> line above it says <code>average_score</code> at line 10 made the call, using the string <code>raw</code> it had just split off.</div></li>
+    <li data-n="4"><div><strong>Decide where the real fault is.</strong> The crash happened in <code>parse_score</code>, but the cause is the input <code>'Ben,eighty'</code>. The error line shows where Python noticed; you decide where to fix.</div></li>
+  </ul>
+  <p class="lesson-p">Errors have names for a reason. Six of them cause most beginner crashes, and they read very clearly once you know the pattern <code>TypeName: what happened</code>. The block below triggers each one on purpose. It uses <code>eval</code>, which runs a string as Python code; that is fine for a demo like this, but never use it on text you did not write yourself.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A subclass extending Model with super()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
-        self.name = name
-        self.accuracy = accuracy
+    <div class="cb-header"><span class="cb-label">The usual suspects, each triggered on purpose</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">snippets = [<span class="st">"int('abc')"</span>, <span class="st">"'5' + 3"</span>, <span class="st">"[1, 2, 3][5]"</span>,
+            <span class="st">"{'a': 1}['b']"</span>, <span class="st">"10 / 0"</span>, <span class="st">"undefined_name"</span>]
 
-    <span class="kw">def</span> <span class="fn">summary</span>(self):
-        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>
-
-<span class="kw">class</span> <span class="cls">FineTunedModel</span>(<span class="cls">Model</span>):
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy, base_model):
-        <span class="bi">super</span>().__init__(name, accuracy)   <span class="cm"># runs Model's __init__ first</span>
-        self.base_model = base_model
-
-    <span class="kw">def</span> <span class="fn">summary</span>(self):
-        base_summary = <span class="bi">super</span>().summary()   <span class="cm"># reuse the parent's method instead of rewriting it</span>
-        <span class="kw">return</span> <span class="st">f'<span class="bi">{base_summary}</span> (fine-tuned from <span class="bi">{self.base_model}</span>)'</span>
-
-m = <span class="cls">FineTunedModel</span>(<span class="st">'ResNet50-FT'</span>, <span class="nm">0.9423</span>, <span class="st">'ResNet50'</span>)
-<span class="bi">print</span>(m.summary())
-<span class="bi">print</span>(<span class="bi">isinstance</span>(m, <span class="cls">Model</span>))   <span class="cm"># True — a FineTunedModel IS-A Model</span></div>
-  </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>super() means "the same method, one level up."</strong> Without it, <code>FineTunedModel.__init__</code> would have to repeat <code>self.name = name; self.accuracy = accuracy</code> itself — duplicating logic that already lives in <code>Model</code>. If <code>Model</code> ever changes, every subclass using <code>super()</code> picks up the change automatically.</div></div>
-
-  <!-- 5.4 -->
-  <div class="lesson-h2">5.4 — Dunder Methods: __str__, __repr__, __eq__</div>
-  <p class="lesson-p">"Dunder" (double-underscore) methods let your own objects hook into Python's built-in behavior. <code>__str__</code> controls what <code>print(obj)</code> shows; <code>__repr__</code> is the unambiguous, developer-facing form shown inside a list or the console; <code>__eq__</code> controls what <code>==</code> does between two instances.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Giving Model a readable print, repr, and equality check</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
-        self.name = name
-        self.accuracy = accuracy
-
-    <span class="kw">def</span> <span class="fn">__str__</span>(self):
-        <span class="kw">return</span> <span class="st">f'<span class="bi">{self.name}</span>: <span class="bi">{self.accuracy:.2%}</span>'</span>   <span class="cm"># used by print(obj) and str(obj)</span>
-
-    <span class="kw">def</span> <span class="fn">__repr__</span>(self):
-        <span class="kw">return</span> <span class="st">f'Model(name=<span class="bi">{self.name!r}</span>, accuracy=<span class="bi">{self.accuracy!r}</span>)'</span>   <span class="cm"># used inside lists/the console</span>
-
-    <span class="kw">def</span> <span class="fn">__eq__</span>(self, other):
-        <span class="kw">return</span> self.name == other.name <span class="kw">and</span> self.accuracy == other.accuracy
-
-a = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
-b = <span class="cls">Model</span>(<span class="st">'ResNet50'</span>, <span class="nm">0.9423</span>)
-
-<span class="bi">print</span>(a)          <span class="cm"># uses __str__</span>
-<span class="bi">print</span>([a])        <span class="cm"># a list prints its items with __repr__, not __str__</span>
-<span class="bi">print</span>(a == b)     <span class="cm"># uses __eq__ — True, even though a and b are different objects in memory</span>
-<span class="bi">print</span>(a <span class="kw">is</span> b)     <span class="cm"># "is" checks IDENTITY, not equality — False</span></div>
-  </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Without <code>__eq__</code>, <code>==</code> falls back to identity</strong> — two separately-created objects with identical data would compare as NOT equal, which usually isn't what you want when comparing data records.</div></div>
-
-  <!-- 5.5 -->
-  <div class="lesson-h2">5.5 — @property, @classmethod, @staticmethod</div>
-  <p class="lesson-p"><code>@property</code> lets a method be read like a plain attribute (no parentheses) — perfect for a value that's always computed fresh, so it can never go stale. <code>@classmethod</code> receives the class itself (<code>cls</code>) instead of an instance, commonly used for alternate constructors. <code>@staticmethod</code> takes neither <code>self</code> nor <code>cls</code> — it's a plain function that just lives inside the class for organization.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Three method types, three different purposes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">Model</span>:
-    <span class="kw">def</span> <span class="fn">__init__</span>(self, name, accuracy):
-        self.name = name
-        self.accuracy = accuracy
-
-    @property
-    <span class="kw">def</span> <span class="fn">is_production_ready</span>(self):
-        <span class="kw">return</span> self.accuracy >= <span class="nm">0.9</span>   <span class="cm"># computed live — no separate flag that could get out of sync</span>
-
-    @classmethod
-    <span class="kw">def</span> <span class="fn">from_percent</span>(cls, name, percent):
-        <span class="kw">return</span> cls(name, percent / <span class="nm">100</span>)   <span class="cm"># an alternate constructor: Model.from_percent('X', 94.23)</span>
-
-    @staticmethod
-    <span class="kw">def</span> <span class="fn">grade</span>(accuracy):
-        <span class="kw">return</span> <span class="st">'A'</span> <span class="kw">if</span> accuracy >= <span class="nm">0.9</span> <span class="kw">else</span> <span class="st">'B'</span> <span class="kw">if</span> accuracy >= <span class="nm">0.75</span> <span class="kw">else</span> <span class="st">'C'</span>
-
-m = <span class="cls">Model</span>.from_percent(<span class="st">'ResNet50'</span>, <span class="nm">94.23</span>)
-<span class="bi">print</span>(m.is_production_ready)      <span class="cm"># no () — it's a property, not a method call</span>
-<span class="bi">print</span>(<span class="cls">Model</span>.grade(m.accuracy))    <span class="cm"># called on the CLASS — doesn't need an instance at all</span></div>
-  </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Pick the right tool:</strong> a computed value that should look like data → <code>@property</code>. An alternate way to build an instance → <code>@classmethod</code>. A utility function that's topically related but needs neither <code>self</code> nor <code>cls</code> → <code>@staticmethod</code>.</div></div>
-
-  <!-- 5.6 -->
-  <div class="lesson-h2">5.6 — try/except: Surviving Bad Data</div>
-  <p class="lesson-p">Real data is messy. A `try` block runs code that might fail; if it raises an exception, the matching `except` block runs instead of crashing your whole program. This is the difference between a pipeline that dies on row 4,000 of 10,000, and one that skips the bad row and keeps going.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Catching a specific error type</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">raw_ages = [<span class="st">'28'</span>, <span class="st">'34'</span>, <span class="st">'unknown'</span>, <span class="st">'25'</span>]   <span class="cm"># 'unknown' will break int()</span>
-
-valid_ages = []
-errors = <span class="nm">0</span>
-<span class="kw">for</span> a <span class="kw">in</span> raw_ages:
+<span class="kw">for</span> code <span class="kw">in</span> snippets:
     <span class="kw">try</span>:
-        valid_ages.append(<span class="bi">int</span>(a))
-    <span class="kw">except</span> ValueError:
-        errors += <span class="nm">1</span>
-        <span class="bi">print</span>(<span class="st">f'Skipping bad value: <span class="bi">{a!r}</span>'</span>)
-
-<span class="bi">print</span>(<span class="st">f'Valid ages: <span class="bi">{valid_ages}</span>, errors: <span class="bi">{errors}</span>'</span>)</div>
+        <span class="bi">eval</span>(code)
+    <span class="kw">except</span> <span class="cls">Exception</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">f'{code:16} -&gt; {type(e).__name__}: {e}'</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Catch the specific exception, not everything.</strong> A bare <code>except:</code> catches EVERY error — including bugs in your own code — and hides them silently. Always name the exception type you expect: <code>except ValueError:</code>, <code>except KeyError:</code>, <code>except FileNotFoundError:</code>.</div></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>int('abc')       -&gt; ValueError: invalid literal for int() with base 10: 'abc'
+'5' + 3          -&gt; TypeError: can only concatenate str (not "int") to str
+[1, 2, 3][5]     -&gt; IndexError: list index out of range
+{'a': 1}['b']    -&gt; KeyError: 'b'
+10 / 0           -&gt; ZeroDivisionError: division by zero
+undefined_name   -&gt; NameError: name 'undefined_name' is not defined</pre></div>
+  <p class="lesson-p">Each output line follows the same shape: the code that was run (the <code>:16</code> in the f-string pads it to 16 characters so the columns line up), then the error type, then the explanation. <code>ValueError</code> means the right kind of value in a wrong form, like text that is not a number. <code>TypeError</code> means the wrong kind of value altogether. <code>IndexError</code> is a list position that does not exist, <code>KeyError</code> is a dictionary key that does not exist, <code>ZeroDivisionError</code> needs no explanation, and <code>NameError</code> usually means a typo or a variable used before it was created.</p>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Common mistake: reading from the top.</strong>The first line of a traceback is only the header. Beginners scroll to the top and get lost in the middle of the call chain. Always start with the last line, then move up only if you need to know how the program got there.</div></div>
+  <details class="check"><summary>In the traceback above, which function was running when the error happened, and which function called it?</summary><div class="ck-answer"><code>parse_score</code> was running (the last <code>File</code> line), and <code>average_score</code> called it (the line above). Before that, the main program called <code>average_score</code>.</div></details>
+  <details class="check"><summary>What would change in the traceback if you replaced <code>'Ben,eighty'</code> with <code>'Ben,80'</code>?</summary><div class="ck-answer">Nothing would print at all, because there would be no error. The average of 92 and 80 would be displayed as <code>86.0</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>'Ben,eighty'</code> to <code>'Ben,80'</code> and confirm that the traceback disappears. Then change it to <code>'Ben'</code> (no comma). Which line of the traceback moves, and what is the new message?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>traceback</strong> lists the active function calls, oldest at the top and newest at the bottom.</li><li>Read it from the bottom: the last line gives the error type and message, the last <code>File</code> line gives where Python was when it failed.</li><li>The place where Python noticed the problem is not always the place where the mistake lives; follow the calls upwards to find out who passed in the bad value.</li><li>The common types: <code>ValueError</code>, <code>TypeError</code>, <code>IndexError</code>, <code>KeyError</code>, <code>ZeroDivisionError</code>, <code>NameError</code>.</li></ul></div>
+  <!-- /S:5.2 -->
 
-  <!-- 5.7 -->
-  <div class="lesson-h2">5.7 — raise: Creating Your Own Errors</div>
-  <p class="lesson-p">Sometimes YOUR code should refuse bad input rather than silently accepting it. <code>raise</code> lets you throw an exception on purpose, with a message that explains exactly what went wrong.</p>
-
+  <!-- S:5.3 -->
+  <div class="lesson-h2">5.3 — try/except: Surviving Bad Data</div>
+  <p class="lesson-p">Reading an error is good. Not being stopped by it is better. Imagine the quiz log arrives with one student marked <code>'absent'</code> instead of a number. Without any protection, the program dies on that row and the rows after it are never read, even though most of them are fine. A pipeline that dies on row 4,000 of 10,000 wastes everything it has done so far.</p>
+  <p class="lesson-p">The idea behind <strong><code>try/except</code></strong> is a safety net under a trapeze. You say: try this risky thing; if it fails in this particular way, do that instead, and then keep going. The code in the <code>try</code> block runs normally. The moment an error is <strong>raised</strong> (Python's word for signalling a problem) the rest of the <code>try</code> block is skipped, and Python looks for an <code>except</code> clause that names that error type. If it finds one, its block runs and the program continues after the whole statement.</p>
+  <div class="diagram"><div class="dg-title">The path through a try/except</div><pre>   try:  &lt;risky code&gt;
+     |
+     +--- no error ------------------------------+
+     |                                           |
+     +--- error raised --&gt; does an except        |
+                           name it?              |
+                  yes: run that block            |
+                            |                    |
+                            +--------------------+
+                            |                    |
+                            v                    v
+              no: the error keeps       carry on with the
+                  travelling upward     next line
+                  (crash if nobody
+                  catches it)</pre><div class="dg-cap">Only errors that an <code>except</code> clause names are stopped. Everything else travels up the call stack, just as if the <code>try</code> were not there.</div></div>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Validating input before using it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">validate_accuracy</span>(value):
-    <span class="kw">if</span> <span class="kw">not</span> (<span class="nm">0</span> <= value <= <span class="nm">1</span>):
-        <span class="kw">raise</span> ValueError(<span class="st">f'accuracy must be between 0 and 1, got <span class="bi">{value}</span>'</span>)
-    <span class="kw">return</span> value
+    <div class="cb-header"><span class="cb-label">The smallest safety net</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw = <span class="st">'eighty'</span>
 
 <span class="kw">try</span>:
-    <span class="bi">print</span>(<span class="st">f'Valid: <span class="bi">{validate_accuracy(0.92)}</span>'</span>)
-<span class="kw">except</span> ValueError <span class="kw">as</span> e:
-    <span class="bi">print</span>(<span class="st">f'Error: <span class="bi">{e}</span>'</span>)
+    score = <span class="bi">int</span>(raw)
+    <span class="bi">print</span>(<span class="st">'parsed'</span>, score)
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    <span class="bi">print</span>(<span class="st">'not a number:'</span>, raw)
 
-<span class="kw">try</span>:
-    <span class="bi">print</span>(<span class="st">f'Valid: <span class="bi">{validate_accuracy(1.5)}</span>'</span>)   <span class="cm"># 1.5 is not a valid accuracy!</span>
-<span class="kw">except</span> ValueError <span class="kw">as</span> e:
-    <span class="bi">print</span>(<span class="st">f'Error caught: <span class="bi">{e}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">'the program keeps going'</span>)</div>
   </div>
-
-  <!-- 5.8 -->
-  <div class="lesson-h2">5.8 — Exception Chaining: raise ... from e</div>
-  <p class="lesson-p">When you catch one exception and raise a different, clearer one in its place, <code>raise NewError(...) from original_error</code> preserves the original as the new exception's <strong>cause</strong> instead of silently discarding it — critical for debugging, since the real root cause stays visible instead of vanishing behind your cleaner message.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>not a number: eighty
+the program keeps going</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div><code>raw</code> is set to the text <code>'eighty'</code>.</div></li>
+    <li data-n="2"><div>Python enters the <code>try</code> block and evaluates <code>int(raw)</code>. The text cannot be converted, so a <code>ValueError</code> is raised.</div></li>
+    <li data-n="3"><div>The remaining line of the <code>try</code> block, <code>print('parsed', score)</code>, is skipped. That is why <code>parsed</code> never appears.</div></li>
+    <li data-n="4"><div>Python compares the error type with <code>except ValueError</code>. It matches, so the handler prints <code>not a number: eighty</code>.</div></li>
+    <li data-n="5"><div>The statement is finished. Execution continues at the last line, which prints normally.</div></li>
+  </ul>
+  <p class="lesson-p">Now the loop from our quiz log. Each pass through the loop gets its own chance to fail, and a failure only affects that one pass.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Translating one exception into a clearer one, without losing it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">parse_accuracy</span>(raw):
+    <div class="cb-header"><span class="cb-label">Skipping bad rows and counting them</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">raw_scores = [<span class="st">'92'</span>, <span class="st">'85'</span>, <span class="st">'absent'</span>, <span class="st">'78'</span>]
+good = []
+skipped = <span class="nm">0</span>
+
+<span class="kw">for</span> raw <span class="kw">in</span> raw_scores:
     <span class="kw">try</span>:
-        value = <span class="bi">float</span>(raw)
-    <span class="kw">except</span> ValueError <span class="kw">as</span> e:
-        <span class="kw">raise</span> ValueError(<span class="st">f'could not parse accuracy from <span class="bi">{raw!r}</span>'</span>) <span class="kw">from</span> e
-    <span class="kw">return</span> value
+        good.append(<span class="bi">int</span>(raw))
+    <span class="kw">except</span> <span class="cls">ValueError</span>:
+        skipped += <span class="nm">1</span>
+        <span class="bi">print</span>(<span class="st">'skipping'</span>, <span class="bi">repr</span>(raw))
+
+<span class="bi">print</span>(<span class="st">'good:'</span>, good, <span class="st">'skipped:'</span>, skipped)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>skipping 'absent'
+good: [92, 85, 78] skipped: 1</pre></div>
+  <p class="lesson-p">Adding <code>as e</code> after the error type gives you the error object itself, so you can print Python's own explanation instead of writing one. That is useful for a log file, because the message includes the bad value. Try the three inputs below and note that <code>int('7.5')</code> also fails: <code>int</code> accepts only whole-number text, so a decimal needs <code>float</code> first.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Catching the message with as e</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">for</span> raw <span class="kw">in</span> [<span class="st">'92'</span>, <span class="st">''</span>, <span class="st">'7.5'</span>]:
+    <span class="kw">try</span>:
+        <span class="bi">print</span>(<span class="bi">int</span>(raw))
+    <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'problem:'</span>, e)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>92
+problem: invalid literal for int() with base 10: ''
+problem: invalid literal for int() with base 10: '7.5'</pre></div>
+  <div class="lesson-h3">Name the error you expect</div>
+  <p class="lesson-p">An <code>except</code> clause catches only the types it names. Below, a missing dictionary key raises a <code>KeyError</code>, but the inner handler is for <code>ValueError</code>, so the error passes straight through it to the outer handler. A wrong guess about the type gives you no protection at all.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A handler only catches what it names</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> traceback
+
+scores = {<span class="st">'Asha'</span>: <span class="nm">92</span>}
+<span class="kw">try</span>:
+    <span class="kw">try</span>:
+        <span class="bi">print</span>(scores[<span class="st">'Ben'</span>])
+    <span class="kw">except</span> <span class="cls">ValueError</span>:
+        <span class="bi">print</span>(<span class="st">'this handler is only for ValueError'</span>)
+<span class="kw">except</span> <span class="cls">KeyError</span>:
+    traceback.print_exc()</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 6, in &lt;module&gt;
+KeyError: 'Ben'</pre></div>
+  <div class="lesson-h3">Common mistake: the bare except</div>
+  <p class="lesson-p">The lazy way to guard code is a bare <code>except:</code> with no type, which catches everything. It also catches your own typos. In the block below the variable <code>bonus</code> was never created, so every pass raises a <code>NameError</code>, but the bare handler hides it and the program quietly reports a total of zero. That is the worst kind of bug: wrong answers with no complaint.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A bare except hides a real bug</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">total = <span class="nm">0</span>
+<span class="kw">for</span> raw <span class="kw">in</span> [<span class="st">'10'</span>, <span class="st">'20'</span>]:
+    <span class="kw">try</span>:
+        total += <span class="bi">int</span>(raw) + bonus
+    <span class="kw">except</span>:
+        <span class="kw">pass</span>
+
+<span class="bi">print</span>(<span class="st">'total ='</span>, total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>total = 0</pre></div>
+  <p class="lesson-p">The fix is to name the error you expect. Then the typo is no longer swallowed. In the version below we add a second handler only so that the page can show you the message and finish; in your own code you would simply fix the typo.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Naming the error lets the bug show itself</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">total = <span class="nm">0</span>
+<span class="kw">for</span> raw <span class="kw">in</span> [<span class="st">'10'</span>, <span class="st">'20'</span>]:
+    <span class="kw">try</span>:
+        total += <span class="bi">int</span>(raw) + bonus
+    <span class="kw">except</span> <span class="cls">ValueError</span>:
+        <span class="kw">pass</span>
+    <span class="kw">except</span> <span class="cls">NameError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'bug found:'</span>, e)
+        <span class="kw">break</span>
+
+<span class="bi">print</span>(<span class="st">'total ='</span>, total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>bug found: name 'bonus' is not defined
+total = 0</pre></div>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>Keep the try block small.</strong>Put only the risky line inside <code>try</code>. If you wrap thirty lines, an error from any of them will be attributed to the one handler you wrote, and you will misread what went wrong.</div></div>
+  <details class="check"><summary>What does <code>int('7.5')</code> do inside <code>try: ... except ValueError:</code>, and why?</summary><div class="ck-answer">It raises a <code>ValueError</code>, so the handler runs. <code>int()</code> only accepts text that spells a whole number. To read <code>'7.5'</code> you would convert with <code>float('7.5')</code> first.</div></details>
+  <details class="check"><summary>Why is <code>except:</code> with no type dangerous?</summary><div class="ck-answer">It catches every error, including mistakes in your own code such as a misspelled variable, and hides them. The program keeps running with silently wrong results.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the loop with <code>absent</code>, add a fifth value <code>'9x'</code> and a sixth <code>None</code>. Predict the output first. Does <code>None</code> get caught by <code>except ValueError</code>? Run it and read the traceback if it does not.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>try:</code> runs risky code; if an error is raised, Python skips the rest of the block and looks for a matching <code>except</code>.</li><li>Name the error you expect: <code>except ValueError:</code>. A handler never catches a type it does not name.</li><li><code>except ValueError as e</code> gives you the error object; printing <code>e</code> shows Python's own explanation.</li><li>A bare <code>except:</code> hides real bugs. Keep the <code>try</code> block small so the handler matches what you meant.</li></ul></div>
+  <!-- /S:5.3 -->
+
+  <!-- S:5.4 -->
+  <div class="lesson-h2">5.4 — else, finally, and the Family of Errors</div>
+  <p class="lesson-p">So far a <code>try</code> had one <code>except</code>. Real code often needs more. Suppose you parse a score and want to print a success message only when parsing worked, and you also want a line of bookkeeping to run whatever happens. Putting the success message inside <code>try</code> is risky: if that print line itself failed, your <code>except</code> would wrongly blame the parsing. Python gives you two extra clauses for this, <code>else</code> and <code>finally</code>.</p>
+  <p class="lesson-p"><strong><code>else</code></strong> runs only when the <code>try</code> block finished with no error. <strong><code>finally</code></strong> runs no matter what: after success, after a handled error, even after a <code>return</code>. Think of leaving a rented flat. You might sort the rubbish only if you had a party (else), but you always hand back the keys (finally).</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">All four clauses in one function</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">parse</span>(raw):
+    <span class="kw">try</span>:
+        n = <span class="bi">int</span>(raw)
+    <span class="kw">except</span> <span class="cls">ValueError</span>:
+        <span class="bi">print</span>(<span class="st">'  except: bad value'</span>, <span class="bi">repr</span>(raw))
+        <span class="kw">return</span> <span class="kw">None</span>
+    <span class="kw">else</span>:
+        <span class="bi">print</span>(<span class="st">'  else: parsed fine'</span>)
+        <span class="kw">return</span> n
+    <span class="kw">finally</span>:
+        <span class="bi">print</span>(<span class="st">'  finally: finished with'</span>, <span class="bi">repr</span>(raw))
+
+<span class="bi">print</span>(parse(<span class="st">'7'</span>))
+<span class="bi">print</span>(parse(<span class="st">'x'</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>  else: parsed fine
+  finally: finished with '7'
+7
+  except: bad value 'x'
+  finally: finished with 'x'
+None</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div><code>parse('7')</code>: the <code>try</code> line succeeds, so the <code>except</code> block is skipped and the <code>else</code> block runs. It prints and executes <code>return n</code>.</div></li>
+    <li data-n="2"><div>Before the function really returns, Python runs the <code>finally</code> block. That is why <code>finally: finished with '7'</code> appears <strong>before</strong> <code>7</code> is printed by the outer <code>print</code>.</div></li>
+    <li data-n="3"><div><code>parse('x')</code>: <code>int('x')</code> raises <code>ValueError</code>, so <code>except</code> runs, prints and hits <code>return None</code>. <code>else</code> is skipped.</div></li>
+    <li data-n="4"><div>Again <code>finally</code> runs just before the function leaves, and only then does the outer <code>print</code> display <code>None</code>.</div></li>
+  </ul>
+  <div class="diagram"><div class="dg-title">The order of the four clauses</div><pre>   try:      the risky line(s)   ----- always first
+   except:   only if try raised a matching error
+   else:     only if try finished with NO error
+   finally:  ALWAYS, last (even after a return or an uncaught error)
+
+            +--------+   error   +--------+
+     start-&gt;|  try   |----------&gt;| except |--\
+            +--------+           +--------+   \   +---------+
+                 | no error                    +-&gt;| finally |--&gt; continue
+                 v                             /  +---------+
+            +--------+                        /
+            |  else  |-----------------------/
+            +--------+</pre><div class="dg-cap">Exactly one of <code>except</code> or <code>else</code> runs (or neither, if the error is not caught). <code>finally</code> runs in every case.</div></div>
+  <p class="lesson-p"><code>finally</code> is the place for cleanup that must not be skipped, such as closing a file. It even runs when the error is not caught at all: the cleanup happens, and then the error keeps travelling upward.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">finally runs even when the error is not caught here</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">risky</span>():
+    <span class="kw">try</span>:
+        <span class="kw">return</span> <span class="bi">int</span>(<span class="st">'x'</span>)
+    <span class="kw">finally</span>:
+        <span class="bi">print</span>(<span class="st">'cleanup runs first'</span>)
 
 <span class="kw">try</span>:
-    parse_accuracy(<span class="st">'not-a-number'</span>)
-<span class="kw">except</span> ValueError <span class="kw">as</span> e:
-    <span class="bi">print</span>(<span class="st">f'Error: <span class="bi">{e}</span>'</span>)
-    <span class="bi">print</span>(<span class="st">f'Original cause: <span class="bi">{type(e.__cause__).__name__}</span>: <span class="bi">{e.__cause__}</span>'</span>)</div>
+    risky()
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    <span class="bi">print</span>(<span class="st">'the caller caught it afterwards'</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong><code>raise NewError(...)</code> without <code>from</code> still works</strong>, but Python's traceback then shows "During handling of the above exception, another exception occurred" — which reads like an accidental crash, not an intentional translation. Use <code>from e</code> (or <code>from None</code> to deliberately hide an uninteresting cause) whenever you re-raise a different exception type.</div></div>
-
-  <!-- 5.9 -->
-  <div class="lesson-h2">5.9 — Reading and Writing Files</div>
-  <p class="lesson-p"><code>open(filename, mode)</code> gives you a file handle. Use <code>'w'</code> to write, no mode (or <code>'r'</code>) to read. Always use <code>with</code> — it automatically closes the file for you, even if an error happens partway through.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>cleanup runs first
+the caller caught it afterwards</pre></div>
+  <div class="lesson-h3">Several handlers, and the family tree</div>
+  <p class="lesson-p">You can stack several <code>except</code> clauses, and you can list more than one type in a tuple. Python checks them from top to bottom and runs the <strong>first</strong> one that fits. Below, a missing name, a bad value and a missing score each get their own message.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Writing, then reading, a file</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">log_text = <span class="st">'epoch,loss\n1,0.82\n2,0.61\n'</span>
+    <div class="cb-header"><span class="cb-label">One try, several except clauses</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">lookup</span>(scores, name):
+    <span class="kw">try</span>:
+        <span class="kw">return</span> <span class="bi">int</span>(scores[name])
+    <span class="kw">except</span> <span class="cls">KeyError</span>:
+        <span class="kw">return</span> <span class="st">'no such student'</span>
+    <span class="kw">except</span> (<span class="cls">ValueError</span>, <span class="cls">TypeError</span>):
+        <span class="kw">return</span> <span class="st">'bad score value'</span>
 
-<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'log.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
-    f.write(log_text)     <span class="cm"># file is automatically closed when this block ends</span>
-
-<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'log.csv'</span>) <span class="kw">as</span> f:
-    <span class="kw">for</span> line <span class="kw">in</span> f:              <span class="cm"># looping over a file gives you one line at a time</span>
-        <span class="bi">print</span>(line.strip())   <span class="cm"># .strip() removes the trailing newline</span></div>
+scores = {<span class="st">'Asha'</span>: <span class="st">'92'</span>, <span class="st">'Ben'</span>: <span class="st">'n/a'</span>, <span class="st">'Chen'</span>: <span class="kw">None</span>}
+<span class="kw">for</span> who <span class="kw">in</span> [<span class="st">'Asha'</span>, <span class="st">'Ben'</span>, <span class="st">'Chen'</span>, <span class="st">'Dana'</span>]:
+    <span class="bi">print</span>(who, <span class="st">'-&gt;'</span>, lookup(scores, who))</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This console really does read and write files</strong> — Pyodide gives your Python code its own private virtual filesystem in the browser. It behaves exactly like real file I/O (nothing is saved to your actual computer, and it resets each time you reload the page).</div></div>
-
-  <!-- 5.10 -->
-  <div class="lesson-h2">5.10 — pathlib.Path: A Better Way to Handle File Paths</div>
-  <p class="lesson-p">Building paths with string concatenation (<code>'data/' + filename</code>) breaks the moment the same code runs on a different operating system. <code>pathlib.Path</code> handles separators, extensions, and existence checks in a way that reads clearly and works everywhere.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Asha -&gt; 92
+Ben -&gt; bad score value
+Chen -&gt; bad score value
+Dana -&gt; no such student</pre></div>
+  <p class="lesson-p"><code>Chen</code> has the value <code>None</code>, and <code>int(None)</code> raises a <code>TypeError</code>, not a <code>ValueError</code>, which is why the tuple lists both. Now recall from section 5.1 that error types are classes with parents. That family tree decides what a handler catches: <strong>a handler for a parent type also catches every child type</strong>. Print the parents of four errors you will meet in this chapter to see the tree.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Path pieces, without manual string splitting</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> Path
-
-log_path = Path(<span class="st">'logs'</span>) / <span class="st">'training'</span> / <span class="st">'run_001.csv'</span>   <span class="cm"># / builds a path, OS-independent</span>
-<span class="bi">print</span>(log_path)             <span class="cm"># logs/training/run_001.csv</span>
-<span class="bi">print</span>(log_path.name)        <span class="cm"># run_001.csv — just the filename</span>
-<span class="bi">print</span>(log_path.stem)        <span class="cm"># run_001 — filename without extension</span>
-<span class="bi">print</span>(log_path.suffix)      <span class="cm"># .csv — the extension alone</span>
-<span class="bi">print</span>(log_path.parent)      <span class="cm"># logs/training — the containing folder</span>
-
-<span class="kw">with</span> <span class="bi">open</span>(log_path.name, <span class="st">'w'</span>) <span class="kw">as</span> f:   <span class="cm"># Path works anywhere open() expects a string</span>
-    f.write(<span class="st">'epoch,loss\n1,0.5\n'</span>)
-<span class="bi">print</span>(Path(log_path.name).exists())   <span class="cm"># True — Path can check existence directly, no os.path.exists() needed</span></div>
-  </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>pathlib is the modern standard</strong> for anything that used to be <code>os.path.join()</code>/<code>os.path.exists()</code> — most real ML config systems (and libraries like DVC) accept <code>Path</code> objects directly.</div></div>
-
-  <!-- 5.11 -->
-  <div class="lesson-h2">5.11 — Class-Based Context Managers: __enter__ and __exit__</div>
-  <p class="lesson-p"><code>with open(...) as f</code> works because file objects implement the <strong>context manager protocol</strong> themselves. Any class can get the same "guaranteed cleanup" behavior by defining <code>__enter__</code> and <code>__exit__</code> — a class-based alternative to the <code>@contextmanager</code> generator function you'll meet in Chapter 6.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A Timer that always reports elapsed time, even on error</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">class</span> <span class="cls">Timer</span>:
-    <span class="kw">def</span> <span class="fn">__enter__</span>(self):
-        <span class="kw">import</span> time
-        self.start = time.time()
-        <span class="kw">return</span> self             <span class="cm"># whatever __enter__ returns becomes the "as x" value</span>
-
-    <span class="kw">def</span> <span class="fn">__exit__</span>(self, exc_type, exc_value, traceback):
-        <span class="kw">import</span> time
-        elapsed = time.time() - self.start
-        <span class="bi">print</span>(<span class="st">f'Elapsed: <span class="bi">{elapsed:.4f}</span>s'</span>)
-        <span class="kw">return</span> <span class="kw">False</span>            <span class="cm"># False = don't suppress any exception that happened inside the block</span>
-
-<span class="kw">with</span> <span class="cls">Timer</span>() <span class="kw">as</span> t:
-    total = <span class="bi">sum</span>(<span class="bi">range</span>(<span class="nm">1_000_000</span>))
-<span class="bi">print</span>(<span class="st">f'Total: <span class="bi">{total}</span>'</span>)</div>
-  </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong><code>__exit__</code> always runs</strong>, even if the code inside the <code>with</code> block raises an exception — exactly like a <code>finally</code> block. That's the whole point of the protocol: guaranteed cleanup (closing a file, releasing a lock, printing a timing report) no matter how the block ends.</div></div>
-
-  <!-- 5.12 -->
-  <div class="lesson-h2">5.12 — Parsing CSV Data</div>
-  <p class="lesson-p">CSV (comma-separated values) is the most common format for tabular data. Python's built-in <code>csv</code> module handles the edge cases (commas inside quoted fields, etc.) that manual <code>.split(',')</code> gets wrong.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">The csv module, reading rows as dicts</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> csv
-
-csv_text = <span class="st">'name,score\nAlice,0.92\nBob,0.75\nCarol,0.81\n'</span>
-
-<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
-    f.write(csv_text)
-
-<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>) <span class="kw">as</span> f:
-    reader = csv.DictReader(f)     <span class="cm"># uses the first line as column names automatically</span>
-    rows = <span class="bi">list</span>(reader)
-    <span class="kw">for</span> row <span class="kw">in</span> rows:
-        <span class="bi">print</span>(row)              <span class="cm"># each row is already a dict! {'name': 'Alice', 'score': '0.92'}</span>
-
-<span class="cm"># Remember: EVERY value from a CSV is a string — convert before math (Chapter 1!)</span>
-scores = [<span class="bi">float</span>(row[<span class="st">'score'</span>]) <span class="kw">for</span> row <span class="kw">in</span> rows]
-<span class="bi">print</span>(<span class="st">f'Average score: <span class="bi">{sum(scores)/len(scores):.2%}</span>'</span>)</div>
-  </div>
-
-  <!-- 5.13 -->
-  <div class="lesson-h2">5.13 — Parsing JSON Data</div>
-  <p class="lesson-p">JSON is a text format that looks almost exactly like Python dicts and lists nested together — because that's exactly what it is. The <code>json</code> module converts between JSON text and real Python objects.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">json.loads() and json.dumps()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">Reading the family tree with __mro__</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code"><span class="kw">import</span> json
 
-json_text = <span class="st">'{"name": "ResNet50", "epochs": 50, "metrics": {"accuracy": 0.94, "loss": 0.12}}'</span>
-
-config = json.loads(json_text)     <span class="cm"># JSON text -> Python dict</span>
-<span class="bi">print</span>(<span class="bi">type</span>(config))
-<span class="bi">print</span>(config[<span class="st">'name'</span>])
-<span class="bi">print</span>(config[<span class="st">'metrics'</span>][<span class="st">'accuracy'</span>])   <span class="cm"># nested access, same as Chapter 4</span>
-
-config[<span class="st">'epochs'</span>] = <span class="nm">100</span>
-back_to_text = json.dumps(config, indent=<span class="nm">2</span>)   <span class="cm"># Python dict -> JSON text, nicely formatted</span>
-<span class="bi">print</span>(back_to_text)</div>
+<span class="kw">for</span> cls <span class="kw">in</span> (<span class="cls">FileNotFoundError</span>, <span class="cls">KeyError</span>,
+            json.<span class="cls">JSONDecodeError</span>, <span class="cls">UnicodeDecodeError</span>):
+    chain = [c.__name__ <span class="kw">for</span> c <span class="kw">in</span> cls.__mro__]
+    <span class="bi">print</span>(<span class="st">' -&gt; '</span>.join(chain))</div>
   </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>FileNotFoundError -&gt; OSError -&gt; Exception -&gt; BaseException -&gt; object
+KeyError -&gt; LookupError -&gt; Exception -&gt; BaseException -&gt; object
+JSONDecodeError -&gt; ValueError -&gt; Exception -&gt; BaseException -&gt; object
+UnicodeDecodeError -&gt; UnicodeError -&gt; ValueError -&gt; Exception -&gt; BaseException -&gt; object</pre></div>
+  <div class="diagram"><div class="dg-title">A small part of the error family tree</div><pre> BaseException
+  +-- KeyboardInterrupt     (Ctrl+C; you almost never catch this)
+  +-- Exception             (parent of the errors you normally handle)
+       +-- OSError          (files and the operating system)
+       |    +-- FileNotFoundError, PermissionError,
+       |        FileExistsError, IsADirectoryError
+       +-- ValueError       (right type, unusable value)
+       |    +-- json.JSONDecodeError
+       |    +-- UnicodeError -&gt; UnicodeDecodeError
+       +-- LookupError
+       |    +-- KeyError, IndexError
+       +-- TypeError, NameError, ArithmeticError -&gt; ZeroDivisionError</pre><div class="dg-cap">Catch a parent to catch a whole branch. <code>except OSError</code> covers every file error at once; <code>except LookupError</code> covers both <code>KeyError</code> and <code>IndexError</code>.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A parent handler catches its children</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+<span class="kw">try</span>:
+    json.loads(<span class="st">'{bad json}'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'caught as ValueError, real type:'</span>, <span class="bi">type</span>(e).__name__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>caught as ValueError, real type: JSONDecodeError</pre></div>
+  <div class="lesson-h3">Common mistake: the general handler first</div>
+  <p class="lesson-p">Because Python takes the first handler that fits, putting a wide handler above a narrow one makes the narrow one unreachable. Python does not warn you. The code below looks careful and behaves carelessly.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The specific handler never runs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">try</span>:
+    <span class="bi">int</span>(<span class="st">'abc'</span>)
+<span class="kw">except</span> <span class="cls">Exception</span>:
+    <span class="bi">print</span>(<span class="st">'handler 1: the general one'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    <span class="bi">print</span>(<span class="st">'handler 2: never reached'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>handler 1: the general one</pre></div>
+  <p class="lesson-p">The fix is to order handlers from the most specific to the most general, with <code>Exception</code> last if you use it at all.</p>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>Use else to keep try small.</strong>Put only the risky call in <code>try</code>, and the code that depends on it succeeding in <code>else</code>. Then a bug in that later code cannot be mistaken for the error you were guarding against.</div></div>
+  <details class="check"><summary>In <code>parse('7')</code>, why does <code>finally: finished with '7'</code> print before the <code>7</code> from the outer <code>print</code>?</summary><div class="ck-answer"><code>return n</code> does not leave the function until <code>finally</code> has run. So the <code>finally</code> print happens first, then the function hands back <code>7</code>, and only then does the outer <code>print</code> display it.</div></details>
+  <details class="check"><summary>Would <code>except OSError</code> catch a <code>FileNotFoundError</code>?</summary><div class="ck-answer">Yes. <code>FileNotFoundError</code> is a child of <code>OSError</code> in the family tree, so a handler for the parent catches it.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Swap the order of the two handlers in the last block so that <code>ValueError</code> comes first. Run it and confirm that the message changes to the specific one.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>else</code> runs when the <code>try</code> block finished without an error; <code>finally</code> runs always, last, even around <code>return</code>.</li><li>Several <code>except</code> clauses are checked from the top, and the first match wins.</li><li>Error types form a family tree; catching a parent (like <code>OSError</code> or <code>ValueError</code>) catches its children too.</li><li>Order handlers from most specific to most general.</li></ul></div>
+  <!-- /S:5.4 -->
+
+  <!-- S:5.5 -->
+  <div class="lesson-h2">5.5 — raise: Refusing Bad Input and Making Your Own Errors</div>
+  <p class="lesson-p">Until now Python raised the errors. Sometimes your own code should raise them. Consider a function that averages quiz scores. It happily accepts nonsense, and the result is nonsense that looks like a real answer.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Nonsense in, nonsense out</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">average</span>(scores):
+    <span class="kw">return</span> <span class="bi">sum</span>(scores) / <span class="bi">len</span>(scores)
+
+<span class="bi">print</span>(average([<span class="nm">90</span>, <span class="nm">80</span>]))
+<span class="bi">print</span>(average([-<span class="nm">500</span>, <span class="nm">90</span>]))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>85.0
+-205.0</pre></div>
+  <p class="lesson-p">The second answer, <code>-205.0</code>, is impossible for scores between 0 and 100, yet nothing complained. The bad value would travel on into later calculations, and you would discover the problem much later, far from its cause. A better habit is to <strong>fail early and loudly</strong>: check the input at the door and refuse it with a clear message. Think of a form that rejects a birth year of 3025 the moment you type it.</p>
+  <p class="lesson-p">The tool for this is <strong><code>raise</code></strong>. It creates an error object and throws it, which stops the current function on the spot. The error then travels up through the callers until an <code>except</code> catches it, and that is exactly the path a traceback records.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Raising ValueError with a clear message</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">check_score</span>(score):
+    <span class="kw">if</span> <span class="kw">not</span> <span class="nm">0</span> &lt;= score &lt;= <span class="nm">100</span>:
+        <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="st">f'score must be 0-100, got {score}'</span>)
+    <span class="kw">return</span> score
+
+<span class="kw">for</span> value <span class="kw">in</span> [<span class="nm">92</span>, <span class="nm">150</span>]:
+    <span class="kw">try</span>:
+        <span class="bi">print</span>(<span class="st">'valid:'</span>, check_score(value))
+    <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'rejected:'</span>, e)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>valid: 92
+rejected: score must be 0-100, got 150</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div><code>check_score(92)</code>: the condition <code>0 &lt;= 92 &lt;= 100</code> is true, so <code>not</code> makes it false, the <code>if</code> is skipped, and the function returns <code>92</code>.</div></li>
+    <li data-n="2"><div><code>check_score(150)</code>: the condition is false, <code>not</code> turns it true, so <code>raise</code> runs. The line after it, <code>return score</code>, is never reached.</div></li>
+    <li data-n="3"><div>The <code>ValueError</code> object leaves <code>check_score</code> and arrives at the caller, which sits inside <code>try</code>. The matching <code>except</code> prints the message inside the error object.</div></li>
+  </ul>
+  <div class="diagram"><div class="dg-title">An error travels up until someone catches it</div><pre>  main program   try:
+       |           total(...)         &lt;-- 4. except ValueError catches
+       v
+  total()          for s in scores:
+       |             check_score(s)   &lt;-- 3. no handler: passes upward
+       v
+  check_score()    raise ValueError   &lt;-- 1. raised; this function stops
+
+  1. raise  2. the function ends at once  3. each caller is abandoned
+  4. the first matching except ends the journey</pre><div class="dg-cap">Every function the error passes through is abandoned, and none of its remaining lines run. That is the same list of calls you learned to read in section 5.2.</div></div>
+  <div class="lesson-h3">Your own error types</div>
+  <p class="lesson-p">A message is enough for a person, but a program that needs to react to a problem wants a type to match on. <code>ValueError</code> is broad. You can make a narrower one in a single line, using the inheritance from the OOP track. Because it is a child of <code>ValueError</code>, old code that catches <code>ValueError</code> keeps working. You can also give the error object extra attributes with <code>__init__</code>, just as with any class.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A custom error with extra data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">ScoreError</span>(<span class="cls">ValueError</span>):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, value):
+        <span class="bi">super</span>().__init__(<span class="st">f'score must be 0-100, got {value!r}'</span>)
+        self.value = value
+
+<span class="kw">def</span> <span class="fn">check_score</span>(score):
+    <span class="kw">if</span> <span class="kw">not</span> <span class="nm">0</span> &lt;= score &lt;= <span class="nm">100</span>:
+        <span class="kw">raise</span> <span class="cls">ScoreError</span>(score)
+    <span class="kw">return</span> score
+
+<span class="kw">try</span>:
+    check_score(-<span class="nm">5</span>)
+<span class="kw">except</span> <span class="cls">ScoreError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'rejected:'</span>, e)
+    <span class="bi">print</span>(<span class="st">'offending value:'</span>, e.value)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>rejected: score must be 0-100, got -5
+offending value: -5</pre></div>
+  <p class="lesson-p">Sometimes a function wants to notice an error, do something such as writing a log line, and let the error carry on to its caller. A bare <code>raise</code> with nothing after it re-raises the error that is currently being handled.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Log it, then re-raise with a bare raise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">ScoreError</span>(<span class="cls">ValueError</span>):
+    <span class="kw">pass</span>
+
+<span class="kw">def</span> <span class="fn">check_score</span>(score):
+    <span class="kw">if</span> score &gt; <span class="nm">100</span>:
+        <span class="kw">raise</span> <span class="cls">ScoreError</span>(<span class="st">f'too high: {score}'</span>)
+    <span class="kw">return</span> score
+
+<span class="kw">try</span>:
+    <span class="kw">try</span>:
+        check_score(<span class="nm">150</span>)
+    <span class="kw">except</span> <span class="cls">ScoreError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'logging:'</span>, e)
+        <span class="kw">raise</span>
+<span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> caller_view:
+    <span class="bi">print</span>(<span class="st">'caller still sees a'</span>, <span class="bi">type</span>(caller_view).__name__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>logging: too high: 150
+caller still sees a ScoreError</pre></div>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">You can only raise error objects, not plain text. Raising a string is a classic slip when you are in a hurry. Also avoid <code>raise Exception('...')</code> for everything: callers cannot tell your problem apart from any other, so pick the most specific built-in type that fits, or make your own.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Raising something that is not an error</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">try</span>:
+    <span class="kw">raise</span> <span class="st">'bad score'</span>
+<span class="kw">except</span> <span class="cls">TypeError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'TypeError:'</span>, e)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>TypeError: exceptions must derive from BaseException</pre></div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Which type should I raise?</strong>Use <code>ValueError</code> when the value has the right type but is unusable (like 150 as a percentage), <code>TypeError</code> when the type itself is wrong, and <code>KeyError</code> or <code>IndexError</code> for missing lookups. Create your own subclass when callers need to react to your specific situation.</div></div>
+  <details class="check"><summary>After <code>raise ValueError('x')</code> runs inside a function, does the next line of that function ever execute?</summary><div class="ck-answer">No. <code>raise</code> stops the function immediately. Python only continues at the first <code>except</code> that matches, in one of the callers.</div></details>
+  <details class="check"><summary>Why make <code>ScoreError</code> a child of <code>ValueError</code> instead of <code>Exception</code>?</summary><div class="ck-answer">Then any existing code that says <code>except ValueError</code> also catches it, and the error correctly describes itself as a bad value.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a second check to <code>check_score</code> that raises <code>ScoreError</code> when the score is not a whole number, using <code>isinstance(score, int)</code>. Test it with <code>check_score(7.5)</code>.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Validate at the door: <code>raise</code> an error with a clear message instead of letting bad data travel.</li><li><code>raise</code> stops the current function; the error goes up through the callers until a matching <code>except</code> catches it.</li><li>Subclass a built-in error (<code>class ScoreError(ValueError): pass</code>) to get a precise type, optionally with extra attributes.</li><li>A bare <code>raise</code> re-raises the current error. Only error objects can be raised, never plain strings.</li></ul></div>
+  <!-- /S:5.5 -->
+
+  <!-- S:5.6 -->
+  <div class="lesson-h2">5.6 — Exception Chaining: raise ... from e</div>
+  <p class="lesson-p">A low-level message such as <code>invalid literal for int() with base 10: 'eighty'</code> helps a programmer but tells a user nothing about what they were trying to do. The natural reaction is to catch it and raise a clearer error such as <code>could not read the score for Ben</code>. But if you simply replace one error with another, the original message, the real cause, may vanish from the report. It is like an incident report that says only "delivery failed" and never mentions that the truck broke down.</p>
+  <p class="lesson-p"><strong>Exception chaining</strong> solves this by attaching the original error to the new one. You write <code>raise NewError(...) from original</code>. The new error carries the original in an attribute called <code>__cause__</code>, and a traceback prints both.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Translating an error without losing it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">parse_score</span>(name, raw):
+    <span class="kw">try</span>:
+        <span class="kw">return</span> <span class="bi">int</span>(raw)
+    <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+        <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="st">f'could not read the score for {name}'</span>) <span class="kw">from</span> e
+
+<span class="kw">try</span>:
+    parse_score(<span class="st">'Ben'</span>, <span class="st">'eighty'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'Error:'</span>, e)
+    <span class="bi">print</span>(<span class="st">'Cause:'</span>, <span class="bi">type</span>(e.__cause__).__name__, <span class="st">'-'</span>, e.__cause__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Error: could not read the score for Ben
+Cause: ValueError - invalid literal for int() with base 10: 'eighty'</pre></div>
+  <p class="lesson-p">The friendly message is what you show to users, and the cause is what you would look at when debugging. Now let us see how a real traceback presents the chain. Read from the top: the original error comes first, then a sentence linking it to the second error, which comes last, just as in an incident report.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The traceback of a chained error</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> traceback
+
+<span class="kw">def</span> <span class="fn">parse_score</span>(name, raw):
+    <span class="kw">try</span>:
+        <span class="kw">return</span> <span class="bi">int</span>(raw)
+    <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+        <span class="kw">raise</span> <span class="cls">ValueError</span>(<span class="st">f'could not read the score for {name}'</span>) <span class="kw">from</span> e
+
+<span class="kw">try</span>:
+    parse_score(<span class="st">'Ben'</span>, <span class="st">'eighty'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    traceback.print_exc()</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 5, in parse_score
+ValueError: invalid literal for int() with base 10: 'eighty'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "&lt;exec&gt;", line 10, in &lt;module&gt;
+  File "&lt;exec&gt;", line 7, in parse_score
+ValueError: could not read the score for Ben</pre></div>
+  <p class="lesson-p">What if you forget <code>from</code>? Python still records the connection, because the new error was raised while the old one was being handled, but its wording is different. It says *During handling of the above exception, another exception occurred*, which reads like an accident inside your handler rather than a deliberate translation. Here are the two versions side by side, along with <code>from None</code>, which hides the original on purpose when it would only confuse the reader.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">from, no from, and from None</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">convert</span>(raw, how):
+    <span class="kw">try</span>:
+        <span class="kw">return</span> <span class="bi">int</span>(raw)
+    <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> inner:
+        <span class="kw">if</span> how == <span class="st">'from'</span>:
+            <span class="kw">raise</span> <span class="cls">RuntimeError</span>(<span class="st">'bad score'</span>) <span class="kw">from</span> inner
+        <span class="kw">if</span> how == <span class="st">'plain'</span>:
+            <span class="kw">raise</span> <span class="cls">RuntimeError</span>(<span class="st">'bad score'</span>)
+        <span class="kw">raise</span> <span class="cls">RuntimeError</span>(<span class="st">'bad score'</span>) <span class="kw">from</span> <span class="kw">None</span>
+
+<span class="kw">for</span> how <span class="kw">in</span> [<span class="st">'from'</span>, <span class="st">'plain'</span>, <span class="st">'none'</span>]:
+    <span class="kw">try</span>:
+        convert(<span class="st">'x'</span>, how)
+    <span class="kw">except</span> <span class="cls">RuntimeError</span> <span class="kw">as</span> e:
+        cause = <span class="bi">type</span>(e.__cause__).__name__
+        context = <span class="bi">type</span>(e.__context__).__name__
+        <span class="bi">print</span>(<span class="st">f'{how:5} __cause__={cause:10} __context__={context}'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>from  __cause__=ValueError __context__=ValueError
+plain __cause__=NoneType   __context__=ValueError
+none  __cause__=NoneType   __context__=ValueError</pre></div>
+  <p class="lesson-p">Read the three lines like this. <code>__context__</code> is filled in every time, because the new error really was raised while the old one was being handled. <code>__cause__</code> is filled in only by an explicit <code>from</code>. With <code>from</code>, the traceback says "the direct cause". With no <code>from</code>, it shows the original as background ("during handling"). With <code>from None</code>, Python marks the context as hidden, so the traceback no longer prints the original at all. Use <code>from e</code> whenever you translate an error; use <code>from None</code> only when you are certain the original adds nothing.</p>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Common mistake: raising a new error inside except without from.</strong>Everything still works, but the traceback tells the story as "another exception occurred" instead of "this was the direct cause". Readers, including your future self, then have to guess whether your handler had a bug.</div></div>
+  <details class="check"><summary>What does <code>e.__cause__</code> contain for an error raised with <code>raise X(...) from original</code>?</summary><div class="ck-answer">The <code>original</code> error object. That is how you can print its type and message after catching <code>X</code>.</div></details>
+  <details class="check"><summary>Which form would you use to translate a <code>ValueError</code> into a clearer error but keep the debugging trail?</summary><div class="ck-answer"><code>raise ClearerError('...') from e</code>, where <code>e</code> is the caught original.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the first chained example, replace <code>from e</code> by <code>from None</code> and print <code>e.__cause__</code>. What do you see, and what did the traceback block lose?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Replacing one error by another can hide the real cause; <code>raise NewError(...) from e</code> keeps it as <code>__cause__</code>.</li><li>A traceback prints the original first, then "the above exception was the direct cause", then the new error.</li><li>Without <code>from</code>, Python still shows the original, but as "during handling of the above exception, another exception occurred".</li><li><code>from None</code> deliberately hides an original that would only confuse.</li></ul></div>
+  <!-- /S:5.6 -->
+
+  <!-- S:5.7 -->
+  <div class="lesson-h2">5.7 — Reading and Writing Files: open, close, and with</div>
+  <p class="lesson-p">Every variable you have made so far vanishes the moment the program ends. To keep results, or to receive data from someone else, a program has to use <strong>files</strong>. A file is a named container on disk that holds a sequence of bytes, and text files are the ones people can read, like <code>scores.txt</code> or <code>notes.csv</code>. Python reaches a file through the built-in function <code>open</code>.</p>
+  <p class="lesson-p">Think of a paper notebook. Before you can read or write, you have to open it to a page. When you are done you close it and put it away. If you leave it open and walk off, someone else may be unable to use it, and pages you were still writing may not be saved. <code>open(name, mode)</code> opens the notebook and gives you a <strong>file object</strong> (a handle), and you use that handle to read or write. The <strong>mode</strong> says what you plan to do: <code>'r'</code> to read (the default), <code>'w'</code> to write.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Writing a file, then reading it back</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'quiz.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'Asha,92\n'</span>)
+    f.write(<span class="st">'Ben,85\n'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'quiz.txt'</span>) <span class="kw">as</span> f:
+    text = f.read()
+
+<span class="bi">print</span>(text)
+<span class="bi">print</span>(<span class="bi">repr</span>(text))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Asha,92
+Ben,85
+
+'Asha,92\nBen,85\n'</pre></div>
+  <p class="lesson-p">The first <code>print</code> shows the text as you would see it in an editor. The second uses <code>repr</code>, which shows the exact characters, including the invisible <code>\n</code> (<strong>newline</strong>) at the end of each line. Writing does not add newlines for you; the <code>\n</code> is part of the text you wrote.</p>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div><code>open('quiz.txt', 'w')</code> asks the operating system for the file, creating it if it does not exist. Python returns a file object, and <code>as f</code> gives it the name <code>f</code>.</div></li>
+    <li data-n="2"><div>Each <code>f.write(...)</code> puts text into the file. The text may wait in a buffer (a small holding area) rather than reaching the disk at once.</div></li>
+    <li data-n="3"><div>When the indented block ends, <code>with</code> automatically <strong>closes</strong> the file. Closing flushes the buffer to disk, so nothing is lost.</div></li>
+    <li data-n="4"><div>The second <code>with</code> opens the same file in the default read mode. <code>f.read()</code> returns the whole content as one string, and closing happens again at the end of the block.</div></li>
+  </ul>
+  <div class="diagram"><div class="dg-title">The life of a file handle</div><pre>   open('quiz.txt', 'w')        with open(...) as f:
+          |                               |
+          v                               v
+    +-----------+  write/read     +------------------+
+    |  file  f  | &lt;-------------&gt; |   your program   |
+    +-----------+                 +------------------+
+          |
+     .close()  &lt;-- flushes the buffer, frees the file for others
+
+   with open(...) as f:          &lt;-- close() is called for you, always
+       ...work with f...         &lt;-- even if an error happens in here</pre><div class="dg-cap">A <code>with</code> block is a promise: whatever happens inside, the file is closed on the way out.</div></div>
+  <div class="lesson-h3">Why with, and what goes wrong without it</div>
+  <p class="lesson-p">You can call <code>open</code> and <code>close</code> yourself, but you must not forget the close, and a crash in the middle would skip it. The next block shows the file object's <code>closed</code> flag in both styles.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Manual close versus with</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">f = <span class="bi">open</span>(<span class="st">'notes57.txt'</span>, <span class="st">'w'</span>)
+f.write(<span class="st">'draft'</span>)
+<span class="bi">print</span>(<span class="st">'manual, before close: closed ='</span>, f.closed)
+f.close()
+<span class="bi">print</span>(<span class="st">'manual, after close:  closed ='</span>, f.closed)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'notes57.txt'</span>) <span class="kw">as</span> g:
+    <span class="bi">print</span>(<span class="st">'inside with:          closed ='</span>, g.closed)
+<span class="bi">print</span>(<span class="st">'after with:           closed ='</span>, g.closed)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>manual, before close: closed = False
+manual, after close:  closed = True
+inside with:          closed = False
+after with:           closed = True</pre></div>
+  <p class="lesson-p">The <code>with</code> version needs no <code>close()</code> line, so there is nothing to forget. It also closes the file when an error interrupts the block, which matches the <code>finally</code> idea from section 5.4. You can see that here:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">with closes the file even when the block fails</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'notes57.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'safe'</span>)
+
+<span class="kw">try</span>:
+    <span class="kw">with</span> <span class="bi">open</span>(<span class="st">'notes57.txt'</span>) <span class="kw">as</span> f:
+        <span class="bi">int</span>(<span class="st">'oops'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    <span class="bi">print</span>(<span class="st">'the error happened; closed ='</span>, f.closed)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>the error happened; closed = True</pre></div>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">Using a file after its block has ended is the most common one. The handle still exists as a variable, but the file behind it is closed, and Python says so plainly. The second case is opening a file that is not there.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Using a closed file, and a missing file</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'notes57.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'safe'</span>)
+
+<span class="kw">try</span>:
+    f.read()
+<span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'ValueError:'</span>, e)
+
+<span class="kw">try</span>:
+    <span class="bi">open</span>(<span class="st">'no_such_scores.txt'</span>)
+<span class="kw">except</span> <span class="cls">FileNotFoundError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="bi">type</span>(e).__name__, <span class="st">'|'</span>, e.strerror, <span class="st">'|'</span>, e.filename)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>ValueError: I/O operation on closed file.
+FileNotFoundError | No such file or directory | no_such_scores.txt</pre></div>
+  <p class="lesson-p">Both messages tell you exactly what happened. For a missing file the fix depends on the situation: correct the name, create the file first, or catch <code>FileNotFoundError</code> and tell the user which file to provide. Relative names such as <code>'no_such_scores.txt'</code> are looked for in the program's <strong>current working directory</strong>, which is not always the folder you expect. Section 5.10 shows how to make paths explicit.</p>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>A note about this page: files live in your browser tab.</strong>When code runs on this page, Pyodide (the Python engine inside your browser) gives it a private, in-memory file system. Files you create are real to your program but are never saved to your computer, and they disappear when you reload the page. Files from one run are still there for later runs on the same page, so use fresh names when you experiment. On your own machine everything works the same way, except the files land in a real folder.</div></div>
+  <details class="check"><summary>What is the difference between <code>f.write('Asha,92')</code> and <code>print('Asha,92')</code>?</summary><div class="ck-answer"><code>print</code> shows text on the screen and adds a newline. <code>f.write</code> puts text into the file and adds nothing, so you must include <code>\n</code> yourself where lines should end.</div></details>
+  <details class="check"><summary>If the code inside a <code>with open(...)</code> block crashes, is the file still closed?</summary><div class="ck-answer">Yes. Closing on the way out, whatever happens, is the whole point of <code>with</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the mode in the first block from <code>'w'</code> to <code>'r'</code> for the first <code>with</code>, run it, and read the message. Then change it back.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Files let data outlive the program. <code>open(name, mode)</code> returns a file object; <code>'r'</code> reads (the default), <code>'w'</code> writes.</li><li>Always use <code>with open(...) as f:</code>; the file is closed for you when the block ends, even after an error.</li><li><code>write</code> adds no newline, so put <code>\n</code> in the text where you want a line to end.</li><li>Common errors: <code>ValueError: I/O operation on closed file.</code> and <code>FileNotFoundError</code>. Files on this page live in an in-memory file system that resets on reload.</li></ul></div>
+  <!-- /S:5.7 -->
+
+  <!-- S:5.8 -->
+  <div class="lesson-h2">5.8 — File Modes and the Ways to Read</div>
+  <p class="lesson-p">The mode string controls more than reading versus writing, and one letter can destroy data. Before you type <code>'w'</code> on a file you care about, you should know what each mode does when the file exists and when it does not.</p>
+  <table class="lesson-table"><thead><tr><th>Mode</th><th>Reads?</th><th>Writes?</th><th>If the file exists</th><th>If the file is missing</th></tr></thead><tbody><tr><td><code>'r'</code> (default)</td><td>yes</td><td>no</td><td>opens it, cursor at the start</td><td><code>FileNotFoundError</code></td></tr><tr><td><code>'w'</code></td><td>no</td><td>yes</td><td><strong>erases it</strong> and starts empty</td><td>creates it</td></tr><tr><td><code>'a'</code></td><td>no</td><td>yes</td><td>keeps it, writes at the end</td><td>creates it</td></tr><tr><td><code>'x'</code></td><td>no</td><td>yes</td><td><code>FileExistsError</code></td><td>creates it</td></tr><tr><td><code>'r+'</code></td><td>yes</td><td>yes</td><td>opens it, keeps the content</td><td><code>FileNotFoundError</code></td></tr></tbody></table>
+  <p class="lesson-p">Add <code>'b'</code> (for example <code>'rb'</code>) to work with raw bytes instead of text. The safe defaults are <code>'r'</code> to read, <code>'a'</code> to add a line to a log, and <code>'x'</code> when you want to be told instead of overwriting. Here the same file goes through write, append and write again.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">w erases, a adds</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">show</span>(label):
+    <span class="kw">with</span> <span class="bi">open</span>(<span class="st">'modes.txt'</span>) <span class="kw">as</span> f:
+        <span class="bi">print</span>(<span class="st">f'{label:16}'</span>, f.read().splitlines())
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'modes.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'first\n'</span>)
+show(<span class="st">'after w:'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'modes.txt'</span>, <span class="st">'a'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'second\n'</span>)
+show(<span class="st">'after a:'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'modes.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'third\n'</span>)
+show(<span class="st">'w again:'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>after w:         ['first']
+after a:         ['first', 'second']
+w again:         ['third']</pre></div>
+  <p class="lesson-p">The last line is the trap: <code>'w'</code> on an existing file throws away everything that was in it, without asking. If you would rather be stopped, use <code>'x'</code>:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">x refuses to overwrite</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'exclusive.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'original'</span>)
+
+<span class="kw">try</span>:
+    <span class="bi">open</span>(<span class="st">'exclusive.txt'</span>, <span class="st">'x'</span>)
+<span class="kw">except</span> <span class="cls">FileExistsError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="bi">type</span>(e).__name__, <span class="st">'-'</span>, e.strerror)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>FileExistsError - File exists</pre></div>
+  <div class="lesson-h3">Four ways to read, and the file cursor</div>
+  <p class="lesson-p">A file object remembers a position, called the <strong>cursor</strong>, that starts at the beginning. Each read moves the cursor forward and hands back what it passed. A bookmark is the right picture. That explains a surprise that trips up many beginners: reading the same open file twice gives an empty string the second time, because the bookmark is already at the end.</p>
+  <div class="diagram"><div class="dg-title">The cursor moves as you read</div><pre>   file: Asha,92\nBen,85\nChen,78\n
+         ^ cursor starts here
+   readline() -&gt; 'Asha,92\n'       cursor: start of line 2
+   read(3)    -&gt; 'Ben'            cursor: after 'Ben'
+   read()     -&gt; ',85\nChen,78\n' cursor: the very end
+   read()     -&gt; ''               nothing left to read
+   seek(0)                        cursor: back to the start</pre><div class="dg-cap"><code>read()</code> takes everything, <code>read(n)</code> takes n characters, <code>readline()</code> takes one line, and <code>readlines()</code> returns every line as a list. <code>seek(0)</code> rewinds.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">readline, read, readlines and seek</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'cursor.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'Asha,92\nBen,85\nChen,78\n'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'cursor.txt'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.readline()))
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.read(<span class="nm">3</span>)))
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.read()))
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.read()))
+    f.seek(<span class="nm">0</span>)
+    <span class="bi">print</span>(f.readlines())</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>'Asha,92\n'
+'Ben'
+',85\nChen,78\n'
+''
+['Asha,92\n', 'Ben,85\n', 'Chen,78\n']</pre></div>
+  <p class="lesson-p">For large files the best way to read is to loop over the file object itself. Python hands you one line at a time and never loads the whole file into memory. Here it builds the average score, using <code>.strip()</code> to remove the newline and <code>split(',')</code> to break the line into its two parts.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Looping over lines, one at a time</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'cursor.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'Asha,92\nBen,85\nChen,78\n'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'cursor.txt'</span>) <span class="kw">as</span> f:
+    total = <span class="nm">0</span>
+    count = <span class="nm">0</span>
+    <span class="kw">for</span> number, line <span class="kw">in</span> <span class="bi">enumerate</span>(f, start=<span class="nm">1</span>):
+        name, score = line.strip().split(<span class="st">','</span>)
+        <span class="bi">print</span>(number, name, score)
+        total += <span class="bi">int</span>(score)
+        count += <span class="nm">1</span>
+
+<span class="bi">print</span>(<span class="st">'average:'</span>, total / count)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>1 Asha 92
+2 Ben 85
+3 Chen 78
+average: 85.0</pre></div>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">Two more slips are easy to make. Writing to a file opened for reading, or reading from one opened for writing, raises an error from the <code>io</code> module. And because <code>write</code> accepts only strings, a bare number must be converted with <code>str()</code>. Notice that <code>print(..., file=f)</code> is a convenient alternative that adds the newline for you.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Wrong direction, wrong type, missing newline</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> io
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'mistakes.txt'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
+    <span class="kw">try</span>:
+        f.read()
+    <span class="kw">except</span> io.UnsupportedOperation <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'UnsupportedOperation:'</span>, e)
+    <span class="kw">try</span>:
+        f.write(<span class="nm">92</span>)
+    <span class="kw">except</span> <span class="cls">TypeError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'TypeError:'</span>, e)
+    f.write(<span class="st">'Asha,92'</span>)
+    f.write(<span class="st">'Ben,85'</span>)
+    <span class="bi">print</span>(<span class="st">'Chen,78'</span>, file=f)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'mistakes.txt'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.read()))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>UnsupportedOperation: not readable
+TypeError: write() argument must be str, not int
+'Asha,92Ben,85Chen,78\n'</pre></div>
+  <p class="lesson-p">The last line shows the missing-newline mistake: <code>Asha,92</code> and <code>Ben,85</code> ran together into one line because nothing separated them, while <code>print(..., file=f)</code> finished its line properly.</p>
+  <details class="check"><summary>You open an existing file with <code>'w'</code> and immediately close it without writing. What is in the file now?</summary><div class="ck-answer">Nothing. The file is empty, because <code>'w'</code> erases the old content as soon as the file is opened.</div></details>
+  <details class="check"><summary>Why does a second <code>f.read()</code> on the same open file return <code>''</code>?</summary><div class="ck-answer">The first read moved the cursor to the end of the file. There is nothing left after it, so the second read returns an empty string. <code>f.seek(0)</code> moves the cursor back.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the loop over <code>cursor.txt</code> to use <code>f.readlines()</code> instead of iterating over <code>f</code>. Do you still get identical output? Then try <code>f.read().split('\n')</code> and look at what the last item is.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>'r'</code> reads, <code>'w'</code> erases and writes, <code>'a'</code> appends, <code>'x'</code> refuses to overwrite; adding <code>'b'</code> gives bytes.</li><li>A file has a cursor: each read moves it forward, so a second <code>read()</code> gives <code>''</code> until you <code>seek(0)</code>.</li><li>Loop over the file object to read line by line; use <code>.strip()</code> to remove the newline.</li><li><code>write</code> needs a string and adds no newline; <code>print(..., file=f)</code> adds one.</li></ul></div>
+  <!-- /S:5.8 -->
+
+  <!-- S:5.9 -->
+  <div class="lesson-h2">5.9 — Text, Encodings and Newlines: The Invisible Pitfalls</div>
+  <p class="lesson-p">So far the file contents looked like plain letters. Under the surface a file only holds <strong>bytes</strong>, numbers from 0 to 255. Python has to turn characters into bytes when writing and back into characters when reading. The rulebook for that translation is called an <strong>encoding</strong>. The one you should use almost always is <strong>UTF-8</strong>, which can represent every alphabet. The trouble starts when the writer and the reader use different encodings.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Characters are not bytes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">text = <span class="st">'café'</span>
+<span class="bi">print</span>(<span class="bi">len</span>(text), <span class="st">'characters'</span>)
+<span class="bi">print</span>(text.encode(<span class="st">'utf-8'</span>))
+<span class="bi">print</span>(text.encode(<span class="st">'latin-1'</span>))
+<span class="bi">print</span>(<span class="bi">len</span>(text.encode(<span class="st">'utf-8'</span>)), <span class="st">'bytes in UTF-8'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>4 characters
+b'caf\xc3\xa9'
+b'caf\xe9'
+5 bytes in UTF-8</pre></div>
+  <p class="lesson-p">The accented <code>é</code> is one character but two bytes in UTF-8 (<code>\xc3\xa9</code>), and one byte in an older encoding called Latin-1 (<code>\xe9</code>). If someone saves a file in Latin-1 and you read it as UTF-8, Python meets a byte that makes no sense in UTF-8 and raises an error.</p>
+  <div class="diagram"><div class="dg-title">Text and bytes</div><pre>    characters ('café')  --- encode (write) ---&gt;  bytes on disk
+                         &lt;--- decode (read) ---
+
+     'é'  --UTF-8--&gt;    C3 A9      (two bytes)
+     'é'  --Latin-1--&gt;  E9         (one byte)
+
+     reading E9 as UTF-8  --&gt;  UnicodeDecodeError
+     (the reader and the writer must agree on the encoding)</pre><div class="dg-cap"><code>open(..., encoding="utf-8")</code> names the rulebook explicitly. Do not rely on the default; it differs between computers.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">UnicodeDecodeError: the mismatch, and two ways out</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'names_latin.txt'</span>, <span class="st">'w'</span>, encoding=<span class="st">'latin-1'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'café noir'</span>)
+
+<span class="kw">try</span>:
+    <span class="kw">with</span> <span class="bi">open</span>(<span class="st">'names_latin.txt'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+        f.read()
+<span class="kw">except</span> <span class="cls">UnicodeDecodeError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'UnicodeDecodeError:'</span>, e)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'names_latin.txt'</span>, encoding=<span class="st">'utf-8'</span>, errors=<span class="st">'replace'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="st">'errors=replace:'</span>, f.read())
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'names_latin.txt'</span>, encoding=<span class="st">'latin-1'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="st">'right encoding:'</span>, f.read())</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 3: invalid continuation byte
+errors=replace: caf� noir
+right encoding: café noir</pre></div>
+  <p class="lesson-p">Read the error like a sentence: the <code>utf-8</code> codec could not decode byte <code>0xe9</code> at position 3 because it was an invalid continuation byte. The real fix is to use the encoding the file was really written in. <code>errors='replace'</code> lets you read anyway by swapping the unreadable byte for a replacement mark, which is good for looking at a file and bad for data you rely on. The habit that prevents all of this is to write <code>encoding='utf-8'</code> whenever you open a text file.</p>
+  <div class="lesson-h3">Newlines: the line ending is not the same everywhere</div>
+  <p class="lesson-p">A <strong>newline</strong> is the invisible character that ends a line. Unix-like systems and macOS use <code>\n</code>, while Windows uses two characters, <code>\r\n</code>. Python smooths this over: when you <strong>read</strong> in text mode it translates every kind of line ending to a plain <code>\n</code>, and when you <strong>write</strong> it converts <code>\n</code> to whatever the current system prefers. That is usually what you want. It becomes a problem when you must see or preserve the exact endings, and the fix is <code>newline=''</code>, which switches the translation off.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The same bytes, three ways of reading</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">with</span> <span class="bi">open</span>(<span class="st">'lines.txt'</span>, <span class="st">'w'</span>, newline=<span class="st">''</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'Asha,92\r\nBen,85\r\n'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'lines.txt'</span>, <span class="st">'rb'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="st">'raw bytes    :'</span>, f.read())
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'lines.txt'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="st">'default read :'</span>, <span class="bi">repr</span>(f.read()))
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'lines.txt'</span>, newline=<span class="st">''</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="st">"newline=''   :"</span>, <span class="bi">repr</span>(f.read()))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>raw bytes    : b'Asha,92\r\nBen,85\r\n'
+default read : 'Asha,92\nBen,85\n'
+newline=''   : 'Asha,92\r\nBen,85\r\n'</pre></div>
+  <p class="lesson-p">The file was written with Windows-style endings. Reading it normally hides the <code>\r</code>, while <code>newline=''</code> shows exactly what is in the file. Section 5.11 comes back to this: the <code>csv</code> module asks you to open files with <code>newline=''</code> so that it can handle line endings itself, including line breaks inside quoted fields.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Splitting text into lines</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">text = <span class="st">'Asha,92\nBen,85\n'</span>
+<span class="bi">print</span>(text.split(<span class="st">'\n'</span>))
+<span class="bi">print</span>(text.splitlines())
+<span class="bi">print</span>([line <span class="kw">for</span> line <span class="kw">in</span> text.split(<span class="st">'\n'</span>) <span class="kw">if</span> line])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['Asha,92', 'Ben,85', '']
+['Asha,92', 'Ben,85']
+['Asha,92', 'Ben,85']</pre></div>
+  <p class="lesson-p">A file that ends with a newline gives an extra empty string when you <code>split('\n')</code>. That trailing <code>''</code> later fails <code>int('')</code> or a two-way unpack. <code>splitlines()</code> does not produce it, and neither does looping over the file object.</p>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Common mistakes.</strong>Reading a file that someone else exported without saying what encoding it uses; forgetting that the default encoding depends on the computer; splitting on <code>'\n'</code> and choking on the empty last item; comparing text that still contains <code>\r</code> with text that does not, which looks identical when printed but is not equal.</div></div>
+  <details class="check"><summary>A colleague sends a CSV that raises <code>UnicodeDecodeError</code> when you open it with UTF-8. What are two things you can try?</summary><div class="ck-answer">Open it with the encoding it was really written in (often <code>latin-1</code> or <code>cp1252</code>), or use <code>errors='replace'</code> to inspect it. Also ask the sender which encoding they used.</div></details>
+  <details class="check"><summary>What does <code>newline=''</code> change when you open a file?</summary><div class="ck-answer">It turns off newline translation, so reading gives you the exact line endings stored in the file and writing does not add anything on its own.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the <code>errors='replace'</code> line to <code>errors='ignore'</code> and compare. Then decide which of the three ways to read <code>names_latin.txt</code> you would trust in a real project, and why.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A file holds bytes; an <strong>encoding</strong> such as UTF-8 turns characters into bytes and back. Reader and writer must agree.</li><li><code>UnicodeDecodeError</code> means the bytes did not fit the encoding you named. Fix it by naming the correct encoding, not by ignoring the problem.</li><li>Always pass <code>encoding='utf-8'</code> for text files you share.</li><li>In text mode Python translates line endings; <code>newline=''</code> turns that off, which the <code>csv</code> module needs.</li><li><code>splitlines()</code> or iterating the file avoids the empty last item that <code>split('\n')</code> leaves.</li></ul></div>
+  <!-- /S:5.9 -->
+
+  <!-- S:5.10 -->
+  <div class="lesson-h2">5.10 — pathlib: Handling File Paths Properly</div>
+  <p class="lesson-p">Every file has a <strong>path</strong>: the directions from a starting folder to the file, like <code>data/quiz/scores_2024.csv</code>. Beginners build paths by gluing strings together, and it works until it does not. Watch what happens when one separator is forgotten, and how much string surgery it takes just to get a file's name.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Paths as plain strings are fragile</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">folder = <span class="st">'data'</span>
+name = <span class="st">'scores.csv'</span>
+
+<span class="bi">print</span>(folder + <span class="st">'/'</span> + name)
+<span class="bi">print</span>(folder + name)
+
+path = <span class="st">'data/quiz/scores_2024.csv'</span>
+<span class="bi">print</span>(path.split(<span class="st">'/'</span>)[-<span class="nm">1</span>])
+<span class="bi">print</span>(path.split(<span class="st">'/'</span>)[-<span class="nm">1</span>].split(<span class="st">'.'</span>)[<span class="nm">0</span>])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>data/scores.csv
+datascores.csv
+scores_2024.csv
+scores_2024</pre></div>
+  <p class="lesson-p">The second line silently glued the words into <code>datascores.csv</code>. On Windows the separator is a backslash, so hard-coded slashes break there. Extracting the name and the extension needs two chained splits. The <strong><code>pathlib</code></strong> module in the standard library replaces all of this with a <code>Path</code> object: a path that knows it is a path. You combine parts with the <code>/</code> operator, and Python picks the right separator for the computer it runs on.</p>
+  <div class="diagram"><div class="dg-title">The anatomy of a Path</div><pre>   Path('data') / 'quiz' / 'scores_2024.csv'
+
+   data/quiz/scores_2024.csv
+   \_____/ \__/ \____________/
+     |      |        |
+   .parent  |      .name   = scores_2024.csv
+   = data/quiz     .stem   = scores_2024   (name without extension)
+                   .suffix = .csv          (the extension, with its dot)
+
+   .parts = ('data', 'quiz', 'scores_2024.csv')</pre><div class="dg-cap">Each piece is an attribute, so there is no string splitting to get wrong.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Building a Path and taking it apart</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+p = <span class="cls">Path</span>(<span class="st">'data'</span>) / <span class="st">'quiz'</span> / <span class="st">'scores_2024.csv'</span>
+<span class="bi">print</span>(p)
+<span class="bi">print</span>(p.name)
+<span class="bi">print</span>(p.stem)
+<span class="bi">print</span>(p.suffix)
+<span class="bi">print</span>(p.parent)
+<span class="bi">print</span>(p.parts)
+<span class="bi">print</span>(p.with_suffix(<span class="st">'.json'</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>data/quiz/scores_2024.csv
+scores_2024.csv
+scores_2024
+.csv
+data/quiz
+('data', 'quiz', 'scores_2024.csv')
+data/quiz/scores_2024.json</pre></div>
+  <p class="lesson-p">A <code>Path</code> also does the file work you already know. <code>write_text</code> and <code>read_text</code> open, use and close a file in one call, <code>mkdir</code> creates folders, <code>exists</code>, <code>is_file</code> and <code>is_dir</code> answer questions, <code>glob</code> finds files by pattern, and <code>iterdir</code> lists a folder. The results of <code>glob</code> and <code>iterdir</code> come back in no promised order, so wrap them in <code>sorted</code> whenever the order matters.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Creating, finding and reading files with Path</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+folder = <span class="cls">Path</span>(<span class="st">'quizdata'</span>)
+folder.mkdir(exist_ok=<span class="kw">True</span>)
+(folder / <span class="st">'week1.txt'</span>).write_text(<span class="st">'Asha,92\n'</span>, encoding=<span class="st">'utf-8'</span>)
+(folder / <span class="st">'week2.txt'</span>).write_text(<span class="st">'Ben,85\n'</span>, encoding=<span class="st">'utf-8'</span>)
+(folder / <span class="st">'notes.md'</span>).write_text(<span class="st">'hello'</span>, encoding=<span class="st">'utf-8'</span>)
+
+<span class="bi">print</span>(folder.exists(), folder.is_dir(), (folder / <span class="st">'week1.txt'</span>).is_file())
+<span class="kw">for</span> path <span class="kw">in</span> <span class="bi">sorted</span>(folder.glob(<span class="st">'week*.txt'</span>)):
+    <span class="bi">print</span>(path.name, <span class="st">'-&gt;'</span>, path.read_text(encoding=<span class="st">'utf-8'</span>).strip())
+<span class="bi">print</span>([p.name <span class="kw">for</span> p <span class="kw">in</span> <span class="bi">sorted</span>(folder.iterdir())])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True True True
+week1.txt -&gt; Asha,92
+week2.txt -&gt; Ben,85
+['notes.md', 'week1.txt', 'week2.txt']</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div><code>Path('quizdata')</code> only creates an object that describes a location. No file or folder is touched yet.</div></li>
+    <li data-n="2"><div><code>mkdir(exist_ok=True)</code> creates the folder, and does nothing (instead of raising <code>FileExistsError</code>) if it is already there.</div></li>
+    <li data-n="3"><div>Each <code>write_text</code> opens the file, writes the text, and closes it, in one call.</div></li>
+    <li data-n="4"><div><code>glob('week*.txt')</code> yields the paths that match the pattern, where <code>*</code> stands for any characters. <code>sorted</code> puts them in a fixed order.</div></li>
+    <li data-n="5"><div><code>iterdir()</code> lists everything in the folder, including <code>notes.md</code>, which the glob pattern skipped.</div></li>
+  </ul>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">Two slips are common. Adding a string to a <code>Path</code> with <code>+</code> fails, because the operator for joining is <code>/</code>. And writing into a folder that does not exist yet fails with the same <code>FileNotFoundError</code> as a missing file. The cure is <code>mkdir(parents=True, exist_ok=True)</code> on the parent first.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Path plus a string, and a missing folder</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> shutil
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+shutil.rmtree(<span class="st">'reports'</span>, ignore_errors=<span class="kw">True</span>)
+
+<span class="kw">try</span>:
+    <span class="cls">Path</span>(<span class="st">'reports'</span>) + <span class="st">'/summary.txt'</span>
+<span class="kw">except</span> <span class="cls">TypeError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'TypeError:'</span>, e)
+
+target = <span class="cls">Path</span>(<span class="st">'reports'</span>) / <span class="st">'june'</span> / <span class="st">'summary.txt'</span>
+<span class="kw">try</span>:
+    target.write_text(<span class="st">'ok'</span>, encoding=<span class="st">'utf-8'</span>)
+<span class="kw">except</span> <span class="cls">FileNotFoundError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'FileNotFoundError:'</span>, e.strerror, <span class="st">'|'</span>, e.filename)
+
+target.parent.mkdir(parents=<span class="kw">True</span>, exist_ok=<span class="kw">True</span>)
+target.write_text(<span class="st">'ok'</span>, encoding=<span class="st">'utf-8'</span>)
+<span class="bi">print</span>(<span class="st">'written:'</span>, target.read_text(encoding=<span class="st">'utf-8'</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>TypeError: unsupported operand type(s) for +: 'PosixPath' and 'str'
+FileNotFoundError: No such file or directory | reports/june/summary.txt
+written: ok</pre></div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>What you see may differ by computer.</strong>The <code>TypeError</code> names <code>PosixPath</code> on Linux, macOS and in this browser, and <code>WindowsPath</code> on Windows. That is <code>Path</code> choosing the right kind for the computer. Everything else in this section behaves the same everywhere.</div></div>
+  <details class="check"><summary>Which expression gives you <code>scores_2024</code> from <code>Path('data/quiz/scores_2024.csv')</code>?</summary><div class="ck-answer"><code>.stem</code>. <code>.name</code> would give <code>scores_2024.csv</code>, and <code>.suffix</code> gives <code>.csv</code>.</div></details>
+  <details class="check"><summary>Why does <code>Path('reports') + '/x.txt'</code> fail, and what is the correct way?</summary><div class="ck-answer"><code>Path</code> does not support <code>+</code>. Use the <code>/</code> operator: <code>Path('reports') / 'x.txt'</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a <code>Path('quizdata') / 'week3.txt'</code> file, then change the glob pattern to <code>'*.txt'</code> and print how many paths match.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <code>Path</code> object replaces string juggling: build with <code>/</code>, inspect with <code>.name</code>, <code>.stem</code>, <code>.suffix</code>, <code>.parent</code>.</li><li><code>write_text</code>, <code>read_text</code>, <code>mkdir</code>, <code>exists</code>, <code>glob</code> and <code>iterdir</code> cover most everyday file work.</li><li>Wrap <code>glob</code>/<code>iterdir</code> in <code>sorted</code> when order matters, and use <code>mkdir(parents=True, exist_ok=True)</code> before writing into a new folder.</li><li><code>Path</code> works anywhere a file name string does, including <code>open()</code>.</li></ul></div>
+  <!-- /S:5.10 -->
+
+  <!-- S:5.11 -->
+  <div class="lesson-h2">5.11 — CSV: Tables as Text</div>
+  <p class="lesson-p"><strong>CSV</strong> stands for comma-separated values: a table where each line is a row and commas separate the columns. Spreadsheets, databases and almost every dataset you download can produce it. Splitting on commas seems easy, until a value itself contains a comma. Then the value has to be wrapped in quotes, and a plain <code>split(',')</code> cuts it in two.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Why split(",") is not enough</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+
+line = <span class="st">'"Ng, Dana",78'</span>
+<span class="bi">print</span>(line.split(<span class="st">','</span>))
+<span class="bi">print</span>(<span class="bi">next</span>(csv.reader([line])))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['"Ng', ' Dana"', '78']
+['Ng, Dana', '78']</pre></div>
+  <p class="lesson-p">The standard library <code>csv</code> module understands quotes, so the row correctly has two columns. <code>csv.reader</code> gives each row as a list. <code>csv.DictReader</code> is friendlier: it takes the first line as the column names and gives each row as a dictionary, so you write <code>row['score']</code> instead of remembering that the score is at position 1. Because a CSV is text, every value arrives as a string, and you must convert it yourself.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">DictReader: rows become dictionaries</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>, <span class="st">'w'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'name,score\nAsha,92\nBen,85\nChen,78\n'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'scores.csv'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    rows = <span class="bi">list</span>(csv.DictReader(f))
+
+<span class="bi">print</span>(rows[<span class="nm">0</span>])
+<span class="bi">print</span>(rows[<span class="nm">0</span>][<span class="st">'name'</span>], <span class="bi">type</span>(rows[<span class="nm">0</span>][<span class="st">'score'</span>]).__name__)
+scores = [<span class="bi">int</span>(row[<span class="st">'score'</span>]) <span class="kw">for</span> row <span class="kw">in</span> rows]
+<span class="bi">print</span>(scores, <span class="bi">sum</span>(scores) / <span class="bi">len</span>(scores))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>{'name': 'Asha', 'score': '92'}
+Asha str
+[92, 85, 78] 85.0</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list">
+    <li data-n="1"><div>The file is written with <code>newline=''</code>, so that the line endings are exactly what we put in (section 5.9).</div></li>
+    <li data-n="2"><div><code>csv.DictReader(f)</code> reads the first line, <code>name,score</code>, and remembers it as the column names.</div></li>
+    <li data-n="3"><div><code>list(...)</code> pulls every remaining line through the reader; each becomes a dictionary such as <code>{'name': 'Asha', 'score': '92'}</code>.</div></li>
+    <li data-n="4"><div><code>rows[0]['score']</code> is the text <code>'92'</code>, not the number 92. That is why the list comprehension calls <code>int(...)</code> before the sum.</div></li>
+  </ul>
+  <p class="lesson-p">To write a CSV, use <code>csv.DictWriter</code>. It needs the column names, <code>writeheader()</code> writes them, and <code>writerows</code> writes many rows. Values that contain commas are quoted for you. Look at the raw text with <code>repr</code> and you will see <code>\r\n</code> line endings: that is the CSV standard, and it is the reason we opened the file with <code>newline=''</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">DictWriter adds the quotes for you</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+
+rows = [{<span class="st">'name'</span>: <span class="st">'Asha'</span>, <span class="st">'score'</span>: <span class="nm">92</span>},
+        {<span class="st">'name'</span>: <span class="st">'Ng, Dana'</span>, <span class="st">'score'</span>: <span class="nm">78</span>}]
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'out.csv'</span>, <span class="st">'w'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    writer = csv.DictWriter(f, fieldnames=[<span class="st">'name'</span>, <span class="st">'score'</span>])
+    writer.writeheader()
+    writer.writerows(rows)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'out.csv'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    <span class="bi">print</span>(<span class="bi">repr</span>(f.read()))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>'name,score\r\nAsha,92\r\n"Ng, Dana",78\r\n'</pre></div>
+  <div class="lesson-h3">Surviving messy rows</div>
+  <p class="lesson-p">Real files have blank cells and typos. Combining <code>csv</code> with <code>try/except</code> from section 5.3 lets you keep the good rows and report the bad ones with their line numbers. <code>enumerate(..., start=2)</code> numbers the rows as an editor would, because line 1 is the header.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Keeping the good rows, listing the bad ones</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+
+raw = <span class="st">'name,score\nAsha,92\nBen,\nChen,seventy\nDana,88\n'</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'messy.csv'</span>, <span class="st">'w'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    f.write(raw)
+
+good, bad = [], []
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'messy.csv'</span>, newline=<span class="st">''</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    <span class="kw">for</span> line_no, row <span class="kw">in</span> <span class="bi">enumerate</span>(csv.DictReader(f), start=<span class="nm">2</span>):
+        <span class="kw">try</span>:
+            good.append(<span class="bi">float</span>(row[<span class="st">'score'</span>]))
+        <span class="kw">except</span> <span class="cls">ValueError</span> <span class="kw">as</span> e:
+            bad.append((line_no, row[<span class="st">'name'</span>], <span class="bi">str</span>(e)))
+
+<span class="bi">print</span>(<span class="st">'good:'</span>, good)
+<span class="kw">for</span> item <span class="kw">in</span> bad:
+    <span class="bi">print</span>(<span class="st">'bad row:'</span>, item)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>good: [92.0, 88.0]
+bad row: (3, 'Ben', "could not convert string to float: ''")
+bad row: (4, 'Chen', "could not convert string to float: 'seventy'")</pre></div>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">The most common trap is a header that is not exactly what you typed: a capital letter or a space after the comma makes <code>row['score']</code> a <code>KeyError</code>. A short row leaves the missing columns as <code>None</code>. Here <code>io.StringIO</code> acts as a file made from a string, which is handy for quick experiments and tests.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A header with a stray space, and a short row</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> csv
+<span class="kw">import</span> io
+
+raw = <span class="st">'Name, score\nAsha,92\nBen\n'</span>
+rows = <span class="bi">list</span>(csv.DictReader(io.StringIO(raw)))
+
+<span class="bi">print</span>(<span class="bi">list</span>(rows[<span class="nm">0</span>]))
+<span class="kw">try</span>:
+    <span class="bi">print</span>(rows[<span class="nm">0</span>][<span class="st">'score'</span>])
+<span class="kw">except</span> <span class="cls">KeyError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'KeyError:'</span>, e)
+<span class="bi">print</span>(rows[<span class="nm">1</span>])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['Name', ' score']
+KeyError: 'score'
+{'Name': 'Ben', ' score': None}</pre></div>
+  <p class="lesson-p">The column is really called <code>' score'</code>, with a leading space, so <code>'score'</code> does not exist. When you hit a <code>KeyError</code>, print <code>list(rows[0])</code> to see the exact names. Also note <code>'Ben'</code>: only one column was present, so <code> score</code> became <code>None</code>, which would fail in <code>int(None)</code> with a <code>TypeError</code>.</p>
+  <details class="check"><summary>Why does <code>csv.DictReader</code> give you <code>'92'</code> and not <code>92</code>?</summary><div class="ck-answer">A CSV file is only text, and the reader does not guess types. Convert with <code>int(...)</code> or <code>float(...)</code>, ideally inside <code>try/except ValueError</code>.</div></details>
+  <details class="check"><summary>Which argument should you pass to <code>open</code> when reading or writing CSV files, and why?</summary><div class="ck-answer"><code>newline=''</code>. It stops Python from translating line endings, so the <code>csv</code> module can handle them itself, including line breaks inside quoted values.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a row <code>Eli,"9,0"</code> to the messy data. Is <code>float('9,0')</code> accepted? Read the message and decide what the fix should be.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>csv.reader</code> gives lists, <code>csv.DictReader</code> gives dictionaries keyed by the header, and <code>csv.DictWriter</code> writes them back.</li><li>Every CSV value is a string; convert it yourself and guard the conversion with <code>try/except ValueError</code>.</li><li>Open CSV files with <code>newline=''</code> (and <code>encoding='utf-8'</code>).</li><li>A <code>KeyError</code> on a column usually means the header has a different spelling or a stray space; print <code>list(rows[0])</code>.</li></ul></div>
+  <!-- /S:5.11 -->
+
+  <!-- S:5.12 -->
+  <div class="lesson-h2">5.12 — JSON: Nested Data as Text</div>
+  <p class="lesson-p">CSV is perfect for flat tables. Much data is not flat: a class with a name, a list of scores, and a small dictionary of settings. <strong>JSON</strong> (JavaScript Object Notation) writes such nested data as text, and almost every web service and configuration file uses it. It looks very much like Python dictionaries and lists, but it is not the same thing. Printing a Python dictionary does not give valid JSON.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A dictionary is not JSON</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+config = {<span class="st">'name'</span>: <span class="st">'quiz'</span>, <span class="st">'open'</span>: <span class="kw">True</span>, <span class="st">'limit'</span>: <span class="kw">None</span>}
+<span class="bi">print</span>(<span class="bi">str</span>(config))
+<span class="bi">print</span>(json.dumps(config))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>{'name': 'quiz', 'open': True, 'limit': None}
+{"name": "quiz", "open": true, "limit": null}</pre></div>
+  <p class="lesson-p">JSON uses double quotes only, <code>true</code> and <code>false</code> in lowercase, and <code>null</code> where Python says <code>None</code>. The <code>json</code> module translates in both directions. Remember the four functions by their last letter: <strong><code>s</code> means string</strong>. <code>dumps</code> turns a Python object into a JSON string and <code>loads</code> turns a JSON string back into a Python object; <code>dump</code> and <code>load</code> do the same with a file.</p>
+  <div class="diagram"><div class="dg-title">The four json functions</div><pre>             json.dumps(obj)            json.dump(obj, file)
+   Python  ------------------&gt; JSON  ----------------------&gt; file
+   object  &lt;------------------ text  &lt;----------------------  on disk
+             json.loads(text)           json.load(file)
+
+   dict &lt;-&gt; object {}    list, tuple -&gt; array []    str &lt;-&gt; string
+   int, float &lt;-&gt; number   True/False &lt;-&gt; true/false   None &lt;-&gt; null</pre><div class="dg-cap">The functions with an <code>s</code> work on strings held in memory; the ones without it work on open files.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">loads and dumps</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+text = <span class="st">'{"class": "Room 4", "scores": [92, 85, 78], "meta": {"term": 2, "open": true}}'</span>
+data = json.loads(text)
+
+<span class="bi">print</span>(<span class="bi">type</span>(data).__name__, data[<span class="st">'class'</span>])
+<span class="bi">print</span>(data[<span class="st">'scores'</span>][<span class="nm">1</span>], data[<span class="st">'meta'</span>][<span class="st">'open'</span>])
+
+data[<span class="st">'scores'</span>].append(<span class="nm">88</span>)
+<span class="bi">print</span>(json.dumps(data, indent=<span class="nm">2</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>dict Room 4
+85 True
+{
+  "class": "Room 4",
+  "scores": [
+    92,
+    85,
+    78,
+    88
+  ],
+  "meta": {
+    "term": 2,
+    "open": true
+  }
+}</pre></div>
+  <p class="lesson-p"><code>json.loads</code> produced an ordinary dictionary that you index exactly as in Chapter 4. <code>indent=2</code> makes <code>dumps</code> produce readable, indented text. Two round-trip quirks are worth knowing: JSON has no tuples, so a tuple becomes a list, and JSON object keys must be text, so a number key becomes a string.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">What survives a round trip</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+data = {<span class="st">'pair'</span>: (<span class="nm">1</span>, <span class="nm">2</span>), <span class="nm">1</span>: <span class="st">'one'</span>}
+back = json.loads(json.dumps(data))
+<span class="bi">print</span>(back)
+<span class="bi">print</span>(back == data)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>{'pair': [1, 2], '1': 'one'}
+False</pre></div>
+  <div class="lesson-h3">JSON in files</div>
+  <p class="lesson-p">To save a report, open a file with <code>'w'</code> and hand it to <code>json.dump</code>; to read it back, use <code>json.load</code>. Both take the open file, not a file name.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">dump and load with a file</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+report = {<span class="st">'class'</span>: <span class="st">'Room 4'</span>, <span class="st">'scores'</span>: {<span class="st">'Asha'</span>: <span class="nm">92</span>, <span class="st">'Ben'</span>: <span class="nm">85</span>}}
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'report.json'</span>, <span class="st">'w'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    json.dump(report, f, indent=<span class="nm">2</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'report.json'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    loaded = json.load(f)
+
+<span class="bi">print</span>(loaded == report)
+<span class="bi">print</span>(loaded[<span class="st">'scores'</span>][<span class="st">'Ben'</span>])</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>True
+85</pre></div>
+  <div class="lesson-h3">Common mistakes</div>
+  <p class="lesson-p">Bad JSON raises <code>json.JSONDecodeError</code>, a child of <code>ValueError</code> as you saw in section 5.4. Its message includes a line and column, which is very helpful in a big file. The typical culprits are single quotes and a trailing comma. Another common error is passing a Python object that JSON cannot express, such as a <code>set</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reading JSONDecodeError and TypeError</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+bad_texts = [<span class="st">"{'name': 'Asha'}"</span>, <span class="st">'{"name": "Asha",}'</span>, <span class="st">'{"name": "Asha"'</span>]
+<span class="kw">for</span> text <span class="kw">in</span> bad_texts:
+    <span class="kw">try</span>:
+        json.loads(text)
+    <span class="kw">except</span> json.<span class="cls">JSONDecodeError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">f'line {e.lineno}, column {e.colno}: {e.msg}'</span>)
+
+<span class="kw">try</span>:
+    json.dumps({<span class="st">'tags'</span>: {<span class="nm">1</span>, <span class="nm">2</span>}})
+<span class="kw">except</span> <span class="cls">TypeError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'TypeError:'</span>, e)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>line 1, column 2: Expecting property name enclosed in double quotes
+line 1, column 17: Expecting property name enclosed in double quotes
+line 1, column 16: Expecting ',' delimiter
+TypeError: Object of type set is not JSON serializable</pre></div>
+  <p class="lesson-p">The last mix-up is calling <code>loads</code> on an open file, or <code>load</code> on a string. The message names the type it received, so read it as "I wanted text and got a file".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">loads wants text, not a file</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'report.json'</span>, <span class="st">'w'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    f.write(<span class="st">'{"ok": true}'</span>)
+
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'report.json'</span>, encoding=<span class="st">'utf-8'</span>) <span class="kw">as</span> f:
+    <span class="kw">try</span>:
+        json.loads(f)
+    <span class="kw">except</span> <span class="cls">TypeError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">'TypeError:'</span>, e)
+    f.seek(<span class="nm">0</span>)
+    <span class="bi">print</span>(json.load(f))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>TypeError: the JSON object must be str, bytes or bytearray, not TextIOWrapper
+{'ok': True}</pre></div>
+  <p class="lesson-p">Finally, JSON often arrives with some keys missing. Reading with <code>.get(key, default)</code> supplies a fallback, while plain indexing raises a <code>KeyError</code>, which you can catch as in section 5.3.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Missing keys: get or KeyError</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+config = json.loads(<span class="st">'{"epochs": 5}'</span>)
+<span class="bi">print</span>(config.get(<span class="st">'epochs'</span>, <span class="nm">1</span>), config.get(<span class="st">'batch_size'</span>, <span class="nm">32</span>))
+
+<span class="kw">try</span>:
+    config[<span class="st">'batch_size'</span>]
+<span class="kw">except</span> <span class="cls">KeyError</span> <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">'KeyError:'</span>, e)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>5 32
+KeyError: 'batch_size'</pre></div>
+  <details class="check"><summary>Which function turns a Python dictionary into a JSON string, and which reads JSON from an open file?</summary><div class="ck-answer"><code>json.dumps</code> produces the string. <code>json.load</code> reads from an open file. The trailing <code>s</code> in <code>dumps</code>/<code>loads</code> means "string".</div></details>
+  <details class="check"><summary>Why is <code>json.loads("{'a': 1}")</code> an error, when the same text is a valid Python dictionary?</summary><div class="ck-answer">JSON requires double quotes around strings. Single quotes are valid Python but not valid JSON, so <code>json.JSONDecodeError</code> is raised.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the <code>data</code> in the round-trip block to <code>{'when': 'today', 2: [1, 2], 'ok': True}</code> and predict <code>back</code> before you run it. Which values changed type?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>JSON is nested data as text: objects become dicts, arrays become lists, <code>true/false/null</code> become <code>True/False/None</code>.</li><li><code>dumps</code>/<code>loads</code> work with strings; <code>dump</code>/<code>load</code> work with open files. Use <code>indent=2</code> for readable output.</li><li>Bad JSON raises <code>JSONDecodeError</code> (a <code>ValueError</code>) with the line and column; unsupported types raise <code>TypeError</code>.</li><li>Use <code>.get(key, default)</code> when a key may be missing.</li></ul></div>
+  <!-- /S:5.12 -->
+
+  <!-- S:5.13 -->
+  <div class="lesson-h2">5.13 — A Quick Recap: How with Works Underneath</div>
+  <p class="lesson-p">You have used <code>with open(...)</code> all chapter. Why does it clean up so reliably? Because a file object promises two things, and <code>with</code> calls them at the right moments. This is a <strong>context manager</strong>: any object that has the special methods <code>__enter__</code> (run when the block starts) and <code>__exit__</code> (run when it ends, however it ends). These are the dunder methods you met in the OOP track, doing a useful job. You do not need to write your own often, but seeing one makes the magic of <code>with</code> disappear.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A tiny context manager that announces itself</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">Announce</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, name):
+        self.name = name
+
+    <span class="kw">def</span> <span class="fn">__enter__</span>(self):
+        <span class="bi">print</span>(<span class="st">'enter:'</span>, self.name)
+        <span class="kw">return</span> self
+
+    <span class="kw">def</span> <span class="fn">__exit__</span>(self, exc_type, exc_value, traceback):
+        error = exc_type.__name__ <span class="kw">if</span> exc_type <span class="kw">else</span> <span class="kw">None</span>
+        <span class="bi">print</span>(<span class="st">'exit :'</span>, self.name, <span class="st">'| error:'</span>, error)
+        <span class="kw">return</span> <span class="kw">False</span>
+
+<span class="kw">with</span> Announce(<span class="st">'report'</span>) <span class="kw">as</span> a:
+    <span class="bi">print</span>(<span class="st">'inside, working on'</span>, a.name)
+
+<span class="kw">try</span>:
+    <span class="kw">with</span> Announce(<span class="st">'bad run'</span>):
+        <span class="bi">int</span>(<span class="st">'oops'</span>)
+<span class="kw">except</span> <span class="cls">ValueError</span>:
+    <span class="bi">print</span>(<span class="st">'the error still reached the caller'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>enter: report
+inside, working on report
+exit : report | error: None
+enter: bad run
+exit : bad run | error: ValueError
+the error still reached the caller</pre></div>
+  <p class="lesson-p"><code>__enter__</code> runs first, and what it returns becomes the name after <code>as</code> (that is why <code>a</code> is the object itself). <code>__exit__</code> always runs at the end. It receives the type, value and traceback of any error that happened inside the block, or <code>None</code> for all three if the block finished normally. Returning <code>False</code> means "I have cleaned up; let the error continue", which is what you almost always want. Returning <code>True</code> would swallow the error silently, exactly like a bare <code>except</code>. Chapter 6 shows a shorter way to make these with a generator function and <code>@contextmanager</code>.</p>
+  <details class="check"><summary>Which two methods make an object usable in a <code>with</code> statement?</summary><div class="ck-answer"><code>__enter__</code> and <code>__exit__</code>.</div></details>
+  <details class="check"><summary>What happens to an error raised inside the block if <code>__exit__</code> returns <code>False</code>?</summary><div class="ck-answer">It continues upward to the caller, as in the run above where <code>except ValueError</code> still caught it after <code>exit :</code> was printed.</div></details>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>with</code> calls <code>__enter__</code> at the start and <code>__exit__</code> at the end, even after an error.</li><li>Files are context managers, so <code>with open(...)</code> closes them for you.</li><li><code>__exit__</code> returning <code>False</code> lets errors continue; <code>True</code> would hide them.</li></ul></div>
+  <!-- /S:5.13 -->
+
+  <!-- S:5.14 -->
+  <div class="lesson-h2">5.14 — Error Catalogue: The Ones You Will Actually Meet</div>
+  <p class="lesson-p">Here is a field guide. You have already produced many of these errors on purpose. This section gathers the file and data errors in one place, each printed by a real run, so that next time you recognise them at a glance. The first block triggers four file errors. It catches them all with the single parent <code>OSError</code>, using the family tree from section 5.4, and reads the two attributes <code>strerror</code> (what went wrong) and <code>filename</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Four file errors, caught by one parent</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> os
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+<span class="cls">Path</span>(<span class="st">'c_exists.txt'</span>).unlink(missing_ok=<span class="kw">True</span>)
+<span class="cls">Path</span>(<span class="st">'c_exists.txt'</span>).write_text(<span class="st">'hi'</span>, encoding=<span class="st">'utf-8'</span>)
+os.chmod(<span class="st">'c_exists.txt'</span>, 0o444)
+<span class="cls">Path</span>(<span class="st">'c_dir'</span>).mkdir(exist_ok=<span class="kw">True</span>)
+
+attempts = {
+    <span class="st">'missing file'</span>:   <span class="kw">lambda</span>: <span class="bi">open</span>(<span class="st">'c_missing.txt'</span>),
+    <span class="st">'read-only file'</span>: <span class="kw">lambda</span>: <span class="bi">open</span>(<span class="st">'c_exists.txt'</span>, <span class="st">'w'</span>),
+    <span class="st">'folder as file'</span>: <span class="kw">lambda</span>: <span class="bi">open</span>(<span class="st">'c_dir'</span>),
+    <span class="st">'x on existing'</span>:  <span class="kw">lambda</span>: <span class="bi">open</span>(<span class="st">'c_exists.txt'</span>, <span class="st">'x'</span>),
+}
+<span class="kw">for</span> label, attempt <span class="kw">in</span> attempts.items():
+    <span class="kw">try</span>:
+        attempt()
+    <span class="kw">except</span> <span class="cls">OSError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">f'{label:15} {type(e).__name__:19} {e.strerror}'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>missing file    FileNotFoundError   No such file or directory
+read-only file  PermissionError     Permission denied
+folder as file  IsADirectoryError   Is a directory
+x on existing   FileExistsError     File exists</pre></div>
+  <p class="lesson-p">On a normal computer the read-only case is the classic <code>PermissionError</code>: you tried to write where the operating system forbids it. The usual causes are a read-only file, a system folder, or a file another program has locked. The second block covers data errors: bad text, missing keys, malformed JSON and bad bytes.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Six data errors, each from a real run</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+
+<span class="kw">def</span> <span class="fn">bad_bytes</span>():
+    <span class="kw">return</span> <span class="st">b'caf\xe9 noir'</span>.decode(<span class="st">'utf-8'</span>)
+
+attempts = {
+    <span class="st">'bad number'</span>:     <span class="kw">lambda</span>: <span class="bi">int</span>(<span class="st">'7.5'</span>),
+    <span class="st">'missing key'</span>:    <span class="kw">lambda</span>: {<span class="st">'name'</span>: <span class="st">'Asha'</span>}[<span class="st">'score'</span>],
+    <span class="st">'bad JSON'</span>:       <span class="kw">lambda</span>: json.loads(<span class="st">'{oops}'</span>),
+    <span class="st">'bad bytes'</span>:      bad_bytes,
+    <span class="st">'wrong type'</span>:     <span class="kw">lambda</span>: <span class="st">'92'</span> + <span class="nm">8</span>,
+    <span class="st">'empty average'</span>:  <span class="kw">lambda</span>: <span class="bi">sum</span>([]) / <span class="bi">len</span>([]),
+}
+<span class="kw">for</span> label, attempt <span class="kw">in</span> attempts.items():
+    <span class="kw">try</span>:
+        attempt()
+    <span class="kw">except</span> <span class="cls">Exception</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(<span class="st">f'{label:14} {type(e).__name__:18} {e}'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>bad number     ValueError         invalid literal for int() with base 10: '7.5'
+missing key    KeyError           'score'
+bad JSON       JSONDecodeError    Expecting property name enclosed in double quotes: line 1 column 2 (char 1)
+bad bytes      UnicodeDecodeError 'utf-8' codec can't decode byte 0xe9 in position 3: invalid continuation byte
+wrong type     TypeError          can only concatenate str (not "int") to str
+empty average  ZeroDivisionError  division by zero</pre></div>
+  <table class="lesson-table"><thead><tr><th>Error</th><th>Usual cause</th><th>First thing to check</th><th>Typical handling</th></tr></thead><tbody><tr><td><code>FileNotFoundError</code></td><td>wrong name, wrong folder, file not created yet</td><td>the exact name, and the current working directory</td><td>create the file, fix the path, or report which file is missing</td></tr><tr><td><code>PermissionError</code></td><td>read-only file or folder, file locked by another program</td><td>who owns the file; whether it is open elsewhere</td><td>choose another location, or ask the user for access</td></tr><tr><td><code>IsADirectoryError</code></td><td>a folder name was passed to <code>open</code></td><td>whether you meant a file inside the folder</td><td>join the file name onto the folder with <code>/</code></td></tr><tr><td><code>FileExistsError</code></td><td>mode <code>'x'</code> or <code>mkdir</code> on something that exists</td><td>whether overwriting is intended</td><td>use <code>'w'</code>, <code>exist_ok=True</code>, or pick another name</td></tr><tr><td><code>UnicodeDecodeError</code></td><td>file was saved in another encoding</td><td>who exported it, and with what encoding</td><td>open with the right <code>encoding=</code></td></tr><tr><td><code>JSONDecodeError</code></td><td>single quotes, trailing comma, truncated text</td><td>the line and column in the message</td><td>fix the source; catch it as a <code>ValueError</code> and report it</td></tr><tr><td><code>KeyError</code></td><td>a name that does not exist (dictionary key or CSV column)</td><td>print the keys; check spelling and spaces</td><td>use <code>.get(key, default)</code> or catch the <code>KeyError</code></td></tr><tr><td><code>ValueError</code></td><td>right kind of value, unusable content (like <code>'abc'</code> for <code>int</code>)</td><td>print the bad value with <code>repr</code></td><td>validate first, or skip and count bad rows</td></tr><tr><td><code>TypeError</code></td><td>the wrong kind of value, or <code>+</code> with mismatched types</td><td>the types involved in the message</td><td>convert explicitly; check where the value came from</td></tr></tbody></table>
+  <div class="lesson-h3">Look before you leap, or ask forgiveness?</div>
+  <p class="lesson-p">There are two styles for dealing with a file that might not be there. <strong>Look before you leap</strong> (LBYL) checks first with <code>exists()</code>. <strong>Ask forgiveness</strong> (in Python this is called EAFP) just tries and catches the error. Python code usually prefers the second: the check and the use are two separate moments, and the file can vanish between them, and a <code>try</code> also covers problems you did not think to check, such as permissions.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two styles, same result</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+name = <span class="st">'ghost.txt'</span>
+
+<span class="kw">if</span> <span class="cls">Path</span>(name).exists():
+    <span class="bi">print</span>(<span class="st">'LBYL: would read'</span>, name)
+<span class="kw">else</span>:
+    <span class="bi">print</span>(<span class="st">'LBYL: file is missing'</span>)
+
+<span class="kw">try</span>:
+    text = <span class="cls">Path</span>(name).read_text(encoding=<span class="st">'utf-8'</span>)
+<span class="kw">except</span> <span class="cls">FileNotFoundError</span>:
+    <span class="bi">print</span>(<span class="st">'EAFP: file is missing'</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>LBYL: file is missing
+EAFP: file is missing</pre></div>
+  <div class="lesson-h3">Putting it together: a careful loader</div>
+  <p class="lesson-p">The running example ends here. This function combines almost the whole chapter: a <code>Path</code>, explicit encoding, <code>try/except</code> for the two expected problems, and <code>raise ... from e</code> to turn them into one clear error of our own that still remembers its cause. The caller needs only one <code>except</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">load_scores: paths, JSON, chaining and a custom error</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> json
+<span class="kw">from</span> pathlib <span class="kw">import</span> <span class="cls">Path</span>
+
+<span class="kw">class</span> <span class="cls">ScoreFileError</span>(<span class="cls">Exception</span>):
+    <span class="kw">pass</span>
+
+<span class="kw">def</span> <span class="fn">load_scores</span>(name):
+    path = <span class="cls">Path</span>(name)
+    <span class="kw">try</span>:
+        <span class="kw">return</span> json.loads(path.read_text(encoding=<span class="st">'utf-8'</span>))
+    <span class="kw">except</span> <span class="cls">FileNotFoundError</span> <span class="kw">as</span> e:
+        <span class="kw">raise</span> <span class="cls">ScoreFileError</span>(<span class="st">f'{path.name}: file not found'</span>) <span class="kw">from</span> e
+    <span class="kw">except</span> json.<span class="cls">JSONDecodeError</span> <span class="kw">as</span> e:
+        <span class="kw">raise</span> <span class="cls">ScoreFileError</span>(<span class="st">f'{path.name}: bad JSON, line {e.lineno}'</span>) <span class="kw">from</span> e
+
+<span class="cls">Path</span>(<span class="st">'good.json'</span>).write_text(<span class="st">'{"Asha": 92}'</span>, encoding=<span class="st">'utf-8'</span>)
+<span class="cls">Path</span>(<span class="st">'bad.json'</span>).write_text(<span class="st">'{"Asha": 92,}'</span>, encoding=<span class="st">'utf-8'</span>)
+<span class="kw">for</span> name <span class="kw">in</span> [<span class="st">'good.json'</span>, <span class="st">'bad.json'</span>, <span class="st">'ghost.json'</span>]:
+    <span class="kw">try</span>:
+        <span class="bi">print</span>(name, <span class="st">'-&gt;'</span>, load_scores(name))
+    <span class="kw">except</span> <span class="cls">ScoreFileError</span> <span class="kw">as</span> e:
+        <span class="bi">print</span>(name, <span class="st">'-&gt; error:'</span>, e, <span class="st">'| cause:'</span>, <span class="bi">type</span>(e.__cause__).__name__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>good.json -&gt; {'Asha': 92}
+bad.json -&gt; error: bad.json: bad JSON, line 1 | cause: JSONDecodeError
+ghost.json -&gt; error: ghost.json: file not found | cause: FileNotFoundError</pre></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Your debugging routine.</strong>When something fails: read the last line of the traceback, find the last <code>File</code> line for where it happened, print the bad value with <code>repr</code>, then decide whether to fix the data, validate it, or catch the error. Never silence an error you have not understood.</div></div>
+  <details class="check"><summary>A script reports <code>KeyError: 'Score'</code> on a CSV that visibly has a <code>score</code> column. What do you check?</summary><div class="ck-answer">The exact header spelling and case. <code>Score</code> and <code>score</code> are different keys, and a stray space also makes a different key. Print <code>list(rows[0])</code> to see the real names.</div></details>
+  <details class="check"><summary>Why is <code>except OSError</code> enough to cover both <code>FileNotFoundError</code> and <code>PermissionError</code>?</summary><div class="ck-answer">Both are children of <code>OSError</code> in the family tree, and a handler for a parent catches every child.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add <code>'empty.json'</code> to the loader test with <code>Path('empty.json').write_text('')</code>. What does <code>load_scores</code> report, and at which line and column?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>File problems are <code>OSError</code> children: missing (<code>FileNotFoundError</code>), forbidden (<code>PermissionError</code>), folder-instead-of-file (<code>IsADirectoryError</code>), exists (<code>FileExistsError</code>).</li><li>Data problems: <code>ValueError</code> (unusable content), <code>KeyError</code> (missing name), <code>TypeError</code> (wrong kind), <code>UnicodeDecodeError</code> (wrong encoding), <code>JSONDecodeError</code> (bad JSON).</li><li>Prefer trying and catching (EAFP) to checking first for things that can change.</li><li>Translate low-level errors into one clear error of your own with <code>raise ... from e</code>.</li></ul></div>
+  <!-- /S:5.14 -->
 
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 5 Summary</div>
+  <div class="lesson-h2">Chapter 5 Summary: What You Can Now Do</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>class / __init__ / self</strong> — bundle data (attributes) and behavior (methods) together. This is what every ML library object actually is.</div></li>
-    <li data-n="2"><div><strong>Inheritance and super()</strong> let a subclass reuse and extend a parent class's behavior instead of duplicating it. <strong>Dunder methods</strong> (<code>__str__</code>/<code>__repr__</code>/<code>__eq__</code>) hook your objects into <code>print()</code> and <code>==</code>. <strong>@property/@classmethod/@staticmethod</strong> each control how a method is called and what it receives.</div></li>
-    <li data-n="3"><div><strong>try/except</strong> lets code survive bad data instead of crashing. Always catch specific exception types. <strong>raise ... from e</strong> chains a new exception to its original cause instead of hiding it.</div></li>
-    <li data-n="4"><div><strong>with open(file, mode) as f:</strong> reads or writes files safely, closing them automatically. <strong>pathlib.Path</strong> builds and inspects file paths without manual string splitting. A class can implement the same protocol itself via <strong>__enter__/__exit__</strong>.</div></li>
-    <li data-n="5"><div><strong>csv.DictReader</strong> turns CSV rows into dicts. Remember: every value from a CSV arrives as a string.</div></li>
-    <li data-n="6"><div><strong>json.loads() / json.dumps()</strong> convert between JSON text and Python dicts/lists.</div></li>
+    <li data-n="1"><div><strong>Bridge (5.1):</strong> classes, inheritance, dunder methods, properties, dataclasses and testing live in the OOP track. Errors are objects in a family tree, so that knowledge carries straight over.</div></li>
+    <li data-n="2"><div><strong>Read a traceback (5.2):</strong> start at the last line for the error type and message, then the last <code>File</code> line for where it happened, and follow the calls upwards.</div></li>
+    <li data-n="3"><div><strong>Catch errors (5.3-5.4):</strong> <code>try/except</code> with a named error type, <code>as e</code>, several handlers ordered from specific to general, <code>else</code> for success-only code and <code>finally</code> for cleanup that must always run. Never use a bare <code>except:</code>.</div></li>
+    <li data-n="4"><div><strong>Raise and chain errors (5.5-5.6):</strong> refuse bad input with <code>raise</code>, define your own error by subclassing, re-raise with a bare <code>raise</code>, and keep the trail with <code>raise New(...) from e</code>.</div></li>
+    <li data-n="5"><div><strong>Files (5.7-5.9):</strong> <code>with open(name, mode, encoding='utf-8')</code>; know that <code>'w'</code> erases; read with <code>read</code>, <code>readline</code>, or by looping over the file; understand the cursor, encodings, and newlines (<code>newline=''</code>).</div></li>
+    <li data-n="6"><div><strong>Paths and formats (5.10-5.12):</strong> <code>pathlib.Path</code> for building and inspecting paths; <code>csv.DictReader</code>/<code>DictWriter</code> for tables (every value is a string); <code>json.loads/dumps/load/dump</code> for nested data.</div></li>
+    <li data-n="7"><div><strong>Underneath and afterwards (5.13-5.14):</strong> <code>with</code> is <code>__enter__</code>/<code>__exit__</code>. You can recognise the common file and data errors and pick a sensible response for each.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -875,38 +1964,37 @@ back_to_text = json.dumps(config, indent=<span class="nm">2</span>)   <span clas
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Your First Class</div>
-        <div class="ex-desc">Write a base class and a subclass using super(), a __str__ override, and a @property.</div>
+        <div class="ex-title">Parse JSON Records Safely</div>
+        <div class="ex-desc">Use json.loads with try / except / else to keep the good records and count the bad ones.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-Write a base class Model with:
-  __init__(self, name, accuracy) — stores both as attributes
-  __str__(self) — RETURNS f'{self.name}: {self.accuracy:.2%}' (this is what
-    print(obj) uses automatically — no need to call a method by name)
-  a @property called is_production_ready — RETURNS self.accuracy >= 0.9
+records = [
+    '{"name": "Asha", "score": 92}',
+    '{"name": "Ben", "score": ',
+    '{"name": "Chen", "score": 78}',
+]   (already given in the editor)
 
-Then write a subclass FineTunedModel(Model) whose __init__(self, name,
-accuracy, base_model) calls super().__init__(name, accuracy) and stores
-self.base_model = base_model.
+Loop through the records with their position (use enumerate, starting at 0).
+For each one, try json.loads(text).
+  - If it raises json.JSONDecodeError: add 1 to a counter called bad and
+    print exactly f'Bad record {i}'.
+  - Use an else clause (it runs only when the parsing worked) to append the
+    record's "name" to a list called names.
 
-Create FineTunedModel('ResNet50-FT', 0.9423, 'ResNet50').
-Print the object directly (print(obj) — uses your __str__).
-Then print exactly: f'Production ready? {obj.is_production_ready}'
-(note: NO parentheses on is_production_ready — it's a property, accessed
-like an attribute)
-(The correct output is two lines: "ResNet50-FT: 94.23%" then "Production ready? True")</div>
+After the loop print exactly: f'Names: {names}, bad records: {bad}'
+(The correct output is two lines: "Bad record 1" then
+ "Names: ['Asha', 'Chen'], bad records: 1")</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code"># class Model:
-#     def __init__(self, name, accuracy): ...
-#     def __str__(self): ...
-#     @property
-#     def is_production_ready(self): ...
-#
-# class FineTunedModel(Model):
-#     def __init__(self, name, accuracy, base_model):
-#         super().__init__(name, accuracy)
-#         self.base_model = base_model
+      <textarea class="ex-editor" id="ex1-code">import json
+
+records = [
+    '{"name": "Asha", "score": 92}',
+    '{"name": "Ben", "score": ',
+    '{"name": "Chen", "score": 78}',
+]
+
+# for each record: try json.loads, except json.JSONDecodeError, else append the name
 
 </textarea>
       <div class="ex-btn-row">
@@ -1079,7 +2167,7 @@ csv_text = 'name,score\nAlice,0.92\nBob,0.75\nCarol,0.81\n'
 <div class="project-section" id="sec-project">
   <div class="project-banner">
     <h2>🏗️ Mini Project: <span>The Dataset Class</span></h2>
-    <p>This project uses EVERY concept from Chapters 1-5: variables and f-strings, control flow, functions, dicts and lists, and now classes, files, and error handling. You'll build a Dataset class that loads a real (deliberately messy) CSV file, cleans it while surviving bad rows, and reports statistics — exactly the shape of the first step in almost every real ML project.</p>
+    <p>This project uses EVERY concept from Chapters 1-5: variables and f-strings, control flow, functions, dicts and lists, and now files, CSV, and error handling, packaged in a class from the OOP track. You'll build a Dataset class that loads a real (deliberately messy) CSV file, cleans it while surviving bad rows, and reports statistics — exactly the shape of the first step in almost every real ML project.</p>
     <div class="project-tags">
       <span class="ptag">class</span>
       <span class="ptag">csv.DictReader</span>
@@ -1172,12 +2260,12 @@ ds.summary()
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">What is <code>self</code>, inside a class's methods?</div>
+    <div class="q-text">In <code>try / except / else / finally</code>, when does the <code>finally</code> block run?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> A reserved keyword with no real purpose, required by Python syntax</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> A reference to the specific instance the method is being called on</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The name of the class itself</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> A global variable shared by all instances</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Only when an error was raised</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Always, whether the try block succeeded, an error was handled, or an error was not caught</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Only when no error was raised</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Never, it is only kept for older code</button>
     </div>
   </div>
 
@@ -1205,8 +2293,8 @@ ds.summary()
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write a class named Point with __init__(self, x, y) that stores x and y as attributes.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="class Point:&#10;    def __init__(self, x, y):&#10;        ..." rows="4"></textarea>
+    <div class="q-text">Write a custom error class named <code>DataError</code> that inherits from <code>ValueError</code>. A one-line body (<code>pass</code>) is enough.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="class DataError(...):&#10;    ..." rows="4"></textarea>
     <button class="q-submit" onclick="checkQ4()">Check Answer</button>
     <div class="q-feedback" id="q4-feedback"></div>
   </div>
@@ -1390,28 +2478,27 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['resnet50-ft: 94.23%','production ready? true'],
-    hint:"class Model: def __init__(...): ...; def __str__(self): return f'...'; @property def is_production_ready(self): return self.accuracy>=0.9. class FineTunedModel(Model): def __init__(self,name,accuracy,base_model): super().__init__(name,accuracy); self.base_model=base_model",
-    solution:`class Model:
-    def __init__(self, name, accuracy):
-        self.name = name
-        self.accuracy = accuracy
+    checks:['bad record 1',"names: ['asha', 'chen'], bad records: 1"],
+    hint:"names=[]; bad=0; for i, text in enumerate(records): try: data = json.loads(text) except json.JSONDecodeError: bad += 1; print(f'Bad record {i}') else: names.append(data['name']). Finish with print(f'Names: {names}, bad records: {bad}')",
+    solution:`import json
 
-    def __str__(self):
-        return f'{self.name}: {self.accuracy:.2%}'
+records = [
+    '{"name": "Asha", "score": 92}',
+    '{"name": "Ben", "score": ',
+    '{"name": "Chen", "score": 78}',
+]
 
-    @property
-    def is_production_ready(self):
-        return self.accuracy >= 0.9
-
-class FineTunedModel(Model):
-    def __init__(self, name, accuracy, base_model):
-        super().__init__(name, accuracy)
-        self.base_model = base_model
-
-m = FineTunedModel('ResNet50-FT', 0.9423, 'ResNet50')
-print(m)
-print(f'Production ready? {m.is_production_ready}')`
+names = []
+bad = 0
+for i, text in enumerate(records):
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        bad += 1
+        print(f'Bad record {i}')
+    else:
+        names.append(data['name'])
+print(f'Names: {names}, bad records: {bad}')`
   },
   2:{
     checks:['valid ages sum: 87, errors skipped: 1'],
@@ -1553,18 +2640,14 @@ window.selectOpt=function(q,opt){
 };
 
 window.checkQ4=function(){
-  const val=document.getElementById('q4-input').value.trim().toLowerCase();
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s+/g,' ');
   const fb=document.getElementById('q4-feedback');
-  const hasClass=val.includes('class point');
-  const hasInit=val.includes('def __init__(self, x, y)')||val.includes('def __init__(self,x,y)');
-  const hasAssignX=val.includes('self.x')&&val.includes('=');
-  const hasAssignY=val.includes('self.y')&&val.includes('=');
-  const passed=hasClass&&hasInit&&hasAssignX&&hasAssignY;
+  const passed=/class dataerror\s*\(\s*valueerror\s*\)\s*:\s*(pass|\.\.\.|"""|\w)/.test(val);
   quizAnswers[4]=passed?'PASS':'FAIL';
   fb.className='q-feedback show '+(passed?'correct':'wrong');
   fb.textContent=passed
-    ?'✅ Correct! class Point: def __init__(self, x, y): self.x = x; self.y = y'
-    :'❌ Not quite. You need: class Point: def __init__(self, x, y): self.x = x  and  self.y = y';
+    ?'✅ Correct! class DataError(ValueError): pass'
+    :'❌ Not quite. You need a class named DataError whose parent, in brackets, is ValueError: class DataError(ValueError): pass';
 };
 
 function revealNextChapter(){
