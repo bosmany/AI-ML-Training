@@ -1,5 +1,10 @@
 # Hands-on labs
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/bosmany/ai-ml-zero-to-hero)
+
+One-command setup anywhere: `make bootstrap && make doctor && make labs` (Codespaces/devcontainer does this for you). Run a lab: `make grade LAB=<folder>`; check the reference: `make grade LAB=<folder> TARGET=solution`; local Kubernetes for k8s labs: `make kind`.
+
+
 The chapters in this course run in the browser, which cannot start a real server, talk to AWS, drive Kubernetes
 or run Docker. These labs fill that gap: each one is a small **real Python project** that you run on your own
 machine, graded by `pytest`, using the same libraries you would use at work (FastAPI, SQLAlchemy, boto3, subprocess,
