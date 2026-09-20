@@ -116,6 +116,35 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
+/* lesson deepen: teaching components */
+.lesson-h3{font-size:15px;font-weight:700;color:var(--text);margin:22px 0 8px}
+.trace-h{font-size:12px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:var(--violet);margin:18px 0 2px}
+.cb-tag{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);border:1px solid var(--border);border-radius:5px;padding:2px 7px}
+.run-out{background:#050608;border:1px solid var(--border);border-radius:0 0 10px 10px;margin:-9px 0 16px;overflow:hidden}
+.run-out .ro-label{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;color:#8B91A5;padding:6px 14px 0}
+.run-out pre{font-family:var(--mono);font-size:12.5px;line-height:1.7;color:#C9D5E5;padding:4px 14px 12px;margin:0;white-space:pre;overflow-x:auto}
+.run-out.ro-err{border-color:rgba(255,87,87,.35)}
+.run-out.ro-err pre{color:#FCA5A5}
+.diagram{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin:16px 0;overflow-x:auto}
+.diagram pre{font-family:var(--mono);font-size:11.5px;line-height:1.5;color:var(--text);white-space:pre;margin:0}
+.diagram .dg-cap{font-size:12px;color:var(--t2);margin-top:10px;font-style:italic;white-space:normal}
+.diagram .dg-title{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:8px}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:4px solid var(--violet);border-radius:10px;padding:14px 18px;margin:20px 0 8px;font-size:13.5px;color:var(--t2);line-height:1.7}
+.recap strong.rc-title{display:block;color:var(--text);font-size:13px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px}
+.recap ul{margin:0 0 0 18px}
+.recap li{margin-bottom:3px}
+.recap code,.ck-answer code,details.check summary code,.try-it code,.info-box code,.step-list code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+details.check{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:14px 0;padding:0}
+details.check summary{cursor:pointer;padding:12px 16px;font-size:13.5px;font-weight:600;color:var(--text);list-style:none}
+details.check summary::-webkit-details-marker{display:none}
+details.check summary::before{content:'\1F914  Check yourself: ';color:var(--gold);font-weight:700}
+details.check[open] summary{border-bottom:1px solid var(--border)}
+details.check .ck-answer{padding:12px 16px;font-size:13.5px;color:var(--t2);line-height:1.7}
+details.check .ck-answer strong{color:var(--cyan)}
+.try-it{background:var(--card);border:1px dashed var(--violet);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13.5px;color:var(--t2);line-height:1.7}
+.try-it strong{color:var(--violet)}
+.lesson-table td{overflow-wrap:anywhere}
+@media(max-width:560px){.lesson-table{display:block;overflow-x:auto}#topbar{overflow:hidden}}
 
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
@@ -407,6 +436,12 @@ html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-them
 /* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
 html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
 html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
 </style>
 <!-- /theme:css -->
 </head>
@@ -461,274 +496,1178 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
   <div class="lesson-intro">
     <h1>Chapter 3:<br/><span>Functions &amp; Modules</span></h1>
-    <p>Every ML library you'll ever use — <code>sklearn.metrics.accuracy_score()</code>, <code>torch.nn.functional.relu()</code> — is just a function someone wrote once and packaged so everyone could reuse it. This chapter teaches you to write your own: reusable, well-named blocks of logic that turn "code you wrote once" into "a tool you use forever."</p>
+    <p>Every ML library you will ever use, such as <code>sklearn.metrics.accuracy_score()</code> or <code>torch.nn.functional.relu()</code>, is a function someone wrote once and packaged so everyone could reuse it. This chapter teaches you to write your own, from the first <code>def</code> to your own importable module. You need only Chapters 1 and 2: variables, conditions and loops. Every idea comes with a small program you can run, a trace of what Python does, and the real error messages you will meet along the way.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~50 min read</span>
+      <span class="badge">🕐 ~2 hours with practice</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
   </div>
 
-  <!-- 3.1 -->
-  <div class="lesson-h2">3.1 — Why Functions? From Copy-Paste to Reusable Tools</div>
-  <p class="lesson-p">Without functions, computing accuracy for three different models means writing the same loop three times. If you find a bug in that logic, you now have to fix it in three places — and you will forget one. A <strong>function</strong> packages logic once, under a name, so you write it once and call it forever.</p>
-  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This is exactly what a library is.</strong> When you call <code>accuracy_score(y_true, y_pred)</code> from scikit-learn, you're calling a function someone else wrote. By the end of this chapter you'll understand precisely what's happening inside that call.</div></div>
 
-  <!-- 3.2 -->
-  <div class="lesson-h2">3.2 — def, Parameters, and return vs print</div>
-  <p class="lesson-p">Define a function with <code>def name(parameters):</code>. Inside, <code>return</code> sends a value back to whoever called the function, so it can be stored or reused. This is completely different from <code>print()</code>, which only displays text on screen and gives nothing back.</p>
 
+
+<!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="89cGQjB5R4M" data-title="Functions in Python are easy 📞" data-chan="Bro Code">Functions</button><button type="button" class="vid-tab" role="tab" data-id="Vh__2V2tXUM" data-title="Python *ARGS &amp; **KWARGS are awesome! 📦" data-chan="Bro Code">*args and **kwargs</button><button type="button" class="vid-tab" role="tab" data-id="QVdf0LgmICw" data-title="Python Tutorial: Variable Scope - Understanding the LEGB rule and global/nonlocal statements" data-chan="Corey Schafer">Scope (LEGB)</button><button type="button" class="vid-tab" role="tab" data-id="CqvZ3vGoGs0" data-title="Python Tutorial for Beginners 9: Import Modules and Exploring The Standard Library" data-chan="Corey Schafer">Modules &amp; import</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+  <!-- S:3.1 -->
+  <div class="lesson-h2">3.1 — Why Functions? The Pain of Copy-Paste</div>
+  <p class="lesson-p">Chapter 2 ended with a loop you can now write from memory: count how many predictions match the true answers, then divide by the total. That fraction is called <strong>accuracy</strong>. It is a useful measurement, so you will want it often. Imagine you have the true answers for four test questions and three different models that each made a guess. To score all three, the only tool you have so far is copy and paste.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">return vs print — the most important distinction in this chapter</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">compute_accuracy</span>(predictions, targets):
-    correct = <span class="nm">0</span>
-    <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, targets):
-        <span class="kw">if</span> p == t:
-            correct += <span class="nm">1</span>
-    <span class="kw">return</span> correct / <span class="bi">len</span>(targets)   <span class="cm"># hands the value back to the caller</span>
+    <div class="cb-header"><span class="cb-label">The same loop, pasted three times</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">truth <span class="op">=</span> [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>]
 
-preds   = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>]
-targets = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>]
+<span class="cm"># Model A</span>
+preds_a <span class="op">=</span> [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>]
+correct <span class="op">=</span> <span class="nm">0</span>
+<span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(preds_a, truth):
+    <span class="kw">if</span> p <span class="op">==</span> t:
+        correct <span class="op">+=</span> <span class="nm">1</span>
+<span class="bi">print</span>(<span class="st">"Model A accuracy:"</span>, correct <span class="op">/</span> <span class="bi">len</span>(truth))
 
-acc = <span class="fn">compute_accuracy</span>(preds, targets)   <span class="cm"># the returned value is now stored in acc</span>
-<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{acc:.2%}</span>'</span>)         <span class="cm"># we can use acc anywhere now — format it, compare it, save it</span>
+<span class="cm"># Model B</span>
+preds_b <span class="op">=</span> [<span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">1</span>]
+correct <span class="op">=</span> <span class="nm">0</span>
+<span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(preds_b, truth):
+    <span class="kw">if</span> p <span class="op">==</span> t:
+        correct <span class="op">+=</span> <span class="nm">1</span>
+<span class="bi">print</span>(<span class="st">"Model B accuracy:"</span>, correct <span class="op">/</span> <span class="bi">len</span>(truth))
 
-<span class="cm"># Contrast: a function that only prints, returns nothing useful</span>
-<span class="kw">def</span> <span class="fn">show_accuracy</span>(predictions, targets):
-    <span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{compute_accuracy(predictions, targets):.2%}</span>'</span>)
-    <span class="cm"># no return statement — this function's result is None</span>
-
-result = <span class="fn">show_accuracy</span>(preds, targets)
-<span class="bi">print</span>(<span class="st">f'What show_accuracy() gave back: <span class="bi">{result}</span>'</span>)  <span class="cm"># None — it never returned anything</span></div>
+<span class="cm"># Model C</span>
+preds_c <span class="op">=</span> [<span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>]
+correct <span class="op">=</span> <span class="nm">0</span>
+<span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(preds_c, truth):
+    <span class="kw">if</span> p <span class="op">==</span> t:
+        correct <span class="op">+=</span> <span class="nm">1</span>
+<span class="bi">print</span>(<span class="st">"Model C accuracy:"</span>, correct <span class="op">/</span> <span class="bi">len</span>(truth))</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> A function with no <code>return</code> statement doesn't fail — it silently returns <code>None</code>. If you ever see <code>None</code> where you expected a number, check whether the function you called actually has a <code>return</code>.</div></div>
-
-  <!-- 3.3 -->
-  <div class="lesson-h2">3.3 — Default Parameters and Keyword Arguments</div>
-  <p class="lesson-p">A parameter can have a default value, used only when the caller doesn't supply one. This lets a function have sensible behavior out of the box, while still being configurable.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>Model A accuracy: 0.75
+Model B accuracy: 0.5
+Model C accuracy: 0.5</pre></div>
+  <p class="lesson-p">This works, and that is the trap. Nothing is wrong yet, but three problems are waiting. First, <strong>a bug has to be fixed in every copy.</strong> Suppose you later decide to skip empty lists, or to print percentages. You must change three places, and on the day you forget one, your models are scored by two different rules and nobody notices. Second, <strong>the intent is buried.</strong> To understand this program you have to read all 21 lines and notice that they are three copies of one idea. Third, <strong>the idea has no name.</strong> You cannot say "accuracy of B" in code, only repeat the steps that compute it.</p>
+  <p class="lesson-p">Programmers call this problem repetition, and they have a rule against it: <strong>DRY, short for Don't Repeat Yourself.</strong> Every piece of logic should live in exactly one place. Python's tool for that is the <strong>function</strong>. A function is a block of code with a name. You write the block once, and then you <strong>call</strong> it, which means you ask Python to run it, as often as you like.</p>
+  <p class="lesson-p">Think of a recipe card in a kitchen. The recipe for pancakes is written once. Every time you want pancakes you take out the card, gather this morning's ingredients, and follow the same steps. If you improve the recipe, you improve the one card, and every later pancake benefits. A function is that card. The ingredients change from call to call; the steps stay the same.</p>
+  <div class="lesson-h3">The same program, with a function</div>
+  <p class="lesson-p">Do not worry about the exact syntax yet. The next two sections explain every word. Just look at the shape: the loop appears once at the top, and each model is scored by one short line.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Defaults make a function flexible without being complicated</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(name, value, decimals=<span class="nm">4</span>):
-    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
+    <div class="cb-header"><span class="cb-label">One definition, three short calls</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">accuracy</span>(predictions, truth):
+    correct <span class="op">=</span> <span class="nm">0</span>
+    <span class="kw">for</span> p, t <span class="kw">in</span> <span class="bi">zip</span>(predictions, truth):
+        <span class="kw">if</span> p <span class="op">==</span> t:
+            correct <span class="op">+=</span> <span class="nm">1</span>
+    <span class="kw">return</span> correct <span class="op">/</span> <span class="bi">len</span>(truth)
 
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'loss'</span>, <span class="nm">0.123456</span>))               <span class="cm"># uses the default: 4 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">'accuracy'</span>, <span class="nm">0.9423</span>, decimals=<span class="nm">2</span>))  <span class="cm"># overrides the default: 2 decimals</span>
-<span class="bi">print</span>(<span class="fn">format_metric</span>(name=<span class="st">'f1'</span>, value=<span class="nm">0.88</span>, decimals=<span class="nm">1</span>))  <span class="cm"># keyword arguments — order no longer matters</span></div>
+answers <span class="op">=</span> [<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>]
+<span class="bi">print</span>(<span class="st">"Model A accuracy:"</span>, <span class="fn">accuracy</span>([<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">1</span>], answers))
+<span class="bi">print</span>(<span class="st">"Model B accuracy:"</span>, <span class="fn">accuracy</span>([<span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">1</span>, <span class="nm">1</span>], answers))
+<span class="bi">print</span>(<span class="st">"Model C accuracy:"</span>, <span class="fn">accuracy</span>([<span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>], answers))</div>
   </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Model A accuracy: 0.75
+Model B accuracy: 0.5
+Model C accuracy: 0.5</pre></div>
+  <p class="lesson-p">The output is identical, but the program is half as long and says what it means. If the formula changes, you edit the six lines under <code>def</code> once. You have also been using functions since Chapter 1: <code>print</code>, <code>len</code>, <code>sum</code>, <code>range</code> and <code>zip</code> are all functions someone wrote once so that everybody could reuse them. In this chapter you become the person who writes them.</p>
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This is exactly what a library is.</strong> When you later call <code>accuracy_score(y_true, y_pred)</code> from scikit-learn, you are calling a function somebody else wrote and packaged. By the end of this chapter you will understand precisely what happens inside a call like that, and you will be able to build and share your own.</div></div>
+  <details class="check"><summary>The pasted version has three copies of the accuracy loop. If you find a mistake in the loop, how many places must you fix? And in the version with <code>def accuracy</code>?</summary><div class="ck-answer">Three places in the pasted version, and easy to miss one. Only one place in the function version, because the logic exists once and every call reuses it.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a fourth model to the function version: <code>print("Model D accuracy:", accuracy([1, 0, 0, 0], answers))</code>. Notice how little you had to write compared with pasting the whole loop again.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Copy-pasted logic must be fixed in every copy, hides the intent of the program, and has no name.</li><li>The rule is <strong>DRY</strong>: keep each piece of logic in exactly one place.</li><li>A <strong>function</strong> is a named block of code. You write it once and <strong>call</strong> it as often as you like, like a recipe card you reuse with different ingredients.</li></ul></div>
+  <!-- /S:3.1 -->
 
-  <!-- 3.4 -->
-  <div class="lesson-h2">3.4 — *args and **kwargs</div>
-  <p class="lesson-p">Sometimes you don't know in advance how many arguments a function will receive. <code>*args</code> collects any number of extra positional arguments into a tuple. <code>**kwargs</code> collects any number of extra keyword arguments into a dict.</p>
+  <!-- S:3.2 -->
+  <div class="lesson-h2">3.2 — A Function Is a Machine: Defining Versus Calling</div>
+  <p class="lesson-p">You have already met the idea of a machine that takes something in and hands something out: a vending machine takes coins and a button press, then gives you a snack. A function is a machine made of code. You feed it <strong>inputs</strong>, it runs its steps in private, and it hands back an <strong>output</strong>. You do not need to look inside to use it, and one machine can serve any number of customers.</p>
+  <div class="diagram"><div class="dg-title">A function is a machine</div><pre>   inputs                 the machine                  output
+ (what you give)          (the function)          (what you get back)
 
+ [1, 0, 1, 1] --+       +------------------+
+                +-----&gt; |    accuracy      | ------&gt;   0.75
+ [1, 0, 0, 1] --+       |  count matches,  |
+                        |  divide by total |
+                        +------------------+</pre><div class="dg-cap">The caller only sees what goes in and what comes out. The steps in the middle are written once, inside the function.</div></div>
+  <div class="lesson-h3">Defining a function: writing the recipe</div>
+  <p class="lesson-p">To create a function you write a <strong>definition</strong> with the keyword <code>def</code>. Here is the smallest useful one. It has no inputs and no output. It only prints a line, so we can focus on the parts.</p>
+  <div class="diagram"><div class="dg-title">Anatomy of a definition</div><pre> def   greet   ( name ) :          &lt;- the header
+ ^     ^         ^      ^
+ |     |         |      +-- colon: "a block starts here"
+ |     |         +-- parameter: a blank the caller fills in
+ |     +-- the function's name (you choose it)
+ +-- keyword that says "I am defining a function"
+
+     print("Hello,", name)         &lt;- the body, indented 4 spaces</pre><div class="dg-cap">The header names the function and lists its inputs. The indented body is the code that runs each time the function is called.</div></div>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">*args — accept any number of values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> <span class="fn">average_loss</span>(*losses):
-    <span class="bi">print</span>(<span class="st">'Received:'</span>, losses, <span class="cm">'— a tuple, no matter how many arguments'</span>)
-    <span class="kw">return</span> <span class="bi">sum</span>(losses) / <span class="bi">len</span>(losses)
+    <div class="cb-header"><span class="cb-label">Define once, call twice</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">greet</span>(name):
+    <span class="bi">print</span>(<span class="st">"Hello,"</span>, name)
 
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.5, 0.3, 0.4, 0.2):.4f}</span>'</span>)   <span class="cm"># 4 values</span>
-<span class="bi">print</span>(<span class="st">f'Average: <span class="bi">{average_loss(0.9, 0.1):.4f}</span>'</span>)             <span class="cm"># 2 values — same function</span>
-
-<span class="cm"># **kwargs — accept any number of named settings</span>
-<span class="kw">def</span> <span class="fn">train_model</span>(name, **settings):
-    <span class="bi">print</span>(<span class="st">f'Training <span class="bi">{name}</span> with settings:'</span>, settings)
-
-<span class="fn">train_model</span>(<span class="st">'ResNet50'</span>, epochs=<span class="nm">50</span>, lr=<span class="nm">0.001</span>, batch_size=<span class="nm">32</span>)</div>
+<span class="bi">print</span>(<span class="st">"before the calls"</span>)
+<span class="fn">greet</span>(<span class="st">"Asha"</span>)
+<span class="fn">greet</span>(<span class="st">"Ben"</span>)
+<span class="bi">print</span>(<span class="st">"after the calls"</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>You'll see this constantly in real ML code:</strong> <code>model.fit(X, y, epochs=10, batch_size=32, **kwargs)</code> is exactly this pattern — accept the required arguments, then forward whatever extra settings the caller wants.</div></div>
-
-  <!-- 3.5 -->
-  <div class="lesson-h2">3.5 — Lambda: Small, Throwaway Functions</div>
-  <p class="lesson-p">A <code>lambda</code> is a function written in one line, with no name, usually passed directly into another function. The most common use in ML code is as the <code>key</code> for sorting.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>before the calls
+Hello, Asha
+Hello, Ben
+after the calls</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>Python reads <code>def greet(name):</code>. It does <strong>not</strong> run the body. It builds a function object, remembers the body inside it, and attaches the name <code>greet</code> to it, the same way <code>x = 5</code> attaches the name <code>x</code> to a number.</div></li><li data-n="2"><div><code>print("before the calls")</code> runs normally.</div></li><li data-n="3"><div><code>greet("Asha")</code> is a <strong>call</strong>. Python jumps into the body, with the blank <code>name</code> filled in by <code>"Asha"</code>. The body prints <code>Hello, Asha</code>. Then Python jumps back to the line after the call.</div></li><li data-n="4"><div><code>greet("Ben")</code> does the same with <code>"Ben"</code>. Same recipe, different ingredient.</div></li><li data-n="5"><div>The last <code>print</code> runs. The definition itself never printed anything.</div></li></ul>
+  <div class="lesson-h3">Define versus call</div>
+  <p class="lesson-p">These are two separate events, and mixing them up is the most common beginner confusion. <strong>Defining</strong> (<code>def</code>) writes the recipe down and runs nothing. <strong>Calling</strong> (<code>name(...)</code>) actually cooks. A program with a <code>def</code> and no call does nothing visible at all. Try this experiment to see it for yourself.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">lambda + sorted() — ranking model results</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">scores = [(<span class="st">'alice'</span>, <span class="nm">0.72</span>), (<span class="st">'bob'</span>, <span class="nm">0.95</span>), (<span class="st">'carol'</span>, <span class="nm">0.81</span>), (<span class="st">'dave'</span>, <span class="nm">0.60</span>)]
+    <div class="cb-header"><span class="cb-label">A definition alone runs nothing</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">shout</span>():
+    <span class="bi">print</span>(<span class="st">"HEY!"</span>)
 
-<span class="cm"># Sort by the SECOND item in each tuple (the score), highest first</span>
-ranked = <span class="bi">sorted</span>(scores, key=<span class="kw">lambda</span> x: x[<span class="nm">1</span>], reverse=<span class="kw">True</span>)
+<span class="bi">print</span>(<span class="st">"The def line has finished. Was HEY! printed?"</span>)
+<span class="fn">shout</span>()
+<span class="bi">print</span>(<span class="st">"Now it was, because of the call."</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>The def line has finished. Was HEY! printed?
+HEY!
+Now it was, because of the call.</pre></div>
+  <p class="lesson-p">The parentheses in <code>shout()</code> are the call. They mean "run it now". If you leave them off, you are only naming the machine, not switching it on. Python will not complain, which is why this mistake is sneaky.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">shout without parentheses only names the function</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">shout</span>():
+    <span class="bi">print</span>(<span class="st">"HEY!"</span>)
+
+shout
+<span class="bi">print</span>(<span class="bi">type</span>(shout))
+<span class="fn">shout</span>()</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>&lt;class 'function'&gt;
+HEY!</pre></div>
+  <p class="lesson-p">The line <code>shout</code> on its own is a valid but useless statement. It looks up the function and does nothing with it. <code>type(shout)</code> confirms that <code>shout</code> is a function object. Only <code>shout()</code> prints.</p>
+  <div class="lesson-h3">Common mistakes, with the real error messages</div>
+  <p class="lesson-p"><strong>Mistake 1: calling a function before defining it.</strong> Python reads a file from top to bottom. When it reaches the call, the name does not exist yet.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Call before def</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="fn">greet</span>(<span class="st">"Asha"</span>)
+
+<span class="kw">def</span> <span class="fn">greet</span>(name):
+    <span class="bi">print</span>(<span class="st">"Hello,"</span>, name)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 1, in &lt;module&gt;
+NameError: name 'greet' is not defined</pre></div>
+  <p class="lesson-p">Read errors from the bottom. <code>NameError: name 'greet' is not defined</code> says Python has never heard of <code>greet</code> at that moment. The line above it tells you which line of your code was running. The fix is to move the <code>def</code> above the first call.</p>
+  <p class="lesson-p"><strong>Mistake 2: forgetting to indent the body.</strong> The colon promised a block, so Python needs indented lines under it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Body not indented</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">greet</span>(name):
+<span class="bi">print</span>(<span class="st">"Hello,"</span>, name)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 2
+    print("Hello,", name)
+    ^^^^^
+IndentationError: expected an indented block after function definition on line 1</pre></div>
+  <p class="lesson-p">This is the same <code>IndentationError</code> you met with <code>if</code> in Chapter 2. Every construct that ends its header with a colon needs an indented body.</p>
+  <details class="check"><summary>What does a program that contains only <code>def hello(): print('hi')</code> and nothing else print?</summary><div class="ck-answer">Nothing at all. <code>def</code> only defines the function. Without a call such as <code>hello()</code>, the body never runs.</div></details>
+  <details class="check"><summary>What is the difference between <code>shout</code> and <code>shout()</code>?</summary><div class="ck-answer"><code>shout</code> is the function itself, a value you can pass around. <code>shout()</code> calls it, which runs its body.</div></details>
+  <div class="try-it"><strong>Try it.</strong> In the <code>greet</code> example, add a third call with your own name. Then delete the parentheses from one call and see that nothing is printed for it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A function is a machine: inputs go in, the body runs, an output comes back.</li><li><code>def name(parameters):</code> followed by an indented body <strong>defines</strong> a function and runs nothing.</li><li><code>name(...)</code> <strong>calls</strong> it. Without the parentheses you only refer to the function.</li><li>A call before the definition gives <code>NameError: name '...' is not defined</code>.</li></ul></div>
+  <!-- /S:3.2 -->
+
+  <!-- S:3.3 -->
+  <div class="lesson-h2">3.3 — Parameters and Arguments: Positional and Keyword</div>
+  <p class="lesson-p">So far <code>greet</code> had one blank to fill in. Real functions often have several, and now the words matter. A <strong>parameter</strong> is the name in the definition, a labelled blank on a form. An <strong>argument</strong> is the actual value you supply in a call, the thing you write in the blank. People mix the two words up in casual talk, but reading error messages is easier when you keep them apart: parameters live in the <code>def</code> line, arguments live in the call.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two parameters, three ways of calling</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">describe</span>(name, score):
+    <span class="bi">print</span>(name, <span class="st">"scored"</span>, score)
+
+<span class="fn">describe</span>(<span class="st">"Asha"</span>, <span class="nm">91</span>)             <span class="cm"># positional</span>
+<span class="fn">describe</span>(score<span class="op">=</span><span class="nm">78</span>, name<span class="op">=</span><span class="st">"Ben"</span>)   <span class="cm"># keyword</span>
+<span class="fn">describe</span>(<span class="st">"Chen"</span>, score<span class="op">=</span><span class="nm">85</span>)       <span class="cm"># mixed</span></div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>Asha scored 91
+Ben scored 78
+Chen scored 85</pre></div>
+  <div class="diagram"><div class="dg-title">Matching arguments to parameters</div><pre> def describe(name, score):
+                ^      ^
+                |      |
+ describe("Asha", 91)        positional: matched by ORDER
+             ^     ^
+             1st   2nd
+
+ describe(score=78, name="Ben")   keyword: matched by NAME
+ describe("Chen", score=85)       mixed: positional first,
+                                  then keywords</pre><div class="dg-cap">Positional arguments are matched left to right. Keyword arguments carry their own label, so their order does not matter.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>In <code>describe("Asha", 91)</code> Python matches by position. The first argument fills the first parameter, so <code>name</code> is <code>"Asha"</code> and <code>score</code> is <code>91</code>.</div></li><li data-n="2"><div>In <code>describe(score=78, name="Ben")</code> each argument names its parameter. Order is irrelevant, so <code>name</code> is <code>"Ben"</code> and <code>score</code> is <code>78</code>.</div></li><li data-n="3"><div>In <code>describe("Chen", score=85)</code> the positional argument fills <code>name</code> first, and the keyword argument fills <code>score</code>.</div></li><li data-n="4"><div>In all three calls the body then runs with these two names holding those values.</div></li></ul>
+  <p class="lesson-p"><strong>Positional</strong> arguments are short but depend on memory: is the order name then score, or score then name? <strong>Keyword</strong> arguments cost a few extra characters and pay back in clarity. Compare <code>train(10, 32, 0.01)</code> with <code>train(epochs=10, batch_size=32, learning_rate=0.01)</code>. The second version tells the reader what each number means, and it survives someone reordering the parameters.</p>
+  <div class="lesson-h3">Common mistakes, with the real error messages</div>
+  <p class="lesson-p">Python checks every call against the definition before running the body, and it is picky. Here are the four messages you will see most often. Each one names the function and the parameter that caused trouble.</p>
+  <p class="lesson-p"><strong>Too few arguments.</strong> A blank was left empty.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Missing an argument</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">describe</span>(name, score):
+    <span class="bi">print</span>(name, <span class="st">"scored"</span>, score)
+
+<span class="fn">describe</span>(<span class="st">"Asha"</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 4, in &lt;module&gt;
+TypeError: describe() missing 1 required positional argument: 'score'</pre></div>
+  <p class="lesson-p"><strong>Too many arguments.</strong> Three values were given for two blanks. Notice that Python counts <code>Asha</code>, <code>91</code> and <code>100</code> as three even though the function only takes two.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One argument too many</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">describe</span>(name, score):
+    <span class="bi">print</span>(name, <span class="st">"scored"</span>, score)
+
+<span class="fn">describe</span>(<span class="st">"Asha"</span>, <span class="nm">91</span>, <span class="nm">100</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 4, in &lt;module&gt;
+TypeError: describe() takes 2 positional arguments but 3 were given</pre></div>
+  <p class="lesson-p"><strong>A keyword that is not a parameter.</strong> Perhaps a typo, or the function was renamed.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Unknown keyword</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">describe</span>(name, score):
+    <span class="bi">print</span>(name, <span class="st">"scored"</span>, score)
+
+<span class="fn">describe</span>(<span class="st">"Asha"</span>, points<span class="op">=</span><span class="nm">91</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 4, in &lt;module&gt;
+TypeError: describe() got an unexpected keyword argument 'points'</pre></div>
+  <p class="lesson-p"><strong>A positional argument after a keyword argument.</strong> Python would not know which blank the loose value belongs to, so it refuses before running anything. The rule is simple: positional first, keywords after.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Positional after keyword</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">describe</span>(name, score):
+    <span class="bi">print</span>(name, <span class="st">"scored"</span>, score)
+
+<span class="fn">describe</span>(name<span class="op">=</span><span class="st">"Asha"</span>, <span class="nm">91</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 4
+    describe(name="Asha", 91)
+                            ^
+SyntaxError: positional argument follows keyword argument</pre></div>
+  <details class="check"><summary>With <code>def describe(name, score)</code>, what do <code>describe(91, "Asha")</code> and <code>describe(score=91, name="Asha")</code> do?</summary><div class="ck-answer">The first matches by position, so <code>name</code> becomes 91 and <code>score</code> becomes <code>"Asha"</code>. Python does not complain, and the output is silently backwards. The second names each argument, so it is correct. This is the strongest argument for keywords.</div></details>
+  <details class="check"><summary>Which is the parameter and which is the argument in <code>def f(x): ...</code> and <code>f(7)</code>?</summary><div class="ck-answer"><code>x</code> is the parameter (in the definition). <code>7</code> is the argument (in the call).</div></details>
+  <div class="try-it"><strong>Try it.</strong> Call <code>describe</code> with the arguments in the wrong order, <code>describe(91, "Asha")</code>, and read the silent nonsense it prints. Then fix it using keywords.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><strong>Parameters</strong> are the names in the <code>def</code> line; <strong>arguments</strong> are the values in the call.</li><li>Positional arguments match by order; keyword arguments (<code>name=value</code>) match by name and can come in any order, but only after all positional ones.</li><li>A call that does not fit the definition fails with a <code>TypeError</code> that names the function and the parameter, or with a <code>SyntaxError</code> for positional-after-keyword.</li></ul></div>
+  <!-- /S:3.3 -->
+
+  <!-- S:3.4 -->
+  <div class="lesson-h2">3.4 — What Happens During a Call: Nested Calls and the Call Stack</div>
+  <p class="lesson-p">Functions can call other functions. This is where beginners start to lose track: when one function is in the middle of running and another begins, who is running, and how does Python find its way back? The answer is a tidy structure called the <strong>call stack</strong>. It is worth understanding once, because it also explains how to read error messages, scope, and recursion later in this chapter.</p>
+  <p class="lesson-p">Picture a stack of sticky notes on a desk. Each time a function is called, Python writes a new note holding that call's own parameters and variables, and places it on top of the pile. Only the top note is being worked on. When that function finishes, its note is thrown away, and the note underneath becomes the active one again. Each note is called a <strong>frame</strong>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A function that calls another function</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">square</span>(x):
+    <span class="bi">print</span>(<span class="st">"    square starts with"</span>, x)
+    result <span class="op">=</span> x <span class="op">*</span> x
+    <span class="bi">print</span>(<span class="st">"    square ends, gives back"</span>, result)
+    <span class="kw">return</span> result
+
+<span class="kw">def</span> <span class="fn">sum_of_squares</span>(a, b):
+    <span class="bi">print</span>(<span class="st">"  sum_of_squares starts with"</span>, a, b)
+    total <span class="op">=</span> <span class="fn">square</span>(a) <span class="op">+</span> <span class="fn">square</span>(b)
+    <span class="bi">print</span>(<span class="st">"  sum_of_squares ends, gives back"</span>, total)
+    <span class="kw">return</span> total
+
+<span class="bi">print</span>(<span class="st">"main: calling sum_of_squares(3, 4)"</span>)
+answer <span class="op">=</span> <span class="fn">sum_of_squares</span>(<span class="nm">3</span>, <span class="nm">4</span>)
+<span class="bi">print</span>(<span class="st">"main: got"</span>, answer)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>main: calling sum_of_squares(3, 4)
+  sum_of_squares starts with 3 4
+    square starts with 3
+    square ends, gives back 9
+    square starts with 4
+    square ends, gives back 16
+  sum_of_squares ends, gives back 25
+main: got 25</pre></div>
+  <p class="lesson-p">The indentation of the printed lines shows the depth of the stack. The keyword <code>return</code> is explained fully in the next section. For now read it as "finish and hand this value back".</p>
+  <div class="diagram"><div class="dg-title">The call stack at the moment square(3) is running</div><pre>   top     | square:  x = 3, result = 9      |  &lt;- running now
+           | sum_of_squares:  a = 3, b = 4   |  &lt;- waiting for square
+   bottom  | main program:  (no answer yet)  |  &lt;- waiting for both</pre><div class="dg-cap">Only the top frame runs. Each frame keeps its own variables, so <code>x</code> in square and <code>a</code> in sum_of_squares never collide.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>The main program calls <code>sum_of_squares(3, 4)</code>. A frame for it is pushed on the stack, with <code>a = 3</code> and <code>b = 4</code>.</div></li><li data-n="2"><div>Inside, Python must evaluate <code>square(a) + square(b)</code>. It starts on the left with <code>square(3)</code>. A <strong>new frame</strong> for <code>square</code> is pushed on top, with <code>x = 3</code>. The <code>sum_of_squares</code> frame pauses, mid-line, waiting.</div></li><li data-n="3"><div><code>square</code> computes 9 and returns it. Its frame is popped off and destroyed, and the value 9 is delivered to the paused line in <code>sum_of_squares</code>.</div></li><li data-n="4"><div>Python now evaluates the right side, <code>square(4)</code>. Another new frame, <code>x = 4</code>, is pushed, returns 16 and is popped.</div></li><li data-n="5"><div><code>9 + 16</code> is 25. <code>sum_of_squares</code> stores it in <code>total</code>, returns it, and its frame is popped. The main program stores 25 in <code>answer</code>.</div></li></ul>
+  <div class="lesson-h3">Reading an error message is reading the stack</div>
+  <p class="lesson-p">When a program crashes, Python prints the <strong>traceback</strong>, and now you can read it for what it is: a snapshot of the stack when things went wrong. It lists the frames from the outermost call at the top to the one that actually failed at the bottom. Look at the last two lines first, because they say what went wrong and where.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A crash three calls deep</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">average</span>(total, count):
+    <span class="kw">return</span> total <span class="op">/</span> count
+
+<span class="kw">def</span> <span class="fn">report</span>(total, count):
+    <span class="kw">return</span> <span class="st">"Average: "</span> <span class="op">+</span> <span class="bi">str</span>(<span class="fn">average</span>(total, count))
+
+<span class="bi">print</span>(<span class="fn">report</span>(<span class="nm">10</span>, <span class="nm">0</span>))</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 7, in &lt;module&gt;
+  File "&lt;exec&gt;", line 5, in report
+  File "&lt;exec&gt;", line 2, in average
+ZeroDivisionError: division by zero</pre></div>
+  <p class="lesson-p">Read it from the bottom. The last line is the error: <code>ZeroDivisionError: division by zero</code>. The frame just above it says the division happened at line 2 inside <code>average</code>. The frame above that says <code>average</code> was called from line 5, inside <code>report</code>. The top frame says <code>report</code> was called from line 7 of the main program (<code>&lt;module&gt;</code> is Python's name for the main program). So the traceback answers "who called whom" all the way down.</p>
+  <details class="check"><summary>In the trace above, what is on the stack at the deepest moment, and in what order?</summary><div class="ck-answer">From bottom to top: the main program, <code>sum_of_squares</code>, then <code>square</code>. <code>square</code> is on top because it is the one running.</div></details>
+  <details class="check"><summary>What happens to the variable <code>result</code> inside <code>square</code> after the function returns?</summary><div class="ck-answer">It is destroyed along with the frame. Only the returned value survives, because the caller receives it. This is why variables inside a function are private, which section 3.7 explores.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change <code>sum_of_squares</code> so it also prints <code>square(a)</code> a second time, and predict how many <code>square starts</code> lines will now appear before you run it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Each call creates a <strong>frame</strong> holding that call's own parameters and variables; frames are stacked, and only the top one runs.</li><li>When a function returns, its frame is thrown away and Python resumes exactly where the call was made.</li><li>A traceback is the call stack printed out: read it from the bottom (the error) upwards (who called whom).</li></ul></div>
+  <!-- /S:3.4 -->
+
+  <!-- S:3.5 -->
+  <div class="lesson-h2">3.5 — return vs print: Handing a Value Back</div>
+  <p class="lesson-p">Here is a mistake almost every beginner makes. You write a function that calculates something, you use <code>print</code> inside it to see the answer, and everything looks fine. Then you try to use the answer in the next step, and it is gone. Let us watch that happen.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A function that prints its answer</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="bi">print</span>(a <span class="op">+</span> b)
+
+total <span class="op">=</span> <span class="fn">add</span>(<span class="nm">2</span>, <span class="nm">3</span>)
+<span class="bi">print</span>(<span class="st">"total is"</span>, total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>5
+total is None</pre></div>
+  <p class="lesson-p">The <code>5</code> on the first line came from the function's <code>print</code>. The second line shows that <code>total</code> holds <code>None</code>. <strong>None</strong> is Python's special value meaning "nothing here". Every function hands something back to its caller. If the function never says what, Python hands back <code>None</code> automatically. So <code>print(a + b)</code> displayed the answer to a human, but the caller received nothing to work with.</p>
+  <p class="lesson-p">If you now try to use that <code>None</code> in arithmetic, Python stops you:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Using the None that came back</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="bi">print</span>(a <span class="op">+</span> b)
+
+total <span class="op">=</span> <span class="fn">add</span>(<span class="nm">2</span>, <span class="nm">3</span>)
+<span class="bi">print</span>(total <span class="op">*</span> <span class="nm">10</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 5, in &lt;module&gt;
+TypeError: unsupported operand type(s) for *: 'NoneType' and 'int'</pre></div>
+  <p class="lesson-p"><code>unsupported operand type(s) for *: 'NoneType' and 'int'</code> reads as "you tried to multiply nothing by a number". Whenever you see <code>NoneType</code> in an error, ask: which function did I call that forgot to <code>return</code>?</p>
+  <div class="lesson-h3">The fix: return</div>
+  <p class="lesson-p">The keyword <code>return</code> ends the function and sends a value back to the exact spot where the function was called. The call itself then *becomes* that value, as if you had typed it there. Think of the difference between shouting an answer across the room and handing over a note. <code>print</code> shouts, so a person hears it, but nobody can pick it up and use it. <code>return</code> hands over the note, which the caller can store, add to, compare, or print if it likes.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same function, with return</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add</span>(a, b):
+    <span class="kw">return</span> a <span class="op">+</span> b
+
+total <span class="op">=</span> <span class="fn">add</span>(<span class="nm">2</span>, <span class="nm">3</span>)
+<span class="bi">print</span>(<span class="st">"total is"</span>, total)
+<span class="bi">print</span>(total <span class="op">*</span> <span class="nm">10</span>)
+<span class="bi">print</span>(<span class="fn">add</span>(<span class="fn">add</span>(<span class="nm">1</span>, <span class="nm">2</span>), <span class="nm">4</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>total is 5
+50
+7</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>add(2, 3)</code> runs the body with <code>a = 2</code> and <code>b = 3</code>.</div></li><li data-n="2"><div><code>return a + b</code> computes 5, ends the function at once, and delivers 5 to the call site.</div></li><li data-n="3"><div>So the line <code>total = add(2, 3)</code> behaves like <code>total = 5</code>.</div></li><li data-n="4"><div>Because the call *is* a value, it can be nested: <code>add(add(1, 2), 4)</code> first evaluates the inner call to 3, then runs <code>add(3, 4)</code>.</div></li></ul>
+  <p class="lesson-p">A useful rule: functions that <strong>calculate</strong> should <code>return</code>; functions whose whole job is to <strong>show</strong> something (like a report) may <code>print</code>. Keeping the two apart lets you reuse calculations in many places.</p>
+  <div class="lesson-h3">return stops the function: early return</div>
+  <p class="lesson-p">The moment Python executes <code>return</code>, the function is over. Lines after it are skipped. That lets you write functions that answer as soon as they know, instead of piling up nested <code>else</code> blocks.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Several returns, only one runs</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">sign</span>(n):
+    <span class="kw">if</span> n <span class="op">&lt;</span> <span class="nm">0</span>:
+        <span class="kw">return</span> <span class="st">"negative"</span>
+    <span class="kw">if</span> n <span class="op">==</span> <span class="nm">0</span>:
+        <span class="kw">return</span> <span class="st">"zero"</span>
+    <span class="kw">return</span> <span class="st">"positive"</span>
+
+<span class="bi">print</span>(<span class="fn">sign</span>(<span class="op">-</span><span class="nm">5</span>), <span class="fn">sign</span>(<span class="nm">0</span>), <span class="fn">sign</span>(<span class="nm">12</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>negative zero positive</pre></div>
+  <div class="lesson-h3">Returning more than one value</div>
+  <p class="lesson-p">A function may return several values by separating them with commas. Python packs them into one bundle called a <strong>tuple</strong> (a fixed group of values, like a list you cannot change; Chapter 4 studies them properly). The caller can unpack the bundle into separate names in one line.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Returning two values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">low_high</span>(values):
+    <span class="kw">return</span> <span class="bi">min</span>(values), <span class="bi">max</span>(values)
+
+low, high <span class="op">=</span> <span class="fn">low_high</span>([<span class="nm">4</span>, <span class="nm">9</span>, <span class="nm">2</span>, <span class="nm">7</span>])
+<span class="bi">print</span>(<span class="st">"low:"</span>, low, <span class="st">"high:"</span>, high)
+
+both <span class="op">=</span> <span class="fn">low_high</span>([<span class="nm">4</span>, <span class="nm">9</span>, <span class="nm">2</span>, <span class="nm">7</span>])
+<span class="bi">print</span>(both, <span class="bi">type</span>(both))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>low: 2 high: 9
+(2, 9) &lt;class 'tuple'&gt;</pre></div>
+  <p class="lesson-p">The names on the left of <code>low, high =</code> must match the count of values returned. Otherwise Python tells you exactly how many it found:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Wrong number of names when unpacking</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">low_high</span>(values):
+    <span class="kw">return</span> <span class="bi">min</span>(values), <span class="bi">max</span>(values)
+
+low, high, middle <span class="op">=</span> <span class="fn">low_high</span>([<span class="nm">4</span>, <span class="nm">9</span>, <span class="nm">2</span>, <span class="nm">7</span>])</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 4, in &lt;module&gt;
+ValueError: not enough values to unpack (expected 3, got 2)</pre></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Beginner trap:</strong> if a path through the function reaches the end without hitting <code>return</code>, the result is <code>None</code>. A function with <code>if n &gt; 0: return "positive"</code> and no final return gives back <code>None</code> for zero and negative numbers. Make sure every path returns something.</div></div>
+  <details class="check"><summary>What does <code>print(add(2, 3))</code> display if <code>add</code> uses <code>print(a + b)</code> instead of <code>return a + b</code>?</summary><div class="ck-answer">It displays <code>5</code> from inside the function, and then <code>None</code>, because the outer <code>print</code> receives the function's result, which is <code>None</code>.</div></details>
+  <details class="check"><summary>What does <code>def f(): return 1, 2</code> give back when called?</summary><div class="ck-answer">One tuple, <code>(1, 2)</code>. Writing <code>x, y = f()</code> unpacks it into two names.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Write <code>def square(n): return n * n</code> and print <code>square(square(3))</code>. Predict the answer first, then check it.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>return value</code> ends the function and hands the value back to the caller; the call then acts as that value.</li><li><code>print</code> only displays. A function without <code>return</code> gives back <code>None</code>, which causes <code>NoneType</code> errors later.</li><li>Several <code>return</code> lines are fine, because only one runs. <code>return a, b</code> gives back a tuple you can unpack.</li><li>Make sure every path through a function returns something.</li></ul></div>
+  <!-- /S:3.5 -->
+
+  <!-- S:3.6 -->
+  <div class="lesson-h2">3.6 — Default Values, a Famous Trap, and *args / **kwargs</div>
+  <p class="lesson-p">Some parameters almost always take the same value. If a formatting function nearly always shows four decimals, forcing every caller to type <code>4</code> is noise. A <strong>default value</strong> lets the parameter be optional: write <code>name=value</code> in the definition, and callers who leave the argument out get that value.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A parameter with a default</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(name, value, decimals<span class="op">=</span><span class="nm">4</span>):
+    <span class="kw">return</span> <span class="st">f"{name}: {value:.{decimals}f}"</span>
+
+<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">"loss"</span>, <span class="nm">0.123456</span>))
+<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">"accuracy"</span>, <span class="nm">0.9423</span>, decimals<span class="op">=</span><span class="nm">2</span>))
+<span class="bi">print</span>(<span class="fn">format_metric</span>(<span class="st">"f1"</span>, <span class="nm">0.88</span>, <span class="nm">1</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>loss: 0.1235
+accuracy: 0.94
+f1: 0.9</pre></div>
+  <p class="lesson-p">The first call omits <code>decimals</code>, so Python uses <code>4</code>. The second overrides it with a keyword. The third overrides it by position. One rule keeps this readable: parameters <strong>with</strong> defaults must come after those <strong>without</strong>. Python enforces it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A default before a required parameter</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">format_metric</span>(decimals<span class="op">=</span><span class="nm">4</span>, name, value):
+    <span class="kw">return</span> <span class="st">f"{name}: {value:.{decimals}f}"</span></div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 1
+    def format_metric(decimals=4, name, value):
+                                  ^^^^
+SyntaxError: parameter without a default follows parameter with a default</pre></div>
+  <div class="lesson-h3">The mutable default trap</div>
+  <p class="lesson-p">Defaults hide one surprise that catches experienced programmers too. The default value is created <strong>once</strong>, at the moment Python runs the <code>def</code> line, and not fresh at every call. For numbers and strings that does not matter, because they cannot be changed in place. For a list it matters a lot, because the same list is reused every time. Watch a shopping basket that is supposed to start empty on each call:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A default list that remembers</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add_item</span>(item, basket<span class="op">=</span>[]):
+    basket.<span class="fn">append</span>(item)
+    <span class="kw">return</span> basket
+
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"apple"</span>))
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"pear"</span>))
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"plum"</span>))
+<span class="bi">print</span>(add_item.__defaults__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['apple']
+['apple', 'pear']
+['apple', 'pear', 'plum']
+(['apple', 'pear', 'plum'],)</pre></div>
+  <p class="lesson-p">The three baskets are not separate: it is the same list, growing. The last line shows the culprit sitting inside the function object, holding all three items. Python built that empty list once when it read the <code>def</code>, and every call that omitted <code>basket</code> used it.</p>
+  <div class="diagram"><div class="dg-title">When the default is created</div><pre> def add_item(item, basket=[]):  &lt;- runs ONCE: the empty list is created here
+     ...
+ add_item("apple")   -&gt; basket is that same list -&gt; ['apple']
+ add_item("pear")    -&gt; basket is that same list -&gt; ['apple', 'pear']</pre><div class="dg-cap">The def line runs once. The body runs at every call. A default written in the header is created at the first moment, not the second.</div></div>
+  <p class="lesson-p">The standard fix uses <code>None</code> as a stand-in and builds the fresh list inside the body, where it runs on every call.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The fix: None as the default</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add_item</span>(item, basket<span class="op">=</span><span class="kw">None</span>):
+    <span class="kw">if</span> basket <span class="kw">is</span> <span class="kw">None</span>:
+        basket <span class="op">=</span> []
+    basket.<span class="fn">append</span>(item)
+    <span class="kw">return</span> basket
+
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"apple"</span>))
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"pear"</span>))
+<span class="bi">print</span>(<span class="fn">add_item</span>(<span class="st">"plum"</span>, [<span class="st">"fig"</span>]))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>['apple']
+['pear']
+['fig', 'plum']</pre></div>
+  <div class="lesson-h3">*args: any number of positional arguments</div>
+  <p class="lesson-p">Sometimes you cannot know how many values the caller will send, as with the built-in <code>max(3, 9, 4)</code>. A parameter written <code>*numbers</code> collects every extra positional argument into a tuple. The name <code>args</code> is only a convention, and the star is what matters.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">*args collects extras into a tuple</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">average</span>(<span class="op">*</span>numbers):
+    <span class="bi">print</span>(<span class="st">"received:"</span>, numbers)
+    <span class="kw">return</span> <span class="bi">sum</span>(numbers) <span class="op">/</span> <span class="bi">len</span>(numbers)
+
+<span class="bi">print</span>(<span class="fn">average</span>(<span class="nm">4</span>, <span class="nm">8</span>))
+<span class="bi">print</span>(<span class="fn">average</span>(<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>))
+
+scores <span class="op">=</span> [<span class="nm">90</span>, <span class="nm">70</span>, <span class="nm">80</span>]
+<span class="bi">print</span>(<span class="fn">average</span>(<span class="op">*</span>scores))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>received: (4, 8)
+6.0
+received: (1, 2, 3, 4)
+2.5
+received: (90, 70, 80)
+80.0</pre></div>
+  <p class="lesson-p">On the last call the star works in reverse. <code>average(*scores)</code> unpacks the list so that each item becomes a separate argument. So a star in the <strong>definition</strong> collects, and a star in the <strong>call</strong> spreads.</p>
+  <div class="lesson-h3">**kwargs: any number of named settings</div>
+  <p class="lesson-p">Two stars collect extra <strong>keyword</strong> arguments into a <strong>dictionary</strong>, a lookup table of name-and-value pairs. The dictionary method <code>.get(key, default)</code> reads a value, and gives the default if the key is missing. This is the pattern behind calls like <code>model.fit(X, y, epochs=10, batch_size=32)</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">**kwargs collects named extras into a dictionary</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">train</span>(model, <span class="op">**</span>settings):
+    <span class="bi">print</span>(<span class="st">"training"</span>, model, <span class="st">"with"</span>, settings)
+    <span class="bi">print</span>(<span class="st">"epochs:"</span>, settings.<span class="fn">get</span>(<span class="st">"epochs"</span>, <span class="nm">1</span>))
+
+<span class="fn">train</span>(<span class="st">"tiny"</span>, epochs<span class="op">=</span><span class="nm">5</span>, rate<span class="op">=</span><span class="nm">0.1</span>)
+<span class="fn">train</span>(<span class="st">"small"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>training tiny with {'epochs': 5, 'rate': 0.1}
+epochs: 5
+training small with {}
+epochs: 1</pre></div>
+  <details class="check"><summary>Why does <code>add_item("apple")</code> keep growing the same basket when the default is <code>[]</code>?</summary><div class="ck-answer">Because a default value is created once, when <code>def</code> runs. Every call that omits the argument receives that same list. Using <code>None</code> and creating the list inside the body makes a new one per call.</div></details>
+  <details class="check"><summary>What type is <code>numbers</code> inside <code>def f(*numbers)</code> when called as <code>f(1, 2)</code>?</summary><div class="ck-answer">A tuple, <code>(1, 2)</code>. Inside the function you can loop over it, take <code>len()</code>, or pass it to <code>sum()</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Call <code>average()</code> with no arguments and read the error. Why does it happen, and what could the function check for to avoid it?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>name=value</code> in a definition makes a parameter optional; defaulted parameters go after required ones.</li><li>A default is created once, when <code>def</code> runs, so a list default is shared between calls. Use <code>None</code> and create the list in the body.</li><li><code>*args</code> collects extra positional arguments into a tuple; <code>**kwargs</code> collects extra keyword arguments into a dictionary.</li><li>A star in a call (<code>f(*items)</code>) does the reverse and spreads a collection into separate arguments.</li></ul></div>
+  <!-- /S:3.6 -->
+
+  <!-- S:3.7 -->
+  <div class="lesson-h2">3.7 — Scope: Which Names Can a Function See?</div>
+  <p class="lesson-p">You saw in the call stack that every call gets its own private frame. That has a big consequence. A variable created inside a function belongs to that function's frame, and it vanishes when the function returns. The region of a program where a name can be used is called its <strong>scope</strong>. Variables created inside a function have <strong>local scope</strong>. Variables created at the top of your file have <strong>global scope</strong>.</p>
+  <p class="lesson-p">Think of a function as a room with its own whiteboard. Whatever you write on it stays in the room and is wiped when you leave. From inside the room you can look out through the window at the main hall's notice board (globals), but people in the hall cannot see your whiteboard.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A local variable is invisible outside</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">make_total</span>(a, b):
+    total <span class="op">=</span> a <span class="op">+</span> b
+    <span class="kw">return</span> total
+
+<span class="fn">make_total</span>(<span class="nm">2</span>, <span class="nm">3</span>)
+<span class="bi">print</span>(total)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 6, in &lt;module&gt;
+NameError: name 'total' is not defined</pre></div>
+  <p class="lesson-p">The variable <code>total</code> existed only during the call. The fix is to keep the value the function returned: <code>total = make_total(2, 3)</code> creates a new name in the outer scope, and the value travels through <code>return</code>.</p>
+  <div class="lesson-h3">The lookup order: LEGB</div>
+  <p class="lesson-p">When Python meets a name, it searches four places in a fixed order, and uses the first match. The order is remembered by the word <strong>LEGB</strong>.</p>
+  <div class="diagram"><div class="dg-title">Where Python looks for a name</div><pre> L  Local      names created inside this function        (searched 1st)
+ E  Enclosing  names in any function this one sits in    (2nd)
+ G  Global     names at the top level of the file        (3rd)
+ B  Built-in   names Python provides: print, len, sum... (last)
+
+ not found in any of the four  -&gt;  NameError</pre><div class="dg-cap">Python stops at the first match. If you create a local named <code>count</code>, it hides any global <code>count</code> while the function runs.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Local names hide global ones</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">count <span class="op">=</span> <span class="nm">10</span>
+
+<span class="kw">def</span> <span class="fn">show_local</span>():
+    count <span class="op">=</span> <span class="nm">99</span>
+    <span class="bi">print</span>(<span class="st">"inside:"</span>, count)
+
+<span class="kw">def</span> <span class="fn">show_global</span>():
+    <span class="bi">print</span>(<span class="st">"reading the global:"</span>, count)
+
+<span class="fn">show_local</span>()
+<span class="fn">show_global</span>()
+<span class="bi">print</span>(<span class="st">"outside:"</span>, count)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>inside: 99
+reading the global: 10
+outside: 10</pre></div>
+  <p class="lesson-p"><code>show_local</code> creates its own <code>count</code>, so the global stays at 10. <code>show_global</code> never assigns, so Python falls through to the global. Reading a global from a function works. <strong>Assigning</strong> creates a local, and that is where trouble starts.</p>
+  <div class="lesson-h3">Changing a global: global, and why it is risky</div>
+  <p class="lesson-p">If a function assigns to a name anywhere in its body, Python decides at the start that the name is local for the whole function. Then a line like <code>total = total + n</code> reads <code>total</code> before the local one has a value:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reading and assigning the same name</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">running_total <span class="op">=</span> <span class="nm">0</span>
+
+<span class="kw">def</span> <span class="fn">add_to_total</span>(n):
+    running_total <span class="op">=</span> running_total <span class="op">+</span> n
+
+<span class="fn">add_to_total</span>(<span class="nm">5</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 6, in &lt;module&gt;
+  File "&lt;exec&gt;", line 4, in add_to_total
+UnboundLocalError: cannot access local variable 'running_total' where it is not associated with a value</pre></div>
+  <p class="lesson-p">The keyword <strong>global</strong> tells Python that a name in this function refers to the global one, so assignments change it:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">global changes the outer variable</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">running_total <span class="op">=</span> <span class="nm">0</span>
+
+<span class="kw">def</span> <span class="fn">add_to_total</span>(n):
+    <span class="kw">global</span> running_total
+    running_total <span class="op">=</span> running_total <span class="op">+</span> n
+
+<span class="fn">add_to_total</span>(<span class="nm">5</span>)
+<span class="fn">add_to_total</span>(<span class="nm">3</span>)
+<span class="bi">print</span>(running_total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>8</pre></div>
+  <p class="lesson-p">That works, so why do experienced programmers avoid it? Because <code>add_to_total</code> now has a <strong>hidden connection</strong> to the outside world. Its result depends on a variable that is not among its parameters, and its effect changes that variable without saying so in its signature. To predict what a call does you must read the whole program. Two functions that both touch the same global can break each other, and testing one function alone gets harder. The cleaner design passes values in and returns the result:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The same job without a global</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">add_to_total</span>(total, n):
+    <span class="kw">return</span> total <span class="op">+</span> n
+
+running_total <span class="op">=</span> <span class="nm">0</span>
+running_total <span class="op">=</span> <span class="fn">add_to_total</span>(running_total, <span class="nm">5</span>)
+running_total <span class="op">=</span> <span class="fn">add_to_total</span>(running_total, <span class="nm">3</span>)
+<span class="bi">print</span>(running_total)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>8</pre></div>
+  <p class="lesson-p">Now everything that <code>add_to_total</code> needs arrives as an argument and everything it produces leaves as a return value. You can understand it by reading four lines. A last hazard is <strong>shadowing a built-in</strong>: naming your own variable <code>sum</code> or <code>max</code> hides the real function from LEGB's last step.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Shadowing a built-in</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="bi">sum</span> <span class="op">=</span> <span class="nm">100</span>
+<span class="bi">print</span>(<span class="bi">sum</span>([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>]))</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 2, in &lt;module&gt;
+TypeError: 'int' object is not callable</pre></div>
+  <p class="lesson-p">The error reads oddly until you decode it. After the first line, the name <code>sum</code> refers to the number 100, not to the built-in function, so <code>sum([1, 2, 3])</code> tries to call a number like a function. <code>'int' object is not callable</code> is Python's way of saying "you put parentheses after something that is not a function". Choose names like <code>total</code> or <code>scores_sum</code> instead.</p>
+  <details class="check"><summary>What does this print? <code>x = 5</code>, then <code>def f(): x = 8</code>, then <code>f()</code>, then <code>print(x)</code>.</summary><div class="ck-answer">5. Inside <code>f</code> the assignment creates a separate local <code>x</code>. The global is untouched.</div></details>
+  <details class="check"><summary>Give two reasons to prefer <code>return</code> over <code>global</code>.</summary><div class="ck-answer">The function's inputs and outputs are all visible in its signature, so you can understand and test it alone. And no other code can change your variable behind your back.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Delete the <code>global running_total</code> line from the global example and run it to see the <code>UnboundLocalError</code> for yourself.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>Variables assigned inside a function are <strong>local</strong>: they exist only during the call.</li><li>Python looks names up in the order <strong>L</strong>ocal, <strong>E</strong>nclosing, <strong>G</strong>lobal, <strong>B</strong>uilt-in.</li><li>Reading a global works; assigning to a name makes it local unless you declare <code>global name</code>.</li><li>Prefer passing arguments in and returning results out; avoid <code>global</code> and never reuse names like <code>sum</code> or <code>list</code>.</li></ul></div>
+  <!-- /S:3.7 -->
+
+  <!-- S:3.8 -->
+  <div class="lesson-h2">3.8 — Recursion: A Function That Calls Itself</div>
+  <p class="lesson-p">Because every call has its own frame, a function can safely call <strong>itself</strong>. This is called <strong>recursion</strong>, and it fits problems that contain smaller copies of themselves. Take "add the numbers from 1 to 4". That is 4 plus "add the numbers from 1 to 3", which is 3 plus "add the numbers from 1 to 2", and so on. The problem shrinks each time until it becomes trivially small. Russian nesting dolls work the same way: open one and find a smaller one, until you reach a doll that does not open.</p>
+  <p class="lesson-p">Every correct recursive function has two parts. The <strong>base case</strong> is the smallest problem, which the function answers directly without calling itself. The <strong>recursive case</strong> reduces the problem and calls itself on the smaller version. Miss the base case and the calls never stop.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Adding 1 to n, recursively</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">total_to</span>(n):
+    <span class="kw">if</span> n <span class="op">==</span> <span class="nm">1</span>:
+        <span class="kw">return</span> <span class="nm">1</span>
+    <span class="kw">return</span> n <span class="op">+</span> <span class="fn">total_to</span>(n <span class="op">-</span> <span class="nm">1</span>)
+
+<span class="bi">print</span>(<span class="fn">total_to</span>(<span class="nm">4</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>10</pre></div>
+  <p class="lesson-p">This prints 10, and you can watch the mechanism if the function announces each step. The indent shows the stack depth:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Watching the stack grow and shrink</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">total_to</span>(n, depth<span class="op">=</span><span class="nm">0</span>):
+    pad <span class="op">=</span> <span class="st">"  "</span> <span class="op">*</span> depth
+    <span class="bi">print</span>(pad <span class="op">+</span> <span class="st">"total_to("</span> <span class="op">+</span> <span class="bi">str</span>(n) <span class="op">+</span> <span class="st">") called"</span>)
+    <span class="kw">if</span> n <span class="op">==</span> <span class="nm">1</span>:
+        <span class="bi">print</span>(pad <span class="op">+</span> <span class="st">"base case: return 1"</span>)
+        <span class="kw">return</span> <span class="nm">1</span>
+    result <span class="op">=</span> n <span class="op">+</span> <span class="fn">total_to</span>(n <span class="op">-</span> <span class="nm">1</span>, depth <span class="op">+</span> <span class="nm">1</span>)
+    <span class="bi">print</span>(pad <span class="op">+</span> <span class="st">"total_to("</span> <span class="op">+</span> <span class="bi">str</span>(n) <span class="op">+</span> <span class="st">") returns "</span> <span class="op">+</span> <span class="bi">str</span>(result))
+    <span class="kw">return</span> result
+
+<span class="fn">total_to</span>(<span class="nm">4</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>total_to(4) called
+  total_to(3) called
+    total_to(2) called
+      total_to(1) called
+      base case: return 1
+    total_to(2) returns 3
+  total_to(3) returns 6
+total_to(4) returns 10</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>total_to(4)</code> is called. It is not the base case, so it needs <code>total_to(3)</code> before it can add 4. It pauses, with a frame that remembers <code>n = 4</code>.</div></li><li data-n="2"><div><code>total_to(3)</code> pauses waiting on <code>total_to(2)</code>, and that on <code>total_to(1)</code>. Four frames are now stacked.</div></li><li data-n="3"><div><code>total_to(1)</code> hits the <strong>base case</strong> and returns 1 without calling anything.</div></li><li data-n="4"><div>The frames finish in reverse order: 2 + 1 = 3, then 3 + 3 = 6, then 4 + 6 = 10.</div></li><li data-n="5"><div>Each frame had its own <code>n</code>, which is exactly why the calls do not confuse one another.</div></li></ul>
+  <p class="lesson-p">A second classic is the <strong>factorial</strong>, written <code>n!</code>, the product of 1 through n, so <code>4! = 4 x 3 x 2 x 1 = 24</code>. The definition is itself recursive: <code>n! = n x (n-1)!</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Factorial</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">factorial</span>(n):
+    <span class="kw">if</span> n <span class="op">&lt;=</span> <span class="nm">1</span>:
+        <span class="kw">return</span> <span class="nm">1</span>
+    <span class="kw">return</span> n <span class="op">*</span> <span class="fn">factorial</span>(n <span class="op">-</span> <span class="nm">1</span>)
+
+<span class="kw">for</span> n <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">1</span>, <span class="nm">6</span>):
+    <span class="bi">print</span>(n, <span class="st">"! ="</span>, <span class="fn">factorial</span>(n))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>1 ! = 1
+2 ! = 2
+3 ! = 6
+4 ! = 24
+5 ! = 120</pre></div>
+  <div class="lesson-h3">Forgetting the base case</div>
+  <p class="lesson-p">If nothing ever stops the recursion, the stack grows until Python protects itself and raises a <strong>RecursionError</strong>. Python allows about a thousand frames by default. The real traceback repeats the same line hundreds of times, so only its final line is shown here.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A recursion with no base case</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">countdown</span>(n):
+    <span class="kw">return</span> <span class="fn">countdown</span>(n <span class="op">-</span> <span class="nm">1</span>)
+
+<span class="fn">countdown</span>(<span class="nm">3</span>)</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says (last line of a very long traceback)</div><pre>RecursionError: maximum recursion depth exceeded</pre></div>
+  <p class="lesson-p">For a job like adding 1 to n, a plain <code>for</code> loop does the same work with less memory, and often reads just as clearly. Use recursion when the problem is naturally made of smaller copies of itself, such as folders inside folders, which you will meet later, and use a loop when you are simply counting.</p>
+  <details class="check"><summary>What are the base case and the recursive case in <code>factorial</code>?</summary><div class="ck-answer">Base case: <code>n &lt;= 1</code> returns 1 with no further calls. Recursive case: <code>n * factorial(n - 1)</code>, which shrinks the problem by one and calls itself.</div></details>
+  <details class="check"><summary>What would happen if you changed the base case in <code>total_to</code> to <code>if n == 0:</code> and called <code>total_to(-1)</code>?</summary><div class="ck-answer">It never reaches 0, because n only counts down from -1 to -2 and so on. You would get a <code>RecursionError</code>.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Call <code>factorial(10)</code>, then <code>factorial(5.5)</code>. The <code>n &lt;= 1</code> base case still stops the second one. Now change the base case to <code>n == 1</code> and call <code>factorial(5.5)</code> again. Why does that one never stop?</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><strong>Recursion</strong> means a function calls itself on a smaller version of the problem.</li><li>Every recursive function needs a <strong>base case</strong> that stops the calls, and a recursive case that moves toward it.</li><li>Each call has its own frame, so the calls do not confuse each other; the answers come back in reverse order.</li><li>With no reachable base case Python raises <code>RecursionError</code> after about a thousand calls.</li></ul></div>
+  <!-- /S:3.8 -->
+
+  <!-- S:3.9 -->
+  <div class="lesson-h2">3.9 — lambda: A Tiny Function Without a Name</div>
+  <p class="lesson-p">Some functions are so small and so temporary that naming them feels like overkill. Suppose you have a list of (name, score) pairs, and you want them ordered by score. The built-in <code>sorted</code> can do that if you tell it how to pick the value to sort by. You do this with the <code>key</code> parameter, which expects a <strong>function</strong>. <code>sorted</code> calls that function once on each item and orders the items by whatever comes back.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Sorting with a named function as the key</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">results <span class="op">=</span> [(<span class="st">"Asha"</span>, <span class="nm">72</span>), (<span class="st">"Ben"</span>, <span class="nm">95</span>), (<span class="st">"Chen"</span>, <span class="nm">81</span>)]
+
+<span class="kw">def</span> <span class="fn">get_score</span>(pair):
+    <span class="kw">return</span> pair[<span class="nm">1</span>]
+
+<span class="bi">print</span>(<span class="bi">sorted</span>(results, key<span class="op">=</span>get_score))
+<span class="bi">print</span>(<span class="bi">sorted</span>(results, key<span class="op">=</span>get_score, reverse<span class="op">=</span><span class="kw">True</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[('Asha', 72), ('Chen', 81), ('Ben', 95)]
+[('Ben', 95), ('Chen', 81), ('Asha', 72)]</pre></div>
+  <p class="lesson-p">Here <code>pair[1]</code> means "the item at position 1" of the pair. Counting starts at 0, so position 0 is the name and position 1 is the score. The definition of <code>get_score</code> takes three lines for one tiny idea. A <strong>lambda</strong> expresses the same function in one line, right where it is needed.</p>
+  <div class="diagram"><div class="dg-title">A lambda is a one-line function</div><pre> def get_score(pair):         lambda pair: pair[1]
+     return pair[1]           ^      ^     ^
+                              |      |     +-- the value it gives back
+                              |      +-- parameters, then a colon
+                              +-- keyword (no def, no name, no return)</pre><div class="dg-cap">A lambda has parameters before the colon and one expression after it. The result of that expression is automatically returned.</div></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The same sort with a lambda</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code">results <span class="op">=</span> [(<span class="st">"Asha"</span>, <span class="nm">72</span>), (<span class="st">"Ben"</span>, <span class="nm">95</span>), (<span class="st">"Chen"</span>, <span class="nm">81</span>)]
+
+ranked <span class="op">=</span> <span class="bi">sorted</span>(results, key<span class="op">=</span><span class="kw">lambda</span> pair: pair[<span class="nm">1</span>], reverse<span class="op">=</span><span class="kw">True</span>)
 <span class="bi">print</span>(ranked)
-<span class="bi">print</span>(<span class="st">f'Top performer: <span class="bi">{ranked[0][0]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">"Top:"</span>, ranked[<span class="nm">0</span>][<span class="nm">0</span>])
 
-<span class="cm"># A named function does the same thing, just with more words:</span>
-<span class="kw">def</span> <span class="fn">get_score</span>(item):
-    <span class="kw">return</span> item[<span class="nm">1</span>]
-<span class="bi">print</span>(<span class="bi">sorted</span>(scores, key=get_score, reverse=<span class="kw">True</span>))</div>
+<span class="bi">print</span>(<span class="bi">max</span>(results, key<span class="op">=</span><span class="kw">lambda</span> pair: pair[<span class="nm">1</span>]))
+add <span class="op">=</span> <span class="kw">lambda</span> a, b: a <span class="op">+</span> b
+<span class="bi">print</span>(<span class="fn">add</span>(<span class="nm">2</span>, <span class="nm">3</span>))</div>
   </div>
-
-  <!-- 3.6 -->
-  <div class="lesson-h2">3.6 — Scope: Local vs Global Variables</div>
-  <p class="lesson-p">A variable created <em>inside</em> a function only exists inside that function — this is <strong>local scope</strong>. It disappears the moment the function returns, and it never affects a variable of the same name outside the function, unless you explicitly say <code>global</code>.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>[('Ben', 95), ('Chen', 81), ('Asha', 72)]
+Top: Ben
+('Ben', 95)
+5</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>sorted</code> visits each pair and calls the lambda with it. The lambda receives <code>("Asha", 72)</code> as <code>pair</code> and gives back <code>72</code>. It does the same for the other two pairs, collecting 72, 95, 81.</div></li><li data-n="2"><div><code>sorted</code> orders the pairs by those collected numbers. <code>reverse=True</code> puts the highest first.</div></li><li data-n="3"><div><code>ranked[0][0]</code> means "the first pair, then the first item of it", which is the name <code>"Ben"</code>.</div></li><li data-n="4"><div><code>max</code> accepts the same <code>key</code> idea and returns the single pair with the biggest score.</div></li><li data-n="5"><div>The last two lines show that a lambda is an ordinary function object. Giving it a name with <code>add = ...</code> works, though a <code>def</code> is the better choice once a function deserves a name.</div></li></ul>
+  <div class="lesson-h3">What a lambda cannot do</div>
+  <p class="lesson-p">A lambda holds exactly <strong>one expression</strong>: something with a value. It cannot contain statements such as <code>return</code>, <code>if</code> blocks over several lines, loops or assignments. If you need those, use <code>def</code>.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">The classic scope surprise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code">total_processed = <span class="nm">0</span>   <span class="cm"># global variable</span>
-
-<span class="kw">def</span> <span class="fn">process_batch_wrong</span>(batch_size):
-    total_processed = total_processed + batch_size  <span class="cm"># this LOOKS right...</span>
-    <span class="bi">print</span>(total_processed)
-
-<span class="cm"># process_batch_wrong(32)   # <-- would raise UnboundLocalError! Python sees the assignment</span>
-<span class="cm"># and assumes total_processed is a NEW local variable for the whole function body —</span>
-<span class="cm"># so reading it on the right-hand side before it's assigned fails.</span>
-
-<span class="kw">def</span> <span class="fn">process_batch</span>(batch_size):
-    <span class="kw">global</span> total_processed     <span class="cm"># explicitly say: use the outer variable, don't make a local one</span>
-    total_processed += batch_size
-    <span class="bi">print</span>(<span class="st">f'Running total: <span class="bi">{total_processed}</span>'</span>)
-
-<span class="fn">process_batch</span>(<span class="nm">32</span>)
-<span class="fn">process_batch</span>(<span class="nm">16</span>)
-<span class="fn">process_batch</span>(<span class="nm">8</span>)
-<span class="bi">print</span>(<span class="st">f'Total processed: <span class="bi">{total_processed}</span>'</span>)</div>
+    <div class="cb-header"><span class="cb-label">A statement inside a lambda</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code">bad <span class="op">=</span> <span class="kw">lambda</span> x: <span class="kw">return</span> x <span class="op">+</span> <span class="nm">1</span></div>
   </div>
-  <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Best practice: avoid <code>global</code> when you can.</strong> It's shown here because you WILL encounter it, but the cleaner pattern is almost always to <code>return</code> the new value and let the caller decide what to do with it. Fewer hidden side effects, easier to test.</div></div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>  File "&lt;exec&gt;", line 1
+    bad = lambda x: return x + 1
+                    ^^^^^^
+SyntaxError: invalid syntax</pre></div>
+  <details class="check"><summary>What does <code>(lambda a, b: a * b)(3, 4)</code> evaluate to?</summary><div class="ck-answer">12. The lambda is created and immediately called with 3 and 4.</div></details>
+  <details class="check"><summary>When should you prefer <code>def</code> over <code>lambda</code>?</summary><div class="ck-answer">When the function needs a name you will reuse, more than one line, or a docstring. Lambdas are for tiny, one-off jobs, typically passed as an argument.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Sort <code>results</code> by name length using <code>key=lambda pair: len(pair[0])</code>, then sort by name alphabetically with <code>key=lambda pair: pair[0]</code>.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>lambda params: expression</code> builds a small anonymous function whose expression value is returned automatically.</li><li>Its main use is as the <code>key</code> for <code>sorted</code>, <code>max</code> and <code>min</code>, which call it on each item.</li><li>A lambda can only contain one expression. Use <code>def</code> for anything larger.</li></ul></div>
+  <!-- /S:3.9 -->
 
-  <!-- 3.7 -->
-  <div class="lesson-h2">3.7 — Modules: import and Organizing Code Across Files</div>
-  <p class="lesson-p">A <strong>module</strong> is just a <code>.py</code> file. <code>import</code> lets you use functions defined in another file — this is exactly how <code>import numpy as np</code> or <code>from sklearn.metrics import accuracy_score</code> work. Python also ships a large standard library of built-in modules you can import for free.</p>
-
+  <!-- S:3.10 -->
+  <div class="lesson-h2">3.10 — Docstrings and Type Hints: Explaining Your Functions</div>
+  <p class="lesson-p">Imagine opening a function you wrote three months ago: <code>def f1(a, b):</code>. What are <code>a</code> and <code>b</code>? What comes back? Good names help, but two extra tools make a function explain itself. A <strong>docstring</strong> says in words what the function does. <strong>Type hints</strong> say what kinds of values go in and come out.</p>
+  <div class="lesson-h3">Docstrings</div>
+  <p class="lesson-p">A <strong>docstring</strong> is a string written as the very first line inside a function's body, using triple quotes. It does not run as code. Python stores it on the function, and tools such as <code>help()</code> and code editors display it.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Using Python's built-in modules</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> math
+    <div class="cb-header"><span class="cb-label">A function with a docstring</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">f1_score</span>(precision, recall):
+    <span class="st">"""Return the F1 score: the harmonic mean of precision and recall."""</span>
+    <span class="kw">return</span> <span class="nm">2</span> <span class="op">*</span> precision <span class="op">*</span> recall <span class="op">/</span> (precision <span class="op">+</span> recall)
 
-<span class="bi">print</span>(math.sqrt(<span class="nm">16</span>))         <span class="cm"># 4.0 — same idea as **0.5, but more explicit</span>
-<span class="bi">print</span>(math.pi)              <span class="cm"># 3.14159...</span>
-<span class="bi">print</span>(math.ceil(<span class="nm">4.1</span>))       <span class="cm"># 5 — round up</span>
-<span class="bi">print</span>(math.floor(<span class="nm">4.9</span>))      <span class="cm"># 4 — round down</span>
-
-<span class="cm"># Importing just one function, so you don't need the "math." prefix:</span>
-<span class="kw">from</span> math <span class="kw">import</span> sqrt
-<span class="bi">print</span>(sqrt(<span class="nm">25</span>))            <span class="cm"># 5.0</span>
-
-<span class="cm"># This is exactly the pattern you'll use for every ML library:</span>
-<span class="cm"># import numpy as np</span>
-<span class="cm"># from sklearn.metrics import accuracy_score</span>
-<span class="cm"># import pandas as pd</span></div>
+<span class="bi">print</span>(<span class="fn">f1_score</span>(<span class="nm">0.8</span>, <span class="nm">0.6</span>))
+<span class="bi">print</span>(f1_score.__doc__)
+<span class="bi">help</span>(f1_score)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>If you were writing your own file</strong> (say, <code>metrics.py</code>) full of functions, another file could use them with <code>from metrics import compute_accuracy</code>. This is how real ML projects are structured: one file per concern (data loading, model, metrics, training loop), stitched together with imports.</div></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>0.6857142857142857
+Return the F1 score: the harmonic mean of precision and recall.
+Help on function f1_score in module __main__:
 
-  <!-- 3.8 -->
-  <div class="lesson-h2">3.8 — Closures, Nested Functions & nonlocal</div>
-  <p class="lesson-p">A function defined inside another function is a <strong>nested function</strong>. If the inner function uses a variable from the outer function's scope, it "closes over" that variable — that's a <strong>closure</strong>. The outer function can return the inner one, and the inner one keeps remembering the outer variable even after the outer function has finished running. To let the inner function <em>modify</em> (not just read) that outer variable, use <code>nonlocal</code>.</p>
-
+f1_score(precision, recall)
+    Return the F1 score: the harmonic mean of precision and recall.</pre></div>
+  <p class="lesson-p"><code>__doc__</code> is the stored text, and <code>help()</code> formats it with the function's signature. For a longer function, write a short summary line, then a blank line, then details about the parameters and the return value. A good first line says what the function *does*, in the imperative: "Return the average of the numbers", not "This is a function".</p>
+  <div class="lesson-h3">Type hints</div>
+  <p class="lesson-p">A <strong>type hint</strong> is a note that names the expected type of a parameter or return value. Parameters get a colon and a type (<code>x: int</code>). The return type follows an arrow after the parentheses (<code>-&gt; float</code>). A function that returns nothing is hinted <code>-&gt; None</code>.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A closure that remembers, and one that counts</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> make_multiplier(factor):
-    <span class="kw">def</span> multiply(x):
-        <span class="kw">return</span> x * factor    <span class="cm"># 'factor' is remembered from the outer scope</span>
+    <div class="cb-header"><span class="cb-label">Type hints on a definition</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">average</span>(values: <span class="bi">list</span>[<span class="bi">float</span>]) <span class="op">-&gt;</span> <span class="bi">float</span>:
+    <span class="kw">return</span> <span class="bi">sum</span>(values) <span class="op">/</span> <span class="bi">len</span>(values)
+
+<span class="kw">def</span> <span class="fn">repeat</span>(word: <span class="bi">str</span>, times: <span class="bi">int</span> <span class="op">=</span> <span class="nm">2</span>) <span class="op">-&gt;</span> <span class="bi">str</span>:
+    <span class="kw">return</span> word <span class="op">*</span> times
+
+<span class="kw">def</span> <span class="fn">announce</span>(message: <span class="bi">str</span>) <span class="op">-&gt;</span> <span class="kw">None</span>:
+    <span class="bi">print</span>(<span class="st">"NOTE:"</span>, message)
+
+<span class="bi">print</span>(<span class="fn">average</span>([<span class="nm">0.5</span>, <span class="nm">0.75</span>, <span class="nm">1.0</span>]))
+<span class="bi">print</span>(<span class="fn">repeat</span>(<span class="st">"ha"</span>))
+<span class="fn">announce</span>(<span class="st">"done"</span>)
+<span class="bi">print</span>(average.__annotations__)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>0.75
+haha
+NOTE: done
+{'values': list[float], 'return': &lt;class 'float'&gt;}</pre></div>
+  <p class="lesson-p">The hints appear in <code>__annotations__</code>, but Python does <strong>not</strong> enforce them. They are documentation for people and for checking tools such as <code>mypy</code> and your editor, which can warn you before you run the code. Watch what happens when you break the promise:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Hints are not enforced</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">double</span>(x: <span class="bi">int</span>) <span class="op">-&gt;</span> <span class="bi">int</span>:
+    <span class="kw">return</span> x <span class="op">*</span> <span class="nm">2</span>
+
+<span class="bi">print</span>(<span class="fn">double</span>(<span class="nm">4</span>))
+<span class="bi">print</span>(<span class="fn">double</span>(<span class="st">"ab"</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>8
+abab</pre></div>
+  <p class="lesson-p"><code>double("ab")</code> ignores the hint and repeats the string, because <code>"ab" * 2</code> is valid Python. The hint said <code>int</code>, and nobody checked. The hint is a promise you make to the reader, and the checking tools hold you to it. Also note how defaults combine with hints: <code>times: int = 2</code> puts spaces around the equals sign when a hint is present.</p>
+  <details class="check"><summary>What does the hint <code>-&gt; None</code> tell the reader?</summary><div class="ck-answer">That the function is called for its effect (printing, saving) and gives back nothing useful, so there is no point storing the result.</div></details>
+  <details class="check"><summary>If a function has type hints but you pass a value of the wrong type, will Python stop you?</summary><div class="ck-answer">No. Python ignores hints at run time. Only external tools such as <code>mypy</code>, or your editor, warn about it.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Add a docstring and hints to <code>add(a, b)</code> from section 3.5, then print <code>add.__doc__</code>.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A <strong>docstring</strong> is a triple-quoted string as the first line of a function body; read it with <code>help(f)</code> or <code>f.__doc__</code>.</li><li><strong>Type hints</strong> (<code>x: int</code>, <code>-&gt; float</code>, <code>-&gt; None</code>) document the inputs and output but are never enforced by Python.</li><li>Together they let a function explain itself to you, your teammates, and your tools.</li></ul></div>
+  <!-- /S:3.10 -->
+
+  <!-- S:3.11 -->
+  <div class="lesson-h2">3.11 — Closures and nonlocal: Functions That Remember</div>
+  <p class="lesson-p">Functions are values, so a function can <strong>return another function</strong>. Sometimes you want a family of similar functions: one that doubles, one that triples. Writing each separately repeats yourself. Instead, write a function that *builds* them. A function defined inside another function is a <strong>nested function</strong>. If the inner function uses a variable from the outer function, it keeps that variable alive even after the outer function has finished. That combination is a <strong>closure</strong>: the function plus the surrounding variables it remembers.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A function that builds functions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">make_multiplier</span>(factor):
+    <span class="kw">def</span> <span class="fn">multiply</span>(x):
+        <span class="kw">return</span> x <span class="op">*</span> factor
     <span class="kw">return</span> multiply
 
-double = make_multiplier(<span class="nm">2</span>)
-triple = make_multiplier(<span class="nm">3</span>)
-<span class="bi">print</span>(double(<span class="nm">5</span>))    <span class="cm"># 10</span>
-<span class="bi">print</span>(triple(<span class="nm">5</span>))    <span class="cm"># 15</span>
+double <span class="op">=</span> <span class="fn">make_multiplier</span>(<span class="nm">2</span>)
+triple <span class="op">=</span> <span class="fn">make_multiplier</span>(<span class="nm">3</span>)
+<span class="bi">print</span>(<span class="fn">double</span>(<span class="nm">5</span>), <span class="fn">triple</span>(<span class="nm">5</span>))
+<span class="bi">print</span>(<span class="fn">double</span>(<span class="nm">10</span>), <span class="fn">triple</span>(<span class="nm">10</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>10 15
+20 30</pre></div>
+  <div class="diagram"><div class="dg-title">Each closure carries its own backpack</div><pre> make_multiplier(2)  -&gt;  multiply  + backpack {factor: 2}   = double
+ make_multiplier(3)  -&gt;  multiply  + backpack {factor: 3}   = triple
 
-<span class="cm"># nonlocal lets the inner function MODIFY the outer variable</span>
-<span class="kw">def</span> make_counter():
-    count = <span class="nm">0</span>
-    <span class="kw">def</span> increment():
+ double(5): x=5 arrives, factor=2 comes from the backpack -&gt; 10
+ triple(5): x=5 arrives, factor=3 comes from the backpack -&gt; 15</pre><div class="dg-cap">The outer function is finished, yet <code>factor</code> survives, because the inner function holds on to it.</div></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>make_multiplier(2)</code> runs, so its frame gets <code>factor = 2</code>. Inside, <code>def multiply</code> creates a new function object that <strong>refers to</strong> that <code>factor</code>.</div></li><li data-n="2"><div><code>return multiply</code> hands the inner function back. Normally the frame would now be discarded, but the inner function still needs <code>factor</code>, so Python keeps that one variable alive.</div></li><li data-n="3"><div>A second call <code>make_multiplier(3)</code> creates a completely separate frame and a separate <code>multiply</code>, with its own <code>factor = 3</code>.</div></li><li data-n="4"><div><code>double(5)</code> runs <code>multiply</code> with <code>x = 5</code>. Python finds <code>x</code> locally and <code>factor</code> in the enclosing scope, which is the <strong>E</strong> in LEGB from section 3.7. The answer is 10.</div></li></ul>
+  <p class="lesson-p">Notice that <code>return multiply</code> has no parentheses. We return the function itself and do not call it. Writing <code>return multiply(...)</code> would run the inner function early instead.</p>
+  <div class="lesson-h3">Changing the remembered variable: nonlocal</div>
+  <p class="lesson-p">A closure can also keep <strong>state</strong> between calls, like a counter, with no global variable. There is one catch that follows the scope rules. Assigning to a name inside the inner function would create a new local, as with <code>global</code> earlier. The keyword <strong>nonlocal</strong> says "this name belongs to the nearest enclosing function".</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A counter that remembers its count</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">make_counter</span>():
+    count <span class="op">=</span> <span class="nm">0</span>
+    <span class="kw">def</span> <span class="fn">increment</span>():
         <span class="kw">nonlocal</span> count
-        count += <span class="nm">1</span>
+        count <span class="op">+=</span> <span class="nm">1</span>
         <span class="kw">return</span> count
     <span class="kw">return</span> increment
 
-counter = make_counter()
-<span class="bi">print</span>(counter())   <span class="cm"># 1</span>
-<span class="bi">print</span>(counter())   <span class="cm"># 2</span>
-<span class="bi">print</span>(counter())   <span class="cm"># 3 — each call remembers the running total</span></div>
+first <span class="op">=</span> <span class="fn">make_counter</span>()
+second <span class="op">=</span> <span class="fn">make_counter</span>()
+<span class="bi">print</span>(<span class="fn">first</span>(), <span class="fn">first</span>(), <span class="fn">first</span>())
+<span class="bi">print</span>(<span class="fn">second</span>())</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>nonlocal vs global:</strong> <code>global</code> (3.6) reaches all the way to module-level variables. <code>nonlocal</code> reaches only to the nearest ENCLOSING function's scope — the one directly outside, not all the way to the top.</div></div>
-
-  <!-- 3.9 -->
-  <div class="lesson-h2">3.9 — Type Hints on Function Signatures</div>
-  <p class="lesson-p">Type hints document what a function expects and returns — <code>def f(x: int) -> str:</code> — without changing how the code runs (Python never enforces them at runtime). They're standard in professional Python because they let your editor catch mistakes before you run the code, and they make a function's contract obvious without reading its body.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>1 2 3
+1</pre></div>
+  <p class="lesson-p">Each counter keeps its own <code>count</code>, so <code>first</code> reaches 3 while <code>second</code> is still at 1. Without <code>nonlocal</code>, the line <code>count += 1</code> would try to read a local <code>count</code> before it has a value, and fail exactly as in section 3.7:</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Type hints on parameters, return values, and variables</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> compute_accuracy(correct: <span class="bi">int</span>, total: <span class="bi">int</span>) -> <span class="bi">float</span>:
-    <span class="kw">return</span> correct / total
+    <div class="cb-header"><span class="cb-label">Forgetting nonlocal</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">make_counter</span>():
+    count <span class="op">=</span> <span class="nm">0</span>
+    <span class="kw">def</span> <span class="fn">increment</span>():
+        count <span class="op">+=</span> <span class="nm">1</span>
+        <span class="kw">return</span> count
+    <span class="kw">return</span> increment
 
-<span class="kw">def</span> format_metric(name: <span class="bi">str</span>, value: <span class="bi">float</span>, decimals: <span class="bi">int</span> = <span class="nm">4</span>) -> <span class="bi">str</span>:
-    <span class="kw">return</span> <span class="st">f'<span class="bi">{name}</span>: <span class="bi">{value:.{decimals}f}</span>'</span>
-
-acc: <span class="bi">float</span> = compute_accuracy(<span class="nm">83</span>, <span class="nm">100</span>)
-<span class="bi">print</span>(format_metric(<span class="st">'accuracy'</span>, acc))
-
-<span class="cm"># list[float] hints "a list of floats" — Python 3.9+ built-in generic syntax</span>
-<span class="kw">def</span> average(values: <span class="bi">list</span>[<span class="bi">float</span>]) -> <span class="bi">float</span>:
-    <span class="kw">return</span> <span class="bi">sum</span>(values) / <span class="bi">len</span>(values)
-
-<span class="bi">print</span>(average([<span class="nm">0.9</span>, <span class="nm">0.8</span>, <span class="nm">0.95</span>]))</div>
+counter <span class="op">=</span> <span class="fn">make_counter</span>()
+<span class="fn">counter</span>()</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Type hints are <strong>not enforced</strong> — calling <code>compute_accuracy('83', '100')</code> would still run (and crash later with the wrong error) since Python doesn't check hints at runtime. Tools like <code>mypy</code> check them separately, before the code ever runs.</div></div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 9, in &lt;module&gt;
+  File "&lt;exec&gt;", line 4, in increment
+UnboundLocalError: cannot access local variable 'count' where it is not associated with a value</pre></div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>nonlocal versus global:</strong> <code>global</code> reaches the top level of the file; <code>nonlocal</code> reaches only the nearest enclosing function. Use closures when a little private state is needed, and a class (Chapter 5) once the state grows.</div></div>
+  <details class="check"><summary>Why does <code>double(5)</code> still know <code>factor = 2</code> after <code>make_multiplier</code> has finished?</summary><div class="ck-answer">The inner function holds a reference to <code>factor</code>, so Python keeps that variable alive as part of the closure.</div></details>
+  <details class="check"><summary>What is the difference between <code>return multiply</code> and <code>return multiply(2)</code> in the outer function?</summary><div class="ck-answer">The first returns the function itself. The second calls it right away and returns its result, which is a number, not a function.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Write <code>make_greeter(greeting)</code> that returns a function taking a name and returning <code>greeting + ", " + name</code>. Make one that says Hello and one that says Hi.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A function can return a function. The inner function remembers variables from the outer one: a <strong>closure</strong>.</li><li>Each call of the outer function makes a separate set of remembered variables.</li><li>To reassign a remembered variable from the inner function, declare it <code>nonlocal</code>.</li></ul></div>
+  <!-- /S:3.11 -->
 
-  <!-- 3.10 -->
-  <div class="lesson-h2">3.10 — functools: reduce, partial, lru_cache</div>
-  <p class="lesson-p">The <code>functools</code> module has three tools you'll reach for constantly: <code>reduce()</code> collapses a list down to one value by repeatedly combining pairs (a generalization of <code>sum()</code>), <code>partial()</code> "pre-fills" some of a function's arguments to create a new, simpler function, and <code>@lru_cache</code> automatically remembers past results so an expensive function is never recomputed for the same input twice.</p>
-
+  <!-- S:3.12 -->
+  <div class="lesson-h2">3.12 — functools: Ready-Made Tools for Functions</div>
+  <p class="lesson-p">Python ships with a <strong>module</strong> (a file of ready-made code; section 3.13 explains modules) called <code>functools</code>, full of tools that work on functions. Three of them are worth knowing now. Each solves a problem that you would otherwise solve with more code.</p>
+  <div class="lesson-h3">partial: pre-fill some arguments</div>
+  <p class="lesson-p">Suppose <code>power(base, exponent)</code> exists and you often need squares. You could write a wrapper by hand, as in section 3.11. <code>partial(function, arguments...)</code> does it in one line, returning a new function with those arguments locked in.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">reduce, partial, and lru_cache in action</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">from</span> functools <span class="kw">import</span> reduce, partial, lru_cache
+    <div class="cb-header"><span class="cb-label">partial locks in an argument</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> functools <span class="kw">import</span> partial
 
-<span class="cm"># reduce(function, iterable) — combine all items into one value</span>
-losses = [<span class="nm">0.9</span>, <span class="nm">0.7</span>, <span class="nm">0.5</span>, <span class="nm">0.3</span>]
-total = reduce(<span class="kw">lambda</span> acc, x: acc + x, losses)
-<span class="bi">print</span>(<span class="st">f'Total loss: <span class="bi">{total}</span>'</span>)
+<span class="kw">def</span> <span class="fn">power</span>(base, exponent):
+    <span class="kw">return</span> base <span class="op">**</span> exponent
 
-<span class="cm"># partial(function, fixed_arg) — lock in an argument, get a simpler function back</span>
-<span class="kw">def</span> scale(factor, value):
-    <span class="kw">return</span> value * factor
-
-double = partial(scale, <span class="nm">2</span>)     <span class="cm"># 'factor' is now always 2</span>
-<span class="bi">print</span>(double(<span class="nm">21</span>))          <span class="cm"># 42</span>
-
-<span class="cm"># @lru_cache — memoize: skip recomputing for an input you've already seen</span>
-<span class="op">@lru_cache</span>(maxsize=<span class="kw">None</span>)
-<span class="kw">def</span> slow_square(n):
-    <span class="bi">print</span>(<span class="st">f'computing square of <span class="bi">{n}</span>'</span>)
-    <span class="kw">return</span> n * n
-
-<span class="bi">print</span>(slow_square(<span class="nm">5</span>))   <span class="cm"># prints "computing..." then 25</span>
-<span class="bi">print</span>(slow_square(<span class="nm">5</span>))   <span class="cm"># cached — no "computing..." line, straight to 25</span>
-<span class="bi">print</span>(slow_square(<span class="nm">6</span>))   <span class="cm"># new input — computes again</span></div>
+square <span class="op">=</span> <span class="fn">partial</span>(power, exponent<span class="op">=</span><span class="nm">2</span>)
+cube <span class="op">=</span> <span class="fn">partial</span>(power, exponent<span class="op">=</span><span class="nm">3</span>)
+<span class="bi">print</span>(<span class="fn">square</span>(<span class="nm">5</span>), <span class="fn">cube</span>(<span class="nm">5</span>))</div>
   </div>
-
-  <!-- 3.11 -->
-  <div class="lesson-h2">3.11 — Docstrings, Packages & if __name__ == '__main__'</div>
-  <p class="lesson-p">A <strong>docstring</strong> is a string literal right under a <code>def</code> — it documents what the function does and shows up when someone calls <code>help(your_function)</code> or checks <code>your_function.__doc__</code>. <code>if __name__ == '__main__':</code> is a guard that only runs when a file is executed directly (<code>python script.py</code>) — not when it's imported by another file. A <strong>package</strong> is a folder of modules with an <code>__init__.py</code> file inside it, letting you organize a real project as <code>myproject/data.py</code>, <code>myproject/model.py</code>, imported as <code>from myproject import data</code>.</p>
-
+  <div class="run-out"><div class="ro-label">Output</div><pre>25 125</pre></div>
+  <div class="lesson-h3">reduce: fold many values into one</div>
+  <p class="lesson-p"><code>reduce(function, items)</code> takes the first two items, combines them with the function, then combines that result with the third, and so on until one value remains. Adding is the easiest picture. Multiplying shows it is more general.</p>
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Docstrings and the __main__ guard</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">def</span> compute_f1(precision, recall):
-    <span class="st">"""Return the harmonic mean of precision and recall (the F1 score)."""</span>
-    <span class="kw">return</span> <span class="nm">2</span> * (precision * recall) / (precision + recall)
+    <div class="cb-header"><span class="cb-label">reduce combines items pairwise</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> functools <span class="kw">import</span> reduce
 
-<span class="bi">print</span>(compute_f1.__doc__)
-<span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{compute_f1(0.8, 0.6):.4f}</span>'</span>)
-
-<span class="kw">def</span> main():
-    <span class="bi">print</span>(<span class="st">'Running as a script, not imported'</span>)
-    <span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{compute_f1(0.9, 0.85):.4f}</span>'</span>)
-
-<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
-    main()   <span class="cm"># only runs when THIS file is executed directly</span></div>
+numbers <span class="op">=</span> [<span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>]
+total <span class="op">=</span> <span class="fn">reduce</span>(<span class="kw">lambda</span> acc, x: acc <span class="op">+</span> x, numbers)
+product <span class="op">=</span> <span class="fn">reduce</span>(<span class="kw">lambda</span> acc, x: acc <span class="op">*</span> x, numbers)
+<span class="bi">print</span>(total, product)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Why the __main__ guard matters:</strong> without it, importing your file anywhere else (<code>from metrics import compute_f1</code>) would also immediately re-run everything inside <code>main()</code> — the guard is what lets a file be BOTH a reusable module and a runnable script.<br/><strong>Packages, reference only:</strong> a real multi-file package (<code>__init__.py</code>, relative imports like <code>from .metrics import compute_f1</code>) needs a real filesystem with multiple files — this in-browser console runs one file at a time, so this part is conceptual here; you'll use it for real in any project you run locally.</div></div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>9 24</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div><code>reduce</code> starts with the first two items: <code>acc = 2</code>, <code>x = 3</code>. The lambda returns 5 (or 6 for the product).</div></li><li data-n="2"><div>That result becomes the new <code>acc</code>. The next item <code>x = 4</code> is combined with it: 5 + 4 = 9 (or 6 x 4 = 24).</div></li><li data-n="3"><div>No items are left, so the last <code>acc</code> is the answer.</div></li></ul>
+  <div class="lesson-h3">lru_cache: remember answers</div>
+  <p class="lesson-p">Some functions are slow and get called with the same input repeatedly. Recursion makes this worse. The naive Fibonacci function (each number is the sum of the previous two) recomputes the same values over and over. A <strong>decorator</strong> is a line starting with <code>@</code> just above a <code>def</code>, which wraps the function with extra behaviour. <code>@lru_cache</code> gives it a <strong>cache</strong>: a memory of answers it has already computed.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Counting calls with and without a cache</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> functools <span class="kw">import</span> lru_cache
 
-  <!-- Summary -->
-  <div class="lesson-h2">Chapter 3 Summary</div>
-  <ul class="step-list">
-    <li data-n="1"><div><strong>def name(params): ... return value</strong> — functions package logic once so you can reuse it everywhere. <code>return</code> hands a value back; <code>print</code> just displays it.</div></li>
-    <li data-n="2"><div><strong>Default parameters</strong> (<code>decimals=4</code>) make functions flexible without forcing every caller to specify everything.</div></li>
-    <li data-n="3"><div><strong>*args</strong> collects extra positional arguments into a tuple. <strong>**kwargs</strong> collects extra keyword arguments into a dict.</div></li>
-    <li data-n="4"><div><strong>lambda</strong> writes a tiny function inline — most often as the <code>key</code> for <code>sorted()</code>.</div></li>
-    <li data-n="5"><div><strong>Scope:</strong> variables inside a function are local by default. Use <code>global</code> to modify an outer variable, <code>nonlocal</code> for an enclosing function's variable — but prefer <code>return</code>ing values instead when you can.</div></li>
-    <li data-n="6"><div><strong>Modules:</strong> <code>import math</code>, <code>from math import sqrt</code> — every ML library (NumPy, Pandas, sklearn) is used exactly this way.</div></li>
-    <li data-n="7"><div><strong>Type hints</strong> (<code>x: int -> float</code>) document contracts without runtime enforcement. <strong>functools</strong> gives you <code>reduce</code>, <code>partial</code>, and <code>@lru_cache</code>. <strong>Docstrings</strong> + <code>if __name__=='__main__':</code> make a file both documented and dual-purpose (importable AND runnable).</div></li>
-  </ul>
+calls <span class="op">=</span> <span class="nm">0</span>
+
+<span class="kw">def</span> <span class="fn">fib_slow</span>(n):
+    <span class="kw">global</span> calls
+    calls <span class="op">+=</span> <span class="nm">1</span>
+    <span class="kw">return</span> n <span class="kw">if</span> n <span class="op">&lt;</span> <span class="nm">2</span> <span class="kw">else</span> <span class="fn">fib_slow</span>(n <span class="op">-</span> <span class="nm">1</span>) <span class="op">+</span> <span class="fn">fib_slow</span>(n <span class="op">-</span> <span class="nm">2</span>)
+
+<span class="fn">fib_slow</span>(<span class="nm">20</span>)
+<span class="bi">print</span>(<span class="st">"without cache:"</span>, calls, <span class="st">"calls"</span>)
+
+@<span class="fn">lru_cache</span>(maxsize<span class="op">=</span><span class="kw">None</span>)
+<span class="kw">def</span> <span class="fn">fib_fast</span>(n):
+    <span class="kw">return</span> n <span class="kw">if</span> n <span class="op">&lt;</span> <span class="nm">2</span> <span class="kw">else</span> <span class="fn">fib_fast</span>(n <span class="op">-</span> <span class="nm">1</span>) <span class="op">+</span> <span class="fn">fib_fast</span>(n <span class="op">-</span> <span class="nm">2</span>)
+
+<span class="bi">print</span>(<span class="fn">fib_fast</span>(<span class="nm">20</span>))
+<span class="bi">print</span>(fib_fast.<span class="fn">cache_info</span>())</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>without cache: 21891 calls
+6765
+CacheInfo(hits=18, misses=21, maxsize=None, currsize=21)</pre></div>
+  <p class="lesson-p">The plain version makes 21,891 calls to answer <code>fib_slow(20)</code>. The cached one computes each of the 21 distinct inputs once, and every repeat is a lookup: <code>misses=21</code> means new computations and <code>hits=18</code> means answers reused. For large inputs the difference is between milliseconds and years.</p>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Use with care:</strong> caching only makes sense for functions whose answer depends solely on their arguments. If a function reads a global or the clock, a cached answer may be stale.</div></div>
+  <details class="check"><summary>What does <code>partial(power, exponent=2)</code> return?</summary><div class="ck-answer">A new function that takes the remaining argument (<code>base</code>) and calls <code>power(base, exponent=2)</code>.</div></details>
+  <details class="check"><summary>Why is <code>fib_slow(20)</code> so wasteful?</summary><div class="ck-answer">It solves the same smaller problems again and again: <code>fib_slow(18)</code> is computed inside both <code>fib_slow(19)</code> and <code>fib_slow(20)</code>, and so on down. The cache remembers each result.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change 20 to 30 in <code>fib_fast</code> and watch how the hits and misses grow. Then try <code>fib_slow(30)</code> if you are patient: it makes over 2 million calls.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>partial(f, ...)</code> builds a simpler function with some arguments already filled in.</li><li><code>reduce(f, items)</code> folds a sequence into one value by combining pairs.</li><li><code>@lru_cache</code> makes a function remember its answers, which is a big saving for repeated calls, especially recursion.</li></ul></div>
+  <!-- /S:3.12 -->
+
+  <!-- S:3.13 -->
+  <div class="lesson-h2">3.13 — Using Python's Standard Library: math, random, datetime, collections</div>
+  <p class="lesson-p">You now know how to write functions, so it is time to use the ones already written. Python comes with a huge collection of ready-made code called the <strong>standard library</strong>, sometimes described as "batteries included". It is organised into <strong>modules</strong>: each module is a file of related functions and values. Nothing in a module is available until you ask for it with an <strong>import</strong> statement, because Python keeps its everyday vocabulary small on purpose.</p>
+  <div class="lesson-h3">Three ways to import</div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">import, from-import and as</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> math
+<span class="bi">print</span>(math.<span class="fn">sqrt</span>(<span class="nm">16</span>), math.pi)
+
+<span class="kw">from</span> math <span class="kw">import</span> sqrt, ceil
+<span class="bi">print</span>(<span class="fn">sqrt</span>(<span class="nm">25</span>), <span class="fn">ceil</span>(<span class="nm">4.1</span>))
+
+<span class="kw">import</span> math <span class="kw">as</span> m
+<span class="bi">print</span>(m.<span class="fn">floor</span>(<span class="nm">4.9</span>))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>4.0 3.141592653589793
+5.0 5
+4</pre></div>
+  <p class="lesson-p"><code>import math</code> brings in the whole module, and you reach its contents with a dot: <code>math.sqrt</code>. This shows where each name comes from. <code>from math import sqrt</code> copies just that name into your program, so you write <code>sqrt(25)</code> with no prefix. <code>import math as m</code> gives the module a shorter nickname, and it is the origin of the famous <code>import numpy as np</code>. Avoid <code>from math import *</code>, which dumps every name in and can silently overwrite yours. The most common import mistakes are these two:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Using a module you did not import</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="bi">print</span>(math.<span class="fn">sqrt</span>(<span class="nm">16</span>))</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 1, in &lt;module&gt;
+NameError: name 'math' is not defined. Did you forget to import 'math'</pre></div>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Asking a module for a name it does not have</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">from</span> math <span class="kw">import</span> sqroot</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 1, in &lt;module&gt;
+ImportError: cannot import name 'sqroot' from 'math' (unknown location). Did you mean: 'sqrt'?</pre></div>
+  <p class="lesson-p">The first is a <code>NameError</code>: <code>math</code> is just an unknown word until you import it. The second tells you the module exists but has no such name, which is nearly always a typo.</p>
+  <div class="lesson-h3">random: chance you can repeat</div>
+  <p class="lesson-p">The <strong>random</strong> module produces numbers that look unpredictable. A computer generates them with a formula that starts from a <strong>seed</strong>, a number that fixes the starting point. Give the same seed and you get the same sequence every time. This is exactly what you want when you must reproduce an experiment, so machine learning code sets seeds all the time.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">random with and without a seed</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> random
+
+random.<span class="fn">seed</span>(<span class="nm">42</span>)
+<span class="bi">print</span>([random.<span class="fn">randint</span>(<span class="nm">1</span>, <span class="nm">6</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>)])
+
+random.<span class="fn">seed</span>(<span class="nm">42</span>)
+<span class="bi">print</span>([random.<span class="fn">randint</span>(<span class="nm">1</span>, <span class="nm">6</span>) <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>)])
+
+random.<span class="fn">seed</span>(<span class="nm">7</span>)
+<span class="bi">print</span>(random.<span class="fn">choice</span>([<span class="st">"red"</span>, <span class="st">"green"</span>, <span class="st">"blue"</span>]))
+cards <span class="op">=</span> [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>]
+random.<span class="fn">shuffle</span>(cards)
+<span class="bi">print</span>(cards)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[6, 1, 1, 6, 3]
+[6, 1, 1, 6, 3]
+green
+[5, 1, 3, 4, 2]</pre></div>
+  <p class="lesson-p">The first two lines are identical because the seed was reset to 42 in between. <code>randint(1, 6)</code> picks a whole number from 1 to 6, including both ends. <code>choice</code> picks one item from a list, and <code>shuffle</code> reorders a list in place. Without the seed lines, every run would differ.</p>
+  <div class="lesson-h3">datetime: dates without the arithmetic headaches</div>
+  <p class="lesson-p">Days per month, leap years and weekdays are painful to compute by hand. The <strong>datetime</strong> module does it for you. A <code>date</code> holds a year, month and day. A <code>timedelta</code> is a length of time, and you can add or subtract it. We use fixed dates here so the answers never change; <code>date.today()</code> gives the real current date.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Dates and durations</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> datetime <span class="kw">import</span> date, timedelta
+
+start <span class="op">=</span> <span class="fn">date</span>(<span class="nm">2024</span>, <span class="nm">3</span>, <span class="nm">15</span>)
+<span class="bi">print</span>(start, <span class="st">"-&gt;"</span>, start.<span class="fn">strftime</span>(<span class="st">"%A, %d %B %Y"</span>))
+<span class="bi">print</span>(<span class="st">"in 30 days:"</span>, start <span class="op">+</span> <span class="fn">timedelta</span>(days<span class="op">=</span><span class="nm">30</span>))
+
+end <span class="op">=</span> <span class="fn">date</span>(<span class="nm">2024</span>, <span class="nm">12</span>, <span class="nm">25</span>)
+gap <span class="op">=</span> end <span class="op">-</span> start
+<span class="bi">print</span>(<span class="st">"days until:"</span>, gap.days)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>2024-03-15 -&gt; Friday, 15 March 2024
+in 30 days: 2024-04-14
+days until: 285</pre></div>
+  <div class="lesson-h3">collections: better containers</div>
+  <p class="lesson-p">The <strong>collections</strong> module adds specialised containers. <code>Counter</code> counts how often each item appears, which used to need a loop and an <code>if</code>. <code>defaultdict</code> is a dictionary that creates a missing entry for you, using the type you give it.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Counter and defaultdict</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> collections <span class="kw">import</span> Counter, defaultdict
+
+words <span class="op">=</span> <span class="st">"the cat and the hat and the bat"</span>.<span class="fn">split</span>()
+counts <span class="op">=</span> <span class="fn">Counter</span>(words)
+<span class="bi">print</span>(counts.<span class="fn">most_common</span>(<span class="nm">2</span>))
+<span class="bi">print</span>(counts[<span class="st">"the"</span>], counts[<span class="st">"dog"</span>])
+
+groups <span class="op">=</span> <span class="fn">defaultdict</span>(<span class="bi">list</span>)
+<span class="kw">for</span> w <span class="kw">in</span> words:
+    groups[w[<span class="nm">0</span>]].<span class="fn">append</span>(w)
+<span class="bi">print</span>(<span class="bi">dict</span>(groups))</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>[('the', 3), ('and', 2)]
+3 0
+{'t': ['the', 'the', 'the'], 'c': ['cat'], 'a': ['and', 'and'], 'h': ['hat'], 'b': ['bat']}</pre></div>
+  <details class="check"><summary>Why do machine-learning scripts often call <code>random.seed(...)</code> at the top?</summary><div class="ck-answer">So that random choices come out the same on every run. Then you can reproduce a result, share it, and tell whether a change to your code caused a difference.</div></details>
+  <details class="check"><summary>What is the difference between <code>import math</code> and <code>from math import sqrt</code>?</summary><div class="ck-answer">The first lets you write <code>math.sqrt(...)</code> with the module name in front; the second lets you write <code>sqrt(...)</code> directly, but only for the names you listed.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Use <code>date(2025, 1, 1).weekday()</code> (Monday is 0) and <code>Counter("mississippi").most_common(1)</code>, and explain each result to yourself.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li><code>import module</code> gives access via <code>module.name</code>; <code>from module import name</code> gives the bare name; <code>as</code> renames.</li><li>The standard library is a big set of modules: <code>math</code>, <code>random</code>, <code>datetime</code>, <code>collections</code> and many more.</li><li><code>random.seed(n)</code> makes random numbers repeatable, which matters for reproducible experiments.</li><li>A missing import causes <code>NameError</code>; a wrong name inside a real module causes <code>ImportError</code>.</li></ul></div>
+  <!-- /S:3.13 -->
+
+  <!-- S:3.14 -->
+  <div class="lesson-h2">3.14 — How import Finds Modules, Writing Your Own, and __main__</div>
+  <p class="lesson-p">A module is nothing magical: it is a Python file. When you write <code>import math</code>, Python looks for something called <code>math</code>, runs that file once from top to bottom, and hands you a <strong>module object</strong> whose contents you reach with a dot. Everything you learned about functions applies, because a module is mostly a collection of them.</p>
+  <div class="lesson-h3">How Python finds a module</div>
+  <p class="lesson-p">Python does not search your whole disk. It checks, in order: whether it has <strong>already imported</strong> the module (a remembered list called <code>sys.modules</code>), then the folders in the list <code>sys.path</code>. That list starts with the folder of your own script, then the standard library, then installed packages such as NumPy. The first match wins. If nothing matches, you get an error:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A module that does not exist</span><span class="cb-tag">read-only</span></div>
+    <div class="cb-code"><span class="kw">import</span> mathh</div>
+  </div>
+  <div class="run-out ro-err"><div class="ro-label">What Python says</div><pre>Traceback (most recent call last):
+  File "&lt;exec&gt;", line 1, in &lt;module&gt;
+ModuleNotFoundError: No module named 'mathh'</pre></div>
+  <p class="lesson-p">Because your own folder is searched <strong>first</strong>, a file of yours named <code>random.py</code> would hide the real <code>random</code> module, and a file called <code>math.py</code> would break every <code>import math</code>. Do not name your files after standard modules.</p>
+  <div class="diagram"><div class="dg-title">Where import looks</div><pre> import shapes_tools
+     1. already in sys.modules?   -&gt; yes: reuse it (no re-run)
+     2. your script's folder?     -&gt; shapes_tools.py found: run it
+     3. the standard library?     -&gt; (checked if step 2 failed)
+     4. installed packages?       -&gt; numpy, pandas, sklearn...
+     5. none of the above         -&gt; ModuleNotFoundError</pre><div class="dg-cap">Your own folder comes first, which is why your own files can be imported, and also why they can accidentally hide a standard module.</div></div>
+  <div class="lesson-h3">Writing your own module</div>
+  <p class="lesson-p">Any <code>.py</code> file is a module. The example below first <strong>writes</strong> a small file called <code>shapes_tools.py</code> into this page's private file space (reading and writing files is Chapter 5, so treat those three lines as setup), then imports it exactly as you would import <code>math</code>.</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Create a module file and import it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> sys, importlib
+
+source <span class="op">=</span> <span class="st">'''def area(width, height):
+    return width * height
+
+print("shapes_tools loaded, its __name__ is", __name__)
+'''</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">"shapes_tools.py"</span>, <span class="st">"w"</span>) <span class="kw">as</span> f:
+    f.<span class="fn">write</span>(source)
+
+importlib.<span class="fn">invalidate_caches</span>()
+sys.modules.<span class="fn">pop</span>(<span class="st">"shapes_tools"</span>, <span class="kw">None</span>)
+<span class="kw">import</span> shapes_tools
+
+<span class="bi">print</span>(shapes_tools.<span class="fn">area</span>(<span class="nm">3</span>, <span class="nm">4</span>))
+<span class="kw">import</span> shapes_tools
+<span class="bi">print</span>(<span class="st">"second import did nothing new"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>shapes_tools loaded, its __name__ is shapes_tools
+12
+second import did nothing new</pre></div>
+  <div class="trace-h">What Python does, line by line</div>
+  <ul class="step-list"><li data-n="1"><div>The <code>with open(...)</code> lines create the file <code>shapes_tools.py</code> in the current folder, which is on <code>sys.path</code>. The next two lines clear Python's memory of any earlier import, so you can re-run the block.</div></li><li data-n="2"><div><code>import shapes_tools</code> finds that file, <strong>runs it once</strong> from top to bottom, and creates the module object. The <code>def</code> runs (creating <code>area</code>) and the <code>print</code> runs, so you see the loading message, with <code>__name__</code> set to the module's own name.</div></li><li data-n="3"><div><code>shapes_tools.area(3, 4)</code> calls the function through the dot, giving 12.</div></li><li data-n="4"><div>The second <code>import</code> finds <code>shapes_tools</code> in <code>sys.modules</code> and reuses it. The file is not run again, so there is no second loading message.</div></li></ul>
+  <div class="lesson-h3">The __name__ guard</div>
+  <p class="lesson-p">Notice the strange value printed above: the module's <code>__name__</code> was the string <code>"shapes_tools"</code>. Python sets a special variable <code>__name__</code> in every file. When the file is <strong>imported</strong>, <code>__name__</code> is the module's name. When the file is <strong>run directly</strong> as the main program, <code>__name__</code> is the string <code>"__main__"</code>. That difference lets one file be both a reusable module and a runnable script, by guarding the script part:</p>
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The __main__ guard</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> runpy, sys, importlib
+
+source <span class="op">=</span> <span class="st">'''def area(width, height):
+    return width * height
+
+def main():
+    print("area of 3 x 4 =", area(3, 4))
+
+print("file loaded, __name__ =", __name__)
+if __name__ == "__main__":
+    main()
+'''</span>
+<span class="kw">with</span> <span class="bi">open</span>(<span class="st">"shapes_guarded.py"</span>, <span class="st">"w"</span>) <span class="kw">as</span> f:
+    f.<span class="fn">write</span>(source)
+
+importlib.<span class="fn">invalidate_caches</span>()
+sys.modules.<span class="fn">pop</span>(<span class="st">"shapes_guarded"</span>, <span class="kw">None</span>)
+<span class="bi">print</span>(<span class="st">"--- imported as a module ---"</span>)
+<span class="kw">import</span> shapes_guarded
+<span class="bi">print</span>(<span class="st">"--- run as a script ---"</span>)
+runpy.<span class="fn">run_path</span>(<span class="st">"shapes_guarded.py"</span>, run_name<span class="op">=</span><span class="st">"__main__"</span>)</div>
+  </div>
+  <div class="run-out"><div class="ro-label">Output</div><pre>--- imported as a module ---
+file loaded, __name__ = shapes_guarded
+--- run as a script ---
+file loaded, __name__ = __main__
+area of 3 x 4 = 12</pre></div>
+  <p class="lesson-p">When imported, the guard is False, so <code>main()</code> is skipped, and other programs can use <code>area</code> without triggering a demo. When run as a script, the guard is True and <code>main()</code> runs. Without the guard, importing the file would print and run everything every time, which is rarely what the importer wants. In your own projects you will write this guard at the bottom of nearly every script. A real project grows by placing several module files in a folder with an <code>__init__.py</code> file, called a <strong>package</strong>, which lets you write imports such as <code>from myproject import data</code>. This in-browser console cannot show a multi-file folder, but the rules are the same.</p>
+  <details class="check"><summary>What is <code>__name__</code> inside a file that is run directly, and what is it when the file is imported?</summary><div class="ck-answer"><code>"__main__"</code> when run directly. The module's own name (for example <code>"shapes_tools"</code>) when imported.</div></details>
+  <details class="check"><summary>Why might a file you name <code>random.py</code> cause strange errors?</summary><div class="ck-answer">Python searches your own folder first, so <code>import random</code> would load your file instead of the standard module, and the real functions such as <code>randint</code> would be missing.</div></details>
+  <div class="try-it"><strong>Try it.</strong> Change the guarded module so that <code>main()</code> also prints <code>area(5, 6)</code>. Then re-run and notice that the import still prints only the loading line.</div>
+  <div class="recap"><strong class="rc-title">Recap</strong><ul><li>A module is a <code>.py</code> file; <code>import</code> finds it via <code>sys.modules</code> and <code>sys.path</code>, runs it once and gives you a module object.</li><li>Your own folder is searched first: never name your files after standard modules.</li><li><code>__name__</code> is <code>"__main__"</code> when a file runs directly and the module name when imported, so <code>if __name__ == "__main__":</code> guards script-only code.</li><li>A folder of modules with an <code>__init__.py</code> is a <strong>package</strong>.</li></ul></div>
+  <!-- /S:3.14 -->
+
+  <!-- S:3.99 -->
+  <div class="lesson-h2">Chapter 3 Summary and What You Can Now Do</div>
+  <ul class="step-list"><li data-n="1"><div><strong>Why functions:</strong> copy-pasted logic is hard to fix and hides intent. A function is a named block you write once (<strong>DRY</strong>) and call many times.</div></li><li data-n="2"><div><strong>Define versus call:</strong> <code>def name(params):</code> writes the function and runs nothing; <code>name(args)</code> runs it. Without parentheses you only name it.</div></li><li data-n="3"><div><strong>Parameters and arguments:</strong> parameters are in the definition, arguments in the call. Match by position or by keyword (<code>name=value</code>), positional first.</div></li><li data-n="4"><div><strong>The call stack:</strong> every call gets a private frame, and only the top frame runs. A traceback is the stack, read bottom-up.</div></li><li data-n="5"><div><strong>return versus print:</strong> <code>return</code> hands a value back; <code>print</code> only displays. No <code>return</code> means <code>None</code>. <code>return a, b</code> gives a tuple you can unpack.</div></li><li data-n="6"><div><strong>Defaults and star-arguments:</strong> <code>x=4</code> makes a parameter optional. Never use a list as a default; use <code>None</code>. <code>*args</code> collects a tuple, <code>**kwargs</code> a dictionary.</div></li><li data-n="7"><div><strong>Scope (LEGB):</strong> names are local to the function; lookup goes Local, Enclosing, Global, Built-in. Prefer <code>return</code> over <code>global</code>.</div></li><li data-n="8"><div><strong>Recursion:</strong> a function that calls itself needs a base case, and each call gets its own frame.</div></li><li data-n="9"><div><strong>lambda:</strong> a one-expression, nameless function, mostly used as <code>key=</code> for <code>sorted</code>, <code>max</code> and <code>min</code>.</div></li><li data-n="10"><div><strong>Docstrings and type hints:</strong> document what a function does and what it takes and returns. Hints are not enforced.</div></li><li data-n="11"><div><strong>Closures and nonlocal:</strong> a returned inner function remembers the outer variables; <code>nonlocal</code> lets it change them.</div></li><li data-n="12"><div><strong>functools:</strong> <code>partial</code> pre-fills arguments, <code>reduce</code> folds items into one value, <code>@lru_cache</code> remembers answers.</div></li><li data-n="13"><div><strong>The standard library:</strong> <code>import math</code>, <code>from math import sqrt</code>, <code>import x as y</code>; <code>random.seed</code> for repeatable randomness, plus <code>datetime</code> and <code>collections</code>.</div></li><li data-n="14"><div><strong>Modules:</strong> a module is a <code>.py</code> file found through <code>sys.modules</code> and <code>sys.path</code>. Use <code>if __name__ == "__main__":</code> so a file is both importable and runnable.</div></li></ul>
+  <p class="lesson-p"><strong>What you can now do.</strong> You can turn any repeated block of code into a function with clear inputs and a returned result. You can read a traceback to see who called whom, and predict where a variable is visible. You can use a large part of the standard library, write your own module, and explain the machinery behind every <code>import numpy as np</code> you will meet in later chapters. The five exercises and the Metrics Toolkit project below use exactly these skills.</p>
+  <!-- /S:3.99 -->
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>

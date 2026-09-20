@@ -420,6 +420,12 @@ html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-them
 /* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
 html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
 html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
 </style>
 <!-- /theme:css -->
 </head>
@@ -479,7 +485,64 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     </div>
   </div>
 
-  <div class="lesson-h2">4.1 — The Skill Behind Every Cloud Script: Handling the Response</div>
+  
+
+
+<!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="5q7FtT_DyME" data-title="Introduction to Boto3 for Python (Upload File to AWS S3)" data-chan="Caleb Curry">boto3 / AWS with Python</button><button type="button" class="vid-tab" role="tab" data-id="eGz9DS-aIeY" data-title="you need to learn Docker RIGHT NOW!! // Docker Containers 101" data-chan="NetworkChuck">Docker</button><button type="button" class="vid-tab" role="tab" data-id="s_o8dwzRlu4" data-title="Kubernetes Crash Course for Absolute Beginners [NEW]" data-chan="TechWorld with Nana">Kubernetes</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+<div class="lesson-h2">4.1 — The Skill Behind Every Cloud Script: Handling the Response</div>
   <p class="lesson-p">Almost every DevOps script you'll write for AWS, Kubernetes or Docker has the same shape: <strong>call an API → get a big nested JSON document back → walk it → decide something</strong> (delete it, alert on it, total it, report it). The SDK call is one line. The value — and nearly every bug — lives in <em>handling the response</em>: keys that are silently missing, results that are paginated, units like <code>250m</code> and <code>2Gi</code>, errors that should or shouldn't be retried. That is what interviewers probe, and it's what this chapter drills.</p>
   <div class="info-box warn"><div class="ib-icon">🎬</div><div class="ib-body"><strong>Reference code — not runnable in this browser.</strong> <code>boto3</code>, the <code>kubernetes</code> client and the <code>docker</code> SDK needs real credentials and a real network, which this WebAssembly sandbox doesn't have, so there is no ▶ Run button. Every block that <em>does</em> have one operates on JSON shaped exactly like the real response, so the same loop works once you swap the fake for the real client.</div></div>
   <div class="code-block">

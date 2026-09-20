@@ -4,11 +4,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen)](https://bosmany.github.io/ai-ml-zero-to-hero/)
 
-A self-built, 41-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps, agentic AI, and production FastAPI web apps — plus six bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals, and day-to-day Python for DevOps and for MLOps engineers) and three real production projects with verified, reproducible results.
+A self-built, 46-chapter, browser-based AI/ML curriculum — Python fundamentals through production MLOps, agentic AI, and production FastAPI web apps — plus six bonus modules (DSA/coding interviews, ML system design, portfolio packaging, backend systems fundamentals, and day-to-day Python for DevOps and for MLOps engineers) and three real production projects with verified, reproducible results.
 
 **🔴 Live demo:** **[bosmany.github.io/ai-ml-zero-to-hero](https://bosmany.github.io/ai-ml-zero-to-hero/)**
 
 **Every exercise is auto-graded against real executed output.** Nothing in this repo is copy-pasted from a tutorial without being run and verified — every checker value across ~200 exercises, 8 module capstones, and 3 production projects was independently executed via Python and matched against its expected output before being shipped. A GitHub Actions workflow re-runs the structural verification (syntax + HTML balance) on every push.
+
+## What's new
+
+- **Object-Oriented Python deep dive** (`python/oop01`-`oop05`), written for absolute beginners, replaces the thin OOP notes that used to live in Ch 5.
+- **Ch 1 and Ch 2 rewritten** as full lessons (8,000 and 11,000 words) - problem first, analogy, line-by-line trace, real error messages, check-yourself, recap.
+- **Watch-first videos in every chapter**: a tabbed player with hand-picked YouTube videos (Corey Schafer, 3Blue1Brown, StatQuest, TechWorld with Nana, ...) that plays inside the page. Every video ID is verified embeddable.
+- **Light and dark mode** on every page, remembered across chapters and following your OS preference by default.
+- **Console you can minimize** (button or Ctrl+`), and no more content hidden behind it.
+- **`labs/`**: eight local pytest-graded projects (boto3+moto, Kubernetes triage, FastAPI, drift monitoring, ...).
+- **CI**: every exercise solution is re-run under real Pyodide on each push, plus a browser smoke test, notebook execution and the labs.
 
 ## 🏗️ Featured Projects
 
@@ -23,7 +33,7 @@ Full course map, live progress tracking, and every bonus module: open [`index.ht
 
 ---
 
-## Status: all 41 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, and Python for MLOps modules.
+## Status: all 46 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, and Python for MLOps modules.
 
 An interactive, self-contained, browser-based course that takes someone from zero programming knowledge to a working AI/ML skillset — Python fundamentals, math, data tools, classical ML, deep learning, NLP/LLMs, and MLOps deployment.
 
@@ -46,7 +56,7 @@ exercise, capstone-project reference solution, and quiz answer key was executed 
 matched against its checker strings; a factual error (a chapter cross-reference off by one) and an
 outdated model-name string were found and fixed during a content spot-check of Ch 29/30; a
 parameter-name-collision bug was found and fixed in Ch 34's capstone. `index.html`'s `MODULES`
-object lists all 41 chapters across 9 modules, all `avail:true`.
+object lists all 46 chapters across 9 modules, all `avail:true`.
 
 **Module 9 verification (Ch 36-41)**: all six `.ipynb` notebooks were executed for real in an
 isolated venv (FastAPI 0.141, Pydantic 2, SQLAlchemy 2, PyJWT, bcrypt) and checked for strictly
@@ -63,6 +73,7 @@ exception handler registered after an app has served its first request is silent
 | 2 | Control Flow | `python/ch02-control-flow.html` |
 | 3 | Functions & Modules | `python/ch03-functions-modules.html` |
 | 4 | Data Structures | `python/ch04-data-structures.html` |
+| OOP 1-5 | **Object-Oriented Python deep dive** (between Ch 4 and Ch 5): Classes & Objects → Encapsulation & Special Methods → Inheritance & Polymorphism → Composition, Dataclasses & Design → Build, Test & Debug a Real Program. Each chapter is 6,000-12,000 words of step-by-step teaching with 45-65 runnable examples, diagrams, real error messages, 5 exercises, a project and a quiz | `python/oop01-…html` through `oop05-…html` |
 | 5 | OOP, Files & Errors | `python/ch05-oop-files-errors.html` |
 | 6 | Professional Python | `python/ch06-professional-python.html` |
 | 7 | Python for DevOps & APIs *(Module 1 capstone 💼)* | `python/ch07-python-devops-apis.html` |
@@ -100,12 +111,12 @@ exception handler registered after an app has served its first request is silent
 | 39 | Authentication & Security (bcrypt, JWT, OAuth2) *(🎬 Colab chapter)* | `fastapi/ch39-authentication-security.html` |
 | 40 | Testing, Middleware & Background Tasks *(🎬 Colab chapter)* | `fastapi/ch40-testing-middleware-background-tasks.html` |
 | 41 | FastAPI Capstone: Build & Deploy *(🎬 Colab, Module 9 capstone 💼, course finale 🎉)* | `fastapi/ch41-fastapi-capstone-deployment.html` |
-| Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 41)* | `bonus/interview-mastery.html` |
-| Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 41, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
-| Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 41)* | `bonus/portfolio-packaging.html` |
-| Bonus | Systems Fundamentals — 4 chapters: APIs &amp; HTTP, Networking &amp; Microservices, Load Balancers &amp; Firewalls, Linux/Docker/Kubernetes Troubleshooting *(not graded/counted in the 41, but has real auto-graded exercises)* | `systems/sf01-...html` through `sf04-...html` |
-| Bonus | Python for DevOps: Day-to-Day — 5 chapters: log parsing & text processing, config (YAML/JSON/TOML) & validation, automation scripts & resilience, cloud & container ops by example (boto3/kubectl-shaped data), and a DevOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 41, but has real auto-graded exercises)* | `devops/do01-...html` through `do05-...html` |
-| Bonus | Python for MLOps: Day-to-Day — 5 chapters: reproducibility & data validation, experiment tracking & model registry, pipelines & orchestration, monitoring & drift, and an MLOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 41, but has real auto-graded exercises)* | `mlops-practice/mp01-...html` through `mp05-...html` |
+| Bonus | Interview Mastery — behavioral (STAR), ML system design case studies, cloud tooling cheat-sheet, 15 rapid-fire questions *(not graded, not counted in the 46)* | `bonus/interview-mastery.html` |
+| Bonus | DSA &amp; Coding Interviews — 4 chapters: Arrays/Strings/Hashing, Trees/Graphs/Recursion, Dynamic Programming/Greedy, Sorting/Searching + a timed 3-problem mock interview *(not graded/counted in the 46, but has real auto-graded exercises)* | `dsa/ds01-...html` through `ds04-...html` |
+| Bonus | Portfolio Packaging — resume bullets built from Ch 33-35's real verified numbers, a GitHub presentation template, a free GitHub Pages deployment guide, and how to talk about the projects out loud *(not graded, not counted in the 46)* | `bonus/portfolio-packaging.html` |
+| Bonus | Systems Fundamentals — 4 chapters: APIs &amp; HTTP, Networking &amp; Microservices, Load Balancers &amp; Firewalls, Linux/Docker/Kubernetes Troubleshooting *(not graded/counted in the 46, but has real auto-graded exercises)* | `systems/sf01-...html` through `sf04-...html` |
+| Bonus | Python for DevOps: Day-to-Day — 5 chapters: log parsing & text processing, config (YAML/JSON/TOML) & validation, automation scripts & resilience, cloud & container ops by example (boto3/kubectl-shaped data), and a DevOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 46, but has real auto-graded exercises)* | `devops/do01-...html` through `do05-...html` |
+| Bonus | Python for MLOps: Day-to-Day — 5 chapters: reproducibility & data validation, experiment tracking & model registry, pipelines & orchestration, monitoring & drift, and an MLOps Python mock interview. Every chapter has an Interview Prep tab *(not graded/counted in the 46, but has real auto-graded exercises)* | `mlops-practice/mp01-...html` through `mp05-...html` |
 
 Open `index.html` at the repo root to see the full course map and live per-chapter progress (reads from `localStorage`, key `aimlZTH_progress_v1`).
 
@@ -269,7 +280,7 @@ previously only checked the labels, never the numbers); Ch 2 set/generator/neste
 pytest (reference-only), logging depth, `pyproject.toml`; Ch 7 `async for`/`async with`,
 `create_task` vs `gather`, `requests` POST/auth/status handling, `pathlib`, packaging.
 
-**Six bonus modules** (not counted toward the 41-chapter total, all in the same "not graded but
+**Six bonus modules** (not counted toward the 46-chapter total, all in the same "not graded but
 rigorously verified" tier):
 - `bonus/interview-mastery.html` — behavioral (STAR) prep built from Ch 33/34's real numbers, an
   ML system design framework with 4 worked case studies, an AWS/GCP/Databricks cloud vocabulary
