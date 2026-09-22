@@ -1,0 +1,969 @@
+{
+ "version": 1,
+ "domains": [
+  {
+   "id": "python",
+   "title": "Python core",
+   "skill": "python.ch01"
+  },
+  {
+   "id": "oop",
+   "title": "OOP and design",
+   "skill": "python.oop01"
+  },
+  {
+   "id": "dsa",
+   "title": "Data structures and algorithms",
+   "skill": "dsa.ds01"
+  },
+  {
+   "id": "web",
+   "title": "Web, APIs and HTTP",
+   "skill": "systems.sf01"
+  },
+  {
+   "id": "devops",
+   "title": "DevOps, Linux, Docker and CI",
+   "skill": "devops.do01"
+  },
+  {
+   "id": "ml",
+   "title": "Data and ML basics",
+   "skill": "ml.ch15"
+  }
+ ],
+ "questions": [
+  {
+   "id": "py01",
+   "domain": "python",
+   "level": 1,
+   "q": "What does this print?\n```python\nprint(7 // 2, 7 % 2)\n```",
+   "options": [
+    "3.5 1",
+    "3 0",
+    "3 1",
+    "4 1"
+   ],
+   "answer": 2,
+   "explanation": "`//` is floor division (7 // 2 = 3) and `%` is the remainder (7 % 2 = 1)."
+  },
+  {
+   "id": "py02",
+   "domain": "python",
+   "level": 1,
+   "q": "What does this print?\n```python\ns = \"hello\"\nprint(s[1:4])\n```",
+   "options": [
+    "hell",
+    "ell",
+    "ello",
+    "hel"
+   ],
+   "answer": 1,
+   "explanation": "Slices include the start index and exclude the stop index: indexes 1, 2, 3 of \"hello\" are e, l, l."
+  },
+  {
+   "id": "py03",
+   "domain": "python",
+   "level": 2,
+   "q": "What does this print?\n```python\nnums = [1, 2, 3]\nb = nums\nb.append(4)\nprint(len(nums))\n```",
+   "options": [
+    "3",
+    "1",
+    "4",
+    "It raises an error"
+   ],
+   "answer": 2,
+   "explanation": "`b = nums` does not copy the list, it binds a second name to the same object, so appending through `b` changes what `nums` sees."
+  },
+  {
+   "id": "py04",
+   "domain": "python",
+   "level": 2,
+   "q": "What does this print?\n```python\nwords = [\"pear\", \"fig\", \"apple\"]\nprint(sorted(words, key=len))\n```",
+   "options": [
+    "['pear', 'fig', 'apple']",
+    "['fig', 'pear', 'apple']",
+    "['apple', 'pear', 'fig']",
+    "['apple', 'fig', 'pear']"
+   ],
+   "answer": 1,
+   "explanation": "`key=len` sorts by length: fig (3), pear (4), apple (5). The original list is not modified."
+  },
+  {
+   "id": "py05",
+   "domain": "python",
+   "level": 3,
+   "q": "What does this print?\n```python\ndef add(x, acc=[]):\n    acc.append(x)\n    return acc\n\nadd(1)\nprint(add(2))\n```",
+   "options": [
+    "[2, 1]",
+    "[2]",
+    "[1]",
+    "[1, 2]"
+   ],
+   "answer": 3,
+   "explanation": "A default argument is evaluated once, when `def` runs. Both calls share the same list, so the second call returns [1, 2]. Use `acc=None` and create the list inside."
+  },
+  {
+   "id": "py06",
+   "domain": "python",
+   "level": 3,
+   "q": "What does this print?\n```python\nfs = [lambda: i for i in range(3)]\nprint([f() for f in fs])\n```",
+   "options": [
+    "[2, 2, 2]",
+    "[0, 0, 0]",
+    "[0, 1, 2]",
+    "[1, 2, 3]"
+   ],
+   "answer": 0,
+   "explanation": "Closures capture the variable `i`, not its value at creation time. When the lambdas run, `i` is 2. Bind it with a default argument (`lambda i=i: i`) to get [0, 1, 2]."
+  },
+  {
+   "id": "py07",
+   "domain": "python",
+   "level": 4,
+   "q": "What does this print?\n```python\ndef g():\n    for i in range(3):\n        yield i\n\nx = g()\nprint(list(x), list(x))\n```",
+   "options": [
+    "[] [0, 1, 2]",
+    "[0, 1, 2] []",
+    "[0, 1, 2] [1, 2]",
+    "[0, 1, 2] [0, 1, 2]"
+   ],
+   "answer": 1,
+   "explanation": "A generator is a one-shot iterator. The first `list(x)` exhausts it, so the second gets nothing."
+  },
+  {
+   "id": "py08",
+   "domain": "python",
+   "level": 4,
+   "q": "What does this print?\n```python\ndef f():\n    try:\n        return \"a\"\n    finally:\n        print(\"b\", end=\"\")\n\nprint(f())\n```",
+   "options": [
+    "ba",
+    "a",
+    "ab",
+    "b"
+   ],
+   "answer": 0,
+   "explanation": "The `finally` block runs before the function actually returns. It prints `b` first, then `print(f())` prints `a`, giving `ba`."
+  },
+  {
+   "id": "py09",
+   "domain": "python",
+   "level": 5,
+   "q": "What does this print?\n```python\ndef deco(f):\n    def wrapper(*a, **k):\n        return f(*a, **k)\n    return wrapper\n\n@deco\ndef hi():\n    \"\"\"Say hi.\"\"\"\n\nprint(hi.__name__)\n```",
+   "options": [
+    "hi",
+    "wrapper",
+    "deco",
+    "hi.__name__"
+   ],
+   "answer": 1,
+   "explanation": "Without `functools.wraps`, the decorated function IS the wrapper, so it reports the wrapper's name (and loses the docstring). `@functools.wraps(f)` fixes this."
+  },
+  {
+   "id": "py10",
+   "domain": "python",
+   "level": 5,
+   "q": "Which exception class is printed?\n```python\nx = 10\n\ndef f():\n    print(x)\n    x = 5\n\ntry:\n    f()\nexcept Exception as e:\n    print(type(e).__name__)\n```",
+   "options": [
+    "TypeError",
+    "It prints 10",
+    "SyntaxError",
+    "UnboundLocalError"
+   ],
+   "answer": 3,
+   "explanation": "Because `x` is assigned somewhere in `f`, Python treats it as local for the whole function. Reading it before the assignment raises UnboundLocalError instead of falling back to the global."
+  },
+  {
+   "id": "oo01",
+   "domain": "oop",
+   "level": 1,
+   "q": "In `def area(self):` inside a class, what does `self` refer to?",
+   "options": [
+    "The class itself",
+    "The parent class",
+    "The instance the method was called on",
+    "The module that contains the class"
+   ],
+   "answer": 2,
+   "explanation": "`self` is the instance. `shape.area()` is the same as `Shape.area(shape)`; the object is passed as the first argument."
+  },
+  {
+   "id": "oo02",
+   "domain": "oop",
+   "level": 1,
+   "q": "What does this print?\n```python\nclass Counter:\n    def __init__(self):\n        self.n = 0\n\nc = Counter()\nc.n += 1\nprint(c.n)\n```",
+   "options": [
+    "0",
+    "None",
+    "It raises an error",
+    "1"
+   ],
+   "answer": 3,
+   "explanation": "`__init__` runs on creation and sets `n` to 0; `c.n += 1` makes it 1."
+  },
+  {
+   "id": "oo03",
+   "domain": "oop",
+   "level": 2,
+   "q": "What does this print?\n```python\nclass A:\n    items = []\n\na, b = A(), A()\na.items.append(1)\nprint(b.items)\n```",
+   "options": [
+    "[1]",
+    "None",
+    "It raises AttributeError",
+    "[]"
+   ],
+   "answer": 0,
+   "explanation": "`items` is a class attribute, so every instance shares the same list. Mutating it through `a` is visible through `b`. Create it in `__init__` for a per-instance list."
+  },
+  {
+   "id": "oo04",
+   "domain": "oop",
+   "level": 2,
+   "q": "What does this print?\n```python\nclass Base:\n    def hi(self):\n        return \"base\"\n\nclass Kid(Base):\n    def hi(self):\n        return \"kid+\" + super().hi()\n\nprint(Kid().hi())\n```",
+   "options": [
+    "kid+kid",
+    "kid",
+    "kid+base",
+    "base"
+   ],
+   "answer": 2,
+   "explanation": "`super().hi()` calls the parent's implementation, and the child adds its own prefix."
+  },
+  {
+   "id": "oo05",
+   "domain": "oop",
+   "level": 3,
+   "q": "What does this print?\n```python\nfrom dataclasses import dataclass\n\n@dataclass\nclass Pt:\n    x: int\n    y: int = 0\n\nprint(Pt(1) == Pt(1, 0))\n```",
+   "options": [
+    "It raises TypeError",
+    "True",
+    "None",
+    "False"
+   ],
+   "answer": 1,
+   "explanation": "`@dataclass` generates `__init__`, `__repr__` and an `__eq__` that compares the fields as a tuple. Both points are (1, 0), so they are equal."
+  },
+  {
+   "id": "oo06",
+   "domain": "oop",
+   "level": 3,
+   "q": "A `Service` class creates its own database client inside `__init__` (`self.db = PostgresClient()`). Why is it hard to unit test, and what is the standard fix?",
+   "options": [
+    "Python cannot mock classes; test only the database directly",
+    "The dependency is hard-coded, so tests cannot substitute a fake; pass the client in through the constructor (dependency injection)",
+    "Constructors must never create objects; use a global variable instead",
+    "Inheritance is required; make Service a subclass of PostgresClient"
+   ],
+   "answer": 1,
+   "explanation": "Injecting the dependency (`Service(db)`) lets a test pass a fake or in-memory client, and lets production choose the real one. Inheriting from the client would make the coupling worse."
+  },
+  {
+   "id": "oo07",
+   "domain": "oop",
+   "level": 4,
+   "q": "What does this print?\n```python\nclass A:\n    def f(self): return \"A\"\n\nclass B(A):\n    def f(self): return \"B\" + super().f()\n\nclass C(A):\n    def f(self): return \"C\" + super().f()\n\nclass D(B, C):\n    def f(self): return \"D\" + super().f()\n\nprint(D().f())\n```",
+   "options": [
+    "DBC",
+    "DCBA",
+    "DBCA",
+    "DBA"
+   ],
+   "answer": 2,
+   "explanation": "`super()` follows the method resolution order D, B, C, A. B's `super()` continues to C (not A) because C comes next in D's MRO."
+  },
+  {
+   "id": "oo08",
+   "domain": "oop",
+   "level": 4,
+   "q": "A function `total_area(shapes)` uses `if isinstance(s, Circle) ... elif isinstance(s, Square) ...`, and must be edited for every new shape. Which principle does this violate and what is the fix?",
+   "options": [
+    "Dependency Inversion; import the shapes lazily",
+    "Interface Segregation; make Shape a dataclass",
+    "Open/Closed; give each shape an `area()` method and call `s.area()` polymorphically",
+    "Single Responsibility; split the function in two"
+   ],
+   "answer": 2,
+   "explanation": "The function must be modified whenever the set of shapes grows. With polymorphism the function is closed for modification and new shapes just implement `area()`."
+  },
+  {
+   "id": "oo09",
+   "domain": "oop",
+   "level": 5,
+   "q": "Which of these is a Liskov Substitution violation?",
+   "options": [
+    "A subclass overrides `fly()` to raise NotImplementedError although callers of the base class expect every instance to fly",
+    "A subclass overrides a method and returns a more specific type that is still valid for callers",
+    "A subclass calls `super().__init__()` and then sets an extra attribute",
+    "A subclass adds a new method that the base class does not have"
+   ],
+   "answer": 0,
+   "explanation": "LSP says code that works with the base type must keep working with any subtype. A subtype that refuses behavior the base type promises breaks callers. The other options keep the contract intact."
+  },
+  {
+   "id": "oo10",
+   "domain": "oop",
+   "level": 5,
+   "q": "Which exception class is printed?\n```python\nfrom dataclasses import dataclass\n\ntry:\n    @dataclass\n    class C:\n        items: list = []\nexcept Exception as e:\n    print(type(e).__name__)\n```",
+   "options": [
+    "Nothing, it works and every instance shares the list",
+    "ValueError",
+    "TypeError",
+    "AttributeError"
+   ],
+   "answer": 1,
+   "explanation": "Dataclasses reject mutable defaults with `ValueError` (\"mutable default ... use default_factory\"), which protects you from the shared-default bug. Use `field(default_factory=list)`."
+  },
+  {
+   "id": "ds01",
+   "domain": "dsa",
+   "level": 1,
+   "q": "What is the time complexity of `x in my_list` for a Python list of n items?",
+   "options": [
+    "O(1)",
+    "O(log n)",
+    "O(n)",
+    "O(n log n)"
+   ],
+   "answer": 2,
+   "explanation": "A list is scanned element by element, so membership is linear. For fast membership use a set or dict."
+  },
+  {
+   "id": "ds02",
+   "domain": "dsa",
+   "level": 1,
+   "q": "Which Python structure gives average O(1) lookup by key?",
+   "options": [
+    "dict",
+    "list",
+    "tuple",
+    "str"
+   ],
+   "answer": 0,
+   "explanation": "A dict is a hash table: hashing the key finds the slot in constant time on average."
+  },
+  {
+   "id": "ds03",
+   "domain": "dsa",
+   "level": 2,
+   "q": "Roughly how many comparisons does binary search need, at most, on a sorted list of 1,000,000 items?",
+   "options": [
+    "About 500,000",
+    "About 1,000,000",
+    "About 1,000",
+    "About 20"
+   ],
+   "answer": 3,
+   "explanation": "Each step halves the range: ceil(log2(1,000,001)) = 20."
+  },
+  {
+   "id": "ds04",
+   "domain": "dsa",
+   "level": 2,
+   "q": "What does this print?\n```python\nfrom collections import deque\n\nq = deque([1, 2, 3])\nq.append(4)\nprint(q.popleft())\n```",
+   "options": [
+    "3",
+    "2",
+    "4",
+    "1"
+   ],
+   "answer": 3,
+   "explanation": "A deque used as a queue is first-in-first-out: `append` adds on the right and `popleft` removes from the left, so 1 comes out first."
+  },
+  {
+   "id": "ds05",
+   "domain": "dsa",
+   "level": 3,
+   "q": "What is the time complexity of this function?\n```python\ndef fib(n):\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\n```",
+   "options": [
+    "O(n)",
+    "O(n^2)",
+    "O(n log n)",
+    "Exponential, about O(2^n)"
+   ],
+   "answer": 3,
+   "explanation": "Each call spawns two more calls with almost no shared work, so the call tree roughly doubles in size per level. Memoization brings it down to O(n)."
+  },
+  {
+   "id": "ds06",
+   "domain": "dsa",
+   "level": 3,
+   "q": "Which algorithm finds the shortest path (fewest edges) between two nodes in an unweighted graph?",
+   "options": [
+    "Breadth-first search",
+    "Binary search",
+    "Depth-first search",
+    "Quicksort"
+   ],
+   "answer": 0,
+   "explanation": "BFS explores nodes in increasing distance from the source, so the first time it reaches the target it has used the minimum number of edges."
+  },
+  {
+   "id": "ds07",
+   "domain": "dsa",
+   "level": 4,
+   "q": "What does this print?\n```python\nimport heapq\n\nh = []\nfor x in [5, 1, 4, 2]:\n    heapq.heappush(h, x)\nprint([heapq.heappop(h) for _ in range(2)])\n```",
+   "options": [
+    "[5, 4]",
+    "[1, 2]",
+    "[1, 5]",
+    "[2, 1]"
+   ],
+   "answer": 1,
+   "explanation": "`heapq` is a min-heap, so `heappop` returns the smallest remaining element each time: 1, then 2."
+  },
+  {
+   "id": "ds08",
+   "domain": "dsa",
+   "level": 4,
+   "q": "What is the time complexity of Dijkstra's algorithm on a graph with V vertices and E edges using a binary heap?",
+   "options": [
+    "O((V + E) log V)",
+    "O(V + E)",
+    "O(V * E)",
+    "O(V^3)"
+   ],
+   "answer": 0,
+   "explanation": "Each edge relaxation may push onto the heap (O(log V)) and each vertex is popped once, giving O((V + E) log V)."
+  },
+  {
+   "id": "ds09",
+   "domain": "dsa",
+   "level": 5,
+   "q": "How many distinct ways are there to climb 10 stairs taking 1 or 2 steps at a time?\n```python\nways = [1, 1]\nfor i in range(2, 11):\n    ways.append(ways[i - 1] + ways[i - 2])\nprint(ways[10])\n```",
+   "options": [
+    "55",
+    "144",
+    "1024",
+    "89"
+   ],
+   "answer": 3,
+   "explanation": "ways(n) = ways(n-1) + ways(n-2) with ways(0) = ways(1) = 1, a shifted Fibonacci sequence: 1, 1, 2, 3, 5, 8, 13, 21, 34, 55, 89."
+  },
+  {
+   "id": "ds10",
+   "domain": "dsa",
+   "level": 5,
+   "q": "During a depth-first search of a DIRECTED graph, when do you know there is a cycle?",
+   "options": [
+    "When a node has more than one incoming edge",
+    "When you reach any node that was already visited",
+    "When the graph has more edges than nodes",
+    "When you reach a node that is still on the current recursion stack (a back edge)"
+   ],
+   "answer": 3,
+   "explanation": "Reaching a node that is still being explored means you followed a path back to your own ancestor. Reaching a node that is merely already finished (for example in a diamond shape) is not a cycle."
+  },
+  {
+   "id": "wb01",
+   "domain": "web",
+   "level": 1,
+   "q": "Which HTTP method should be used to read a resource without changing anything on the server?",
+   "options": [
+    "DELETE",
+    "GET",
+    "PUT",
+    "POST"
+   ],
+   "answer": 1,
+   "explanation": "GET is defined as safe and read-only. POST, PUT and DELETE are expected to change server state."
+  },
+  {
+   "id": "wb02",
+   "domain": "web",
+   "level": 1,
+   "q": "What does the HTTP status code 404 mean?",
+   "options": [
+    "The request was accepted for processing",
+    "The requested resource was not found",
+    "You are not logged in",
+    "The server crashed"
+   ],
+   "answer": 1,
+   "explanation": "404 Not Found: the server understood the request but has no resource at that URL."
+  },
+  {
+   "id": "wb03",
+   "domain": "web",
+   "level": 2,
+   "q": "A POST request successfully creates a new user. Which status code is the best fit?",
+   "options": [
+    "204 No Content",
+    "201 Created",
+    "200 OK",
+    "302 Found"
+   ],
+   "answer": 1,
+   "explanation": "201 Created signals that a new resource now exists (usually with a Location header pointing at it)."
+  },
+  {
+   "id": "wb04",
+   "domain": "web",
+   "level": 2,
+   "q": "A user is logged in (valid token) but tries to open an admin-only endpoint. Which status code should the API return?",
+   "options": [
+    "500 Internal Server Error",
+    "404 Not Found",
+    "401 Unauthorized",
+    "403 Forbidden"
+   ],
+   "answer": 3,
+   "explanation": "401 means the caller is not authenticated (missing or invalid credentials); 403 means the caller is authenticated but not allowed."
+  },
+  {
+   "id": "wb05",
+   "domain": "web",
+   "level": 3,
+   "q": "Which of these HTTP methods is NOT idempotent by definition?",
+   "options": [
+    "DELETE",
+    "GET",
+    "POST",
+    "PUT"
+   ],
+   "answer": 2,
+   "explanation": "Repeating a GET, PUT or DELETE leaves the server in the same state as doing it once. Repeating a POST typically creates another resource, which is why retrying POSTs is dangerous."
+  },
+  {
+   "id": "wb06",
+   "domain": "web",
+   "level": 3,
+   "q": "A FastAPI endpoint declares a Pydantic model as its request body. A client sends a body that fails validation. What status does FastAPI return by default?",
+   "options": [
+    "415 Unsupported Media Type",
+    "422 Unprocessable Entity",
+    "500 Internal Server Error",
+    "400 Bad Request"
+   ],
+   "answer": 1,
+   "explanation": "FastAPI turns Pydantic validation failures into a 422 response whose JSON body lists each failing field."
+  },
+  {
+   "id": "wb07",
+   "domain": "web",
+   "level": 4,
+   "q": "A browser blocks a JavaScript `fetch` from https://app.example.com to https://api.example.com. What must the API do so the request is allowed?",
+   "options": [
+    "Ask the user to disable HTTPS",
+    "Return status 200 for every request",
+    "Switch the API from JSON to XML",
+    "Send an `Access-Control-Allow-Origin` response header that allows the calling origin (CORS)"
+   ],
+   "answer": 3,
+   "explanation": "The browser enforces the same-origin policy and lets the server opt in to cross-origin requests with CORS headers such as Access-Control-Allow-Origin."
+  },
+  {
+   "id": "wb08",
+   "domain": "web",
+   "level": 4,
+   "q": "Which statement about a standard signed JWT (JWS) is true?",
+   "options": [
+    "Its payload is only base64url-encoded, so anyone holding the token can read it; the signature only proves it was not tampered with",
+    "It must be stored in the database, otherwise it cannot be validated",
+    "It cannot expire",
+    "Its payload is encrypted, so only the server can read the claims"
+   ],
+   "answer": 0,
+   "explanation": "A signed JWT provides integrity, not confidentiality. Never put secrets in the payload. Tokens can carry an `exp` claim and are validated statelessly with the signing key."
+  },
+  {
+   "id": "wb09",
+   "domain": "web",
+   "level": 5,
+   "q": "Why is cursor (keyset) pagination usually preferred over offset pagination for large, frequently changing tables?",
+   "options": [
+    "It removes the need for an index",
+    "It avoids skipped or duplicated rows when data changes between pages and does not make the database scan past all the skipped rows",
+    "It returns all rows at once",
+    "It works only with GraphQL"
+   ],
+   "answer": 1,
+   "explanation": "With `OFFSET n` the database still walks n rows, and inserts or deletes shift the page boundaries. A cursor (\"rows after id X\") uses an index seek and gives stable pages."
+  },
+  {
+   "id": "wb10",
+   "domain": "web",
+   "level": 5,
+   "q": "A client times out while calling `POST /payments` and retries. How do you prevent charging twice?",
+   "options": [
+    "Increase the timeout to 10 minutes",
+    "Use GET instead of POST",
+    "Require an `Idempotency-Key` header and store the result under that key on the server, replaying it for repeats",
+    "Never retry POST requests"
+   ],
+   "answer": 2,
+   "explanation": "The client sends the same unique key on each retry; the server executes once and returns the saved response for duplicates. This is how payment APIs make POST safe to retry."
+  },
+  {
+   "id": "dv01",
+   "domain": "devops",
+   "level": 1,
+   "q": "Which command prints the current working directory?",
+   "options": [
+    "pwd",
+    "whoami",
+    "cd",
+    "ls"
+   ],
+   "answer": 0,
+   "explanation": "`pwd` means \"print working directory\"."
+  },
+  {
+   "id": "dv02",
+   "domain": "devops",
+   "level": 1,
+   "q": "Which command shows new lines as they are appended to a log file?",
+   "options": [
+    "head app.log",
+    "grep app.log",
+    "cat app.log",
+    "tail -f app.log"
+   ],
+   "answer": 3,
+   "explanation": "`tail -f` prints the end of the file and keeps following it as it grows."
+  },
+  {
+   "id": "dv03",
+   "domain": "devops",
+   "level": 2,
+   "q": "A file has permissions `-rwxr-x---`. What can the group do?",
+   "options": [
+    "Nothing",
+    "Only write",
+    "Read, write and execute",
+    "Read and execute, but not write"
+   ],
+   "answer": 3,
+   "explanation": "The three triplets are owner (rwx), group (r-x) and others (---). The group can read and execute but not modify."
+  },
+  {
+   "id": "dv04",
+   "domain": "devops",
+   "level": 2,
+   "q": "Which git command creates a new branch called `feature` and switches to it?",
+   "options": [
+    "git branch -d feature",
+    "git merge feature",
+    "git stash feature",
+    "git switch -c feature"
+   ],
+   "answer": 3,
+   "explanation": "`git switch -c` (or the older `git checkout -b`) creates and switches in one step. `branch -d` deletes, `merge` combines, `stash` shelves changes."
+  },
+  {
+   "id": "dv05",
+   "domain": "devops",
+   "level": 3,
+   "q": "In a Dockerfile, what is the difference between `RUN` and `CMD`?",
+   "options": [
+    "`RUN` starts the container; `CMD` builds the image",
+    "`CMD` runs at build time and `RUN` only in Kubernetes",
+    "They are identical; both run at container start",
+    "`RUN` executes during the image build and creates a layer; `CMD` sets the default command that runs when a container starts"
+   ],
+   "answer": 3,
+   "explanation": "`RUN pip install ...` bakes results into the image. `CMD [\"python\", \"app.py\"]` is only metadata about what to run when a container is started from it."
+  },
+  {
+   "id": "dv06",
+   "domain": "devops",
+   "level": 3,
+   "q": "In bash, what does this print?\n```bash\nfalse | true\necho $?\n```",
+   "options": [
+    "127",
+    "1",
+    "Nothing",
+    "0"
+   ],
+   "answer": 3,
+   "explanation": "By default a pipeline's exit status is the status of its LAST command (`true`, so 0). With `set -o pipefail` the pipeline would fail with 1."
+  },
+  {
+   "id": "dv07",
+   "domain": "devops",
+   "level": 4,
+   "q": "Only application code changes between builds. Which Dockerfile ordering gives the fastest rebuilds?",
+   "options": [
+    "COPY requirements.txt . then RUN pip install -r requirements.txt then COPY . .",
+    "COPY . . then RUN pip install -r requirements.txt",
+    "RUN pip install first, then COPY requirements.txt",
+    "Order does not matter for caching"
+   ],
+   "answer": 0,
+   "explanation": "Docker caches layers top to bottom and invalidates everything after the first changed layer. Copying only the requirements file first keeps the slow install layer cached until dependencies change."
+  },
+  {
+   "id": "dv08",
+   "domain": "devops",
+   "level": 4,
+   "q": "Which GitHub Actions trigger runs a workflow only for pull requests that target the `main` branch?",
+   "options": [
+    "on: push: branches: [main]",
+    "on: workflow_call: main",
+    "on: pull_request: branches: [main]",
+    "on: schedule: main"
+   ],
+   "answer": 2,
+   "explanation": "`pull_request` with `branches: [main]` filters on the PR's base branch. `push` fires on commits pushed to main, not on PRs."
+  },
+  {
+   "id": "dv09",
+   "domain": "devops",
+   "level": 5,
+   "q": "In Kubernetes, what happens to a pod whose READINESS probe starts failing?",
+   "options": [
+    "The pod is deleted and rescheduled to another node",
+    "Nothing, readiness is only informational",
+    "The pod is removed from the Service's endpoints so it stops receiving traffic, but it is not restarted",
+    "The container is restarted"
+   ],
+   "answer": 2,
+   "explanation": "Readiness controls traffic routing; a failing LIVENESS probe is what causes the kubelet to restart the container."
+  },
+  {
+   "id": "dv10",
+   "domain": "devops",
+   "level": 5,
+   "q": "A container exits with code 137. What most likely happened?",
+   "options": [
+    "The command in CMD was not found",
+    "It shut down cleanly after SIGTERM",
+    "It finished successfully",
+    "It was killed with SIGKILL (128 + 9), commonly by the out-of-memory killer"
+   ],
+   "answer": 3,
+   "explanation": "Exit codes above 128 mean death by signal 128+N: 137 is SIGKILL (often OOM), 143 is SIGTERM, and 127 is command not found."
+  },
+  {
+   "id": "ml01",
+   "domain": "ml",
+   "level": 1,
+   "q": "In a machine-learning dataset, what is a feature?",
+   "options": [
+    "The file format of the dataset",
+    "The final accuracy of a model",
+    "An input variable (column) the model uses to make its prediction",
+    "A bug in the training loop"
+   ],
+   "answer": 2,
+   "explanation": "Features are the inputs (for example area and number of rooms); the target or label is what you want to predict."
+  },
+  {
+   "id": "ml02",
+   "domain": "ml",
+   "level": 1,
+   "q": "Predicting the price of a house from its size is an example of which kind of task?",
+   "options": [
+    "Unsupervised clustering",
+    "Reinforcement learning",
+    "Supervised classification",
+    "Supervised regression"
+   ],
+   "answer": 3,
+   "explanation": "There are labelled examples (known prices) and the target is a continuous number, so it is supervised regression."
+  },
+  {
+   "id": "ml03",
+   "domain": "ml",
+   "level": 2,
+   "q": "Why do we hold out a test set that the model never trains on?",
+   "options": [
+    "To increase the number of features",
+    "To estimate how well the model performs on unseen data",
+    "To make training faster",
+    "To remove outliers"
+   ],
+   "answer": 1,
+   "explanation": "A model always looks good on data it has memorised; the held-out set gives an honest estimate of generalization."
+  },
+  {
+   "id": "ml04",
+   "domain": "ml",
+   "level": 2,
+   "q": "What does this print?\n```python\nimport numpy as np\n\na = np.arange(6).reshape(2, 3)\nprint(a.sum(axis=0).tolist())\n```",
+   "options": [
+    "[15]",
+    "[0, 1, 2, 3, 4, 5]",
+    "[3, 5, 7]",
+    "[3, 12]"
+   ],
+   "answer": 2,
+   "explanation": "`arange(6).reshape(2, 3)` is [[0, 1, 2], [3, 4, 5]]. `axis=0` sums down the rows for each column: [3, 5, 7]."
+  },
+  {
+   "id": "ml05",
+   "domain": "ml",
+   "level": 3,
+   "q": "A fraud dataset has 99% legitimate transactions. A model that always predicts \"legit\" gets 99% accuracy. What is the right conclusion?",
+   "options": [
+    "Accuracy should be replaced with training loss",
+    "The model is excellent",
+    "Fraud should be removed from the data",
+    "Accuracy is misleading on imbalanced data; the model catches no fraud, so look at precision, recall or F1 for the fraud class"
+   ],
+   "answer": 3,
+   "explanation": "Its recall on the fraud class is 0. On imbalanced problems, accuracy hides failure on the minority class."
+  },
+  {
+   "id": "ml06",
+   "domain": "ml",
+   "level": 3,
+   "q": "A model has 99% accuracy on the training set but 70% on the validation set. What is the most likely problem?",
+   "options": [
+    "Overfitting",
+    "The learning rate is negative",
+    "The validation set is too accurate",
+    "Underfitting"
+   ],
+   "answer": 0,
+   "explanation": "A large gap between training and validation performance means the model memorised training data. Typical fixes: more data, regularization, a simpler model, early stopping."
+  },
+  {
+   "id": "ml07",
+   "domain": "ml",
+   "level": 4,
+   "q": "You call `StandardScaler().fit_transform(X)` on the WHOLE dataset and only then split into train and test. What is wrong?",
+   "options": [
+    "It makes the model underfit",
+    "Data leakage: the test set's mean and standard deviation influenced the transformation; fit the scaler on the training data only",
+    "StandardScaler cannot be used with a split",
+    "Nothing, this is the recommended workflow"
+   ],
+   "answer": 1,
+   "explanation": "Statistics learned from test rows leak information into training. Fit on train, then `transform` train and test (a Pipeline does this automatically)."
+  },
+  {
+   "id": "ml08",
+   "domain": "ml",
+   "level": 4,
+   "q": "What does this print?\n```python\nimport numpy as np\n\na = np.array([[1, 2, 3], [4, 5, 6]])\nprint((a - a.mean(axis=0)).tolist())\n```",
+   "options": [
+    "[[-3.5, -2.5, -1.5], [-0.5, 0.5, 1.5]]",
+    "[[-1.5, -1.5, -1.5], [1.5, 1.5, 1.5]]",
+    "[[0, 0, 0], [0, 0, 0]]",
+    "[[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]]"
+   ],
+   "answer": 1,
+   "explanation": "Column means are [2.5, 3.5, 4.5]. Broadcasting subtracts that row from every row, giving [[-1.5, -1.5, -1.5], [1.5, 1.5, 1.5]]."
+  },
+  {
+   "id": "ml09",
+   "domain": "ml",
+   "level": 5,
+   "q": "Which regularization penalty tends to drive some coefficients exactly to zero, acting like feature selection?",
+   "options": [
+    "L2 (ridge)",
+    "Learning-rate decay",
+    "Dropout on the input",
+    "L1 (lasso)"
+   ],
+   "answer": 3,
+   "explanation": "The L1 penalty has a corner at zero and produces sparse solutions. L2 shrinks coefficients smoothly but rarely makes them exactly zero."
+  },
+  {
+   "id": "ml10",
+   "domain": "ml",
+   "level": 5,
+   "q": "A classifier has TP = 40, FP = 10, FN = 20. What are its precision and recall?\n```python\ntp, fp, fn = 40, 10, 20\nprint(f\"precision {tp/(tp+fp):.2f}, recall {tp/(tp+fn):.2f}\")\n```",
+   "options": [
+    "precision 0.75, recall 0.67",
+    "precision 0.80, recall 0.67",
+    "precision 0.67, recall 0.80",
+    "precision 0.80, recall 0.50"
+   ],
+   "answer": 1,
+   "explanation": "Precision = TP / (TP + FP) = 40 / 50 = 0.80. Recall = TP / (TP + FN) = 40 / 60 = 0.67."
+  }
+ ],
+ "coding": [
+  {
+   "id": "code-python",
+   "domain": "python",
+   "title": "Remove duplicates, keep order",
+   "prompt": "Write `dedupe(items)` that returns a NEW list containing each element of `items` once, in the order of its FIRST appearance. Do not modify the input list. All elements are hashable.",
+   "example": "dedupe([3, 1, 3, 2, 1])  ->  [3, 1, 2]",
+   "starter": "def dedupe(items):\n    # your code here\n    pass\n",
+   "checks": [
+    {
+     "label": "keeps first occurrences in order",
+     "code": "assert dedupe([3, 1, 3, 2, 1]) == [3, 1, 2]"
+    },
+    {
+     "label": "empty input",
+     "code": "assert dedupe([]) == []"
+    },
+    {
+     "label": "case-sensitive strings",
+     "code": "assert dedupe(['a', 'A', 'a', 'b']) == ['a', 'A', 'b']"
+    },
+    {
+     "label": "returns a list",
+     "code": "r = dedupe([1, 1]); assert type(r) is list and r == [1]"
+    },
+    {
+     "label": "does not mutate the input",
+     "code": "x = [2, 2, 1]; r = dedupe(x); assert x == [2, 2, 1] and r == [2, 1]"
+    }
+   ]
+  },
+  {
+   "id": "code-dsa",
+   "domain": "dsa",
+   "title": "Two Sum",
+   "prompt": "Write `two_sum(nums, target)` that returns a list `[i, j]` with `i < j` such that `nums[i] + nums[j] == target`. Exactly one such pair exists in every input. Aim for one pass with a dictionary rather than two nested loops.",
+   "example": "two_sum([2, 7, 11, 15], 9)  ->  [0, 1]",
+   "starter": "def two_sum(nums, target):\n    # your code here\n    pass\n",
+   "checks": [
+    {
+     "label": "basic example",
+     "code": "assert list(two_sum([2, 7, 11, 15], 9)) == [0, 1]"
+    },
+    {
+     "label": "pair not at the start",
+     "code": "assert list(two_sum([3, 2, 4], 6)) == [1, 2]"
+    },
+    {
+     "label": "duplicate values",
+     "code": "assert list(two_sum([3, 3], 6)) == [0, 1]"
+    },
+    {
+     "label": "negative numbers",
+     "code": "assert list(two_sum([-1, -2, -3, -4, -5], -8)) == [2, 4]"
+    },
+    {
+     "label": "same element is not used twice",
+     "code": "assert list(two_sum([5, 1, 9, 4], 10)) == [1, 2]"
+    }
+   ]
+  },
+  {
+   "id": "code-ml",
+   "domain": "ml",
+   "title": "Min-max scaling",
+   "prompt": "Write `min_max_scale(xs)` that rescales a list of numbers to the range [0, 1] with `(x - min) / (max - min)` and returns a list of floats. If all values are equal (or the list has one value) return `0.0` for each; an empty list returns `[]`.",
+   "example": "min_max_scale([2, 4, 6])  ->  [0.0, 0.5, 1.0]",
+   "starter": "def min_max_scale(xs):\n    # your code here\n    pass\n",
+   "checks": [
+    {
+     "label": "basic scaling",
+     "code": "assert [round(v, 9) for v in min_max_scale([2, 4, 6])] == [0.0, 0.5, 1.0]"
+    },
+    {
+     "label": "unsorted with negatives",
+     "code": "assert [round(v, 9) for v in min_max_scale([-1, 0, 1, 3])] == [0.0, 0.25, 0.5, 1.0]"
+    },
+    {
+     "label": "constant list gives zeros",
+     "code": "assert min_max_scale([5, 5, 5]) == [0.0, 0.0, 0.0]"
+    },
+    {
+     "label": "single value and empty list",
+     "code": "assert min_max_scale([7]) == [0.0] and min_max_scale([]) == []"
+    },
+    {
+     "label": "order is preserved",
+     "code": "assert [round(v, 9) for v in min_max_scale([4, 0, 8])] == [0.5, 0.0, 1.0]"
+    }
+   ]
+  }
+ ]
+}

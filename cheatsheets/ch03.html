@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Cheat sheet: Ch 3: Functions &amp; Modules</title>
+<meta name="description" content="One-page recap of Ch 3: Functions &amp; Modules, compiled from the chapter."/>
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1); --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.55;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+a:hover{text-decoration:underline}
+.wrap{max-width:1100px;margin:0 auto;padding:60px 22px 70px;position:relative}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:1.6px;text-transform:uppercase;color:var(--cyan);font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.eyebrow::before{content:'';width:26px;height:1px;background:var(--cyan)}
+h1{font-size:clamp(24px,4.2vw,36px);font-weight:800;line-height:1.12;letter-spacing:-.02em;margin-bottom:8px}
+h1 span{background:linear-gradient(90deg,var(--violet),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.cs-crumb{font-size:12.5px;color:var(--t2);margin-bottom:6px}
+.cs-meta{font-size:13px;color:var(--t2);margin-bottom:16px}
+.cs-print{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--card2);color:var(--text);border-radius:8px;padding:6px 12px;font:600 12.5px var(--sans);cursor:pointer;margin-bottom:18px}
+.cs-print:hover{border-color:var(--violet)}
+.cs-grid{column-count:2;column-gap:22px}
+.cs-sec{break-inside:auto;-webkit-box-decoration-break:clone;box-decoration-break:clone;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 15px;margin:0 0 14px}
+.cs-sec h2{font:700 11px var(--mono);letter-spacing:.9px;text-transform:uppercase;color:var(--cyan);margin-bottom:7px}
+.cs-sec h3{font-size:13.5px;font-weight:700;margin:9px 0 3px;line-height:1.3;break-after:avoid}
+.cs-sec li,.cs-sec tr{break-inside:avoid}
+.cs-sec h3:first-of-type{margin-top:0}
+.cs-sec h3 a{color:var(--text)}
+.cs-sec h3 a:hover{color:var(--violet)}
+.cs-sec ul{margin:0 0 0 17px;font-size:13px;color:var(--text)}
+.cs-sec li{margin:2px 0}
+.cs-sec code{font:12px var(--mono);background:var(--card2);border:1px solid var(--border);border-radius:4px;padding:0 4px;overflow-wrap:anywhere}
+.cs-warn ul{list-style:none;margin:0}
+.cs-warn li{border-left:3px solid var(--gold);padding:1px 0 1px 9px;margin:6px 0}
+figure.cs-code{margin:0 0 9px;break-inside:avoid}
+figure.cs-code:last-child{margin-bottom:0}
+figure.cs-code figcaption{font-size:11.5px;color:var(--t2);margin-bottom:2px}
+figure.cs-code pre{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:7px 9px;font:11.5px/1.5 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;color:var(--text)}
+.cs-tbl-t{font-size:12px;font-weight:700;margin:8px 0 3px}
+.cs-tbl-t:first-of-type{margin-top:0}
+table.cs-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:6px}
+table.cs-table th,table.cs-table td{border:1px solid var(--border);padding:3px 6px;text-align:left;vertical-align:top;overflow-wrap:anywhere}
+table.cs-table th{background:var(--card2);font-weight:700}
+.cs-foot{margin-top:16px;font-size:12px;color:var(--t2)}
+.cs-nav{display:flex;justify-content:space-between;gap:10px;margin-top:14px;font-size:13px}
+.idx-group{margin-bottom:26px}
+.idx-group h2{font-size:17px;font-weight:800;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.idx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
+.idx-card{display:block;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:9px 12px;color:var(--text);font-size:13.5px;font-weight:600}
+.idx-card small{display:block;font:500 11px var(--mono);color:var(--t2);margin-bottom:1px}
+.idx-card:hover{border-color:var(--violet);text-decoration:none}
+:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+@media(max-width:820px){.cs-grid{column-count:1}}
+@media(max-width:560px){.wrap{padding:54px 16px 60px}}
+@page{size:A4;margin:9mm 10mm}
+@media print{
+  :root:root{--bg:#fff;--card:#fff;--card2:#f1f2f7;--border:#b9bfd3;--text:#111;--t2:#333;--t3:#555;--violet:#3a25a8;--cyan:#005a44;--gold:#8a5a00;--violet-bg:transparent;color-scheme:light}
+  html,body{background:#fff!important;color:#111!important;font-size:8.6pt;line-height:1.32}
+  .wrap{max-width:none;padding:0}
+  .eyebrow{display:none}
+  h1{font-size:15pt;margin-bottom:2pt}h1 span{background:none;color:#3a25a8;-webkit-text-fill-color:#3a25a8}
+  .cs-crumb,.cs-print,.cs-nav,.aiml-sb,.theme-toggle,.aiml-s-ov{display:none!important}
+  .cs-meta{font-size:8pt;margin-bottom:5pt}
+  .cs-grid{column-count:2;column-gap:5mm}
+  .cs-sec{border:0.6pt solid #b9bfd3;border-radius:2pt;padding:4pt 6pt;margin:0 0 4.5pt}
+  .cs-sec h2{font-size:7.6pt;margin-bottom:3pt}
+  .cs-sec h3{font-size:8.8pt;margin:4pt 0 1pt}
+  .cs-sec ul{font-size:8.4pt;margin-left:11pt}
+  .cs-sec li{margin:0.6pt 0}
+  .cs-sec code{font-size:7.9pt;padding:0 1pt;border:0}
+  figure.cs-code{margin-bottom:3pt}figure.cs-code figcaption{font-size:7.6pt}
+  figure.cs-code pre{font-size:7.4pt;line-height:1.35;padding:2.5pt 4pt}
+  table.cs-table{font-size:7.8pt}table.cs-table th,table.cs-table td{padding:1.2pt 3pt}
+  .cs-tbl-t{font-size:7.9pt}
+  .cs-foot{font-size:7.2pt;margin-top:4pt}
+  a{color:inherit;text-decoration:none}
+}
+</style>
+<!-- theme:css -->
+<style>
+/* theme: light/dark ------------------------------------------------------ */
+:root{color-scheme:dark}
+html[data-theme="dark"]{color-scheme:dark}
+
+/* ---- toggle button (both themes) ---- */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;min-width:32px;padding:0 12px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);letter-spacing:0;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s,background-color .12s;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:var(--violet)}
+.theme-toggle:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.theme-toggle svg{width:16px;height:16px;flex-shrink:0;display:block}
+.theme-toggle .tt-sun{display:none;color:var(--gold)}
+.theme-toggle .tt-moon{color:var(--violet-light)}
+html[data-theme="light"] .theme-toggle .tt-sun{display:block}
+html[data-theme="light"] .theme-toggle .tt-moon{display:none}
+#topbar .theme-toggle{margin-left:2px}
+#topnav .theme-toggle{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 8px -2px var(--card)}
+.theme-toggle.tt-fixed{position:fixed;top:12px;right:14px;z-index:300}
+.theme-toggle.tt-index{position:absolute;top:18px;right:28px;z-index:5}
+.theme-toggle.tt-mob{display:none;height:30px;padding:0 9px}
+.theme-toggle.tt-mob .tt-label{display:none}
+@media(max-width:820px){
+  #topbar .theme-toggle.tt-desk{display:none}
+  #mob-menu .theme-toggle.tt-mob{display:inline-flex}
+}
+@media(max-width:560px){
+  .theme-toggle .tt-label{display:none}
+  .theme-toggle{padding:0;width:32px}
+  .theme-toggle.tt-index{right:16px}
+}
+
+/* ---- LIGHT PALETTE ---- */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F9; --card:#FFFFFF; --card2:#EEF0F7; --border:#D3D8E6;
+  --violet:#5B3FE0; --violet-light:#4B30CC; --violet-bg:rgba(91,63,224,.09);
+  --cyan:#00694F; --cyan-bg:rgba(0,105,79,.08);
+  --gold:#855300; --gold-bg:rgba(178,114,0,.12);
+  --red:#B91C24; --red-bg:rgba(185,28,36,.08);
+  --green:#146B36; --green-bg:rgba(20,107,54,.09);
+  --blue:#1D4ED8; --blue-bg:rgba(29,78,216,.08);
+  --text:#181C2B; --t2:#4A5068; --t3:#5F657B;
+}
+
+/* ---- dark "islands": code/terminal panels stay dark in both themes ---- */
+html[data-theme="light"] .code-block,
+html[data-theme="light"] .ex-task,
+html[data-theme="light"] .ex-editor,
+html[data-theme="light"] .ex-output,
+html[data-theme="light"] .pe-output,
+html[data-theme="light"] textarea#project-editor,
+html[data-theme="light"] .q-code-input,
+html[data-theme="light"] #console-dock .cd-out,
+html[data-theme="light"] #console-dock .cd-input-row{
+  color-scheme:dark;
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --red:#FF5757; --green:#22C55E;
+  --text:#E8EAF0; --t2:#9196A8; --t3:#8B91A5;
+}
+html[data-theme="light"] .cm{color:#7F92AE}
+html[data-theme="light"] .code-block{border-color:#2A2D3E;box-shadow:0 1px 3px rgba(20,24,40,.12)}
+html[data-theme="light"] .ex-task{border-color:#2A2D3E}
+html[data-theme="light"] .ex-editor,html[data-theme="light"] .ex-output,html[data-theme="light"] .q-code-input{border-color:#2A2D3E}
+html[data-theme="light"] .pe-output{border-top-color:#2A2D3E}
+html[data-theme="light"] .ex-output.ok{border-color:rgba(34,197,94,.3)}
+html[data-theme="light"] .ex-output.err{border-color:rgba(255,87,87,.3)}
+html[data-theme="light"] #console-dock .cd-out{border-top:1px solid #2A2D3E}
+html[data-theme="light"] #console-dock .cd-input-row{border-top-color:#2A2D3E}
+html[data-theme="light"] #console-dock .cd-clear{border-color:#3A3E52}
+
+/* ---- callouts / banners with hard-coded dark-theme text colours ---- */
+html[data-theme="light"] .info-box.note{color:#1E3A8A;border-color:rgba(29,78,216,.28)}
+html[data-theme="light"] .info-box.tip{color:#064E3B;border-color:rgba(0,105,79,.28)}
+html[data-theme="light"] .info-box.warn{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .info-box.danger{color:#7F1D1D;border-color:rgba(185,28,36,.28)}
+html[data-theme="light"] .prereq-note{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box{color:#6B4200;background:linear-gradient(135deg,rgba(178,114,0,.12),rgba(185,28,36,.05));border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box strong{color:#4A2E00}
+html[data-theme="light"] .q-feedback.correct{color:#14532D;border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .q-feedback.wrong{color:#7F1D1D;border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .ex-result.pass,html[data-theme="light"] .ex-result.fail{border-width:1px;border-style:solid}
+html[data-theme="light"] .ex-result.pass{border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .ex-result.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .quiz-result-banner.pass{background:linear-gradient(135deg,rgba(20,107,54,.12),rgba(0,105,79,.06));border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .quiz-result-banner.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .colab-btn{background:#FFB800;color:#1a1200}
+html[data-theme="light"] .colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(91,63,224,.07));border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .badge.colab{border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .star-body code,
+html[data-theme="light"] .case-body code,
+html[data-theme="light"] .bullet-item code{background:var(--card2)}
+html[data-theme="light"] .lesson-table tr:nth-child(even) td{background:rgba(24,28,43,.03)}
+html[data-theme="light"] .back-top{box-shadow:0 4px 16px rgba(24,28,43,.15)}
+html[data-theme="light"] .tn-link.active,
+html[data-theme="light"] .badge.capstone,
+html[data-theme="light"] .section-tag,
+html[data-theme="light"] .ptag,
+html[data-theme="light"] .quiz-score,
+html[data-theme="light"] #mob-console-btn{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .lesson-intro{border-color:rgba(91,63,224,.25)}
+html[data-theme="light"] .project-banner{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .course-complete-card{border-color:rgba(91,63,224,.35)}
+html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-theme="light"] .quiz-card,html[data-theme="light"] .project-editor{box-shadow:0 1px 2px rgba(24,28,43,.05)}
+
+/* ---- layout fixes (top bar + console header) ---- */
+@media(min-width:821px){
+  #topbar,body.cd-min #topbar{margin-right:0}
+}
+.tb-chip{white-space:nowrap}
+#topbar{flex-wrap:nowrap;min-width:0}
+.cd-header{min-width:0}
+.cd-header .cd-status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cd-header .cd-title{flex-shrink:0}
+
+/* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
+html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
+html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
+</style>
+<!-- /theme:css -->
+<!-- feat:search-css:start --><style>
+.aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
+.aiml-sb:hover{border-color:var(--violet)}
+.aiml-sb:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.aiml-sb kbd{font:600 10px var(--mono,ui-monospace,monospace);color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:4px;padding:2px 5px}
+.aiml-sb-index{position:absolute;top:18px;right:124px;z-index:5}
+.wrap:has(>.aiml-sb-index){position:relative}
+.aiml-sb-fixed{position:fixed;top:12px;right:112px;z-index:300}
+.aiml-sb-nav{margin:0 8px 0 4px}
+.aiml-sb-mob{display:none;height:30px;padding:0 9px}
+.aiml-sb-mob .aiml-sb-t,.aiml-sb-mob kbd{display:none}
+@media(max-width:820px){#topbar .aiml-sb{display:none}#mob-menu .aiml-sb-mob{display:inline-flex}}
+@media(max-width:560px){.aiml-sb kbd{display:none}.aiml-sb-index{right:60px}.aiml-sb-fixed{right:54px}.aiml-sb-nav .aiml-sb-t{display:none}}
+@media print{.aiml-sb{display:none!important}}
+</style><!-- feat:search-css:end --></head>
+<body>
+<div class="wrap"><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-index" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end --><div class="eyebrow">Cheat sheet</div>
+<div class="cs-crumb"><a href="index.html">&larr; All cheat sheets</a> &middot; <a href="../python/ch03-functions-modules.html">Open the full chapter</a> &middot; <a href="../glossary.html">Glossary</a></div>
+<h1>Ch 3: Functions &amp; Modules</h1>
+<p class="cs-meta">Compiled from the chapter text on 2026-09-21. A study aid: the lesson has the explanations and the caveats.</p>
+<button type="button" class="cs-print" onclick="window.print()">&#128424; Print or save as PDF</button>
+<main class="cs-grid">
+<section class="cs-sec"><h2>In short</h2><ul><li><strong>Why functions:</strong> copy-pasted logic is hard to fix and hides intent. A function is a named block you write once (<strong>DRY</strong>) and call many times.</li><li><strong>Define versus call:</strong> <code>def name(params):</code> writes the function and runs nothing; <code>name(args)</code> runs it. Without parentheses you only name it.</li><li><strong>Parameters and arguments:</strong> parameters are in the definition, arguments in the call. Match by position or by keyword (<code>name=value</code>), positional first.</li><li><strong>The call stack:</strong> every call gets a private frame, and only the top frame runs. A traceback is the stack, read bottom-up.</li><li><strong>return versus print:</strong> <code>return</code> hands a value back; <code>print</code> only displays. No <code>return</code> means <code>None</code>. <code>return a, b</code> gives a tuple you can unpack.</li><li><strong>Defaults and star-arguments:</strong> <code>x=4</code> makes a parameter optional. Never use a list as a default; use <code>None</code>. <code>*args</code> collects a tuple, <code>**kwargs</code> a dictionary.</li><li><strong>Scope (LEGB):</strong> names are local to the function; lookup goes Local, Enclosing, Global, Built-in. Prefer <code>return</code> over <code>global</code>.</li><li><strong>Recursion:</strong> a function that calls itself needs a base case, and each call gets its own frame.</li><li><strong>lambda:</strong> a one-expression, nameless function, mostly used as <code>key=</code> for <code>sorted</code>, <code>max</code> and <code>min</code>.</li><li><strong>Docstrings and type hints:</strong> document what a function does and what it takes and returns. Hints are not enforced.</li><li><strong>Closures and nonlocal:</strong> a returned inner function remembers the outer variables; <code>nonlocal</code> lets it change them.</li><li><strong>functools:</strong> <code>partial</code> pre-fills arguments, <code>reduce</code> folds items into one value, <code>@lru_cache</code> remembers answers.</li><li><strong>The standard library:</strong> <code>import math</code>, <code>from math import sqrt</code>, <code>import x as y</code>; <code>random.seed</code> for repeatable randomness, plus <code>datetime</code> and <code>collections</code>.</li><li><strong>Modules:</strong> a module is a <code>.py</code> file found through <code>sys.modules</code> and <code>sys.path</code>. Use <code>if __name__ == "__main__":</code> so a file is both importable and runnable.</li></ul></section>
+<section class="cs-sec"><h2>Key ideas by section</h2><h3><a href="../python/ch03-functions-modules.html#:~:text=3.1%20%E2%80%94%20Why%20Functions%3F%20The%20Pain%20of%20Copy%2DPaste">Why Functions? The Pain of Copy-Paste</a></h3><ul><li>Copy-pasted logic must be fixed in every copy, hides the intent of the program, and has no name.</li><li>The rule is <strong>DRY</strong>: keep each piece of logic in exactly one place.</li><li>A <strong>function</strong> is a named block of code. You write it once and <strong>call</strong> it as often as you like, like a recipe card you reuse with different ingredients.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.2%20%E2%80%94%20A%20Function%20Is%20a%20Machine%3A%20Defining%20Versus%20Calling">A Function Is a Machine: Defining Versus Calling</a></h3><ul><li>A function is a machine: inputs go in, the body runs, an output comes back.</li><li><code>def name(parameters):</code> followed by an indented body <strong>defines</strong> a function and runs nothing.</li><li><code>name(...)</code> <strong>calls</strong> it. Without the parentheses you only refer to the function.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.3%20%E2%80%94%20Parameters%20and%20Arguments%3A%20Positional%20and%20Keyword">Parameters and Arguments: Positional and Keyword</a></h3><ul><li><strong>Parameters</strong> are the names in the <code>def</code> line; <strong>arguments</strong> are the values in the call.</li><li>Positional arguments match by order; keyword arguments (<code>name=value</code>) match by name and can come in any order, but only after all positional ones.</li><li>A call that does not fit the definition fails with a <code>TypeError</code> that names the function and the parameter, or with a <code>SyntaxError</code> for positional-after-keyword.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.4%20%E2%80%94%20What%20Happens%20During%20a%20Call%3A%20Nested%20Calls%20and%20the%20Call%20Stack">What Happens During a Call: Nested Calls and the Call Stack</a></h3><ul><li>Each call creates a <strong>frame</strong> holding that call's own parameters and variables; frames are stacked, and only the top one runs.</li><li>When a function returns, its frame is thrown away and Python resumes exactly where the call was made.</li><li>A traceback is the call stack printed out: read it from the bottom (the error) upwards (who called whom).</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.5%20%E2%80%94%20return%20vs%20print%3A%20Handing%20a%20Value%20Back">return vs print: Handing a Value Back</a></h3><ul><li><code>return value</code> ends the function and hands the value back to the caller; the call then acts as that value.</li><li><code>print</code> only displays. A function without <code>return</code> gives back <code>None</code>, which causes <code>NoneType</code> errors later.</li><li>Several <code>return</code> lines are fine, because only one runs. <code>return a, b</code> gives back a tuple you can unpack.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.6%20%E2%80%94%20Default%20Values%2C%20a%20Famous%20Trap%2C%20and%20%2Aargs%20%2F%20%2A%2Akwargs">Default Values, a Famous Trap, and *args / **kwargs</a></h3><ul><li><code>name=value</code> in a definition makes a parameter optional; defaulted parameters go after required ones.</li><li>A default is created once, when <code>def</code> runs, so a list default is shared between calls. Use <code>None</code> and create the list in the body.</li><li><code>*args</code> collects extra positional arguments into a tuple; <code>**kwargs</code> collects extra keyword arguments into a dictionary.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.7%20%E2%80%94%20Scope%3A%20Which%20Names%20Can%20a%20Function%20See%3F">Scope: Which Names Can a Function See?</a></h3><ul><li>Variables assigned inside a function are <strong>local</strong>: they exist only during the call.</li><li>Python looks names up in the order <strong>L</strong>ocal, <strong>E</strong>nclosing, <strong>G</strong>lobal, <strong>B</strong>uilt-in.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.8%20%E2%80%94%20Recursion%3A%20A%20Function%20That%20Calls%20Itself">Recursion: A Function That Calls Itself</a></h3><ul><li><strong>Recursion</strong> means a function calls itself on a smaller version of the problem.</li><li>Every recursive function needs a <strong>base case</strong> that stops the calls, and a recursive case that moves toward it.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.9%20%E2%80%94%20lambda%3A%20A%20Tiny%20Function%20Without%20a%20Name">lambda: A Tiny Function Without a Name</a></h3><ul><li><code>lambda params: expression</code> builds a small anonymous function whose expression value is returned automatically.</li><li>Its main use is as the <code>key</code> for <code>sorted</code>, <code>max</code> and <code>min</code>, which call it on each item.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.10%20%E2%80%94%20Docstrings%20and%20Type%20Hints%3A%20Explaining%20Your%20Functions">Docstrings and Type Hints: Explaining Your Functions</a></h3><ul><li>A <strong>docstring</strong> is a triple-quoted string as the first line of a function body; read it with <code>help(f)</code> or <code>f.__doc__</code>.</li><li><strong>Type hints</strong> (<code>x: int</code>, <code>-&gt; float</code>, <code>-&gt; None</code>) document the inputs and output but are never enforced by Python.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.11%20%E2%80%94%20Closures%20and%20nonlocal%3A%20Functions%20That%20Remember">Closures and nonlocal: Functions That Remember</a></h3><ul><li>A function can return a function. The inner function remembers variables from the outer one: a <strong>closure</strong>.</li><li>Each call of the outer function makes a separate set of remembered variables.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.12%20%E2%80%94%20functools%3A%20Ready%2DMade%20Tools%20for%20Functions">functools: Ready-Made Tools for Functions</a></h3><ul><li><code>partial(f, ...)</code> builds a simpler function with some arguments already filled in.</li><li><code>reduce(f, items)</code> folds a sequence into one value by combining pairs.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.13%20%E2%80%94%20Using%20Python%27s%20Standard%20Library%3A%20math%2C%20random%2C%20datetime%2C%20collections">Using Python's Standard Library: math, random, datetime, collections</a></h3><ul><li><code>import module</code> gives access via <code>module.name</code>; <code>from module import name</code> gives the bare name; <code>as</code> renames.</li><li>The standard library is a big set of modules: <code>math</code>, <code>random</code>, <code>datetime</code>, <code>collections</code> and many more.</li></ul><h3><a href="../python/ch03-functions-modules.html#:~:text=3.14%20%E2%80%94%20How%20import%20Finds%20Modules%2C%20Writing%20Your%20Own%2C%20and%20__main__">How import Finds Modules, Writing Your Own, and __main__</a></h3><ul><li>A module is a <code>.py</code> file; <code>import</code> finds it via <code>sys.modules</code> and <code>sys.path</code>, runs it once and gives you a module object.</li><li>Your own folder is searched first: never name your files after standard modules.</li></ul></section>
+<section class="cs-sec cs-warn"><h2>Watch out</h2><ul><li><strong>Beginner trap:</strong> if a path through the function reaches the end without hitting <code>return</code>, the result is <code>None</code>.</li><li><strong>Use with care:</strong> caching only makes sense for functions whose answer depends solely on their arguments. If a function reads a global or the clock, a cached answer may be stale.</li></ul></section>
+<section class="cs-sec"><h2>Snippets</h2><figure class="cs-code"><figcaption>Define once, call twice</figcaption><pre><code>def greet(name):
+    print("Hello,", name)
+
+print("before the calls")
+greet("Asha")
+greet("Ben")
+print("after the calls")</code></pre></figure><figure class="cs-code"><figcaption>Two parameters, three ways of calling</figcaption><pre><code>def describe(name, score):
+    print(name, "scored", score)
+
+describe("Asha", 91)             # positional
+describe(score=78, name="Ben")   # keyword
+describe("Chen", score=85)       # mixed</code></pre></figure><figure class="cs-code"><figcaption>A crash three calls deep</figcaption><pre><code>def average(total, count):
+    return total / count
+
+def report(total, count):
+    return "Average: " + str(average(total, count))
+
+print(report(10, 0))</code></pre></figure><figure class="cs-code"><figcaption>A function that prints its answer</figcaption><pre><code>def add(a, b):
+    print(a + b)
+
+total = add(2, 3)
+print("total is", total)</code></pre></figure><figure class="cs-code"><figcaption>A parameter with a default</figcaption><pre><code>def format_metric(name, value, decimals=4):
+    return f"{name}: {value:.{decimals}f}"
+
+print(format_metric("loss", 0.123456))
+print(format_metric("accuracy", 0.9423, decimals=2))
+print(format_metric("f1", 0.88, 1))</code></pre></figure><figure class="cs-code"><figcaption>A local variable is invisible outside</figcaption><pre><code>def make_total(a, b):
+    total = a + b
+    return total
+
+make_total(2, 3)
+print(total)</code></pre></figure></section>
+</main>
+<div class="cs-nav"><span><a href="ch02.html">&larr; Control Flow</a></span><span><a href="ch04.html">Data Structures &rarr;</a></span></div>
+<p class="cs-foot">Generated by <code>scripts/build-cheatsheets.py</code> from <a href="../python/ch03-functions-modules.html">python/ch03-functions-modules.html</a>. Section titles link to the matching part of the lesson.</p>
+</div>
+<!-- theme:js -->
+<script>
+(function(){
+  var KEY='aimlZTH_theme',root=document.documentElement;
+  var SUN='<svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  var MOON='<svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>';
+  function valid(v){return v==='light'||v==='dark'?v:null}
+  function stored(){try{return valid(localStorage.getItem(KEY))}catch(e){return null}}
+  function osPref(){try{return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){return 'dark'}}
+  function current(){return valid(root.getAttribute('data-theme'))||stored()||osPref()}
+  var buttons=[];
+  function label(b,t){
+    var next=t==='light'?'dark':'light';
+    b.setAttribute('aria-label','Switch to '+next+' theme (currently '+t+')');
+    b.setAttribute('title','Switch to '+next+' theme');
+    var l=b.querySelector('.tt-label');if(l)l.textContent=t==='light'?'Light':'Dark';
+  }
+  function apply(t,persist){
+    root.setAttribute('data-theme',t);
+    if(persist){try{localStorage.setItem(KEY,t)}catch(e){}}
+    for(var i=0;i<buttons.length;i++)label(buttons[i],t);
+    try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#F3F4F9':'#0F1117')}catch(e){}
+  }
+  function make(cls){
+    var b=document.createElement('button');
+    b.type='button';b.className='theme-toggle '+cls;
+    b.setAttribute('data-theme-toggle','');
+    b.innerHTML=SUN+MOON+'<span class="tt-label"></span>';
+    b.addEventListener('click',function(){apply(current()==='light'?'dark':'light',true)});
+    buttons.push(b);return b;
+  }
+  function mount(){
+    if(document.querySelector('[data-theme-toggle]'))return;
+    var tb=document.getElementById('topbar'),tn=document.getElementById('topnav'),mob=document.getElementById('mob-menu'),wrap=document.querySelector('.wrap');
+    if(tb){
+      tb.appendChild(make('tt-desk'));
+      if(mob){var mb=make('tt-mob'),mc=document.getElementById('mob-console-btn');mob.insertBefore(mb,mc||null)}
+    }else if(tn){
+      tn.appendChild(make('tt-nav'));
+    }else if(wrap&&document.querySelector('.wrap > .eyebrow')){
+      if(getComputedStyle(wrap).position==='static')wrap.style.position='relative';
+      wrap.appendChild(make('tt-index'));
+    }else{
+      document.body.appendChild(make('tt-fixed'));
+    }
+    apply(current(),false);
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key===KEY||e.key===null){apply(stored()||osPref(),false)}
+  });
+  try{
+    var mq=window.matchMedia('(prefers-color-scheme: light)');
+    var onq=function(){if(!stored())apply(osPref(),false)};
+    if(mq.addEventListener)mq.addEventListener('change',onq);else if(mq.addListener)mq.addListener(onq);
+  }catch(e){}
+  window.aimlTheme={get:current,set:function(t){if(valid(t))apply(t,true)},toggle:function(){apply(current()==='light'?'dark':'light',true)}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<!-- /theme:js -->
+<!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
+</body>
+</html>
