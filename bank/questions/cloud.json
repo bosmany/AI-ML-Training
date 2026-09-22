@@ -1,0 +1,284 @@
+[
+ {
+  "id": "cloud-001",
+  "area": "cloud",
+  "topic": "aws-storage",
+  "level": 1,
+  "type": "concept",
+  "q": "Compare S3, EBS and EFS: what is each for, and what are the key limitations?",
+  "followups": [
+   "How do S3 storage classes and lifecycle rules reduce cost?",
+   "What happens to EBS volumes when an instance terminates?"
+  ],
+  "answer": "S3 is object storage accessed via HTTP API: virtually unlimited, highly durable (11 nines), cheap, with storage classes and lifecycle policies; not a filesystem (no in-place edits or POSIX semantics) and per-request latency is tens of ms. EBS is block storage attached to one EC2 instance (multi-attach is limited) in one Availability Zone, low latency, for boot volumes and databases; snapshots go to S3 and can be restored across AZs. EFS is managed NFS, a shared POSIX filesystem mountable by many instances across AZs, more expensive per GB and higher latency than EBS. Choose by access pattern: object/archival/static assets to S3, single-host low-latency to EBS, shared file access to EFS. Pitfall: treating EBS as multi-AZ (it is not) and storing large numbers of tiny files or frequently mutated data in S3 without thinking about request costs.",
+  "pitfalls": [
+   "Assuming EBS is replicated across AZs"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "storage"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-002",
+  "area": "cloud",
+  "topic": "iam-least-privilege",
+  "level": 4,
+  "type": "scenario",
+  "q": "A developer asks for `AdministratorAccess` to get a Lambda function working with S3 and DynamoDB. How do you apply least privilege in practice?",
+  "followups": [
+   "What is iam:PassRole and why is it dangerous with a wildcard?",
+   "How do SCPs differ from IAM policies?"
+  ],
+  "answer": "Give the Lambda an execution role (not user access keys) with a policy limited to the exact actions and resources it needs: for example `s3:GetObject` on `arn:aws:s3:::bucket/prefix/*` and `dynamodb:GetItem`/`PutItem` on the specific table ARN, plus basic logging permissions. Find needed permissions by starting narrow and iterating with CloudTrail/Access Analyzer policy generation, IAM policy simulator and access-denied errors, rather than starting from admin. Use conditions (`aws:SourceVpce`, tags, `aws:PrincipalOrgID`), permission boundaries and SCPs to cap what teams can grant, separate roles per function, MFA and short-lived credentials for humans (SSO/role assumption), and review unused permissions (Access Advisor). Trade-offs: more upfront effort and occasional AccessDenied debugging versus a large blast radius. Pitfall: wildcards (`Action: *`, `Resource: *`) and `iam:PassRole` with `*`, which allows privilege escalation.",
+  "pitfalls": [
+   "AdministratorAccess to unblock",
+   "Long-lived access keys in code"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "iam",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-003",
+  "area": "cloud",
+  "topic": "iam-policy-audit",
+  "level": 3,
+  "type": "code",
+  "q": "Scan IAM policy JSON documents and flag risky statements: `Allow` with `Action: \"*\"` or service wildcards like `s3:*`, `Resource: \"*\"` combined with sensitive actions, or a `Principal: \"*\"`. Print the findings.",
+  "followups": [
+   "How would you handle Condition blocks that narrow a wildcard?",
+   "Which actions need Resource: * legitimately?"
+  ],
+  "answer": "Policy statements can have `Action`/`Resource` as string or list, so normalise to lists. Allow-with-wildcard action means broad permissions; `Resource: *` is acceptable for a few actions that do not support resource-level permissions, so report rather than auto-fail. `Principal: \"*\"` in a resource policy (e.g. an S3 bucket policy) grants access to the whole internet unless constrained by a Condition. Real tools: IAM Access Analyzer, Parliament, Prowler, Checkov. Pitfall: forgetting `NotAction`/`NotResource`, and `Deny` statements which should not be flagged.",
+  "pitfalls": [
+   "Assuming Action is always a list",
+   "Flagging Deny statements"
+  ],
+  "solution": {
+   "code": "import json\nPOLICIES = json.loads(\"\"\"{\n \"ci-deploy\": {\"Statement\": [\n   {\"Effect\": \"Allow\", \"Action\": \"s3:*\", \"Resource\": \"arn:aws:s3:::artifacts/*\"},\n   {\"Effect\": \"Allow\", \"Action\": [\"ecr:GetAuthorizationToken\"], \"Resource\": \"*\"}]},\n \"admin-ish\": {\"Statement\": [\n   {\"Effect\": \"Allow\", \"Action\": \"*\", \"Resource\": \"*\"}]},\n \"public-bucket\": {\"Statement\": [\n   {\"Effect\": \"Allow\", \"Principal\": \"*\", \"Action\": \"s3:GetObject\", \"Resource\": \"arn:aws:s3:::site/*\"},\n   {\"Effect\": \"Deny\", \"Action\": \"*\", \"Resource\": \"*\"}]}\n}\"\"\")\ndef as_list(x):\n    return x if isinstance(x, list) else [x]\nfor name in sorted(POLICIES):\n    for st in as_list(POLICIES[name][\"Statement\"]):\n        if st[\"Effect\"] != \"Allow\":\n            continue\n        acts = as_list(st.get(\"Action\", []))\n        issues = []\n        if \"*\" in acts:\n            issues.append(\"all actions\")\n        issues += [f\"wildcard {a}\" for a in acts if a.endswith(\":*\")]\n        if \"*\" in as_list(st.get(\"Resource\", [])) and any(a == \"*\" or a.endswith(\":*\") for a in acts):\n            issues.append(\"Resource *\")\n        if st.get(\"Principal\") == \"*\":\n            issues.append(\"public principal\")\n        if issues:\n            print(f\"{name}: {', '.join(issues)}\")\n",
+   "expect": [
+    "admin-ish: all actions, Resource *",
+    "ci-deploy: wildcard s3:*",
+    "public-bucket: public principal"
+   ]
+  },
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html",
+   "devops/do02-config-yaml-json-toml.html"
+  ],
+  "tags": [
+   "iam",
+   "python",
+   "json"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-004",
+  "area": "cloud",
+  "topic": "vpc-design",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain a standard VPC layout with public and private subnets across two Availability Zones, and how instances in private subnets reach the internet.",
+  "followups": [
+   "Security groups vs NACLs?",
+   "How do you connect two VPCs with overlapping CIDRs?"
+  ],
+  "answer": "A VPC is your private network with a CIDR block. Public subnets have a route to an Internet Gateway (`0.0.0.0/0 -> igw`) and hold internet-facing resources (load balancers, NAT gateways, bastions if any). Private subnets have no direct inbound route from the internet; app and database tiers live here. Outbound internet from private subnets goes through a NAT Gateway in a public subnet (route `0.0.0.0/0 -> nat`); NAT is per-AZ for resilience but costs hourly plus per-GB, so use VPC endpoints (gateway endpoints for S3/DynamoDB are free, interface endpoints for other services) to keep AWS traffic off NAT and improve security. Spread subnets across at least two AZs. Security groups (stateful, allow-only, attach to ENIs) and NACLs (stateless, subnet level, allow and deny) control traffic. Plan CIDRs so they never overlap with other VPCs or on-prem networks, since peering and VPN need non-overlapping ranges. Pitfall: undersized CIDRs and NAT data-transfer bills from S3 traffic.",
+  "pitfalls": [
+   "Overlapping CIDRs",
+   "One NAT gateway for all AZs when HA matters"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "networking",
+   "vpc"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-005",
+  "area": "cloud",
+  "topic": "cidr-subnet-plan",
+  "level": 3,
+  "type": "code",
+  "q": "Using the `ipaddress` module, split a 10.20.0.0/16 VPC into /20 subnets, allocate the first 4 to public/private tiers, and check whether a proposed on-prem range 10.20.32.0/19 overlaps any of them. Print usable host counts (AWS reserves 5 addresses per subnet).",
+  "followups": [
+   "Why plan CIDRs centrally for the organisation?",
+   "How do you connect networks that already overlap?"
+  ],
+  "answer": "`ipaddress.ip_network(...).subnets(new_prefix=20)` yields 16 subnets of 4096 addresses. AWS reserves the first four and the last address of each subnet, so usable = size - 5 (4091 for a /20). `overlaps()` catches CIDR conflicts that would block peering/VPN. Plan address space with growth in mind and leave unallocated ranges for future tiers; a /16 VPC with /20 subnets allows 16 subnets. Pitfall: forgetting AWS's 5 reserved addresses (a /28 gives only 11 usable), and choosing default 172.31.0.0/16 or 10.0.0.0/16 everywhere, which guarantees overlaps later.",
+  "pitfalls": [
+   "Ignoring reserved addresses",
+   "Same CIDR in every VPC"
+  ],
+  "solution": {
+   "code": "import ipaddress\nvpc = ipaddress.ip_network(\"10.20.0.0/16\")\nsubs = list(vpc.subnets(new_prefix=20))\nprint(\"subnets:\", len(subs))\nnames = [\"public-a\", \"public-b\", \"private-a\", \"private-b\"]\nalloc = dict(zip(names, subs))\nfor n, s in alloc.items():\n    print(n, s, \"usable\", s.num_addresses - 5)\nonprem = ipaddress.ip_network(\"10.20.32.0/19\")\nfor n, s in alloc.items():\n    if s.overlaps(onprem):\n        print(\"CONFLICT with\", n, s)\nprint(\"first free:\", subs[4])\n",
+   "expect": [
+    "subnets: 16",
+    "public-a 10.20.0.0/20 usable 4091",
+    "CONFLICT with private-a 10.20.32.0/20",
+    "CONFLICT with private-b 10.20.48.0/20",
+    "first free: 10.20.64.0/20"
+   ]
+  },
+  "chapters": [
+   "systems/sf02-networking-microservices.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "networking",
+   "python",
+   "cidr"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-006",
+  "area": "cloud",
+  "topic": "security-group-nacl",
+  "level": 3,
+  "type": "concept",
+  "q": "What is the difference between a security group and a network ACL in AWS, and which would you use to block a single abusive IP?",
+  "followups": [
+   "Why does a stateless NACL need ephemeral port rules?",
+   "How do you restrict SSH access safely?"
+  ],
+  "answer": "Security groups are stateful, attach to network interfaces (instances, ENIs, load balancers), have only allow rules, evaluate all rules together, and return traffic is automatically allowed; you can reference other security groups as sources, which is the preferred way to express 'app tier may talk to db tier'. NACLs are stateless, apply at the subnet boundary, have numbered allow and deny rules evaluated in order, and require explicit rules for return traffic (ephemeral ports 1024-65535). To block one abusive IP use a NACL deny rule (security groups cannot deny), or AWS WAF/Shield at the edge for HTTP attacks, ideally before traffic reaches the VPC. Trade-offs: NACLs are coarse and rule limits are small, so keep them simple and use security groups for normal access control. Pitfall: forgetting ephemeral return ports in NACLs and opening `0.0.0.0/0` on SSH in a security group.",
+  "pitfalls": [
+   "Trying to deny IPs in a security group",
+   "0.0.0.0/0 on port 22"
+  ],
+  "chapters": [
+   "systems/sf03-load-balancers-firewalls.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "networking",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-007",
+  "area": "cloud",
+  "topic": "compute-choice",
+  "level": 3,
+  "type": "scenario",
+  "q": "You must run (a) an event-driven image thumbnailer, (b) a stateless REST API with steady traffic and (c) a nightly 3-hour batch job. Which AWS compute options would you choose, and why?",
+  "followups": [
+   "What is a cold start and how do you mitigate it?",
+   "When would you pick EC2 over Fargate?"
+  ],
+  "answer": "(a) Lambda triggered by S3 events: bursty, short, scales to zero, pay per invocation; watch the 15-minute limit, memory/CPU coupling, cold starts and concurrency limits, and use idempotent handlers with a DLQ. (b) Containers on ECS/Fargate or EKS (or EC2 Auto Scaling group behind an ALB) for steady traffic: predictable cost, autoscaling, long-lived connections; Fargate reduces ops but costs more per vCPU than well-utilised EC2, and Savings Plans/reserved capacity cut baseline cost. Lambda for steady high volume is often more expensive. (c) AWS Batch or ECS scheduled tasks on Spot instances, tolerant of interruption with checkpointing; Lambda cannot run 3 hours. Decision factors: duration, traffic shape, state, startup latency, operational burden, cost at scale, and team skills. Pitfall: choosing Kubernetes for everything, or Lambda for workloads that exceed its limits.",
+  "pitfalls": [
+   "One-size-fits-all compute",
+   "Long jobs on Lambda"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "compute",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-008",
+  "area": "cloud",
+  "topic": "cost-optimization",
+  "level": 5,
+  "type": "scenario",
+  "q": "Your monthly AWS bill grew 40% in a quarter with no matching traffic growth. How do you find and reduce the waste?",
+  "followups": [
+   "Why buy Savings Plans after right-sizing?",
+   "What hidden costs come with NAT gateways and cross-AZ traffic?"
+  ],
+  "answer": "Start with visibility: Cost Explorer/CUR grouped by service, account, region and tag to find what grew (data transfer/NAT, EBS snapshots, idle instances, CloudWatch logs, unattached volumes, over-provisioned RDS, dev environments left on). Enforce tagging (owner, env, team) and set budgets and anomaly alerts. Then act by size of savings: right-size instances using utilisation metrics (Compute Optimizer), delete unattached EBS/idle load balancers/old snapshots, schedule non-prod shutdowns, use Savings Plans/Reserved Instances for the steady baseline and Spot for fault-tolerant work, S3 lifecycle and Intelligent-Tiering, VPC endpoints and same-AZ traffic to cut data transfer and NAT costs, log retention limits, and Graviton where compatible. Make cost a shared engineering metric (unit cost per request/customer) instead of a one-off cleanup. Trade-offs: commitments reduce flexibility, and aggressive right-sizing risks incidents, so change gradually with monitoring. Pitfall: buying commitments before right-sizing, and cutting redundancy that provides reliability.",
+  "pitfalls": [
+   "Commitments before right-sizing",
+   "No tags, so no owner for costs"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "cost",
+   "finops"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-009",
+  "area": "cloud",
+  "topic": "multi-az-ha",
+  "level": 4,
+  "type": "design",
+  "q": "Design a highly available three-tier web application on AWS that survives the loss of an Availability Zone. What are the failure points and trade-offs?",
+  "followups": [
+   "How does an Aurora failover differ from RDS Multi-AZ?",
+   "How much spare capacity per AZ do you need?"
+  ],
+  "answer": "Route 53 -> CloudFront/ALB across at least two AZs -> stateless app tier in an Auto Scaling group (or ECS/EKS) spread over AZs with health checks and enough headroom so that surviving AZs absorb the load (N+1: each AZ sized for 50% of peak with two AZs, or 67% with three) -> RDS/Aurora Multi-AZ (synchronous standby, automatic failover in about a minute or less; read replicas for read scaling, not HA) -> sessions in ElastiCache or stateless JWT, assets in S3. Remove single points: per-AZ NAT gateways, stateful data replicated, DNS and dependency checks, no single-AZ EBS reliance. Test failure with game days (fault injection), and set health-check-based failover. For region loss you need multi-region (Aurora Global Database, Route 53 failover, replicated S3) with higher cost, and decisions on RPO/RTO. Trade-offs: capacity headroom and cross-AZ data transfer cost versus availability. Pitfall: assuming Multi-AZ means no downtime (failover takes time), and untested failover.",
+  "pitfalls": [
+   "Single NAT gateway",
+   "Untested failover"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html",
+   "systems/sf03-load-balancers-firewalls.html"
+  ],
+  "tags": [
+   "aws",
+   "ha",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cloud-010",
+  "area": "cloud",
+  "topic": "s3-403",
+  "level": 3,
+  "type": "scenario",
+  "q": "An application running on EC2 gets `403 AccessDenied` when reading an object from S3, but the same object is readable from your laptop with your admin profile. What do you check?",
+  "followups": [
+   "Why can a missing key give 403 instead of 404?",
+   "How would the policy simulator help?"
+  ],
+  "answer": "S3 authorisation is the union of identity policies and resource policies, with explicit denies and boundaries overriding. Check in order: which identity the app actually uses (`aws sts get-caller-identity` on the instance: instance profile role vs env credentials), that the role's policy allows `s3:GetObject` on the *object* ARN (`bucket/*`), not just the bucket ARN, and `s3:ListBucket` on the bucket for listing (missing keys return 403 rather than 404 without list permission), the bucket policy (explicit Deny statements, `aws:SourceVpce` or `aws:SourceIp` conditions that block access from the instance), permission boundaries and SCPs, Block Public Access settings, cross-account ownership (object owned by another account), KMS: if the object uses SSE-KMS the role also needs `kms:Decrypt` on the key and the key policy must allow it, and VPC endpoint policies. CloudTrail data events and the error details show the failing evaluation. Pitfall: fixing by making the bucket public.",
+  "pitfalls": [
+   "Making the bucket public",
+   "Forgetting kms:Decrypt"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "aws",
+   "s3",
+   "iam",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

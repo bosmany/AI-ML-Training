@@ -1,0 +1,273 @@
+[
+ {
+  "id": "db-001",
+  "area": "db",
+  "topic": "joins",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain INNER, LEFT and FULL OUTER JOIN. A teammate wrote `SELECT ... FROM users u LEFT JOIN orders o ON o.user_id=u.id WHERE o.status='paid'` to list all users with their paid orders and is missing users without orders. Why?",
+  "followups": [
+   "How do you find users with no orders?",
+   "What does a join on a non-unique key do to COUNT?"
+  ],
+  "answer": "INNER keeps only rows matching on both sides; LEFT keeps every left row and fills right columns with NULL when nothing matches; FULL OUTER keeps unmatched rows from both. The WHERE clause runs after the join, and `o.status='paid'` is false (NULL) for the null-extended rows, so users without orders are filtered out and the LEFT JOIN silently behaves like an INNER JOIN. Fix: move the condition into the join (`LEFT JOIN orders o ON o.user_id=u.id AND o.status='paid'`). Related pitfalls: joining on a non-unique key multiplies rows, which inflates SUM/COUNT unless you aggregate first or use COUNT(DISTINCT).",
+  "pitfalls": [
+   "Filtering the right table in WHERE after a LEFT JOIN",
+   "Using NOT IN with NULLs"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "sql",
+   "joins"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-002",
+  "area": "db",
+  "topic": "indexes",
+  "level": 1,
+  "type": "concept",
+  "q": "What does a database index do, and what does it cost?",
+  "followups": [
+   "Why might the planner ignore your index?",
+   "Does Postgres index foreign keys automatically?"
+  ],
+  "answer": "An index (usually a B-tree) is a sorted structure over one or more columns that lets the engine locate rows in O(log n) instead of scanning the whole table; it also supports range scans and ORDER BY. Costs: extra disk and memory, and slower INSERT/UPDATE/DELETE because every index on the table must be maintained. So index columns used in WHERE, JOIN and ORDER BY on selective predicates, not every column. Low-selectivity columns (a boolean) rarely help, and the planner may ignore an index if it would read a large fraction of the table anyway. Primary and unique constraints create indexes automatically; foreign keys usually do not in Postgres, and unindexed FKs make joins and cascading deletes slow.",
+  "pitfalls": [
+   "Indexing every column",
+   "Assuming an index always speeds up a query"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "indexes",
+   "performance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-003",
+  "area": "db",
+  "topic": "composite indexes",
+  "level": 2,
+  "type": "concept",
+  "q": "You have `WHERE tenant_id = ? AND created_at > ? ORDER BY created_at`. How do you design the index, and what is the leftmost-prefix rule?",
+  "followups": [
+   "What is a covering index?",
+   "How does sort direction matter?"
+  ],
+  "answer": "Create a composite index `(tenant_id, created_at)`: equality columns first, then the range/sort column. A B-tree composite index is sorted by the first column, then the second within it, so it can serve queries filtering on a leftmost prefix (`tenant_id` alone, or both) but not `created_at` alone. With this order the engine seeks to the tenant then scans the date range already sorted, avoiding a sort. Reversed order `(created_at, tenant_id)` would scan a date range across all tenants. Add INCLUDE (Postgres) or extra columns to make it covering so the table is not touched (index-only scan). Trade-off: each additional index slows writes, so design a few indexes for the real query patterns.",
+  "pitfalls": [
+   "Putting the range column first",
+   "Creating a separate single-column index per column"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "indexes",
+   "composite"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-004",
+  "area": "db",
+  "topic": "N+1 queries",
+  "level": 2,
+  "type": "code",
+  "q": "Show the N+1 query problem with a small runnable simulation that counts queries, then fix it by batching. Also say how you fix it in SQLAlchemy.",
+  "followups": [
+   "When is joinedload worse than selectinload?",
+   "How do you guard against N+1 in CI?"
+  ],
+  "answer": "N+1 means one query for the parent list and then one more query per parent row to load children (1 + N round trips). Each round trip costs latency, so it is invisible on a dev DB with 5 rows and collapses in production. Fix by loading children in one query (`WHERE author_id IN (...)`, or a JOIN) and grouping in memory. In SQLAlchemy 2.0 relationships lazy-load by default; I verified with five authors and two books each that lazy loading issued 6 statements, `selectinload(Author.books)` 2 and `joinedload` 1. Pick selectinload for collections (avoids row multiplication of a join), joinedload for many-to-one. Detect it with query counting in tests or slow-query/APM traces.",
+  "pitfalls": [
+   "Only testing with tiny data",
+   "Using joinedload on large collections and multiplying rows"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "n+1",
+   "orm",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "authors = {1: \"a\", 2: \"b\", 3: \"c\", 4: \"d\", 5: \"e\"}\nbooks = [(1, \"t1\"), (1, \"t2\"), (2, \"t3\"), (3, \"t4\"), (5, \"t5\")]\n\nclass FakeDB:\n    def __init__(self):\n        self.queries = 0\n    def authors(self):\n        self.queries += 1\n        return list(authors)\n    def books_for(self, author_id):\n        self.queries += 1\n        return [t for a, t in books if a == author_id]\n    def books_for_many(self, ids):\n        self.queries += 1\n        out = {}\n        for a, t in books:\n            if a in ids:\n                out.setdefault(a, []).append(t)\n        return out\n\ndb = FakeDB()\nresult = {a: db.books_for(a) for a in db.authors()}\nprint(\"N+1 queries:\", db.queries)\n\ndb = FakeDB()\nids = db.authors()\ngrouped = db.books_for_many(set(ids))\nresult2 = {a: grouped.get(a, []) for a in ids}\nprint(\"batched queries:\", db.queries, \"same result:\", result == result2)\n",
+   "expect": [
+    "N+1 queries: 6",
+    "batched queries: 2 same result: True"
+   ]
+  }
+ },
+ {
+  "id": "db-005",
+  "area": "db",
+  "topic": "transactions",
+  "level": 2,
+  "type": "concept",
+  "q": "What are ACID properties, and what happens to a multi-statement transfer (debit A, credit B) if the process crashes between the two statements?",
+  "followups": [
+   "What does the WAL do?",
+   "What happens with a transaction across two databases?"
+  ],
+  "answer": "Atomicity: all statements in the transaction take effect or none; Consistency: constraints hold before and after; Isolation: concurrent transactions do not see each other's partial work (to a degree set by the isolation level); Durability: once committed, data survives a crash (write-ahead log fsync). If the crash happens before COMMIT the DB rolls the transaction back on recovery, so neither debit nor credit is visible. Pitfalls: autocommit mode turning each statement into its own transaction (the debit persists alone), doing the two updates in separate transactions, and holding a transaction open across a network call, which keeps locks and blocks vacuum. Use one transaction per business operation, keep it short, and make retries idempotent.",
+  "pitfalls": [
+   "Committing per statement",
+   "Long transactions around external calls"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "transactions",
+   "acid"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-006",
+  "area": "db",
+  "topic": "slow query diagnosis",
+  "level": 3,
+  "type": "scenario",
+  "q": "`SELECT * FROM users WHERE lower(email) = 'a@x.com'` takes seconds on a 20M-row table even though `email` is indexed. What do you check and how do you fix it?",
+  "followups": [
+   "What does CREATE INDEX CONCURRENTLY trade off?",
+   "How do trigram indexes help LIKE '%foo%'?"
+  ],
+  "answer": "Run `EXPLAIN (ANALYZE, BUFFERS)` and look for a sequential scan. The plain index on `email` cannot serve a predicate on `lower(email)` because the indexed value differs from the computed one (the function makes the predicate non-sargable). Fixes: an expression index `CREATE INDEX ON users (lower(email))`, or store a normalised (lowercased) column or use `citext`, and query it directly. Same family of problems: `LIKE '%foo'` (leading wildcard), implicit type casts (comparing varchar to int), `OR` across columns, and wrapping a date column in a function; rewrite as ranges (`created_at >= :d AND created_at < :d + 1`). Also check stale statistics (ANALYZE) and select only needed columns instead of `*`. On a big table create the index concurrently to avoid blocking writes.",
+  "pitfalls": [
+   "Adding a second plain index on email",
+   "Blaming the ORM"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "performance",
+   "explain",
+   "indexes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-007",
+  "area": "db",
+  "topic": "isolation levels",
+  "level": 3,
+  "type": "concept",
+  "q": "Describe the isolation levels and anomalies (dirty read, non-repeatable read, phantom, lost update, write skew). What is the default in PostgreSQL and when would you raise it?",
+  "followups": [
+   "How does MVCC implement snapshots?",
+   "What does SELECT FOR UPDATE SKIP LOCKED enable?"
+  ],
+  "answer": "Read Uncommitted allows dirty reads (Postgres does not implement it; it behaves as Read Committed). Read Committed (the Postgres default) sees only committed data but each statement takes a fresh snapshot, so a re-read can change (non-repeatable read) and new rows can appear (phantom). Repeatable Read gives one snapshot per transaction (in Postgres it also prevents phantoms), yet still allows write skew: two transactions each read a set, decide independently, and write different rows, breaking an invariant (two doctors both go off-call). Serializable prevents all anomalies (Postgres SSI aborts one transaction with a serialization failure, so callers must retry). Lost updates (read-modify-write) are avoided with atomic updates (`SET n = n + 1`), `SELECT ... FOR UPDATE`, or optimistic version checks. Raise isolation only for invariants that span rows and be ready to retry.",
+  "pitfalls": [
+   "Assuming the default prevents write skew",
+   "Not retrying serialization failures"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "isolation",
+   "concurrency",
+   "transactions"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-008",
+  "area": "db",
+  "topic": "lost update and optimistic locking",
+  "level": 3,
+  "type": "code",
+  "q": "Two requests read a balance, add to it in application code and write it back. Demonstrate the lost update in code, then fix it with optimistic locking using a version column.",
+  "followups": [
+   "How do you do this with SQLAlchemy?",
+   "What if contention is very high on one row?"
+  ],
+  "answer": "Both transactions read balance 100, each computes its new value from the stale read (+10 and +20) and writes; the last write wins and one update is lost (final 120 instead of 130). Fixes: an atomic statement (`UPDATE acct SET balance = balance + 10`), pessimistic `SELECT ... FOR UPDATE`, or optimistic locking: `UPDATE acct SET balance=:b, version=version+1 WHERE id=:id AND version=:v` and check that one row was affected, otherwise re-read and retry. Optimistic locking suits low contention and long user think-time; pessimistic suits high contention on hot rows. Retry with a bound to avoid livelock.",
+  "pitfalls": [
+   "Read-modify-write in application memory without a check"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "concurrency",
+   "locking",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "row = {\"balance\": 100, \"version\": 1}\n\ndef read():\n    return dict(row)\n\ndef write_naive(new_balance):\n    row[\"balance\"] = new_balance\n\na, b = read(), read()          # both see 100\nwrite_naive(a[\"balance\"] + 10)\nwrite_naive(b[\"balance\"] + 20)\nprint(\"naive final:\", row[\"balance\"], \"(expected 130)\")\n\nrow.update(balance=100, version=1)\n\ndef write_cas(new_balance, seen_version):\n    if row[\"version\"] != seen_version:      # WHERE version = :v matched 0 rows\n        return False\n    row[\"balance\"] = new_balance\n    row[\"version\"] += 1\n    return True\n\ndef add(amount):\n    while True:\n        cur = read()\n        if write_cas(cur[\"balance\"] + amount, cur[\"version\"]):\n            return\n\na, b = read(), read()\nfirst = write_cas(a[\"balance\"] + 10, a[\"version\"])\nsecond = write_cas(b[\"balance\"] + 20, b[\"version\"])\nprint(\"cas results:\", first, second)\nadd(20)                                     # retry with a fresh read\nprint(\"cas final:\", row[\"balance\"], \"version:\", row[\"version\"])\n",
+   "expect": [
+    "naive final: 120 (expected 130)",
+    "cas results: True False",
+    "cas final: 130 version: 3"
+   ]
+  }
+ },
+ {
+  "id": "db-009",
+  "area": "db",
+  "topic": "ORM loading strategies",
+  "level": 4,
+  "type": "design",
+  "q": "A FastAPI endpoint lists 50 orders, each with customer, line items and product info, and takes 1.5 s. Design the data access so it is fast and safe, including SQLAlchemy loading choices and pagination.",
+  "followups": [
+   "Why does LIMIT with joinedload on a collection misbehave?",
+   "When would you drop to raw SQL?"
+  ],
+  "answer": "First count statements per request (query counting event or APM). With default lazy loading that is 1 + 50 x (customer + items + products) queries. Load many-to-one (`customer`) with `joinedload` (or a join), collections (`items`) with `selectinload` (one extra `IN` query, no row multiplication; I measured 6 statements lazy vs 2 selectin vs 1 joined for a simple parent/child), and only the needed columns for list views (a projection/DTO query rather than full entities). Paginate at the top level with keyset pagination on an indexed key, not by LIMIT on a joined collection query, which cuts parents in half. Ensure FK columns are indexed. In async SQLAlchemy lazy loading raises errors outside `await`, so eager loading is mandatory there. Cache stable reference data (products) rather than joining each time. Trade-off: eager loading everything wastes data on endpoints that need little; choose per query.",
+  "pitfalls": [
+   "joinedload for everything",
+   "expire_on_commit surprises after commit in async sessions"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "sqlalchemy",
+   "n+1",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "db-010",
+  "area": "db",
+  "topic": "report query scaling",
+  "level": 5,
+  "type": "scenario",
+  "q": "A dashboard query over a 500M-row events table now times out. The DBA says 'add an index', an engineer says 'cache it', another says 'move to a warehouse'. How do you decide?",
+  "followups": [
+   "How would you backfill a rollup table safely?",
+   "What are replica lag implications for the dashboard?"
+  ],
+  "answer": "Clarify requirements first: freshness needed (real-time vs hourly), query shape and cardinality, concurrency, and who uses it. Measure: EXPLAIN ANALYZE, rows scanned vs returned, whether it is CPU, I/O or lock bound, and whether the OLTP database serves production traffic at the same time. Decision guide: if the query is selective and filters on a leading column, the right composite index (and covering) may fix it cheaply; if it scans and aggregates large ranges, index will not help and partitioning by time (prune old partitions) plus pre-aggregated rollup tables or materialized views refreshed incrementally will; if analytics workload is growing and hurts OLTP, use a read replica short term and a column-store warehouse fed by CDC long term. Caching helps only for repeated identical queries and adds invalidation problems. Propose the cheapest change that meets the SLO, with a measured before/after, and note the follow-ups (retention, index build with CONCURRENTLY, monitoring).",
+  "pitfalls": [
+   "Picking a technology before measuring",
+   "Indexing an unselective predicate"
+  ],
+  "chapters": [
+   "fastapi/ch38-databases-sqlalchemy.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "scaling",
+   "olap",
+   "ambiguity"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

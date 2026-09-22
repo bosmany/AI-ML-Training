@@ -1,0 +1,293 @@
+[
+ {
+  "id": "apis-001",
+  "area": "apis",
+  "topic": "HTTP methods",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain safe and idempotent HTTP methods. Which of GET, PUT, PATCH, POST, DELETE are which, and why does it matter for retries?",
+  "followups": [
+   "Is DELETE returning 404 on the second call a violation?",
+   "Can GET have side effects such as logging?"
+  ],
+  "answer": "Safe means no intended state change (GET, HEAD, OPTIONS). Idempotent means repeating the request leaves the server in the same state as sending it once (GET, PUT, DELETE, plus the safe ones). POST is neither; PATCH is not guaranteed idempotent (`increment by 1` is not, `set x=5` is). It matters because clients, proxies and load balancers may automatically retry idempotent requests after a timeout, but a retried POST can create duplicates, so POST needs an idempotency key. Note idempotent is about server state, not the response: a second DELETE may return 404 instead of 204 and is still idempotent.",
+  "pitfalls": [
+   "Saying PUT and POST are interchangeable",
+   "Confusing idempotent with 'returns identical response'"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html"
+  ],
+  "tags": [
+   "http",
+   "idempotency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "apis-002",
+  "area": "apis",
+  "topic": "status codes",
+  "level": 1,
+  "type": "concept",
+  "q": "Pick the right status code: (a) malformed JSON, (b) valid JSON failing business validation, (c) creating a resource that already exists, (d) caller not logged in, (e) logged in but forbidden, (f) too many requests, (g) upstream dependency timed out.",
+  "followups": [
+   "When do you return 404 instead of 403?",
+   "What do you put in the error body?"
+  ],
+  "answer": "(a) 400 Bad Request; (b) 422 Unprocessable Content (or 400 if you use one code for all client errors, but be consistent); (c) 409 Conflict; (d) 401 Unauthorized with WWW-Authenticate; (e) 403 Forbidden; (f) 429 with a Retry-After header; (g) 504 Gateway Timeout if you are a gateway (502 for an invalid upstream response, 503 for local overload or maintenance). Also 201 with a Location header for creation, 204 for success without a body. Pitfall: returning 200 with an error in the body, which breaks caches, monitors and client retry logic, and 500 for client mistakes, which pollutes error-rate alerts.",
+  "pitfalls": [
+   "200 with {'error': ...}",
+   "500 for validation errors"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html"
+  ],
+  "tags": [
+   "http",
+   "status-codes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "apis-003",
+  "area": "apis",
+  "topic": "pagination",
+  "level": 2,
+  "type": "concept",
+  "q": "Compare offset/limit and cursor (keyset) pagination. When would you choose each?",
+  "followups": [
+   "Why must the cursor be opaque?",
+   "How do you paginate when sorting by a non-unique column?"
+  ],
+  "answer": "Offset (`LIMIT n OFFSET k`) is simple, supports jumping to page N and totals, but the DB must scan and discard k rows so deep pages get slow, and results shift when rows are inserted or deleted between requests, so clients see duplicates or gaps. Cursor pagination uses an opaque token encoding the last seen sort key (`WHERE (created_at, id) < (:c, :i) ORDER BY created_at DESC, id DESC LIMIT n`); it is O(log n) with an index, stable under concurrent writes, but cannot jump to arbitrary pages and needs a unique, indexed, deterministic sort key (add the id as tie-breaker). Choose cursor for feeds, exports and large tables; offset for small admin UIs. Return `next_cursor` instead of a total count if counting is expensive.",
+  "pitfalls": [
+   "Sorting by a non-unique column without a tie-breaker",
+   "Offset on huge tables"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html"
+  ],
+  "tags": [
+   "pagination",
+   "db"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "apis-004",
+  "area": "apis",
+  "topic": "cursor pagination code",
+  "level": 2,
+  "type": "code",
+  "q": "Demonstrate with runnable code that offset pagination returns a duplicate when a new row is inserted between page requests on a newest-first list, and that cursor pagination does not.",
+  "followups": [
+   "What if rows are deleted?",
+   "How do you go backwards?"
+  ],
+  "answer": "Newest-first feed with ids 10..1, page size 3. After page 1 (10, 9, 8) a new item 11 arrives at the top. Offset page 2 (`offset=3`) now returns 8, 7, 6, repeating 8, because everything shifted by one. Cursor page 2 asks for rows with `id < 8` and returns 7, 6, 5 regardless of inserts above it. The cursor is the last sort key seen; in SQL it is a `WHERE` on the indexed sort key, so it also avoids scanning skipped rows. In a real API encode the cursor opaquely (base64 of the key tuple) and include a tie-breaker.",
+  "pitfalls": [
+   "Using created_at alone as the cursor"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "pagination",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "db = list(range(10, 0, -1))  # ids, newest first\n\ndef offset_page(offset, limit):\n    return sorted(db, reverse=True)[offset:offset + limit]\n\ndef cursor_page(before, limit):\n    rows = [i for i in sorted(db, reverse=True) if before is None or i < before]\n    return rows[:limit]\n\np1 = offset_page(0, 3)\nc1 = cursor_page(None, 3)\nprint(\"page1\", p1, c1)\ndb.append(11)  # concurrent insert at the top\nprint(\"offset page2\", offset_page(3, 3))\nprint(\"cursor page2\", cursor_page(c1[-1], 3))\n",
+   "expect": [
+    "page1 [10, 9, 8] [10, 9, 8]",
+    "offset page2 [8, 7, 6]",
+    "cursor page2 [7, 6, 5]"
+   ]
+  }
+ },
+ {
+  "id": "apis-005",
+  "area": "apis",
+  "topic": "idempotency keys",
+  "level": 3,
+  "type": "code",
+  "q": "Implement an idempotency-key layer for `POST /charges`: the same key with the same body must replay the original response without charging again; the same key with a different body must be rejected.",
+  "followups": [
+   "What if the server crashes after charging but before storing the response?",
+   "How long do you retain keys?"
+  ],
+  "answer": "Client sends `Idempotency-Key: <uuid>`. The server stores the key with a fingerprint of the request and the response, before or atomically with performing the side effect. Same key and same fingerprint returns the stored response (replay); same key and different fingerprint is an error (422 or 409) because it signals a client bug. In production the insert of the key must be atomic (unique constraint or `SET NX`) so two concurrent identical requests cannot both run; the loser waits or gets 409 while the first is in progress. Keys expire after a window (e.g. 24 h) and the store must survive restarts. Scope keys per customer/endpoint.",
+  "pitfalls": [
+   "Checking then inserting without an atomic operation",
+   "Keying only on the body hash"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "idempotency",
+   "payments",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import hashlib, json\n\nstore = {}\ncharges = []\n\ndef handle(key, body):\n    fp = hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()\n    if key in store:\n        saved_fp, resp = store[key]\n        if saved_fp != fp:\n            return 422, {\"error\": \"key reused with different payload\"}\n        return resp\n    charges.append(body[\"amount\"])\n    resp = (201, {\"charge_id\": len(charges), \"amount\": body[\"amount\"]})\n    store[key] = (fp, resp)\n    return resp\n\nprint(handle(\"k1\", {\"amount\": 5}))\nprint(handle(\"k1\", {\"amount\": 5}))\nprint(handle(\"k1\", {\"amount\": 9}))\nprint(\"charges executed:\", len(charges))\n",
+   "expect": [
+    "(201, {'charge_id': 1, 'amount': 5})",
+    "key reused",
+    "charges executed: 1"
+   ]
+  }
+ },
+ {
+  "id": "apis-006",
+  "area": "apis",
+  "topic": "retry with backoff",
+  "level": 3,
+  "type": "code",
+  "q": "Write a `retry(fn, ...)` helper with capped exponential backoff and jitter. It must retry only transient errors, re-raise after the last attempt, and be testable without real sleeping.",
+  "followups": [
+   "Why full jitter rather than fixed delay?",
+   "How do retries interact with timeouts and deadlines?"
+  ],
+  "answer": "Delay for attempt n is `min(cap, base * 2**n)` with jitter (full jitter: random between 0 and that value) to avoid synchronized retry storms. Retry only transient conditions (timeouts, connection errors, 429, 502/503/504) and only for idempotent operations or requests carrying an idempotency key; never retry 4xx validation errors. Bound total attempts and total time, honour `Retry-After`, and inject `sleep` and `jitter` so tests are deterministic. Pitfalls: retries at several layers multiply (3 x 3 x 3 = 27 calls), no jitter causes thundering herds, and unbounded retries turn a brownout into an outage. A circuit breaker complements retries.",
+  "pitfalls": [
+   "Retrying every exception",
+   "No cap or attempt limit",
+   "Sleeping in tests"
+  ],
+  "chapters": [
+   "python/ch07-python-devops-apis.html",
+   "systems/sf01-apis-http-fundamentals.html"
+  ],
+  "tags": [
+   "retry",
+   "resilience",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "def retry(fn, attempts=5, base=0.1, cap=2.0, retryable=(TimeoutError,), sleep=None, jitter=lambda d: d):\n    for n in range(attempts):\n        try:\n            return fn()\n        except retryable:\n            if n == attempts - 1:\n                raise\n            sleep(jitter(min(cap, base * 2 ** n)))\n\nsleeps = []\nstate = {\"calls\": 0}\n\ndef flaky():\n    state[\"calls\"] += 1\n    if state[\"calls\"] < 4:\n        raise TimeoutError(\"slow\")\n    return \"ok\"\n\nprint(retry(flaky, sleep=sleeps.append), state[\"calls\"], sleeps)\n\ndef bad():\n    state[\"calls\"] += 1\n    raise ValueError(\"client bug\")\n\nstate[\"calls\"] = 0\ntry:\n    retry(bad, sleep=sleeps.append)\nexcept ValueError:\n    print(\"not retried, calls =\", state[\"calls\"])\n\nstate[\"calls\"] = -100\ntry:\n    retry(flaky, attempts=2, sleep=lambda d: None)\nexcept TimeoutError:\n    print(\"gave up\")\n",
+   "expect": [
+    "ok 4 [0.1, 0.2, 0.4]",
+    "not retried, calls = 1",
+    "gave up"
+   ]
+  }
+ },
+ {
+  "id": "apis-007",
+  "area": "apis",
+  "topic": "token bucket",
+  "level": 3,
+  "type": "code",
+  "q": "Implement a token-bucket rate limiter (rate per second, burst capacity) using an injectable clock, and show that it allows a burst then throttles then refills.",
+  "followups": [
+   "How do you rate-limit per API key and per IP together?",
+   "What are the consistency issues with Redis and multiple nodes?"
+  ],
+  "answer": "State is `tokens` and `last_refill`. On each request add `(now - last) * rate` tokens capped at capacity, then spend `cost` if enough are available. It allows bursts up to capacity while enforcing the long-run average rate, and needs O(1) memory per key. In a distributed API keep the state in Redis and update atomically (Lua script or `INCR`+`EXPIRE` for simpler windows), and decide fail-open versus fail-closed if Redis is down. Return 429 with `Retry-After` and `X-RateLimit-*` headers. Trade-off versus fixed window: a fixed window allows up to 2x the limit around a boundary (burst at the end of one window and start of the next), sliding-window log is exact but memory heavy, sliding-window counter is an approximation.",
+  "pitfalls": [
+   "Fixed window without noting boundary bursts",
+   "Using wall-clock time that can go backwards"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "rate-limiting",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "class TokenBucket:\n    def __init__(self, rate, capacity, now):\n        self.rate, self.cap, self.tokens, self.t = rate, capacity, capacity, now\n\n    def allow(self, now, cost=1):\n        self.tokens = min(self.cap, self.tokens + (now - self.t) * self.rate)\n        self.t = now\n        if self.tokens >= cost:\n            self.tokens -= cost\n            return True\n        return False\n\nb = TokenBucket(rate=1, capacity=3, now=0)\nprint(\"burst\", [b.allow(0) for _ in range(4)])\nprint(\"t=1\", b.allow(1), b.allow(1))\nprint(\"t=10\", [b.allow(10) for _ in range(4)])\n",
+   "expect": [
+    "burst [True, True, True, False]",
+    "t=1 True False",
+    "t=10 [True, True, True, False]"
+   ]
+  }
+ },
+ {
+  "id": "apis-008",
+  "area": "apis",
+  "topic": "429 handling",
+  "level": 3,
+  "type": "scenario",
+  "q": "A partner integration starts receiving 429s after you introduce rate limits, and they say the API is 'broken'. What do you check and what do you put in place for both sides?",
+  "followups": [
+   "How do you roll out limits without breaking existing clients?",
+   "Shadow mode first?"
+  ],
+  "answer": "First check the facts: which limit (per key, per IP, per endpoint), their actual request pattern from logs (bursty batch job versus steady), and whether the response tells them enough. Server side: return 429 with `Retry-After` and rate-limit headers, document limits, allow burst via token bucket, provide bulk endpoints or webhooks instead of polling, and offer limit increases per tier. Client side: honour `Retry-After`, use exponential backoff with jitter, spread scheduled jobs, cache and use conditional requests (ETag/If-None-Match, which still count but are cheap). Monitor per-client 429 rates. Pitfall: limiting by IP behind NAT or a shared proxy punishes many users; use API key identity.",
+  "pitfalls": [
+   "Silently dropping requests",
+   "Limiting by IP only"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html"
+  ],
+  "tags": [
+   "rate-limiting",
+   "incident"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "apis-009",
+  "area": "apis",
+  "topic": "API evolution",
+  "level": 4,
+  "type": "design",
+  "q": "How do you evolve a public REST API used by external clients you cannot force to upgrade? Cover versioning, compatible changes, deprecation and contract testing.",
+  "followups": [
+   "How do you handle a field whose meaning changed?",
+   "How do you version webhooks?"
+  ],
+  "answer": "Prefer additive, backward-compatible changes: new optional fields, new endpoints, new enum values only if clients are told to tolerate unknown values (Postel's law: be liberal in what you accept). Breaking changes (removing or renaming a field, changing type or semantics, tightening validation) need a new version, via URL prefix (`/v2`, most visible and cache-friendly) or a header/media-type (cleaner URLs, harder to test with a browser). Deprecate with `Deprecation`/`Sunset` headers, docs and a date, watch per-client usage of the old version, and contact heavy users before shutdown. Guard with an OpenAPI diff in CI and consumer-driven contract tests. Trade-off: each supported version multiplies test and maintenance cost, so limit to N versions and design so v1 and v2 share the domain layer and differ only at the edge.",
+  "pitfalls": [
+   "Silently changing types",
+   "Versioning every minor change"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "versioning",
+   "api-design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "apis-010",
+  "area": "apis",
+  "topic": "timeouts and duplicate writes",
+  "level": 4,
+  "type": "scenario",
+  "q": "Customers report duplicate orders. Logs show the mobile client timed out on `POST /orders` at 10 s, retried, and both requests succeeded. Diagnose and give a complete fix.",
+  "followups": [
+   "What if the same key arrives concurrently?",
+   "How would you clean up the existing duplicates?"
+  ],
+  "answer": "A timeout tells the client nothing about whether the server processed the request, so the retry created a second order: at-least-once delivery over a non-idempotent endpoint. Fixes: require an `Idempotency-Key` generated once per user intent on the client and stored with the order under a unique constraint, so the retry returns the original order (replay); make the client reuse the key across retries. Also find why the request took over 10 s (slow synchronous work, DB locks) and either speed it up or return 202 with a status URL. Align timeouts across layers (client > gateway > service > DB) so a client never gives up while the server keeps working. Add monitoring for duplicate-key hits and reconciliation for existing duplicates. Trade-off: exactly-once processing is not achievable end to end; aim for at-least-once delivery plus idempotent handlers.",
+  "pitfalls": [
+   "Just increasing the client timeout",
+   "Deduplicating by a time window heuristic"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "idempotency",
+   "incident",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

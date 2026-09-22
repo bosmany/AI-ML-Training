@@ -1,0 +1,285 @@
+[
+ {
+  "id": "sysdesign-001",
+  "area": "sysdesign",
+  "topic": "job queue",
+  "level": 1,
+  "type": "design",
+  "q": "Design a background job queue for a web app (emails, PDF generation, image resizing) so work is not lost and the API stays fast.",
+  "followups": [
+   "Why is exactly-once delivery a myth?",
+   "How do you handle ordering per user?"
+  ],
+  "answer": "Requirements: at-least-once execution, retries with backoff, delayed jobs, visibility of failures, per-queue priorities; non-goals: exactly-once, sub-second ordering. Estimation: say 50 jobs/s peak, 10 KB payload, so ~500 KB/s and about 4 GB/day retained for a week; small. API: `enqueue(queue, type, payload, idempotency_key, run_at)`, worker `reserve -> ack | nack(retry_after)`. Data model: job(id, type, payload, status, attempts, run_at, locked_until, last_error); Redis/SQS/RabbitMQ or Postgres with `SELECT ... FOR UPDATE SKIP LOCKED` for modest scale. Flow: API writes the job (in the same DB transaction as the business change, or via an outbox) and returns 202; workers lease a job with a visibility timeout, and if they die the lease expires and it is redelivered. Scaling: add workers, split queues by workload so slow jobs do not starve fast ones, autoscale on queue depth and age. Failure modes: duplicate delivery (handlers must be idempotent), poison messages (max attempts then dead-letter queue with alert), thundering herd on retry (jitter), long jobs exceeding the lease (heartbeat). Trade-offs: a DB-backed queue is simple and transactional but limits throughput; a broker scales further but needs the outbox to avoid dual-write inconsistency.",
+  "pitfalls": [
+   "Doing the work inside the request",
+   "No dead-letter queue"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "queue",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-002",
+  "area": "sysdesign",
+  "topic": "URL shortener",
+  "level": 2,
+  "type": "code",
+  "q": "Design a URL shortener handling 100M new links per month and 100:1 read to write. Include the code generation scheme, and show base62 encoding of a numeric id.",
+  "followups": [
+   "How do you avoid guessable codes?",
+   "Would you use 301 or 302?"
+  ],
+  "answer": "Requirements: create short link, redirect with low latency, optional custom alias and expiry, basic click analytics; 99.9% availability for redirects. Estimation: 100M/month is ~40 writes/s (peak maybe 200/s), reads ~4,000/s (peak 20k/s). Storage: 100M x ~500 B = 50 GB/month, ~3 TB over five years; a 7-character base62 code gives 62^7 = 3.5 trillion combinations, plenty. API: `POST /links {url, alias?, ttl?}` returns 201 and the short URL; `GET /{code}` returns 301/302 with Location (302 if you need analytics or edits, 301 caches in browsers). Data model: links(code PK, long_url, created_at, expires_at, owner_id); key-value store fits (DynamoDB/Cassandra) or sharded SQL. Code generation: a distributed counter or ID range allocation per app server, base62-encoded, is collision-free but guessable; a random 7-char code needs a uniqueness check (retry on conflict). Scaling: CDN and an in-memory cache (Redis) give >90% hit rate for hot links; DB sharded by code hash; analytics via async events to a stream, not on the redirect path. Failure modes: cache stampede (request coalescing), hot keys, abusive/malicious URLs (blocklist scan), counter service outage (pre-allocated ranges keep servers running). Trade-offs: sequential ids leak volume and are enumerable; hashing the URL gives dedupe but collisions.",
+  "pitfalls": [
+   "Ignoring the read-heavy ratio",
+   "Auto-increment id exposed directly with no abuse controls"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "url-shortener",
+   "estimation",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "ALPHA = \"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\"\n\ndef encode(n):\n    if n == 0:\n        return ALPHA[0]\n    s = \"\"\n    while n:\n        n, r = divmod(n, 62)\n        s = ALPHA[r] + s\n    return s\n\ndef decode(s):\n    n = 0\n    for c in s:\n        n = n * 62 + ALPHA.index(c)\n    return n\n\nprint(\"125 ->\", encode(125))\nprint(\"roundtrip:\", decode(encode(123456789)) == 123456789)\nprint(\"62^7 =\", 62 ** 7, \"| max 7-char code:\", encode(62 ** 7 - 1))\nper_sec = 100_000_000 / (30 * 24 * 3600)\nprint(\"avg writes/s:\", round(per_sec), \"reads/s:\", round(per_sec * 100))\n",
+   "expect": [
+    "125 -> 21",
+    "roundtrip: True",
+    "62^7 = 3521614606208",
+    "avg writes/s: 39",
+    "reads/s: 3858"
+   ]
+  }
+ },
+ {
+  "id": "sysdesign-003",
+  "area": "sysdesign",
+  "topic": "rate limiter service",
+  "level": 2,
+  "type": "design",
+  "q": "Design a distributed rate limiter used by an API gateway serving 50k requests per second across many nodes.",
+  "followups": [
+   "Fixed window vs sliding window vs token bucket?",
+   "How do you rate limit unauthenticated traffic?"
+  ],
+  "answer": "Requirements: per-key (API key/user/IP) and per-route limits, low overhead (<1 ms added), accurate enough (small over-admission acceptable), clear 429 responses, configurable rules; decide fail-open or fail-closed on limiter failure (usually fail-open for availability, fail-closed for abuse-critical endpoints). Estimation: 50k checks/s; with 1M active keys and ~100 B per key the state is ~100 MB, so it fits in memory of a Redis cluster (a few shards at 100k ops/s each). Algorithm: token bucket (allows bursts) or sliding-window counter; store `tokens` and `last_refill` per key and update atomically with a Lua script, one round trip. API: internal `allow(key, cost) -> {allowed, remaining, retry_after}`; the gateway returns 429 with `Retry-After` and `X-RateLimit-*` headers. Scaling: shard by key hash; reduce Redis load with local in-process counters that sync periodically (approximate but cheaper) or per-node quotas; multi-region uses per-region limits. Failure modes: Redis latency spike (timeout budget, circuit breaker to fail-open), hot key (one abusive client) handled by local pre-filter, clock skew (use Redis time or monotonic deltas), retry storms after 429 (Retry-After and client jitter). Trade-offs: exact global limits cost a network hop per request; local approximations trade accuracy for latency.",
+  "pitfalls": [
+   "Per-node in-memory counters as the global limit",
+   "No Retry-After"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "systems/sf03-load-balancers-firewalls.html"
+  ],
+  "tags": [
+   "rate-limiting",
+   "distributed"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-004",
+  "area": "sysdesign",
+  "topic": "consistent hashing",
+  "level": 3,
+  "type": "code",
+  "q": "You run a cache cluster of 3 nodes and need to add a fourth without invalidating most of the cache. Explain consistent hashing and demonstrate the difference from `hash(key) % N`.",
+  "followups": [
+   "How many virtual nodes do you need?",
+   "What is rendezvous hashing?"
+  ],
+  "answer": "With modulo placement changing N from 3 to 4 remaps about 3/4 of all keys, causing a mass cache miss and a stampede on the database. Consistent hashing places nodes (with many virtual nodes each, for balance) on a hash ring and assigns a key to the first node clockwise from its hash; adding a node only takes keys from its ring neighbours, so roughly 1/(N+1) of keys move and every moved key goes to the new node. In the demo about 22% of keys moved (ideal 25%) versus about 75% with modulo. Virtual nodes smooth the load and allow weighting by capacity; replication puts a key on the next R distinct nodes. Failure modes: node removal shifts its load to neighbours (use enough vnodes, and prevent cascade with load shedding), and hot keys are not solved by hashing (replicate hot keys or cache locally). Used by Dynamo-style stores, Memcached clients, and load balancers with sticky routing.",
+  "pitfalls": [
+   "Using modulo and hoping for the best",
+   "One point per node giving uneven load"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "consistent-hashing",
+   "caching",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import bisect, hashlib\n\ndef h(s):\n    return int(hashlib.md5(s.encode()).hexdigest(), 16)\n\nclass Ring:\n    def __init__(self, nodes, vnodes=100):\n        self.ring = sorted((h(f\"{n}#{i}\"), n) for n in nodes for i in range(vnodes))\n        self.points = [p for p, _ in self.ring]\n    def get(self, key):\n        return self.ring[bisect.bisect(self.points, h(key)) % len(self.ring)][1]\n\nkeys = [f\"user{i}\" for i in range(10000)]\nr3 = Ring([\"a\", \"b\", \"c\"])\nr4 = Ring([\"a\", \"b\", \"c\", \"d\"])\nmoved = [k for k in keys if r3.get(k) != r4.get(k)]\nmod_moved = sum(h(k) % 3 != h(k) % 4 for k in keys) / len(keys)\nprint(\"consistent hashing moved < 35%:\", len(moved) / len(keys) < 0.35)\nprint(\"all moved keys went to the new node:\", all(r4.get(k) == \"d\" for k in moved))\nprint(\"modulo moved > 60%:\", mod_moved > 0.6)\n",
+   "expect": [
+    "moved < 35%: True",
+    "new node: True",
+    "modulo moved > 60%: True"
+   ]
+  }
+ },
+ {
+  "id": "sysdesign-005",
+  "area": "sysdesign",
+  "topic": "webhook delivery",
+  "level": 3,
+  "type": "design",
+  "q": "Design a webhook delivery system for a payments platform that notifies customer endpoints of events reliably at 5,000 events/s.",
+  "followups": [
+   "How do customers verify authenticity?",
+   "How do you protect against SSRF?"
+  ],
+  "answer": "Requirements: at-least-once delivery, per-endpoint retry with backoff for up to 3 days, ordering best-effort per object, signed payloads, customer visibility (delivery log, manual replay), isolation so one slow customer does not delay others. Estimation: 5k events/s x fan-out (assume 1.5 endpoints) ~7.5k deliveries/s; at 2 KB each ~15 MB/s outbound; retained delivery logs for 30 days = ~40 TB, so keep summaries and sample bodies. API: customers register endpoints and event types; events carry `id`, `type`, `created`, and a signature header (HMAC of timestamp + body with a per-endpoint secret; receivers verify and reject old timestamps to stop replay). Data model: events (id, payload), deliveries (event_id, endpoint_id, attempt, status, next_attempt_at, response_code). Flow: business change writes event via outbox, a fan-out service creates delivery tasks in a partitioned queue keyed by endpoint, workers POST with a short timeout (5-10 s), treat 2xx as success, and otherwise retry with exponential backoff plus jitter. Scaling: per-endpoint concurrency limits and circuit breakers (pause a failing endpoint, alert the customer, disable after N days), separate queues for slow endpoints. Failure modes: duplicates (tell customers to dedupe on event id), SSRF (block private IP ranges when calling out), retry storms, receiver returning 200 before processing. Trade-off: strict ordering needs one in-flight delivery per endpoint, which reduces throughput; most systems document non-guaranteed ordering.",
+  "pitfalls": [
+   "Retrying forever without limits",
+   "Sequential delivery in one shared worker pool"
+  ],
+  "chapters": [
+   "systems/sf01-apis-http-fundamentals.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "webhooks",
+   "reliability",
+   "queues"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-006",
+  "area": "sysdesign",
+  "topic": "model serving platform",
+  "level": 3,
+  "type": "design",
+  "q": "Design a real-time inference service for a fraud model called from checkout: 2,000 requests/s peak, p99 under 100 ms, models updated weekly.",
+  "followups": [
+   "How do you keep the decision auditable?",
+   "What is your fallback if the model is unavailable?"
+  ],
+  "answer": "Requirements: p99 < 100 ms including feature lookup, 99.95% availability, safe rollout and instant rollback, auditability of every decision, degrade gracefully. Estimation: 2k rps; a gradient-boosted model scores in ~2-5 ms on CPU, so a handful of pods with 4 vCPU each handle it with headroom, and 3+ replicas across zones for availability. API: `POST /v1/score {transaction_id, entity_ids, payload}` returns `{score, decision, model_version, reasons}`; idempotent on transaction_id. Data: online feature store (Redis/DynamoDB) keyed by customer/device, with batch features precomputed and a few real-time counters from a stream; request-time features computed by the same shared code as training. Serving: model loaded at startup from the registry by alias (`champion`), warm-up before readiness, versioned container; shadow and canary new versions with automatic rollback. Scaling: horizontal autoscaling on CPU and latency, request timeouts and a strict budget for the feature lookup (e.g. 20 ms). Failure modes: feature store down or slow (fall back to defaults or a simpler model plus a rule set, fail-open/closed policy set by risk), model load failure (previous version stays), skew (log served features; compare to training), drift (monitor score distribution), decision log lost (write asynchronously to a durable stream). Trade-offs: caching features cuts latency but adds staleness; larger ensembles improve accuracy but consume the latency budget.",
+  "pitfalls": [
+   "Loading the model per request",
+   "No fallback policy"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "ml-serving",
+   "low-latency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-007",
+  "area": "sysdesign",
+  "topic": "RAG assistant",
+  "level": 4,
+  "type": "design",
+  "q": "Design an internal RAG assistant over 2 million company documents (wikis, PDFs, tickets) with per-user access control, for 3,000 employees.",
+  "followups": [
+   "How do you handle ACL changes quickly?",
+   "What is your defence against prompt injection in retrieved text?"
+  ],
+  "answer": "Requirements: answers grounded in documents with citations, respect document permissions (a user must never see content they cannot access), freshness within an hour, p95 latency under 6 s, evaluation and feedback loop. Estimation: 2M docs x ~10 chunks = 20M chunks; at 768-dim float32 (3 KB) that is ~60 GB of vectors (less with quantisation), so a sharded vector index is needed; queries maybe 20 rps peak. Ingestion: connectors per source with incremental sync (webhooks/change feeds), parse and clean, chunk by structure (headings, tables) with overlap, attach metadata (source, ACL groups, version, updated_at), embed in batches, upsert; deletions must propagate. Retrieval: hybrid (BM25 plus dense) with a metadata filter for ACL groups applied inside the index query (not after generation), top-50 then a cross-encoder reranker to top 5-8; query rewriting for follow-ups. Generation: prompt with instructions, retrieved chunks and citations; answer 'not found' when context is insufficient; stream tokens. API: `POST /chat {conversation_id, message}`, feedback endpoint, admin re-index. Failure modes: permission leakage (ACL sync lag, so verify at read time and re-check with source permissions), prompt injection in documents (treat content as data, restrict tool use), stale index, hallucination, provider outage (fallback model, timeouts, rate limits), cost blowup (cache, smaller model for simple queries). Evaluation: golden question set with expected sources, retrieval recall@k, faithfulness checks, online thumbs and review of low-rated answers. Trade-off: larger chunks give context but dilute retrieval precision.",
+  "pitfalls": [
+   "Filtering permissions after generation",
+   "No evaluation set"
+  ],
+  "chapters": [
+   "projects/ch35-rag-chatbot-deployed.html",
+   "nlp/ch30-building-with-llm-apis-capstone.html"
+  ],
+  "tags": [
+   "rag",
+   "llm",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-008",
+  "area": "sysdesign",
+  "topic": "news feed",
+  "level": 4,
+  "type": "design",
+  "q": "Design the home timeline for a social product with 50M daily users where users follow up to 5,000 accounts and a few accounts have 20M followers.",
+  "followups": [
+   "How do you handle deleted posts?",
+   "How do you add ranking?"
+  ],
+  "answer": "Requirements: timeline load p99 < 300 ms, new posts visible within seconds, ranked or reverse chronological, eventual consistency acceptable, media handled separately. Estimation: 50M DAU x 10 timeline loads = 500M reads/day (~6k/s average, 30k/s peak); 5M posts/day (~60/s). Reads dominate, so precompute. Approaches: fan-out on write (push): on post, append the post id to each follower's timeline list in Redis (bounded to ~800 entries); reads are one lookup, but a celebrity post causes 20M writes. Fan-out on read (pull): merge followees' recent posts at read time; cheap writes but heavy reads. Hybrid: push for normal accounts, pull-and-merge for celebrities at read time. API: `GET /timeline?cursor=` (cursor pagination, ids then hydrate post and author from a cache), `POST /posts`. Data model: posts(id, author, text, media_ref, created_at) sharded by post id; follow graph stored both directions; timelines in Redis sorted sets keyed by user. Scaling: fan-out workers via a queue partitioned by author, skip inactive users (build their timeline on next login), cache post hydration, CDN for media. Failure modes: fan-out backlog (lag metric, prioritise active users), cache loss (rebuild from the pull path), deleted or blocked content (filter at read), ranking model outage (fall back to chronological). Trade-off: write amplification versus read latency; the hybrid costs extra complexity.",
+  "pitfalls": [
+   "Fan-out on write for celebrity accounts",
+   "Offset pagination on a live feed"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "feed",
+   "fan-out",
+   "caching"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-009",
+  "area": "sysdesign",
+  "topic": "real-time fraud detection",
+  "level": 4,
+  "type": "design",
+  "q": "Design a streaming fraud detection pipeline that scores card transactions in under 200 ms and lets analysts investigate and label cases.",
+  "followups": [
+   "How do you deal with delayed chargeback labels?",
+   "What does the fallback path look like?"
+  ],
+  "answer": "Requirements: score every transaction before authorisation completes, combine rules and an ML model, capture analyst decisions as labels, explain declines, audit everything, no single point of failure. Estimation: 3,000 transactions/s peak, 500 B each = 1.5 MB/s, ~130 GB/day of raw events; features need state per card/merchant/device windows (last 1 min, 1 h, 24 h counts and amounts). Flow: transactions enter Kafka; a stream processor (Flink/Kafka Streams) maintains windowed aggregates in a state store and writes them to the online feature store; the scoring service reads features, applies rules (hard blocks such as sanctions lists) then the model, returns approve/step-up/decline with reason codes. Everything (features used, score, model version, decision) is logged to a stream and lake for audit and training. Labels: chargebacks arrive with weeks of delay, analyst dispositions arrive within days; join them by transaction id and use time-based splits; retrain on a schedule with drift alerts. Scaling: partition by card id so per-card state is co-located; multi-AZ; rules hot-reloaded. Failure modes: stream lag (features stale; alert and fall back to rules), duplicate events (idempotent updates keyed by transaction id), late events (watermarks), model outage (rules-only path), feedback loop (declined transactions never get labels, so keep a small randomised approve slice for exploration where policy allows). Trade-off: stricter thresholds cut fraud losses but raise false positives that cost revenue and trust.",
+  "pitfalls": [
+   "Batch-only features for velocity checks",
+   "No audit log of the features used"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html",
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "fraud",
+   "streaming",
+   "ml-serving"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "sysdesign-010",
+  "area": "sysdesign",
+  "topic": "shared ML platform",
+  "level": 5,
+  "type": "design",
+  "q": "Five product teams deploy models in five different ways (notebooks, cron jobs, custom Flask apps). Leadership asks you to 'design an ML platform'. How do you approach it?",
+  "followups": [
+   "What would you not build in the first six months?",
+   "How do you measure adoption?"
+  ],
+  "answer": "Requirements (discover, do not assume): interview each team for their pains (time from experiment to production, incidents, cost), classify workloads (batch scoring, real-time APIs, LLM apps), and get constraints (compliance, cloud, headcount). Define success metrics: time-to-production, percentage of models with monitoring and rollback, incident rate, compute cost per model. Estimation: number of models (say 30), retraining frequency, peak request rates, GPU need; this decides whether managed services suffice. Design in thin layers, paved-road rather than mandate: (1) reproducible project template with pinned env, CI, tests and container build; (2) experiment tracking and a registry with aliases; (3) a standard batch/pipeline runner (orchestrator) and a standard real-time serving template with health checks, metrics, canary and rollback; (4) monitoring for data quality, drift and latency with a per-model dashboard; (5) optionally later a feature store, once two or more teams share features. Prefer managed or open-source components and buy over build where they meet needs. Rollout: pilot with one willing team and one real model, measure the metrics, then onboard the next; migrate incrementally rather than requiring a rewrite; keep an escape hatch for unusual cases. Risks: building a platform nobody asked for, lock-in, on-call burden for the platform team, security and access control (least privilege, secrets), cost governance. Trade-off: standardisation lowers cost and risk but reduces team autonomy, so keep the interface small and the templates optional but attractive.",
+  "pitfalls": [
+   "Starting with a tool selection",
+   "Mandating a platform migration for everyone at once"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html",
+   "mlops-practice/mp05-mlops-python-mock-interview.html",
+   "mlops/ch32-mlops-fundamentals-capstone.html"
+  ],
+  "tags": [
+   "platform",
+   "ambiguity",
+   "strategy"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

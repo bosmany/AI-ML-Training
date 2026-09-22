@@ -1,0 +1,740 @@
+[
+ {
+  "id": "devops-001",
+  "area": "devops",
+  "topic": "idempotency",
+  "level": 1,
+  "type": "concept",
+  "q": "What does it mean for an automation script or task to be idempotent, and why does it matter?",
+  "followups": [
+   "How would you make a database migration idempotent?",
+   "How do you make an API POST retry-safe?"
+  ],
+  "answer": "Running it once or ten times leaves the system in the same end state, and re-running after a partial failure is safe. It matters because real automation gets retried: cron overlaps, CI reruns, operators re-run after a timeout. Implement it by checking desired state before acting (`mkdir -p`, `CREATE TABLE IF NOT EXISTS`, PUT with a client-supplied key, `terraform apply`) rather than blindly doing the action. Trade-off: check-then-act can race, so for shared resources you also need locking or a server-side uniqueness constraint. Pitfall: appending to a file or `INSERT`ing rows on every run is not idempotent.",
+  "pitfalls": [
+   "Thinking idempotent means 'returns the same output' rather than 'same end state'",
+   "Assuming a check-then-act sequence is atomic"
+  ],
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "automation",
+   "idempotency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-002",
+  "area": "devops",
+  "topic": "sre-basics",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain SLI, SLO and SLA with a concrete example for an HTTP API.",
+  "followups": [
+   "Why should the SLO be stricter than the SLA?",
+   "What do you do when the SLO is consistently overachieved?"
+  ],
+  "answer": "SLI is a measured indicator, e.g. the fraction of requests answered with non-5xx in under 300 ms. SLO is the internal target for that SLI over a window, e.g. 99.9% over 30 days. SLA is the external contractual promise with consequences (credits, penalties), usually looser than the SLO so you have a buffer. Good SLIs are user-centric ratios (good events / valid events) measured at the load balancer or client, not CPU usage. Pitfall: using an SLA number as the engineering target, or defining SLOs on internal component health that users never feel.",
+  "pitfalls": [
+   "Treating 100% as a sensible target",
+   "Using host-level metrics as SLIs"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "sre",
+   "slo"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-003",
+  "area": "devops",
+  "topic": "log-parsing",
+  "level": 2,
+  "type": "code",
+  "q": "Given nginx-style access log lines, count requests per status class (2xx/3xx/4xx/5xx) and report the paths that returned 5xx, sorted by count then path. Print the results.",
+  "followups": [
+   "How would you handle a 20 GB log file?",
+   "How do you detect that your regex silently dropped 30% of lines?"
+  ],
+  "answer": "Use a regex with named groups instead of `split()` because the request field contains spaces and quotes. Count with `collections.Counter`, keying on `status // 100`. Skip lines that do not match rather than crashing, and count them so silent parse loss is visible. For large files stream line by line. Pitfall: `line.split()[8]` breaks on odd user agents or IPv6.",
+  "pitfalls": [
+   "Splitting on spaces",
+   "Loading the whole file into memory"
+  ],
+  "solution": {
+   "code": "import re\nfrom collections import Counter\nLOG = \"\"\"10.0.0.1 - - [10/Oct/2025:13:55:36 +0000] \"GET /api/users HTTP/1.1\" 200 512 \"-\" \"curl/8.0\"\n10.0.0.2 - - [10/Oct/2025:13:55:37 +0000] \"POST /api/orders HTTP/1.1\" 500 87 \"-\" \"Mozilla/5.0 (X11; Linux)\"\n10.0.0.3 - - [10/Oct/2025:13:55:38 +0000] \"GET /api/orders HTTP/1.1\" 502 0 \"-\" \"curl/8.0\"\n10.0.0.4 - - [10/Oct/2025:13:55:39 +0000] \"GET /health HTTP/1.1\" 200 2 \"-\" \"kube-probe/1.29\"\ngarbage line\n10.0.0.5 - - [10/Oct/2025:13:55:40 +0000] \"POST /api/orders HTTP/1.1\" 500 87 \"-\" \"curl/8.0\"\n10.0.0.6 - - [10/Oct/2025:13:55:41 +0000] \"GET /old HTTP/1.1\" 301 0 \"-\" \"curl/8.0\"\n10.0.0.7 - - [10/Oct/2025:13:55:42 +0000] \"GET /missing HTTP/1.1\" 404 9 \"-\" \"curl/8.0\"\n\"\"\"\npat = re.compile(r'^(?P<ip>\\S+) \\S+ \\S+ \\[[^\\]]+\\] \"(?P<method>\\S+) (?P<path>\\S+) [^\"]*\" (?P<status>\\d{3}) ')\nclasses, bad5xx, skipped = Counter(), Counter(), 0\nfor line in LOG.splitlines():\n    m = pat.match(line)\n    if not m:\n        skipped += 1\n        continue\n    s = int(m[\"status\"])\n    classes[f\"{s // 100}xx\"] += 1\n    if s >= 500:\n        bad5xx[m[\"path\"]] += 1\nfor k in sorted(classes):\n    print(k, classes[k])\nfor path, n in sorted(bad5xx.items(), key=lambda kv: (-kv[1], kv[0])):\n    print(\"5xx\", path, n)\nprint(\"skipped\", skipped)\n",
+   "expect": [
+    "2xx 2",
+    "3xx 1",
+    "4xx 1",
+    "5xx 3",
+    "5xx /api/orders 3",
+    "skipped 1"
+   ]
+  },
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html"
+  ],
+  "tags": [
+   "logs",
+   "python",
+   "regex"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-004",
+  "area": "devops",
+  "topic": "retry-backoff",
+  "level": 2,
+  "type": "code",
+  "q": "Write a retry helper with exponential backoff and full jitter, capped at a maximum delay. Make it testable (inject sleep and random) and show it on a function that fails twice before succeeding.",
+  "followups": [
+   "Which errors should never be retried?",
+   "How do retries interact with a circuit breaker and with request timeouts up the stack (retry amplification)?"
+  ],
+  "answer": "Delay for attempt n is `random.uniform(0, min(cap, base * 2**n))` (full jitter), which spreads out clients so a recovering dependency is not hit by a synchronized thundering herd. Inject `sleep` and `rng` so tests are instant and deterministic. Only retry errors that are transient (timeouts, 429, 503) and that are safe to repeat (idempotent), always bound attempts or total time, and re-raise the last error. Pitfall: retrying on every exception, no cap, or no jitter.",
+  "pitfalls": [
+   "Fixed sleep between retries",
+   "Unbounded retries",
+   "Retrying non-idempotent POSTs"
+  ],
+  "solution": {
+   "code": "def retry(fn, attempts=5, base=0.5, cap=8.0, sleep=lambda s: None, rng=lambda hi: hi):\n    last = None\n    for n in range(attempts):\n        try:\n            return fn()\n        except ConnectionError as e:\n            last = e\n            if n == attempts - 1:\n                break\n            delay = rng(min(cap, base * 2 ** n))\n            print(f\"attempt {n + 1} failed, sleeping {delay:.1f}s\")\n            sleep(delay)\n    raise last\n\ncalls = {\"n\": 0}\ndef flaky():\n    calls[\"n\"] += 1\n    if calls[\"n\"] < 3:\n        raise ConnectionError(\"boom\")\n    return \"ok\"\n\nprint(retry(flaky))\nprint(\"calls\", calls[\"n\"])\ndef always():\n    raise ConnectionError(\"down\")\ntry:\n    retry(always, attempts=3)\nexcept ConnectionError as e:\n    print(\"gave up:\", e)\n",
+   "expect": [
+    "attempt 1 failed, sleeping 0.5s",
+    "attempt 2 failed, sleeping 1.0s",
+    "ok",
+    "calls 3",
+    "gave up: down"
+   ]
+  },
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "python",
+   "retry",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-005",
+  "area": "devops",
+  "topic": "incident-response",
+  "level": 3,
+  "type": "scenario",
+  "q": "You deployed at 14:02 and at 14:10 the pager fires: HTTP 5xx rate went from 0.1% to 12%. You are the on-call engineer. What do you do in the first 15 minutes?",
+  "followups": [
+   "The rollback did not fix it; what next?",
+   "What if the migration is not backward compatible?"
+  ],
+  "answer": "Stabilise first, diagnose second. 1) Acknowledge the page, declare an incident and name an incident commander if impact is customer-facing. 2) Correlate: the deploy 8 minutes earlier is the prime suspect, so check the deploy log, dashboards annotated with releases, and whether errors are on new pods only. 3) Mitigate before root-causing: roll back (or flip the feature flag) if the timeline fits; rollback is cheap and reversible. 4) Verify recovery on the SLI, not just 'pods are green'. 5) Communicate on a cadence (status page, stakeholders) and keep a timeline. 6) Afterwards a blameless postmortem. Pitfall: debugging live logs for 40 minutes while users are down, or rolling back a change that included an irreversible DB migration without checking.",
+  "pitfalls": [
+   "Trying to hot-fix forward under pressure by default",
+   "Not communicating"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "incident",
+   "oncall"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-006",
+  "area": "devops",
+  "topic": "structured-logging",
+  "level": 2,
+  "type": "concept",
+  "q": "Why prefer structured (JSON/logfmt) logs over free-text logs, and what fields would you always include?",
+  "followups": [
+   "How do you propagate a trace ID through async code in Python?",
+   "How would you redact PII centrally?"
+  ],
+  "answer": "Structured logs are machine-parseable without brittle regexes, so you can filter, aggregate and alert on fields. Always include timestamp (UTC, ISO 8601), level, service, version/commit, environment, a message, and a correlation/trace ID that is propagated across services; add request fields (route, status, duration_ms) and error class and stack for errors. Never log secrets or PII. Trade-offs: larger volume and cost, less human-readable in a terminal (use a pretty-printer locally), and high-cardinality fields belong in logs/traces, not in metric labels. Pitfall: logging multi-line stack traces as separate lines so they cannot be correlated.",
+  "pitfalls": [
+   "Logging secrets or full request bodies",
+   "Different field names per service"
+  ],
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html"
+  ],
+  "tags": [
+   "logging",
+   "observability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-007",
+  "area": "devops",
+  "topic": "error-budget",
+  "level": 2,
+  "type": "code",
+  "q": "A service has a 99.9% availability SLO over a 30-day window. Compute the allowed downtime in minutes, then given observed downtime incidents (in minutes) compute the budget consumed and remaining, and say whether a release freeze applies.",
+  "followups": [
+   "Why request-based budgets are better than time-based ones?",
+   "How do multi-window burn-rate alerts use this?"
+  ],
+  "answer": "Error budget = (1 - SLO) x window. For 99.9% over 30 days: 0.001 x 43,200 minutes = 43.2 minutes. Budget policy is the point: when it is exhausted, feature releases stop and the team invests in reliability; when plenty remains, you can ship faster and take risk. Time-based downtime is a simplification; request-based SLIs (good/total) are better for services with uneven traffic. Pitfall: treating the budget as something to avoid spending at all.",
+  "pitfalls": [
+   "Quoting downtime for the wrong window (43.2 min per 30 days vs 8.76 h per year)"
+  ],
+  "solution": {
+   "code": "slo = 0.999\nwindow_min = 30 * 24 * 60\nbudget = (1 - slo) * window_min\nincidents = [12.5, 7.0, 15.0]\nused = sum(incidents)\nremaining = budget - used\nprint(f\"budget={budget:.1f} min\")\nprint(f\"used={used:.1f} min ({used / budget:.0%})\")\nprint(f\"remaining={remaining:.1f} min\")\nprint(\"freeze releases\" if remaining <= 0.25 * budget else \"ok to ship\")\n",
+   "expect": [
+    "budget=43.2 min",
+    "used=34.5 min (80%)",
+    "remaining=8.7 min",
+    "freeze releases"
+   ]
+  },
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "sre",
+   "slo",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-008",
+  "area": "devops",
+  "topic": "alerting",
+  "level": 4,
+  "type": "scenario",
+  "q": "Your team's on-call gets 80 pages a week and most are ignored or auto-resolve. How do you fix alerting?",
+  "followups": [
+   "What is a good target for pages per on-call shift?",
+   "How do you migrate to burn-rate alerts safely?"
+  ],
+  "answer": "Treat it as a reliability problem of the alerting system. Audit the last month: for each alert record whether it was actionable, needed a human immediately, and had a runbook. Delete or downgrade (ticket/dashboard) alerts that are not actionable. Page on symptoms tied to SLOs (error-budget burn rate, user-facing latency) rather than causes (CPU 80%). Add `for:` durations and hysteresis to stop flapping, group and deduplicate related alerts, route by severity and ownership, and attach runbook links and dashboards. Track pages per shift and the actionable ratio as a metric. Pitfall: adding more alerts after each incident without ever removing any, and cause-based alerts that fire when nothing is wrong for users.",
+  "pitfalls": [
+   "Raising thresholds blindly",
+   "Muting alerts without an owner review"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "alerting",
+   "oncall",
+   "sre"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-009",
+  "area": "devops",
+  "topic": "golden-signals",
+  "level": 1,
+  "type": "concept",
+  "q": "What are the four golden signals, and how do RED and USE relate to them?",
+  "followups": [
+   "Which of these would you page on?",
+   "How do you measure saturation for a database?"
+  ],
+  "answer": "Golden signals (Google SRE): latency (separate successful from failed requests), traffic, errors, saturation. RED (Rate, Errors, Duration) is the request-oriented subset for services. USE (Utilization, Saturation, Errors) is for resources such as CPU, disks, network links and queues. Use RED for 'is the user experience OK', USE for 'which resource is the bottleneck'. Pitfall: averaging latency; use percentiles or histograms, and watch saturation (queue depth, thread pool usage) because it leads failures.",
+  "pitfalls": [
+   "Alerting on average latency",
+   "Only monitoring CPU"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "observability",
+   "metrics"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-010",
+  "area": "devops",
+  "topic": "percentiles",
+  "level": 3,
+  "type": "code",
+  "q": "Application logs are JSON lines with `path` and `ms`. Compute the request count, mean and p95 latency (nearest-rank method) per path and print paths ordered by p95 descending. Explain why the mean is misleading.",
+  "followups": [
+   "Why can you not average p95 across instances?",
+   "How do histogram bucket choices affect accuracy?"
+  ],
+  "answer": "Nearest-rank percentile: sort values and take element at index `ceil(p/100 * n) - 1`. The mean hides the tail: 95 fast requests and 5 slow ones give a fine mean while 1 in 20 users waits seconds. Percentiles cannot be averaged across hosts; aggregate histograms (or raw data) instead. In production use Prometheus histograms with `histogram_quantile`, understanding bucket boundaries limit accuracy. Pitfall: averaging per-instance p95s.",
+  "pitfalls": [
+   "Using statistics.mean as the SLI",
+   "Averaging percentiles"
+  ],
+  "solution": {
+   "code": "import json, math\nfrom collections import defaultdict\nlines = [\n '{\"path\": \"/search\", \"ms\": 120}', '{\"path\": \"/search\", \"ms\": 95}', '{\"path\": \"/search\", \"ms\": 2400}',\n '{\"path\": \"/search\", \"ms\": 110}', '{\"path\": \"/search\", \"ms\": 105}',\n '{\"path\": \"/home\", \"ms\": 20}', '{\"path\": \"/home\", \"ms\": 25}', '{\"path\": \"/home\", \"ms\": 22}', '{\"path\": \"/home\", \"ms\": 30}',\n]\nby = defaultdict(list)\nfor ln in lines:\n    r = json.loads(ln)\n    by[r[\"path\"]].append(r[\"ms\"])\ndef pctl(vals, p):\n    v = sorted(vals)\n    return v[math.ceil(p / 100 * len(v)) - 1]\nrows = [(p, len(v), sum(v) / len(v), pctl(v, 95)) for p, v in by.items()]\nfor p, n, mean, p95 in sorted(rows, key=lambda r: -r[3]):\n    print(f\"{p} n={n} mean={mean:.1f} p95={p95}\")\n",
+   "expect": [
+    "/search n=5 mean=566.0 p95=2400",
+    "/home n=4 mean=24.2 p95=30"
+   ]
+  },
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html"
+  ],
+  "tags": [
+   "metrics",
+   "python",
+   "latency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-011",
+  "area": "devops",
+  "topic": "python-subprocess",
+  "level": 2,
+  "type": "concept",
+  "q": "In an ops script you need to call an external command (e.g. `kubectl` or `rsync`) from Python. How do you do it safely?",
+  "followups": [
+   "When is shell=True acceptable?",
+   "How do you kill the whole process tree on timeout?"
+  ],
+  "answer": "Use `subprocess.run([...args], check=True, capture_output=True, text=True, timeout=N)` with an argument list and no shell. A list avoids shell injection when any argument comes from input (filenames, hostnames); `shell=True` with string interpolation is the classic command-injection bug. Always set a timeout (a hung child hangs your automation), check the return code (or handle `CalledProcessError`), capture stderr for diagnostics, and pass an explicit `env`/`cwd` when it matters. For long output, stream instead of `capture_output` to avoid memory blowup, and avoid `shell=True` pipes by connecting processes with Python. Pitfall: `os.system`, ignoring return codes, and using `Popen.wait()` with full pipes, which deadlocks.",
+  "pitfalls": [
+   "shell=True with f-strings",
+   "No timeout",
+   "Ignoring exit codes"
+  ],
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "python",
+   "subprocess",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-012",
+  "area": "devops",
+  "topic": "alert-burn-rate",
+  "level": 4,
+  "type": "code",
+  "q": "Implement a multi-window burn-rate check. Given a 99.9% SLO, a burn rate of 14.4 over both a 1-hour and a 5-minute window means the 30-day budget would be gone in about 2 days. Using per-window error ratios, decide whether to page and explain the reason for two windows.",
+  "followups": [
+   "What burn rates and windows would you set for a ticket-level alert?",
+   "How does low traffic distort ratios?"
+  ],
+  "answer": "Burn rate = observed error ratio / allowed error ratio (1 - SLO). A rate of 1 spends the budget exactly over the window; 14.4 spends 2% of a 30-day budget in one hour. The long window (1h) proves the problem is significant; the short window (5m) proves it is still happening, which makes the alert reset quickly after recovery and avoids paging for a burst that already ended. Pair a fast page (14.4 over 1h/5m) with a slower ticket alert (e.g. rate 1 over 3 days/6h). Pitfall: a single long window pages long after recovery; a single short window pages on blips.",
+  "pitfalls": [
+   "Alerting on raw error count",
+   "Only one window"
+  ],
+  "solution": {
+   "code": "slo = 0.999\nallowed = 1 - slo\ndef burn(err_ratio):\n    return err_ratio / allowed\nsamples = {\n  \"incident\": {\"1h\": 0.02, \"5m\": 0.03},\n  \"recovered\": {\"1h\": 0.02, \"5m\": 0.0002},\n  \"blip\": {\"1h\": 0.0009, \"5m\": 0.05},\n}\nfor name, w in samples.items():\n    b1, b5 = burn(w[\"1h\"]), burn(w[\"5m\"])\n    page = b1 >= 14.4 and b5 >= 14.4\n    print(f\"{name}: 1h={b1:.1f} 5m={b5:.1f} page={page}\")\ndays_to_exhaust = 30 / 14.4\nprint(f\"budget gone in {days_to_exhaust:.1f} days at burn 14.4\")\n",
+   "expect": [
+    "incident: 1h=20.0 5m=30.0 page=True",
+    "recovered: 1h=20.0 5m=0.2 page=False",
+    "blip: 1h=0.9 5m=50.0 page=False",
+    "budget gone in 2.1 days"
+   ]
+  },
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "sre",
+   "alerting",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-013",
+  "area": "devops",
+  "topic": "env-config",
+  "level": 2,
+  "type": "code",
+  "q": "Parse a `.env`-style config text (comments, blank lines, quoted values, `export` prefixes) into a dict and report which required keys are missing and which values look like secrets that must be masked when printed.",
+  "followups": [
+   "Why should secrets not live in .env files committed to git?",
+   "How does the twelve-factor app treat config?"
+  ],
+  "answer": "Parse line by line: skip blanks and comments, strip an optional `export `, split on the first `=` only (values may contain `=`), and remove matching surrounding quotes. Validate required keys explicitly and fail fast at startup with a clear message rather than at first use in production. Mask by key name patterns (PASSWORD, TOKEN, SECRET, KEY). Better still, load secrets from a secret manager and keep only non-secret config in files. Pitfall: `split('=')` breaking base64 values ending with `=`, and logging the whole config dict.",
+  "pitfalls": [
+   "split('=') without maxsplit",
+   "Printing config for debugging"
+  ],
+  "solution": {
+   "code": "import re\nTEXT = \"\"\"# app settings\nAPP_ENV=prod\nexport DB_HOST=\"db.internal\"\n\nDB_PASSWORD='p@ss=word=='\nAPI_TOKEN=abc123\nLOG_LEVEL=info\n\"\"\"\ncfg = {}\nfor line in TEXT.splitlines():\n    line = line.strip()\n    if not line or line.startswith(\"#\"):\n        continue\n    if line.startswith(\"export \"):\n        line = line[7:]\n    k, _, v = line.partition(\"=\")\n    if len(v) >= 2 and v[0] == v[-1] and v[0] in \"\\\"'\":\n        v = v[1:-1]\n    cfg[k.strip()] = v\nrequired = [\"APP_ENV\", \"DB_HOST\", \"DB_PORT\", \"DB_PASSWORD\"]\nprint(\"missing:\", [k for k in required if k not in cfg])\nsecret = re.compile(r\"PASS|TOKEN|SECRET|KEY\", re.I)\nfor k, v in cfg.items():\n    print(f\"{k}={'****' if secret.search(k) else v}\")\nprint(\"len(DB_PASSWORD) =\", len(cfg[\"DB_PASSWORD\"]))\n",
+   "expect": [
+    "missing: ['DB_PORT']",
+    "DB_HOST=db.internal",
+    "DB_PASSWORD=****",
+    "len(DB_PASSWORD) = 11"
+   ]
+  },
+  "chapters": [
+   "devops/do02-config-yaml-json-toml.html"
+  ],
+  "tags": [
+   "config",
+   "python",
+   "secrets"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-014",
+  "area": "devops",
+  "topic": "cron-locking",
+  "level": 3,
+  "type": "scenario",
+  "q": "A nightly cron backup job sometimes takes longer than 24h and two instances run at the same time, corrupting the archive. How do you fix it and prevent it in future?",
+  "followups": [
+   "What if the host dies while holding the lock?",
+   "When would you move this from cron to a scheduler with retries?"
+  ],
+  "answer": "Immediate: prevent overlap with a lock. On one host `flock -n /var/lock/backup.lock cmd` (or `flock` in the crontab) fails fast if held; across hosts use a distributed lock/lease (DB row with TTL, Kubernetes `concurrencyPolicy: Forbid`, etcd/Consul). Write output to a temp name and `mv` atomically on success so a partial archive is never mistaken for a good one. Make the job idempotent and resumable. Then address the cause: why is it slow (data growth, throttled disk)? Add a duration metric and alert on 'ran longer than expected' and on 'has not succeeded in N hours' (dead man's switch), not just on failure. Pitfall: PID files without staleness handling, and locks with no TTL that stay forever after a crash.",
+  "pitfalls": [
+   "Just moving the schedule earlier",
+   "Lock file without cleanup"
+  ],
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "cron",
+   "reliability",
+   "automation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-015",
+  "area": "devops",
+  "topic": "postmortem",
+  "level": 3,
+  "type": "concept",
+  "q": "What makes a good blameless postmortem, and what do you do with the action items?",
+  "followups": [
+   "How do you keep action items from rotting?",
+   "How do you measure that postmortems improve reliability?"
+  ],
+  "answer": "It contains: impact (who, how long, how many), timeline with detection and mitigation times, root cause and contributing factors (systemic: missing test, unsafe default, alert gap), what went well, where we got lucky, and action items. Blameless means asking 'how did the system allow a reasonable person to do this?' instead of 'who?', which keeps people honest about what happened. Action items must be specific, owned, prioritised and tracked to completion; prefer fixes that remove the failure class (guardrails, automation) over 'be more careful'. Pitfall: single 'human error' root cause, 30 low-value action items nobody does, and postmortems only for outages rather than near misses.",
+  "pitfalls": [
+   "'Human error' as root cause",
+   "No follow-up ownership"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "incident",
+   "culture",
+   "sre"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-016",
+  "area": "devops",
+  "topic": "alert-dedup",
+  "level": 3,
+  "type": "code",
+  "q": "Write a function that suppresses duplicate alerts: given (timestamp_seconds, alert_key) events, emit an alert only if the same key has not been emitted in the previous 300 seconds. Print the emitted ones and the suppressed count.",
+  "followups": [
+   "How does Alertmanager's group_interval/repeat_interval relate?",
+   "What state must be shared if you run two alert workers?"
+  ],
+  "answer": "Keep a dict `last_sent[key]` and emit when `ts - last_sent >= window`, updating only when you emit (fixed cooldown from the last emission, not from the last event, otherwise a steady stream is suppressed forever). In production the state lives in the alertmanager or a shared store, groups by labels, and sends a 'resolved' notice. Consider whether events arrive out of order. Pitfall: updating the timestamp on suppressed events, which turns the cooldown into an inactivity timer.",
+  "pitfalls": [
+   "Resetting the window on every event"
+  ],
+  "solution": {
+   "code": "events = [(0, \"disk\"), (60, \"disk\"), (120, \"cpu\"), (299, \"disk\"), (300, \"disk\"), (450, \"cpu\"), (650, \"disk\"), (700, \"cpu\")]\nlast, sent, suppressed = {}, [], 0\nfor ts, key in events:\n    if key in last and ts - last[key] < 300:\n        suppressed += 1\n        continue\n    last[key] = ts\n    sent.append((ts, key))\nfor ts, key in sent:\n    print(\"ALERT\", ts, key)\nprint(\"suppressed\", suppressed)\n",
+   "expect": [
+    "ALERT 0 disk",
+    "ALERT 120 cpu",
+    "ALERT 300 disk",
+    "ALERT 450 cpu",
+    "ALERT 650 disk",
+    "suppressed 3"
+   ]
+  },
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "alerting",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-017",
+  "area": "devops",
+  "topic": "canary-rollback",
+  "level": 4,
+  "type": "design",
+  "q": "Design an automated canary release for a stateless HTTP service, including the metrics that gate promotion and how rollback works.",
+  "followups": [
+   "How do you canary a schema change?",
+   "What if the canary gets too little traffic to judge?"
+  ],
+  "answer": "Route a small slice (1-5%) to the new version, hold for a soak period, compare canary vs baseline (not vs. yesterday) on SLIs: error rate, p99 latency, saturation, plus business metrics (checkout success). Promote in steps (5, 25, 50, 100%) with automated analysis (Argo Rollouts/Flagger/Spinnaker Kayenta) and a statistical threshold rather than eyeballing. Abort and roll back automatically if a gate fails; rollback is shifting traffic back to the stable ReplicaSet, which must remain running until promotion completes. Requirements: backward-compatible DB and API changes (expand/contract), enough canary traffic for statistical significance (low traffic services need a longer soak or synthetic traffic), feature flags for risky logic, and correct session handling. Trade-offs: slower than a rolling update and needs traffic shaping via ingress/mesh; blue/green is simpler and gives instant rollback but costs double capacity and has an all-at-once blast radius. Pitfall: a canary that shares the same database migration, so 'rollback' cannot actually undo the change.",
+  "pitfalls": [
+   "Comparing canary against a different time window",
+   "Promoting on a timer only"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "deployment",
+   "canary",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-018",
+  "area": "devops",
+  "topic": "metric-types",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain counter, gauge and histogram metrics and give one query mistake for each type.",
+  "followups": [
+   "What is cardinality and how do you keep it bounded?",
+   "Why does rate() over a counter handle restarts?"
+  ],
+  "answer": "Counter: monotonically increasing (requests_total); resets on restart so you query with `rate()`/`increase()`, never the raw value. Gauge: current value that goes up and down (memory, queue depth); do not `rate()` it, and sample-frequency matters for spikes. Histogram: bucketed observations (request duration) enabling server-side percentile estimates with `histogram_quantile` and aggregation across instances; accuracy depends on bucket layout, and buckets are cumulative. Summary computes quantiles client-side and cannot be aggregated. Pitfall: high-cardinality labels (user_id, URL with IDs) which explode series count and memory.",
+  "pitfalls": [
+   "Graphing a raw counter",
+   "Averaging quantiles across pods"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "observability",
+   "prometheus"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-019",
+  "area": "devops",
+  "topic": "tail-latency",
+  "level": 4,
+  "type": "scenario",
+  "q": "Dashboards show average latency at 80 ms and stable, but users complain of slowness and the p99 is 4 s. How do you investigate?",
+  "followups": [
+   "How do exemplars help?",
+   "What is tail-at-scale fan-out amplification?"
+  ],
+  "answer": "Averages hide tails, so first confirm with percentiles broken down by route, instance, client, region and version to find the slice. Then look at the request path with distributed traces of slow requests (exemplars link histogram buckets to trace IDs). Common tail causes: one bad node/noisy neighbour, GC pauses, connection pool or thread pool exhaustion (queueing), a cold cache, lock contention, retries/timeouts stacking (a 1 s timeout with 3 retries), DNS or TLS setup, slow downstream dependency, and fan-out (a request calling 20 backends is slow if any one is slow). Check saturation signals and queue depth, compare slow vs fast requests, and correlate with deploys. Mitigations: hedged requests, timeouts and budgets, load shedding, bulkheads, per-instance outlier ejection. Pitfall: adding hardware without locating the cause.",
+  "pitfalls": [
+   "Scaling out before finding the slice",
+   "Looking at averages"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "latency",
+   "observability",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-020",
+  "area": "devops",
+  "topic": "duration-parse",
+  "level": 2,
+  "type": "code",
+  "q": "Write a parser that converts duration strings like `1h30m`, `45s`, `2d` into seconds (raising on invalid input), and use it to sort a list of retention settings.",
+  "followups": [
+   "How would you support fractional values?",
+   "How would you write tests for this?"
+  ],
+  "answer": "Use a regex that fully matches repeated `<int><unit>` groups and reject anything else; a common bug is silently ignoring garbage. Units map: s=1, m=60, h=3600, d=86400. Validation at config load time gives fast failure. Note ambiguity: `m` is minutes here (Prometheus uses `m` for minutes and `M` is not accepted). Pitfall: using `re.findall` alone, which ignores invalid fragments like `1x5m`.",
+  "pitfalls": [
+   "Not anchoring the regex",
+   "Accepting empty strings"
+  ],
+  "solution": {
+   "code": "import re\nUNITS = {\"s\": 1, \"m\": 60, \"h\": 3600, \"d\": 86400}\nFULL = re.compile(r\"(?:\\d+[smhd])+\")\nPART = re.compile(r\"(\\d+)([smhd])\")\ndef to_seconds(text):\n    if not FULL.fullmatch(text):\n        raise ValueError(f\"bad duration: {text!r}\")\n    return sum(int(n) * UNITS[u] for n, u in PART.findall(text))\nretention = [\"2d\", \"1h30m\", \"45s\", \"90m\", \"1d12h\"]\nfor t in sorted(retention, key=to_seconds):\n    print(t, to_seconds(t))\nfor bad in [\"\", \"5\", \"1x5m\", \"1h 30m\"]:\n    try:\n        to_seconds(bad)\n    except ValueError as e:\n        print(\"error:\", e)\n",
+   "expect": [
+    "45s 45",
+    "1h30m 5400",
+    "90m 5400",
+    "1d12h 129600",
+    "2d 172800",
+    "error: bad duration: '1x5m'"
+   ]
+  },
+  "chapters": [
+   "devops/do02-config-yaml-json-toml.html"
+  ],
+  "tags": [
+   "python",
+   "parsing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-021",
+  "area": "devops",
+  "topic": "logfmt-count",
+  "level": 2,
+  "type": "code",
+  "q": "Parse logfmt lines (`ts=... level=error msg=\"db timeout\" svc=api`) into dicts, handling quoted values with spaces, and print a count of errors per service.",
+  "followups": [
+   "How would this change if values contain escaped quotes?",
+   "Where would you ship these logs and how would you index them?"
+  ],
+  "answer": "logfmt is `key=value` pairs where values may be quoted. A single regex `(\\w+)=(\"[^\"]*\"|\\S*)` handles both forms. Count with a `Counter` filtered on level. Prefer JSON when nesting is needed; logfmt is human-friendly and cheap. Pitfall: `line.split()` breaks on quoted values with spaces, and escaped quotes inside values need a fuller parser (use a library like `logfmt` in real code).",
+  "pitfalls": [
+   "Splitting on whitespace"
+  ],
+  "solution": {
+   "code": "import re\nfrom collections import Counter\nLOGS = \"\"\"ts=2025-10-10T13:00:01Z level=info msg=\"request done\" svc=api ms=12\nts=2025-10-10T13:00:02Z level=error msg=\"db timeout after 5s\" svc=api\nts=2025-10-10T13:00:03Z level=error msg=\"cache miss storm\" svc=cache\nts=2025-10-10T13:00:04Z level=warn msg=\"slow query\" svc=db\nts=2025-10-10T13:00:05Z level=error msg=\"db timeout after 5s\" svc=api\n\"\"\"\nkv = re.compile(r'(\\w+)=(\"[^\"]*\"|\\S*)')\ndef parse(line):\n    return {k: v.strip('\"') for k, v in kv.findall(line)}\nrecs = [parse(l) for l in LOGS.splitlines()]\nprint(recs[1][\"msg\"])\nerrs = Counter(r[\"svc\"] for r in recs if r[\"level\"] == \"error\")\nfor svc, n in errs.most_common():\n    print(svc, n)\n",
+   "expect": [
+    "db timeout after 5s",
+    "api 2",
+    "cache 1"
+   ]
+  },
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html"
+  ],
+  "tags": [
+   "logs",
+   "python",
+   "regex"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-022",
+  "area": "devops",
+  "topic": "circuit-breaker",
+  "level": 4,
+  "type": "code",
+  "q": "Implement a minimal circuit breaker with closed, open and half-open states using an injected clock (no real time) and show state transitions for a failing dependency that recovers.",
+  "followups": [
+   "How does this differ from rate limiting and bulkheads?",
+   "Should the breaker state be shared across instances?"
+  ],
+  "answer": "Closed: calls pass; count consecutive failures. After N failures, open: fail fast without calling the dependency for a cool-down period, which protects it and frees your threads. After cool-down, half-open: allow a limited trial call; success closes, failure re-opens. Inject the clock for deterministic tests. It complements timeouts and retries: retries with no breaker amplify load on a struggling service. Trade-offs: thresholds tuning, per-instance state (each pod has its own view), and fast-fails need a sensible fallback (cache, degraded response). Pitfall: opening on a single error, or letting many callers through in half-open.",
+  "pitfalls": [
+   "No half-open state",
+   "Retrying inside an open breaker"
+  ],
+  "solution": {
+   "code": "class Breaker:\n    def __init__(self, threshold, cooldown, clock):\n        self.threshold, self.cooldown, self.clock = threshold, cooldown, clock\n        self.state, self.fails, self.opened_at = \"closed\", 0, None\n    def call(self, fn):\n        if self.state == \"open\":\n            if self.clock() - self.opened_at >= self.cooldown:\n                self.state = \"half-open\"\n            else:\n                return \"fast-fail\"\n        try:\n            r = fn()\n        except Exception:\n            self.fails += 1\n            if self.state == \"half-open\" or self.fails >= self.threshold:\n                self.state, self.opened_at = \"open\", self.clock()\n            return \"error\"\n        self.state, self.fails = \"closed\", 0\n        return r\n\nnow = [0]\nhealthy = [False]\ndef dep():\n    if not healthy[0]:\n        raise RuntimeError(\"down\")\n    return \"ok\"\nb = Breaker(2, 30, lambda: now[0])\nfor t in (0, 1, 2, 10, 31):\n    now[0] = t\n    if t == 31:\n        healthy[0] = True\n    print(t, b.call(dep), b.state)\n",
+   "expect": [
+    "0 error closed",
+    "1 error open",
+    "2 fast-fail open",
+    "10 fast-fail open",
+    "31 ok closed"
+   ]
+  },
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "python",
+   "reliability",
+   "resilience"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-023",
+  "area": "devops",
+  "topic": "reliability-targets",
+  "level": 5,
+  "type": "scenario",
+  "q": "A product manager demands 99.999% availability for a new internal API that depends on a third-party service with a 99.9% SLA and a single-region database. How do you respond?",
+  "followups": [
+   "How do you compute availability of serial vs parallel dependencies?",
+   "How would you validate that a multi-region failover actually works?"
+  ],
+  "answer": "Turn the number into an engineering and cost conversation. 99.999% allows about 26 seconds of downtime a month; a serial dependency at 99.9% caps you at roughly 99.9% no matter what you do, so the target is mathematically unreachable without redesign (caching, async decoupling, degraded mode, multi-provider). Ask what users actually need: which operations must be that available (a read path may tolerate stale data), what an outage costs, and whether measurement (SLI) at that resolution is even possible. Propose tiered SLOs (e.g. 99.9% with a path to 99.95% for critical calls), quantify the cost of each extra nine (multi-region, active-active, on-call, testing), agree an error budget policy, and revisit with data. Each nine costs roughly 10x more. Pitfall: saying yes and promising, or saying no without alternatives.",
+  "pitfalls": [
+   "Accepting the target unchallenged",
+   "Ignoring dependency availability math"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "sre",
+   "slo",
+   "leadership"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-024",
+  "area": "devops",
+  "topic": "log-pipeline",
+  "level": 4,
+  "type": "design",
+  "q": "Design a centralised logging pipeline for 200 microservices on Kubernetes that is searchable, affordable and does not lose logs during spikes.",
+  "followups": [
+   "How do you keep logs from a crashing pod?",
+   "How do you control cost as teams grow?"
+  ],
+  "answer": "Apps log JSON to stdout; a node agent (Fluent Bit/Vector/OTel collector DaemonSet) tails container logs, adds Kubernetes metadata, and ships through a buffered queue (Kafka or the agent's disk buffer) to storage: Elasticsearch/OpenSearch for full-text search or Loki/ClickHouse for cheaper label-based storage. Decisions: enforce a common schema and trace ID; drop or sample debug and health-check noise at the agent; tiered retention (7-14 days hot, cold in object storage, 90+ days for audit); backpressure and disk buffering so bursts do not drop or block apps; per-team quotas and cost attribution; access control and PII redaction at the edge. Trade-offs: Loki is cheap but brute-force searches, Elasticsearch is fast but expensive to index everything; sampling saves cost but loses evidence (never sample errors). Monitor the pipeline itself (lag, dropped events). Pitfall: high-cardinality labels in Loki, unbounded log levels in production.",
+  "pitfalls": [
+   "Writing logs to files inside containers",
+   "No buffering between agent and store"
+  ],
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "logging",
+   "observability",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "devops-025",
+  "area": "devops",
+  "topic": "ops-script-design",
+  "level": 4,
+  "type": "scenario",
+  "q": "You are asked to write a Python script that rotates credentials for 300 servers. Which design properties would you insist on before running it in production?",
+  "followups": [
+   "How do you handle hosts that are unreachable?",
+   "How do you make the run auditable?"
+  ],
+  "answer": "Dry-run mode that prints intended changes; idempotent per host so reruns are safe; concurrency with a limit and batches (canary a few hosts first) with stop-on-failure thresholds; per-host timeouts and bounded retries with backoff; structured logging with a run ID and per-host result summary; a persisted state file or checkpoint so it can resume; no secrets in argv or logs (they show up in `ps` and CI logs); a verified rollback or ability to keep the old credential valid during overlap (dual-credential window); least-privilege access for the script and an audit trail; tests against a staging fleet. Pitfall: rotating all hosts at once, and deleting the old credential before verifying the new one works.",
+  "pitfalls": [
+   "No dry-run",
+   "Big-bang execution",
+   "Passing secrets on the command line"
+  ],
+  "chapters": [
+   "devops/do03-automation-scripts-resilience.html"
+  ],
+  "tags": [
+   "automation",
+   "security",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

@@ -1,0 +1,403 @@
+[
+ {
+  "id": "cicd-001",
+  "area": "cicd",
+  "topic": "ci-vs-cd",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain continuous integration, continuous delivery and continuous deployment. What is the practical difference between the last two?",
+  "followups": [
+   "What makes CI fail as a practice even with a tool in place?",
+   "How do feature flags decouple deploy from release?"
+  ],
+  "answer": "CI: developers merge small changes to a shared branch frequently, and each change is automatically built and tested, so integration problems surface within minutes. Continuous delivery: every change that passes the pipeline is releasable and can be deployed to production with a push-button (manual approval) decision. Continuous deployment removes the manual gate: every passing change goes to production automatically. Continuous deployment needs strong automated tests, feature flags, progressive delivery and fast rollback; delivery is the more common target for regulated or lower-maturity teams. Pitfall: calling nightly builds on long-lived feature branches 'CI'.",
+  "pitfalls": [
+   "Equating CI with running Jenkins",
+   "Long-lived branches"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "cicd",
+   "fundamentals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-002",
+  "area": "cicd",
+  "topic": "pipeline-design",
+  "level": 2,
+  "type": "design",
+  "q": "Design a CI/CD pipeline for a containerised web service: stages, ordering, and what each stage should gate.",
+  "followups": [
+   "Where do security scans belong and what do you do with a finding?",
+   "How do you keep the pipeline under 10 minutes?"
+  ],
+  "answer": "Fast, cheap checks first, expensive ones later, one artifact built once and promoted. Stages: (1) lint, format, type check and unit tests in parallel (minutes); (2) build the image once, tag with git SHA, generate SBOM, scan dependencies and image, push to the registry; (3) integration/contract tests against ephemeral dependencies; (4) deploy to staging, run smoke and end-to-end tests; (5) approval or automatic gates, then progressive production rollout (canary/blue-green) with automated health analysis and rollback; (6) post-deploy verification and notifications. Keep pipeline definitions in the repo, run PR builds without production secrets, protect main with required checks, and measure pipeline duration and flakiness. Trade-offs: more stages means slower feedback; run slow suites on merge or nightly if PR time balloons. Pitfall: rebuilding per environment and testing something different from what ships.",
+  "pitfalls": [
+   "Rebuilding artifacts per environment",
+   "Running everything serially"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "pipeline",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-003",
+  "area": "cicd",
+  "topic": "build-caching",
+  "level": 2,
+  "type": "concept",
+  "q": "How do you speed up CI builds with caching, and what are the correctness risks?",
+  "followups": [
+   "What should a cache key contain?",
+   "How do you detect a cache-dependent failure?"
+  ],
+  "answer": "Cache what is expensive and deterministic: dependency downloads (pip/npm/Maven caches keyed by a hash of the lockfile), Docker layers (registry or BuildKit cache), compiled outputs (ccache, Bazel/Gradle remote cache). Use a key that changes when inputs change (`hash(requirements.lock)`) with restore-keys fallbacks for partial hits. Risks: stale or corrupt caches producing non-reproducible results ('works on CI only after clear cache'), cache poisoning from untrusted PR builds writing to a cache later used by main, and secrets or credentials being cached. Mitigate by scoping caches per branch with read-only fallback to main, periodic clean builds, and verifying with a nightly no-cache build. Pitfall: a cache key based on the branch name instead of dependency contents.",
+  "pitfalls": [
+   "Key based on branch only",
+   "Caching build outputs that embed secrets"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "ci",
+   "caching"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-004",
+  "area": "cicd",
+  "topic": "cache-key",
+  "level": 2,
+  "type": "code",
+  "q": "Write a function that builds a deterministic CI cache key from several lockfile contents plus the OS and Python version, and show that changing a single dependency changes the key while changing only whitespace-insensitive ordering of files does not.",
+  "followups": [
+   "What should the fallback restore key be?",
+   "Why do mtimes break caching?"
+  ],
+  "answer": "A cache key is `prefix-os-version-hash(inputs)`. Hash file contents (SHA-256), and hash the sorted list of (name, digest) pairs so the order of globbing does not matter. Include everything that affects the cached artifact: OS, language version and architecture; otherwise a cache built on Python 3.11 is restored for 3.12. Keep a fallback restore key (`prefix-os-version-`) for partial hits but never for correctness-critical outputs. Pitfall: hashing file names or mtimes (which change every checkout) instead of contents.",
+  "pitfalls": [
+   "Hashing modification times"
+  ],
+  "solution": {
+   "code": "import hashlib\ndef key(prefix, os_name, pyver, files):\n    h = hashlib.sha256()\n    for name, content in sorted(files.items()):\n        h.update(name.encode() + b\"\\0\" + hashlib.sha256(content.encode()).digest())\n    return f\"{prefix}-{os_name}-py{pyver}-{h.hexdigest()[:12]}\"\na = key(\"pip\", \"linux\", \"3.12\", {\"requirements.txt\": \"flask==3.0.0\\nrequests==2.31.0\\n\", \"dev.txt\": \"pytest==8.0.0\\n\"})\nb = key(\"pip\", \"linux\", \"3.12\", {\"dev.txt\": \"pytest==8.0.0\\n\", \"requirements.txt\": \"flask==3.0.0\\nrequests==2.31.0\\n\"})\nc = key(\"pip\", \"linux\", \"3.12\", {\"requirements.txt\": \"flask==3.0.1\\nrequests==2.31.0\\n\", \"dev.txt\": \"pytest==8.0.0\\n\"})\nd = key(\"pip\", \"linux\", \"3.11\", {\"requirements.txt\": \"flask==3.0.0\\nrequests==2.31.0\\n\", \"dev.txt\": \"pytest==8.0.0\\n\"})\nprint(a.startswith(\"pip-linux-py3.12-\"))\nprint(\"order independent:\", a == b)\nprint(\"dependency change:\", a != c)\nprint(\"python change:\", a != d)\n",
+   "expect": [
+    "True",
+    "order independent: True",
+    "dependency change: True",
+    "python change: True"
+   ]
+  },
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "ci",
+   "caching",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-005",
+  "area": "cicd",
+  "topic": "secrets-in-ci",
+  "level": 3,
+  "type": "concept",
+  "q": "How should a CI/CD pipeline handle secrets safely? Cover storage, exposure, and what to do after a leak.",
+  "followups": [
+   "Why is OIDC federation better than stored access keys?",
+   "How do you protect secrets from malicious pull requests?"
+  ],
+  "answer": "Store secrets in the CI platform's encrypted store or, better, fetch short-lived credentials at run time via OIDC federation to the cloud (GitHub Actions/GitLab OIDC to AWS/GCP roles), so no long-lived keys exist. Scope secrets to the environments and branches that need them (production secrets only on protected branches or approved environments), never expose them to PRs from forks, and give each pipeline a least-privilege role. Avoid printing them: masking is best-effort only (base64 or partial values leak), do not pass secrets on command lines or bake them into images/artifacts (`docker history`), and disable debug tracing (`set -x`). Prevent commits with pre-commit secret scanning (gitleaks, trufflehog) and server-side push protection. After a leak: assume compromised, rotate immediately, revoke the old one, check audit logs for use, then clean up history (secondary, since it has already been exposed). Pitfall: removing the secret from git history and not rotating it.",
+  "pitfalls": [
+   "Rewriting git history instead of rotating",
+   "Long-lived admin keys in CI variables"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "security",
+   "secrets",
+   "ci"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-006",
+  "area": "cicd",
+  "topic": "rollback-strategy",
+  "level": 4,
+  "type": "scenario",
+  "q": "A release went to production and error rates doubled. Discuss rollback options for a service with a database, and what makes rollback safe or unsafe.",
+  "followups": [
+   "What is expand and contract?",
+   "When is roll-forward better than rollback?"
+  ],
+  "answer": "Fastest safe option is usually to redeploy the previous immutable artifact (`kubectl rollout undo`, previous task definition, switch blue/green traffic back) or turn off the feature flag, which is instant and needs no deploy. That works only if the change was backward compatible. The hard part is data: a destructive migration (drop column, type change, data backfill) cannot be undone by redeploying old code. Use the expand-contract pattern: first add new columns/tables while old code still works, deploy code that writes both, backfill, switch reads, and only later remove the old structure in a separate release; every step is individually reversible. Also confirm that config and secrets versions roll back with the code, that old code tolerates new data, and that messages already on queues remain compatible. Roll forward when a fix is faster and rollback would be riskier, but decide by a pre-agreed rule. Pitfall: a release combining code and irreversible migration in one step, and rollback runbooks nobody has tested.",
+  "pitfalls": [
+   "Deploying destructive migrations with the code",
+   "Untested rollback procedures"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "rollback",
+   "deployment",
+   "database"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-007",
+  "area": "cicd",
+  "topic": "blue-green-canary",
+  "level": 2,
+  "type": "concept",
+  "q": "Compare rolling, blue/green and canary deployments: when would you choose each, and what are the trade-offs?",
+  "followups": [
+   "How do you route traffic percentages in Kubernetes?",
+   "How do feature flags differ from canaries?"
+  ],
+  "answer": "Rolling: replace instances gradually within the same environment; no extra capacity, but old and new versions serve traffic at once and rollback is another rollout. Blue/green: stand up a full new environment, test it, switch traffic atomically (LB/DNS/route), keep the old one for instant rollback; costs double capacity for a while and needs data-layer compatibility, and switching all users at once has a big blast radius. Canary: route a small percentage of real traffic to the new version, evaluate metrics, and expand progressively; smallest blast radius and real-world validation, but needs traffic splitting, good metrics and enough traffic; more moving parts. Choose rolling as the default for stateless services, blue/green when you need an instant, tested cutover and simple rollback, canary for high-risk or high-traffic changes. Pitfall: DNS-TTL based switching (slow, uneven) and forgetting that databases are shared between blue and green.",
+  "pitfalls": [
+   "Ignoring the shared database"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "deployment",
+   "strategy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-008",
+  "area": "cicd",
+  "topic": "flaky-tests",
+  "level": 4,
+  "type": "scenario",
+  "q": "Your main branch pipeline fails randomly around 20% of the time because of flaky tests, and developers have started to re-run until green. How do you fix the situation?",
+  "followups": [
+   "How do you find flaky tests automatically?",
+   "Should retries be allowed?"
+  ],
+  "answer": "Treat flakiness as a defect with an owner and measure it: track per-test pass/fail history on the same commit, compute flake rates, and quarantine the worst offenders (move to a non-blocking job, auto-open a ticket with an owner and a deadline) so the main signal is trustworthy again. Fix root causes: shared state and test order dependence, time and random seeds, sleeps instead of waiting on conditions, network access to real services, concurrency, resource limits on runners, shared databases; run tests in isolation with ephemeral fixtures and parallel-safe design. Retries can mask problems, so allow limited automatic retries only with reporting, never silently. Also stabilise the platform (pin runner images, dependency versions). Culture: red main is stop-the-line. Pitfall: blanket retry-on-failure and ignoring failures ('it is just flaky') which will eventually hide a real regression.",
+  "pitfalls": [
+   "Auto-retry everything silently",
+   "Deleting tests"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "testing",
+   "ci",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-009",
+  "area": "cicd",
+  "topic": "pipeline-slow",
+  "level": 4,
+  "type": "scenario",
+  "q": "A pipeline takes 45 minutes and the team is complaining. How do you approach reducing it?",
+  "followups": [
+   "How do you decide what to run on PRs versus on main?",
+   "What is the cost trade-off of bigger runners?"
+  ],
+  "answer": "Measure first: get per-job and per-step durations, queue time versus run time, and the critical path. Then attack the largest items: parallelise independent jobs and shard test suites (split by timing data), run only affected tests/builds (path filters, monorepo tools like Bazel/Nx), cache dependencies and Docker layers, use faster/larger runners where cost per minute is offset by time, move slow suites (full E2E, load tests) to merge/nightly stages while keeping a quick PR gate, avoid re-installing tools by using prebuilt CI images, fail fast (lint first), and delete or fix slow tests. Track the metric (p50/p90 pipeline time, flake rate) and set a budget. Trade-offs: parallel jobs cost more, splitting tests risks missed interactions, and shallower PR checks push failures to later stages. Pitfall: optimising a step that is not on the critical path.",
+  "pitfalls": [
+   "Optimising without measuring",
+   "Skipping tests to save time"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "ci",
+   "performance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-010",
+  "area": "cicd",
+  "topic": "terraform-basics",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain the Terraform workflow (`init`, `plan`, `apply`), what state is, and why the state file is sensitive.",
+  "followups": [
+   "What does drift mean and how do you detect it?",
+   "What is `terraform import` for?"
+  ],
+  "answer": "Terraform declares desired infrastructure in HCL; `init` downloads providers and configures the backend; `plan` compares configuration to the state (and refreshes against real APIs) and shows a diff; `apply` executes it. State maps configuration resources to real object IDs and stores attributes, including secrets such as generated passwords, so it must be encrypted, access-controlled and never committed to git. Use a remote backend (S3 + DynamoDB lock, Terraform Cloud, GCS) with locking so two applies cannot run concurrently, and versioning to recover from mistakes. Review plans in PRs and apply from CI with a reviewed plan file. Pitfall: local state on a laptop, manual console changes (drift), and `terraform destroy`/replace changes hidden in a huge plan.",
+  "pitfalls": [
+   "Committing terraform.tfstate",
+   "No state locking"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "terraform",
+   "iac"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-011",
+  "area": "cicd",
+  "topic": "terraform-plan-json",
+  "level": 3,
+  "type": "code",
+  "q": "Given `terraform show -json plan` style data, list all resources that will be destroyed or replaced and produce a summary of counts by action. Explain what a CI gate should do with destroys.",
+  "followups": [
+   "How does prevent_destroy behave and what are its limits?",
+   "What causes a forced replacement?"
+  ],
+  "answer": "The JSON plan has `resource_changes[]`, each with `address` and `change.actions`, one of `[\"no-op\"]`, `[\"create\"]`, `[\"update\"]`, `[\"delete\"]`, `[\"delete\",\"create\"]` or `[\"create\",\"delete\"]` for replacement. A CI gate should surface destroys/replacements loudly and require explicit approval for stateful resources (databases, volumes, buckets), or block them by policy (OPA/Sentinel/Checkov), `lifecycle { prevent_destroy = true }` on critical resources, and `create_before_destroy` for zero-downtime replacements. Pitfall: only counting `delete` and missing replacements, and reading a text plan by eye.",
+  "pitfalls": [
+   "Missing replacements (delete+create) in the summary"
+  ],
+  "solution": {
+   "code": "import json\nfrom collections import Counter\nPLAN = json.loads(\"\"\"{\"resource_changes\": [\n {\"address\": \"aws_s3_bucket.logs\", \"change\": {\"actions\": [\"no-op\"]}},\n {\"address\": \"aws_instance.web[0]\", \"change\": {\"actions\": [\"delete\", \"create\"]}},\n {\"address\": \"aws_db_instance.main\", \"change\": {\"actions\": [\"delete\"]}},\n {\"address\": \"aws_security_group.web\", \"change\": {\"actions\": [\"update\"]}},\n {\"address\": \"aws_iam_role.ci\", \"change\": {\"actions\": [\"create\"]}}\n]}\"\"\")\ndef action(a):\n    if a == [\"delete\", \"create\"] or a == [\"create\", \"delete\"]:\n        return \"replace\"\n    return a[0]\ncounts = Counter()\ndanger = []\nfor rc in PLAN[\"resource_changes\"]:\n    act = action(rc[\"change\"][\"actions\"])\n    counts[act] += 1\n    if act in (\"delete\", \"replace\"):\n        danger.append((rc[\"address\"], act))\nprint(dict(sorted(counts.items())))\nfor addr, act in sorted(danger):\n    print(\"REVIEW\", act, addr)\n",
+   "expect": [
+    "{'create': 1, 'delete': 1, 'no-op': 1, 'replace': 1, 'update': 1}",
+    "REVIEW delete aws_db_instance.main",
+    "REVIEW replace aws_instance.web[0]"
+   ]
+  },
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "terraform",
+   "python",
+   "json"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-012",
+  "area": "cicd",
+  "topic": "terraform-team-state",
+  "level": 5,
+  "type": "design",
+  "q": "Five engineers and three environments share a Terraform codebase. How do you structure repos, state, modules and the apply process to avoid stepping on each other and to limit blast radius?",
+  "followups": [
+   "How do you refactor resources between states without downtime?",
+   "What do you do if an apply fails halfway?"
+  ],
+  "answer": "Split state by blast radius and change frequency: separate state per environment and per component (network, data, app), not one giant state, so a bad apply or a lock affects little. Reusable, versioned modules for patterns (VPC, service) with pinned versions and minimal inputs; environments as thin root configs that pass variables (or Terragrunt/workspaces if the team prefers, being aware workspaces share code and backend and can be error-prone for prod/non-prod separation). Remote backend with locking and separate credentials/roles per environment; production applies only via CI with PR-reviewed plans, protected branches, required approvals, policy checks (OPA/Checkov, cost estimates) and a plan artifact that is applied exactly as reviewed. Use `data` sources or remote state outputs sparingly for cross-stack references. Handle drift with scheduled plans and alerts. Trade-offs: many states mean more plumbing and ordering issues; a monolith is simpler but slow and risky. Pitfall: laptop applies to production, and workspaces used as the only isolation for prod.",
+  "pitfalls": [
+   "One state for everything",
+   "Applying from laptops"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "terraform",
+   "iac",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-013",
+  "area": "cicd",
+  "topic": "iac-drift",
+  "level": 3,
+  "type": "scenario",
+  "q": "Someone changed a security group in the AWS console during an incident, and now `terraform plan` wants to revert it. What should the team do?",
+  "followups": [
+   "When is `ignore_changes` legitimate?",
+   "How would you detect console changes automatically?"
+  ],
+  "answer": "Do not blindly apply: the plan would undo an emergency fix and may reintroduce the incident. First understand the console change (CloudTrail shows who, when, what) and whether it is still needed. Then reconcile in code: if the change is desirable, encode it in Terraform via PR, merge and apply so state and reality agree; if not, apply to revert it. Prevent recurrence: restrict console write access in production (read-only roles, break-glass with audit and expiry), scheduled drift detection plans, policy or AWS Config rules alerting on out-of-band changes, and a postmortem item about why an emergency change had no fast path in code. Pitfall: `terraform apply -refresh-only` or ignore_changes used to silence the diff without a decision, which permanently hides drift.",
+  "pitfalls": [
+   "Applying blindly to make the diff disappear"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "terraform",
+   "drift",
+   "incident"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-014",
+  "area": "cicd",
+  "topic": "supply-chain",
+  "level": 5,
+  "type": "design",
+  "q": "How would you secure the software supply chain of a CI/CD pipeline that builds and deploys container images?",
+  "followups": [
+   "What is SLSA and what level would you target?",
+   "Why are floating tags risky for CI actions?"
+  ],
+  "answer": "Threats: compromised dependencies, malicious PRs, stolen CI credentials, tampered artifacts. Controls: pin dependencies with lockfiles and hashes and pin actions/base images by digest/commit SHA; scan dependencies and images (SCA, Trivy) and secrets in CI; build on ephemeral, isolated runners without persistent credentials; least-privilege, short-lived OIDC identities per job and protected environments for production; require code review, signed commits or protected branches; produce an SBOM and provenance attestations (SLSA, in-toto), sign images with cosign, and have the cluster verify signatures at admission (Kyverno/Sigstore policy-controller); use a private registry with immutable tags and retention; separate build from deploy permissions; and audit logging. Trade-offs: friction and slower builds, maintenance of pinned versions (automate with Renovate), and false-positive scan noise needing a triage policy. Pitfall: third-party CI actions referenced by mutable tag (`@v1`), and running untrusted PR code with secrets (`pull_request_target` misuse).",
+  "pitfalls": [
+   "Trusting mutable tags",
+   "Exposing secrets to fork PRs"
+  ],
+  "chapters": [
+   "devops/do05-devops-python-mock-interview.html"
+  ],
+  "tags": [
+   "security",
+   "supply-chain",
+   "cicd"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "cicd-015",
+  "area": "cicd",
+  "topic": "gitops",
+  "level": 4,
+  "type": "concept",
+  "q": "What is GitOps, and how does it differ from a push-based CI/CD deployment? Discuss trade-offs.",
+  "followups": [
+   "How do you promote a release between environments in GitOps?",
+   "How do you handle database migrations?"
+  ],
+  "answer": "GitOps keeps the desired state of the environment in git and a controller inside the cluster (Argo CD, Flux) continuously reconciles the live state to it (pull model). Deployment = merge a change in the config repo; rollback = git revert; drift is detected and corrected automatically; audit trail is git history; cluster credentials stay inside the cluster rather than in CI, which reduces exposure. Push-based CI/CD runs `kubectl apply`/`helm upgrade` from the pipeline with external credentials to the cluster. Trade-offs: GitOps adds a controller and a separate config-repo workflow (image tag bumps via automation such as Image Updater), secrets need special handling (sealed-secrets, SOPS, external-secrets), sync ordering and hooks for migrations require care, and feedback about deploy success moves to the controller's status. Pitfall: mixing manual `kubectl` edits with reconciliation (controller reverts them), and putting plaintext secrets in the repo.",
+  "pitfalls": [
+   "Plain secrets in git",
+   "Manual cluster edits alongside Argo CD"
+  ],
+  "chapters": [
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "gitops",
+   "argocd",
+   "deployment"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

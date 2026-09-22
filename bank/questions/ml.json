@@ -1,0 +1,545 @@
+[
+ {
+  "id": "ml-001",
+  "area": "ml",
+  "topic": "bias-variance",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain the bias-variance trade-off and how training and validation error tell you which one you have.",
+  "followups": [
+   "What does a learning curve look like for each case?",
+   "How does ensembling change bias and variance?"
+  ],
+  "answer": "Bias is error from a model too simple to capture the signal (underfitting); variance is error from sensitivity to the particular training sample (overfitting). High bias: training and validation error are both high and close together. High variance: training error is low, validation error much higher (a large gap). Remedies: for high bias use a richer model, better features, less regularization; for high variance get more data, simplify the model, add regularization, use early stopping, bagging or dropout. Learning curves (error against training-set size) diagnose which regime you are in: if validation error is still falling with more data, more data helps. Irreducible noise sets a floor no model can beat.",
+  "pitfalls": [
+   "Saying more data always fixes underfitting",
+   "Ignoring irreducible error"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html"
+  ],
+  "tags": [
+   "bias-variance",
+   "diagnostics"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-002",
+  "area": "ml",
+  "topic": "data splits",
+  "level": 1,
+  "type": "concept",
+  "q": "Why do we split data into train, validation and test sets? What goes wrong if you tune on the test set?",
+  "followups": [
+   "When do you use nested cross-validation?",
+   "How large should the test set be?"
+  ],
+  "answer": "Train fits parameters, validation is used to choose hyperparameters and models, and the test set is touched once at the end to estimate generalisation. Every decision made by looking at a dataset leaks information from it into the model, so repeatedly tuning on the test set makes its score optimistic, and you no longer have an unbiased estimate. With limited data use cross-validation for model selection and keep a final untouched holdout. The split must reflect deployment: time-based for forecasting or anything that predicts the future, grouped by user/patient/device when records of one entity are correlated, otherwise near-duplicates in train and test inflate the score.",
+  "pitfalls": [
+   "Random split for time-dependent data",
+   "Reporting the best of many test evaluations"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html"
+  ],
+  "tags": [
+   "evaluation",
+   "splits"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-003",
+  "area": "ml",
+  "topic": "accuracy on imbalanced data",
+  "level": 1,
+  "type": "concept",
+  "q": "A fraud model has 99.5% accuracy on data where 0.5% are fraud. Is it good?",
+  "followups": [
+   "How would you choose between recall and precision here?",
+   "Why is PR-AUC preferred to ROC-AUC on rare positives?"
+  ],
+  "answer": "Not on its own: predicting 'not fraud' for everything also scores 99.5% accuracy while catching nothing. On imbalanced problems report precision, recall (and the confusion matrix), F1 or F-beta, and PR-AUC, and choose the operating threshold by business cost (a missed fraud versus a false alert that annoys a customer). Compare against a trivial baseline (majority class) and against the current process. Also evaluate per segment, because an aggregate can hide failures on the minority slice.",
+  "pitfalls": [
+   "Reporting only accuracy",
+   "Not comparing to a majority-class baseline"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch20-classical-ml-capstone.html"
+  ],
+  "tags": [
+   "metrics",
+   "imbalance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-004",
+  "area": "ml",
+  "topic": "precision recall from counts",
+  "level": 2,
+  "type": "code",
+  "q": "Given TP=40, FP=10, FN=20, TN=930, compute precision, recall, F1 and accuracy, and compare accuracy with the all-negative baseline.",
+  "followups": [
+   "How do macro and micro averaging differ?",
+   "What is F-beta?"
+  ],
+  "answer": "Precision = TP/(TP+FP) = 0.8: of the alerts raised, how many were right. Recall = TP/(TP+FN) = 0.667: of the real positives, how many were found. F1 is their harmonic mean (0.727), which punishes imbalance between the two. Accuracy is 0.970, but the trivial classifier that always predicts negative scores 0.940 with zero recall, so a 3 point gain in accuracy hides that the useful information is in precision and recall. Guard divisions (no predicted positives gives undefined precision; define it as 0 and report it). The choice of metric depends on cost: recall for screening (missing is expensive), precision when acting on a positive is expensive.",
+  "pitfalls": [
+   "Dividing by the wrong denominator",
+   "Using accuracy as the headline metric"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html"
+  ],
+  "tags": [
+   "metrics",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "tp, fp, fn, tn = 40, 10, 20, 930\nprecision = tp / (tp + fp) if tp + fp else 0.0\nrecall = tp / (tp + fn) if tp + fn else 0.0\nf1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0\ntotal = tp + fp + fn + tn\naccuracy = (tp + tn) / total\nbaseline = (total - (tp + fn)) / total   # predict all negative\nprint(f\"precision={precision:.3f} recall={recall:.3f} f1={f1:.3f}\")\nprint(f\"accuracy={accuracy:.3f}\")\nprint(f\"all-negative accuracy={baseline:.3f}\")\n",
+   "expect": [
+    "precision=0.800 recall=0.667 f1=0.727",
+    "accuracy=0.970",
+    "all-negative accuracy=0.940"
+   ]
+  }
+ },
+ {
+  "id": "ml-005",
+  "area": "ml",
+  "topic": "regularization",
+  "level": 2,
+  "type": "concept",
+  "q": "Compare L1 and L2 regularization. What effect do they have on coefficients, and how do you choose the strength?",
+  "followups": [
+   "Why does L1 give sparsity geometrically?",
+   "What does C mean in LogisticRegression?"
+  ],
+  "answer": "Both add a penalty on coefficient size to the loss to reduce variance. L2 (ridge) penalises squared magnitude: it shrinks all coefficients smoothly, handles correlated features by spreading weight, and rarely gives exact zeros. L1 (lasso) penalises absolute magnitude: it drives some coefficients exactly to zero, giving feature selection and sparse models, but is unstable among correlated features (picks one arbitrarily). Elastic net mixes them. Standardise features first, otherwise the penalty depends on units. Choose the strength (alpha or C, where C is the inverse in scikit-learn) by cross-validation, and do not regularise the intercept. Trade-off: more regularization increases bias, decreases variance.",
+  "pitfalls": [
+   "Not scaling features before penalising",
+   "Confusing C with alpha"
+  ],
+  "chapters": [
+   "ml/ch16-linear-logistic-regression.html"
+  ],
+  "tags": [
+   "regularization",
+   "linear-models"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-006",
+  "area": "ml",
+  "topic": "ROC vs PR",
+  "level": 3,
+  "type": "concept",
+  "q": "When is ROC-AUC misleading and PR-AUC preferable? What does AUC actually measure?",
+  "followups": [
+   "How do you compute AUC from ranks?",
+   "What is calibration and why does it matter?"
+  ],
+  "answer": "ROC-AUC equals the probability that a randomly chosen positive is scored above a randomly chosen negative; it is threshold-free and insensitive to class prior. With rare positives the false positive rate stays tiny even when there are many false positives in absolute terms (millions of negatives), so a model can have ROC-AUC 0.98 while precision at useful recall is poor. PR-AUC (average precision) reflects precision directly and depends on the prevalence, so it is more informative when you care about the positive class and it is rare. Neither measures calibration or a specific operating point; report the precision/recall at the deployed threshold, calibration (reliability curve, Brier score) when probabilities are used, and evaluate on data with production prevalence.",
+  "pitfalls": [
+   "Comparing PR-AUC across datasets with different prevalence",
+   "Assuming a high AUC implies good precision"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch19-feature-engineering-model-selection.html"
+  ],
+  "tags": [
+   "metrics",
+   "auc"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-007",
+  "area": "ml",
+  "topic": "data leakage",
+  "level": 2,
+  "type": "concept",
+  "q": "What is data leakage? Give three concrete examples and how to prevent them.",
+  "followups": [
+   "How would you find target leakage in a feature importance list?",
+   "What is leakage in text deduplication?"
+  ],
+  "answer": "Leakage is when information unavailable at prediction time influences training or evaluation, inflating offline scores. Examples: (1) preprocessing fitted on all data before splitting (scaler, imputer, target encoding, feature selection, PCA), so test statistics leak into training; (2) target leakage: a feature derived from the label or recorded after the outcome (e.g. 'refund_issued' for predicting churn, or a discharge code in a diagnosis model); (3) split leakage: random split on time series or grouped data, so the same user, patient or near-duplicate appears in train and test. Prevent by splitting first and fitting every transformation inside a scikit-learn Pipeline within each CV fold, time-based or grouped splits, auditing each feature for availability at prediction time, and being suspicious of results that are too good.",
+  "pitfalls": [
+   "Scaling before train_test_split",
+   "Random shuffling of time-ordered data"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch19-feature-engineering-model-selection.html"
+  ],
+  "tags": [
+   "leakage",
+   "evaluation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-008",
+  "area": "ml",
+  "topic": "AUC from scratch",
+  "level": 2,
+  "type": "code",
+  "q": "Compute ROC-AUC without a library using the rank definition (probability a positive outranks a negative, ties count half) and check it on simple cases.",
+  "followups": [
+   "What is the complexity with sorting?",
+   "Can AUC be high while the model is badly calibrated?"
+  ],
+  "answer": "AUC is the fraction of (positive, negative) pairs where the positive gets the higher score, with ties counted as 0.5. This equals the area under the ROC curve (Mann-Whitney U statistic normalised). The O(P x N) pair loop here is fine for teaching; production code sorts once and uses ranks in O(n log n). With positives [0.9, 0.8, 0.4] and negatives [0.7, 0.4, 0.2] there are 9 pairs, 7.5 wins including one tie, so AUC = 0.833. A perfect ranker gives 1.0 and a reversed one 0.0; 0.5 means random. AUC needs both classes present and ignores calibration and thresholds.",
+  "pitfalls": [
+   "Ignoring ties",
+   "Thinking AUC depends on the threshold"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html"
+  ],
+  "tags": [
+   "metrics",
+   "auc",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "def auc(pos, neg):\n    wins = 0.0\n    for p in pos:\n        for n in neg:\n            wins += 1.0 if p > n else 0.5 if p == n else 0.0\n    return wins / (len(pos) * len(neg))\n\nprint(\"auc:\", round(auc([0.9, 0.8, 0.4], [0.7, 0.4, 0.2]), 3))\nprint(\"perfect:\", auc([0.9, 0.8], [0.2, 0.1]))\nprint(\"reversed:\", auc([0.1, 0.2], [0.8, 0.9]))\nprint(\"all ties:\", auc([0.5, 0.5], [0.5, 0.5]))\n",
+   "expect": [
+    "auc: 0.833",
+    "perfect: 1.0",
+    "reversed: 0.0",
+    "all ties: 0.5"
+   ]
+  }
+ },
+ {
+  "id": "ml-009",
+  "area": "ml",
+  "topic": "cross-validation choice",
+  "level": 2,
+  "type": "concept",
+  "q": "Which cross-validation scheme do you use for (a) imbalanced classification, (b) many rows per customer, (c) a sales forecast? Why?",
+  "followups": [
+   "What is nested CV for?",
+   "How many folds and why?"
+  ],
+  "answer": "(a) Stratified K-fold so each fold keeps the class ratio; otherwise a fold may contain almost no positives and the estimate is noisy or undefined. (b) GroupKFold with the customer id as group so all rows of a customer are in one fold; otherwise the model memorises customers and the score is inflated. (c) TimeSeriesSplit or rolling-origin evaluation where training always precedes validation in time, never shuffled, since random folds train on the future. Also fit preprocessing inside each fold, use the same scheme for hyperparameter search (nested CV if you need an unbiased estimate), and report mean and spread across folds, not just the mean. Trade-off: repeated or nested CV costs compute; for very large data a single holdout is enough.",
+  "pitfalls": [
+   "Plain KFold with shuffle for time series",
+   "Preprocessing outside the CV loop"
+  ],
+  "chapters": [
+   "ml/ch19-feature-engineering-model-selection.html"
+  ],
+  "tags": [
+   "cross-validation",
+   "evaluation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-010",
+  "area": "ml",
+  "topic": "trees vs linear models",
+  "level": 2,
+  "type": "concept",
+  "q": "When would you prefer gradient-boosted trees to logistic/linear regression on tabular data, and when the reverse?",
+  "followups": [
+   "Why can't trees extrapolate?",
+   "How do you get monotonic constraints in boosting?"
+  ],
+  "answer": "Trees handle non-linearities, interactions and mixed feature types with little preprocessing (no scaling, monotone-transform invariant, robust to outliers), and gradient boosting is usually the strongest baseline on tabular data. Linear models win when data is small or high-dimensional and sparse (text with tf-idf), when interpretability and stable, auditable coefficients matter, when you need extrapolation beyond the training range (trees predict constants outside it), when latency and memory are tight, or when the true relationship is roughly additive. Linear models need scaling, encoding and explicit interaction features. Trade-offs: boosted trees have more hyperparameters, can overfit noise, and are harder to explain (SHAP helps). Start with a linear baseline, then a boosted model, and pick by validation performance and constraints.",
+  "pitfalls": [
+   "Claiming deep learning always beats trees on tabular data",
+   "Scaling features for tree models"
+  ],
+  "chapters": [
+   "ml/ch16-linear-logistic-regression.html",
+   "ml/ch17-trees-forests-ensembles.html"
+  ],
+  "tags": [
+   "trees",
+   "linear-models"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-011",
+  "area": "ml",
+  "topic": "too-good offline results",
+  "level": 3,
+  "type": "scenario",
+  "q": "A churn model scores AUC 0.99 in validation but performs near baseline after launch. What do you check first?",
+  "followups": [
+   "How do you build features as of a date?",
+   "What if the leak is a legitimate but late signal?"
+  ],
+  "answer": "Assume leakage or a split/serving mismatch until proven otherwise. Check: features whose availability postdates the prediction time (cancellation-related fields, 'days since last login' computed at extraction time rather than at the observation date), the label window definition, identifiers or near-duplicates shared between train and validation, random splitting of time-ordered data, and preprocessing fitted on all data. Inspect top feature importances for a suspiciously dominant feature, and re-run evaluation with a strict time-based split where features are built as of each row's timestamp. Then check train/serve skew: the online feature pipeline may differ from the offline one. Fix the pipeline and set expectations for a realistic score; a model that drops from 0.99 to 0.72 after removing one feature was leaking through it.",
+  "pitfalls": [
+   "Tuning the model further",
+   "Blaming concept drift first"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch19-feature-engineering-model-selection.html"
+  ],
+  "tags": [
+   "leakage",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-012",
+  "area": "ml",
+  "topic": "stratified folds",
+  "level": 3,
+  "type": "code",
+  "q": "Show with code why unshuffled, unstratified K-fold is dangerous on label-sorted data and how stratification fixes it.",
+  "followups": [
+   "When is contiguous splitting correct?",
+   "What does shuffle=True change for reproducibility?"
+  ],
+  "answer": "With 12 rows sorted by label (six 0s then six 1s) and 3 plain contiguous folds, the test folds contain 0, 2 and 4 positives; the first fold's model never sees positives in the test set and the last trains with almost none in a mismatched proportion, so per-fold scores are wildly unstable or undefined. Stratified assignment deals each class across folds separately, giving 2 positives per fold. Data exported from databases is often ordered by time, class or id, so contiguous folds also hide distribution shift. Use `StratifiedKFold(shuffle=True, random_state=...)` for classification, `GroupKFold` for grouped data, and `TimeSeriesSplit` for temporal data (contiguous on purpose there).",
+  "pitfalls": [
+   "Assuming KFold shuffles by default (it does not)"
+  ],
+  "chapters": [
+   "ml/ch19-feature-engineering-model-selection.html"
+  ],
+  "tags": [
+   "cross-validation",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "labels = [0] * 6 + [1] * 6\n\ndef kfold(n, k):\n    return [list(range(i * n // k, (i + 1) * n // k)) for i in range(k)]\n\ndef stratified(labels, k):\n    folds = [[] for _ in range(k)]\n    for c in sorted(set(labels)):\n        idx = [i for i, l in enumerate(labels) if l == c]\n        for j, i in enumerate(idx):\n            folds[j % k].append(i)\n    return folds\n\nprint(\"plain positives per test fold:\", [sum(labels[i] for i in f) for f in kfold(12, 3)])\nprint(\"stratified positives per test fold:\", [sum(labels[i] for i in f) for f in stratified(labels, 3)])\n",
+   "expect": [
+    "plain positives per test fold: [0, 2, 4]",
+    "stratified positives per test fold: [2, 2, 2]"
+   ]
+  }
+ },
+ {
+  "id": "ml-013",
+  "area": "ml",
+  "topic": "imbalanced classification",
+  "level": 3,
+  "type": "scenario",
+  "q": "You must detect fraud at 0.3% prevalence. Lay out your modelling and evaluation approach, including what you would avoid.",
+  "followups": [
+   "Why are probabilities biased after oversampling?",
+   "How do you set the threshold from review capacity?"
+  ],
+  "answer": "Baseline first with class weights (`class_weight='balanced'` or `scale_pos_weight`) on a gradient-boosted model; it is cheap and does not change the data distribution. If you resample (SMOTE, undersampling), do it only inside the training folds, never before splitting, or synthetic copies leak into validation. Evaluate on untouched data with production prevalence using PR-AUC, recall at a fixed precision (or precision at a fixed review capacity), and cost-weighted expected loss; split by time. Choose the decision threshold on validation data from costs and alert capacity, then calibrate probabilities if scores feed downstream logic. Monitor for drift and label delay in production. Avoid: accuracy, oversampling before the split, tuning the threshold on the test set, and assuming resampled probabilities equal true probabilities (they are inflated).",
+  "pitfalls": [
+   "SMOTE before train/test split",
+   "Reporting accuracy"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch20-classical-ml-capstone.html"
+  ],
+  "tags": [
+   "imbalance",
+   "fraud"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-014",
+  "area": "ml",
+  "topic": "gradient boosting overfitting",
+  "level": 3,
+  "type": "concept",
+  "q": "Your gradient-boosted model overfits (train AUC 1.0, validation 0.82). Which knobs do you turn and in what order?",
+  "followups": [
+   "What does the learning rate trade off?",
+   "How do you handle high-cardinality categoricals?"
+  ],
+  "answer": "Use early stopping on a validation set so the number of trees is chosen by data, then lower model capacity and add randomness: reduce `max_depth` or `num_leaves`, raise `min_child_samples` (min samples per leaf), lower the learning rate while allowing more trees, subsample rows (`subsample`) and columns (`colsample_bytree`), and add L1/L2 leaf regularization. Verify that the gap is not leakage or a bad split first (a duplicate-heavy dataset overfits into an impressive but meaningless training score), and check feature noise: dropping high-cardinality ID-like features often matters most. Tune with cross-validation and a random or Bayesian search, not manual guessing. Trade-off: heavy regularization lowers variance but may raise bias; watch the validation curve rather than a single number.",
+  "pitfalls": [
+   "Just adding more trees",
+   "Tuning on the test set"
+  ],
+  "chapters": [
+   "ml/ch17-trees-forests-ensembles.html"
+  ],
+  "tags": [
+   "boosting",
+   "overfitting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-015",
+  "area": "ml",
+  "topic": "cost-sensitive threshold",
+  "level": 4,
+  "type": "scenario",
+  "q": "A model outputs P(default). A missed default costs 10x a wrongly rejected good customer, and reviewers can handle only 5% of applications. How do you pick the decision rule and prove it is good?",
+  "followups": [
+   "How do you calibrate and check calibration?",
+   "How do rejected applicants affect future training data?"
+  ],
+  "answer": "Turn costs into the threshold: with calibrated probabilities predict positive when p > C_fp / (C_fp + C_fn) = 1/11 ~ 0.09, instead of the default 0.5. Then apply the capacity constraint: rank by score and take the top 5% for review, or the minimum of the two rules. That requires calibrated probabilities (Platt scaling or isotonic on a separate calibration set) and stable prevalence; otherwise choose the threshold empirically on a validation set by minimising expected cost or maximising recall at the capacity limit. Evaluate on a time-forward holdout with the actual cost matrix, report uncertainty (bootstrap intervals), compare to the current policy, and check per-segment fairness and stability. Pitfalls: using 0.5, tuning the threshold on the test set, and ignoring that acting on predictions changes future data (selection bias).",
+  "pitfalls": [
+   "Default 0.5 threshold",
+   "Optimising F1 when costs are asymmetric"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "math/ch09-probability-statistics.html"
+  ],
+  "tags": [
+   "thresholds",
+   "cost",
+   "calibration"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-016",
+  "area": "ml",
+  "topic": "RAG basics",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain how retrieval-augmented generation works and what problem it solves compared with fine-tuning.",
+  "followups": [
+   "Why hybrid search?",
+   "When would you fine-tune instead?"
+  ],
+  "answer": "RAG retrieves relevant passages at query time and puts them in the LLM's prompt so it answers from that context. Pipeline: chunk documents, embed chunks with an embedding model and store them in a vector index; at query time embed the question, retrieve top-k similar chunks (often hybrid: dense vectors plus BM25 keyword search, followed by a reranker), assemble a prompt with instructions and the context, and generate, ideally with citations. It solves knowledge that is private, fresh or too large for the prompt without retraining, allows source attribution and access control by filtering at retrieval, and updates instantly by re-indexing. Fine-tuning changes behaviour or style and teaches formats, but is a poor way to inject facts. Limits: answer quality is bounded by retrieval quality, context window and cost grow with k, and the model can still ignore or contradict the context.",
+  "pitfalls": [
+   "Believing RAG eliminates hallucination",
+   "Fine-tuning to add fresh facts"
+  ],
+  "chapters": [
+   "nlp/ch29-how-llms-work.html",
+   "nlp/ch30-building-with-llm-apis-capstone.html",
+   "projects/ch35-rag-chatbot-deployed.html"
+  ],
+  "tags": [
+   "rag",
+   "llm"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-017",
+  "area": "ml",
+  "topic": "RAG debugging",
+  "level": 3,
+  "type": "scenario",
+  "q": "Users complain a RAG chatbot 'makes things up' about your company policies. How do you find out whether retrieval or generation is at fault and fix it?",
+  "followups": [
+   "How do you evaluate faithfulness automatically and what are its limits?",
+   "How do you handle questions with no answer in the corpus?"
+  ],
+  "answer": "Build a small evaluation set of real questions with the expected source passage and answer, and separate the two stages. Retrieval: is the right chunk in the top-k (recall@k, MRR)? If not, the causes are chunking (answers split across chunks, tables destroyed, no metadata), weak embeddings for domain vocabulary, missing hybrid keyword search, no reranker, stale index, or ambiguous queries needing rewriting. Generation: given the right chunk, does the answer stay grounded (faithfulness) and complete? If not, tighten the prompt (answer only from context, say 'I don't know' otherwise, cite sources), reduce noisy context, lower temperature, and consider a stronger model. Log query, retrieved chunk ids and answer for every request, use LLM-as-judge or human review on samples, and keep a regression set in CI. Pitfall: changing the model when the right document was never retrieved.",
+  "pitfalls": [
+   "Swapping the LLM before checking retrieval",
+   "Chunking by fixed characters only"
+  ],
+  "chapters": [
+   "projects/ch35-rag-chatbot-deployed.html",
+   "nlp/ch30-building-with-llm-apis-capstone.html"
+  ],
+  "tags": [
+   "rag",
+   "evaluation",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-018",
+  "area": "ml",
+  "topic": "offline vs online evaluation",
+  "level": 4,
+  "type": "design",
+  "q": "Design an evaluation plan for a recommendation model that will replace an existing one, so that offline gains are likely to hold up in production.",
+  "followups": [
+   "What is position bias?",
+   "How long do you run the experiment?"
+  ],
+  "answer": "Offline: a time-based split (train on the past, evaluate on the following period), features built as of each event time, metrics matched to the product (recall@k/NDCG for ranking, coverage, diversity, calibration, plus slices such as new users and long tail), and comparison against the current model and a popularity baseline on identical data. Recognise the biases: logged data reflects what the old model showed (exposure and position bias), so offline metrics favour models similar to the old one; use counterfactual estimators (inverse propensity weighting) or randomised exploration traffic if available. Online: shadow to check latency and stability, then a canary and a randomised A/B test with a pre-registered primary metric, guardrails (latency, error, complaints), enough power and duration for weekly seasonality, and checks for sample ratio mismatch. Decide beforehand what improvement justifies the added complexity. Trade-off: offline is fast and cheap but only a filter; online is the truth but slow and risky.",
+  "pitfalls": [
+   "Random split for temporal data",
+   "Shipping on an offline metric alone"
+  ],
+  "chapters": [
+   "ml/ch19-feature-engineering-model-selection.html",
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "evaluation",
+   "experiments",
+   "recommendation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-019",
+  "area": "ml",
+  "topic": "LLM vs classical model",
+  "level": 4,
+  "type": "design",
+  "q": "You need to classify 2M support tickets per day into 40 categories with a 300 ms budget. Do you use an LLM, fine-tune a small transformer, or use tf-idf plus logistic regression? Justify.",
+  "followups": [
+   "How would you estimate the LLM cost per day?",
+   "How do you get labels cheaply?"
+  ],
+  "answer": "Decide by accuracy needed, latency, cost, labelled data and maintenance. Start with a tf-idf + linear baseline: milliseconds on CPU, near-zero cost, interpretable, and often strong when categories are lexically distinct. If it falls short and you have thousands of labels, fine-tune a small encoder (e.g. a distilbert-class model), which is cheap enough on modest hardware at this volume. A large LLM through a prompt is fastest to prototype (no labels, easy to change taxonomy) and useful for cold start, weak labelling or rare classes, but at 2M/day the cost, 300 ms latency and rate limits are hard, outputs need constrained decoding and validation, and behaviour changes with model updates. A common pattern: use the LLM to label or audit data offline, distil into the small model, and route only low-confidence tickets to the LLM. Measure on a labelled test set with per-class metrics, and monitor drift as categories change.",
+  "pitfalls": [
+   "Using the biggest model by default",
+   "No baseline"
+  ],
+  "chapters": [
+   "nlp/ch29-how-llms-work.html",
+   "nlp/ch30-building-with-llm-apis-capstone.html",
+   "nlp/ch28-modern-nlp-transformers.html"
+  ],
+  "tags": [
+   "llm",
+   "model-selection",
+   "cost"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "ml-020",
+  "area": "ml",
+  "topic": "ambiguous ML request",
+  "level": 5,
+  "type": "scenario",
+  "q": "A stakeholder says: 'build a model to predict which customers will churn' and expects results next quarter. There is no agreed definition of churn and the data is messy. How do you proceed?",
+  "followups": [
+   "How would you measure whether the retention offer works?",
+   "What if the definition changes mid-project?"
+  ],
+  "answer": "First turn the request into a decision problem: what action will be taken on a prediction (retention offer, call), who acts, and what it costs and returns. That determines the label definition (e.g. no purchase or login in 90 days, or cancellation), the prediction horizon and the observation window, plus the metric (precision in the top-k the team can contact; uplift matters more than raw risk, since targeting people who would stay anyway wastes money). Audit data quality and availability quickly, define a baseline (rules such as recency and tenure) and success criteria in business terms, and set a time-boxed plan: week 1-2 label and split design with a time-based holdout, week 3-4 baseline and error analysis, then iterate; ship an offline scoring batch before any real-time service. Flag risks early: label leakage, privacy constraints, data gaps, fairness. Agree on a check-in cadence and what you will report if the signal is weak; a well-argued 'the data do not support this yet' is a valid outcome. Trade-off: a fast rule-based baseline may deliver most of the value.",
+  "pitfalls": [
+   "Starting to model before defining the label",
+   "Optimising AUC instead of the business action"
+  ],
+  "chapters": [
+   "ml/ch15-ml-foundations-workflow.html",
+   "ml/ch20-classical-ml-capstone.html"
+  ],
+  "tags": [
+   "problem-framing",
+   "ambiguity",
+   "churn"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

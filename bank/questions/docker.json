@@ -1,0 +1,524 @@
+[
+ {
+  "id": "docker-001",
+  "area": "docker",
+  "topic": "container-vs-vm",
+  "level": 1,
+  "type": "concept",
+  "q": "How is a container different from a virtual machine, and what does that mean for isolation and security?",
+  "followups": [
+   "What do namespaces and cgroups each provide?",
+   "Why can't you run a Windows container on a Linux host kernel?"
+  ],
+  "answer": "A VM virtualises hardware and runs a full guest kernel under a hypervisor; a container is an ordinary Linux process (or group) isolated by namespaces (pid, net, mnt, uts, ipc, user) and limited by cgroups, sharing the host kernel. Containers start in milliseconds and are lightweight and dense, but isolation is weaker: a kernel vulnerability or a privileged container can compromise the host. Harden with non-root users, dropped capabilities, seccomp/AppArmor, read-only root filesystems and no `--privileged`; use VM-level isolation (Kata, Firecracker, gVisor) for untrusted multi-tenant workloads. Pitfall: saying containers 'contain a whole OS'; they contain a filesystem, not a kernel.",
+  "pitfalls": [
+   "Claiming containers are lightweight VMs with equal isolation"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "containers",
+   "fundamentals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-002",
+  "area": "docker",
+  "topic": "image-layers",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain Docker image layers and the build cache. How does instruction order in a Dockerfile affect build time?",
+  "followups": [
+   "How does BuildKit cache mounts help?",
+   "How do you see what makes an image large?"
+  ],
+  "answer": "Each Dockerfile instruction that changes the filesystem produces an immutable layer; layers are content-addressed and shared between images and cached. A build reuses cached layers until the first instruction whose inputs changed, then rebuilds everything after it. So order from least to most frequently changing: base image, system packages, copy dependency manifest (`requirements.txt`/`package.json`), install dependencies, then copy application source. Copying the whole source before installing dependencies invalidates the dependency layer on every code change. Also deleting a file in a later layer does not shrink the image; combine download-and-cleanup in the same `RUN`. Pitfall: `COPY . .` before `pip install`, and putting secrets in a layer (they stay in history).",
+  "pitfalls": [
+   "COPY . . first",
+   "Cleaning up in a later layer"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "dockerfile",
+   "caching"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-003",
+  "area": "docker",
+  "topic": "multi-stage",
+  "level": 2,
+  "type": "concept",
+  "q": "What is a multi-stage build and when would you use it? Give a Python or Go example.",
+  "followups": [
+   "How would you debug a container with no shell?",
+   "Which stage does `--target` build?"
+  ],
+  "answer": "A Dockerfile with several `FROM` stages where later stages copy only artifacts from earlier ones (`COPY --from=build`). The build stage holds compilers, headers and dev dependencies; the final stage contains only the runtime, giving smaller images, a smaller attack surface and faster pulls. Go: build a static binary, run it on `scratch`/distroless. Python: build wheels in a builder (`pip wheel`) and install them into a slim runtime image, or copy a virtualenv. Trade-offs: slightly more Dockerfile complexity; distroless/scratch images lack a shell, so debugging needs `docker debug`, ephemeral containers or a debug variant. Pitfall: forgetting to copy needed runtime files (CA certificates, tzdata) into scratch images.",
+  "pitfalls": [
+   "Shipping the compiler in the final image"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "dockerfile",
+   "image-size"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-004",
+  "area": "docker",
+  "topic": "cmd-entrypoint",
+  "level": 2,
+  "type": "concept",
+  "q": "What is the difference between CMD and ENTRYPOINT, and between shell form and exec form? Why does it matter for signals?",
+  "followups": [
+   "How do you override the entrypoint at runtime?",
+   "Why does PID 1 ignore signals without handlers?"
+  ],
+  "answer": "ENTRYPOINT defines the executable; CMD supplies default arguments (or the command if no ENTRYPOINT) and is overridden by arguments to `docker run`. Exec form (`[\"python\",\"app.py\"]`) runs the program directly as PID 1; shell form (`python app.py`) wraps it in `/bin/sh -c`, so the shell is PID 1 and typically does not forward SIGTERM, meaning `docker stop` waits 10 s then SIGKILLs and the app cannot shut down gracefully. Use exec form, or `exec` in wrapper scripts. PID 1 also has special signal and zombie-reaping behaviour, so use `--init`/tini when the app spawns children. Pitfall: an entrypoint script that ends with `python app.py` instead of `exec python app.py`.",
+  "pitfalls": [
+   "Shell-form CMD swallowing SIGTERM"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "dockerfile",
+   "signals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-005",
+  "area": "docker",
+  "topic": "docker-networking",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain Docker's default bridge network, user-defined bridge networks and host networking, and how containers reach each other by name.",
+  "followups": [
+   "Why does published-port traffic bypass some host firewall rules (ufw)?",
+   "How would containers on different hosts communicate in Kubernetes?"
+  ],
+  "answer": "The default `bridge` gives containers NAT'd IPs on `docker0`, reachable by IP only; port publishing (`-p host:container`) creates iptables DNAT rules. User-defined bridge networks add an embedded DNS server, so containers resolve each other by name or alias and get better isolation, and are what Compose creates. `--network host` shares the host's network namespace: no NAT overhead, but no port isolation and port conflicts. `none` disables networking; overlay spans hosts (Swarm). Pitfall: an app binding to `127.0.0.1` inside the container is unreachable through the published port (bind `0.0.0.0`), and using `localhost` to reach another container instead of its service name.",
+  "pitfalls": [
+   "Binding to 127.0.0.1 inside the container",
+   "Using localhost for a sibling container"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "networking",
+   "compose"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-006",
+  "area": "docker",
+  "topic": "volumes",
+  "level": 1,
+  "type": "concept",
+  "q": "What are the differences between bind mounts, named volumes and tmpfs mounts in Docker, and what happens to data when a container is removed?",
+  "followups": [
+   "How do you back up a named volume?",
+   "What causes permission denied on a bind mount?"
+  ],
+  "answer": "The container's writable layer is deleted with the container. Named volumes are managed by Docker (`/var/lib/docker/volumes`), survive container removal, are portable and can use drivers; ideal for databases. Bind mounts map a host path into the container: good for local development (live code reload) but depend on host layout, permissions and UID mapping, and the container can modify the host directory. tmpfs is memory-only and vanishes on stop; useful for secrets or scratch data. Pitfall: writing state inside the container layer (lost on redeploy), and file ownership mismatches (container UID vs host owner) on bind mounts; also anonymous volumes accumulating after `docker run -v /data` without cleanup (`docker volume prune`).",
+  "pitfalls": [
+   "Storing database data in the container layer"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "storage",
+   "volumes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-007",
+  "area": "docker",
+  "topic": "dockerignore",
+  "level": 2,
+  "type": "scenario",
+  "q": "A Docker build takes 4 minutes on every code change and the image is 2.3 GB for a small Python API. How do you speed it up and slim it?",
+  "followups": [
+   "Why can alpine be a bad choice for Python?",
+   "How do you cache layers across CI runs?"
+  ],
+  "answer": "Diagnose with `docker history` / `dive` and check what the build context sends (`Sending build context to Docker daemon` size). Fixes: add a `.dockerignore` (`.git`, `node_modules`, venvs, datasets, logs, `__pycache__`) so the context is small and `COPY . .` does not bust the cache; order layers so dependency install is cached (copy `requirements.txt` first); use a slim base (`python:3.12-slim`), `--no-cache-dir`, multi-stage build to drop compilers; pin and hash dependencies; use BuildKit cache mounts (`--mount=type=cache,target=/root/.cache/pip`) and CI layer cache export; avoid heavy ML packages you do not need at runtime (CPU-only wheels). Pitfall: alpine for Python, which needs musl-compatible wheels and often makes builds slower and images bigger through compilation.",
+  "pitfalls": [
+   "Ignoring build context size",
+   "Using `apt-get install` without cleanup or --no-install-recommends"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "dockerfile",
+   "performance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-008",
+  "area": "docker",
+  "topic": "container-exit",
+  "level": 3,
+  "type": "scenario",
+  "q": "`docker run myapp` exits immediately with code 0 / 1 / 137. What does each tell you and what do you check?",
+  "followups": [
+   "How can you tell OOM kill from a manual kill?",
+   "What does 126 versus 127 mean?"
+  ],
+  "answer": "Exit 0: the main process finished normally (a script ran to the end, or a daemon forked into the background so PID 1 exited; run in the foreground). Exit 1 (or other small codes): application error: `docker logs <id>`, run interactively with `docker run -it --entrypoint sh` to reproduce, check env vars and config. Exit 125-127: Docker or command problems (126 not executable, 127 command not found, typical bad entrypoint or CRLF in scripts). Exit 137 = 128 + 9: SIGKILL, often the kernel OOM killer (`docker inspect --format '{{.State.OOMKilled}}'`), or `docker stop` timeout; 143 = SIGTERM. Also inspect `docker inspect` state, healthcheck status, and `docker events`. Pitfall: `exit 0` from a backgrounded process (nginx `daemon on`), and CRLF line endings in shell scripts copied from Windows.",
+  "pitfalls": [
+   "Not reading logs first",
+   "Running daemons in background inside the container"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "debugging",
+   "exit-codes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-009",
+  "area": "docker",
+  "topic": "docker-security",
+  "level": 4,
+  "type": "design",
+  "q": "How would you harden a container image and its runtime for a production web service? Prioritise the changes.",
+  "followups": [
+   "Why is mounting docker.sock dangerous?",
+   "How do you handle a critical CVE in a base image across 100 services?"
+  ],
+  "answer": "Image: minimal trusted base pinned by digest, multi-stage, no build tools, no secrets baked in (BuildKit `--secret`), scan for CVEs in CI (Trivy/Grype) and sign/verify (cosign), rebuild regularly. Runtime: run as non-root (`USER 10001`), `readOnlyRootFilesystem`, drop all capabilities and add back only what is needed, `no-new-privileges`, default seccomp profile, no `--privileged` and no Docker socket mount, resource limits, no host namespaces. In Kubernetes enforce with Pod Security Standards/admission policies and NetworkPolicies. Secrets via the platform secret store, not env vars in the Dockerfile. Prioritise: non-root and no privileged/socket mounts, patched minimal image with scanning, secrets handling, then read-only FS and seccomp. Trade-offs: distroless hampers debugging; read-only FS needs tmpfs for writable paths. Pitfall: `latest` tags and mounting `/var/run/docker.sock` (equals root on the host).",
+  "pitfalls": [
+   "Using latest tags",
+   "Baking credentials into ENV or layers"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "security",
+   "hardening"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-010",
+  "area": "docker",
+  "topic": "healthcheck",
+  "level": 2,
+  "type": "concept",
+  "q": "What does a Docker HEALTHCHECK do, and how does it differ from a Kubernetes liveness/readiness probe?",
+  "followups": [
+   "Should a liveness probe check the database?",
+   "How would you healthcheck a distroless image?"
+  ],
+  "answer": "`HEALTHCHECK` runs a command inside the container at an interval; the status moves starting -> healthy/unhealthy after N consecutive failures. Plain Docker only records and reports it (`docker ps`), and Compose `depends_on: condition: service_healthy` and Swarm can act on it; Docker alone does not restart an unhealthy container. Kubernetes ignores the Dockerfile HEALTHCHECK and uses its own probes, which kubelet acts upon: liveness restarts the container, readiness gates Service traffic, startup protects slow starters. Design checks to be cheap and to test real readiness (dependency reachability for readiness, but not for liveness, or you cascade restarts). Pitfall: curl missing in a slim image, so the check always fails.",
+  "pitfalls": [
+   "Assuming Docker restarts unhealthy containers",
+   "Health endpoint that always returns 200"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "healthcheck",
+   "compose"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-011",
+  "area": "docker",
+  "topic": "compose-order",
+  "level": 2,
+  "type": "scenario",
+  "q": "With Docker Compose, your web service crashes at startup with 'connection refused' to the database even though `depends_on: db` is set. Why, and what do you do?",
+  "followups": [
+   "How is this solved in Kubernetes (init containers, readiness)?",
+   "What is wrong with wait-for-it style scripts?"
+  ],
+  "answer": "Plain `depends_on` only orders container start, not readiness: the Postgres process may still be initialising when the app connects. Fix with `depends_on: db: condition: service_healthy` plus a `healthcheck` on db (`pg_isready`), and also make the app resilient: retry the connection with backoff at startup, because databases restart at runtime too and Compose ordering does not exist in Kubernetes. Also verify the app uses the service name (`db`) and container port, not `localhost` or the published host port. Pitfall: sleeping a fixed 10 seconds in an entrypoint script.",
+  "pitfalls": [
+   "Fixed sleep",
+   "Assuming depends_on waits for readiness"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "compose",
+   "startup-order"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-012",
+  "area": "docker",
+  "topic": "image-tags",
+  "level": 2,
+  "type": "concept",
+  "q": "Why is deploying `image: myapp:latest` a problem, and what tagging and promotion strategy would you use?",
+  "followups": [
+   "How do you roll back if tags are immutable?",
+   "How do you find what git commit a running container is from?"
+  ],
+  "answer": "`latest` is a mutable tag: nodes may hold different images, rollbacks cannot go 'back to latest', you cannot tell what is running, and `IfNotPresent` pull policy can serve stale layers. Use immutable tags: the git SHA or semantic version, ideally referenced by digest (`myapp@sha256:...`) in production. Build once, promote the same digest through dev, staging and prod (do not rebuild per environment), and store provenance (SBOM, signatures). Keep a mutable convenience tag (e.g. `main`) only for humans. Add retention policy in the registry. Pitfall: rebuilding from the same tag in each environment, which can produce different bits.",
+  "pitfalls": [
+   "Relying on latest",
+   "Rebuilding per environment"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "registry",
+   "tagging",
+   "cicd"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-013",
+  "area": "docker",
+  "topic": "docker-stats-limits",
+  "level": 2,
+  "type": "concept",
+  "q": "How do you set and observe CPU and memory limits for a container, and what happens when a container exceeds them?",
+  "followups": [
+   "Why can a CPU-limited container be slow without high CPU use?",
+   "Does the memory limit include page cache?"
+  ],
+  "answer": "`docker run --memory=512m --cpus=1.5` (cgroups). Exceeding memory triggers the cgroup OOM killer (exit 137, `OOMKilled=true`); exceeding CPU quota causes throttling, not killing, which shows up as latency (check `nr_throttled` in cpu.stat). Observe with `docker stats`, cAdvisor/Prometheus (`container_memory_working_set_bytes`, `container_cpu_cfs_throttled_periods_total`). Runtimes must be limit-aware: older JVMs, Python worker counts and Node heap defaults were sized to host RAM/cores, not the container cgroup. Set memory limits with headroom above the working set, and be careful with limits equal to requests in Kubernetes for QoS. Pitfall: seeing 4 cores via `nproc` inside a limited container and spawning 4 x worker processes.",
+  "pitfalls": [
+   "Spawning workers by host cpu_count()"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "limits",
+   "cgroups"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-014",
+  "area": "docker",
+  "topic": "dockerfile-review",
+  "level": 3,
+  "type": "code",
+  "q": "Analyse Dockerfile text and print the lint findings: use of `latest` tag, `ADD` for local files, missing `USER`, `apt-get install` without `--no-install-recommends`, and `COPY . .` appearing before a dependency install. Explain why each matters.",
+  "followups": [
+   "What would hadolint add that this script lacks?",
+   "How would you handle multi-stage builds?"
+  ],
+  "answer": "Simple static checks are a good CI gate (hadolint does this thoroughly). Why: `latest` is not reproducible; `ADD` has implicit behaviours (URL fetch, tar extraction) so `COPY` is preferred; without `USER` the process runs as root; recommended packages bloat images; `COPY . .` before dependency install busts the layer cache. Implement by tracking the index of each instruction. Pitfall: regexes ignoring multi-line `RUN` continuation (join lines ending in `\\` first) and multi-stage builds where `USER` is only needed in the final stage.",
+  "pitfalls": [
+   "Ignoring line continuations"
+  ],
+  "solution": {
+   "code": "DOCKERFILE = \"\"\"FROM python:latest\nWORKDIR /app\nCOPY . .\nRUN apt-get update && apt-get install -y curl\nRUN pip install -r requirements.txt\nADD config.yaml /app/config.yaml\nCMD [\"python\", \"app.py\"]\n\"\"\"\nlines = DOCKERFILE.replace(\"\\\\\\n\", \" \").splitlines()\nfindings, copy_all_at, install_at, has_user = [], None, None, False\nfor i, line in enumerate(lines, 1):\n    ins = line.split(None, 1)[0].upper() if line.strip() else \"\"\n    if ins == \"FROM\" and (line.endswith(\":latest\") or \":\" not in line.split()[1]):\n        findings.append((i, \"unpinned base image\"))\n    if ins == \"ADD\" and \"http\" not in line:\n        findings.append((i, \"use COPY instead of ADD\"))\n    if ins == \"USER\":\n        has_user = True\n    if \"apt-get install\" in line and \"--no-install-recommends\" not in line:\n        findings.append((i, \"apt-get install without --no-install-recommends\"))\n    if ins == \"COPY\" and line.split()[1:3] == [\".\", \".\"] and copy_all_at is None:\n        copy_all_at = i\n    if \"pip install\" in line and install_at is None:\n        install_at = i\nif copy_all_at and install_at and copy_all_at < install_at:\n    findings.append((copy_all_at, \"COPY . . before dependency install busts cache\"))\nif not has_user:\n    findings.append((len(lines), \"no USER, runs as root\"))\nfor n, msg in sorted(findings):\n    print(f\"line {n}: {msg}\")\n",
+   "expect": [
+    "line 1: unpinned base image",
+    "line 3: COPY . . before dependency install busts cache",
+    "line 4: apt-get install without --no-install-recommends",
+    "line 6: use COPY instead of ADD",
+    "line 7: no USER, runs as root"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "dockerfile",
+   "python",
+   "lint"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-015",
+  "area": "docker",
+  "topic": "docker-inspect-json",
+  "level": 3,
+  "type": "code",
+  "q": "Given `docker inspect`-style JSON for several containers, list those that are unhealthy, restarting too often (RestartCount > 3) or were OOM killed, with the reason. Print in name order.",
+  "followups": [
+   "Which of these signals should page?",
+   "How would this differ with the Docker SDK for Python?"
+  ],
+  "answer": "`docker inspect` returns a JSON array; relevant keys are `State.Status`, `State.Health.Status`, `State.OOMKilled`, `State.ExitCode`, and `RestartCount`. Use `.get` defensively because `Health` is absent when no healthcheck is defined; missing health is not the same as unhealthy. In production these become metrics (cAdvisor, `docker_container_*`) with alerts rather than ad-hoc scripts. Pitfall: `KeyError` on containers without healthchecks, and leading slash in `Name`.",
+  "pitfalls": [
+   "Assuming every container has a Health key"
+  ],
+  "solution": {
+   "code": "import json\nDATA = json.loads(\"\"\"[\n {\"Name\": \"/web\", \"RestartCount\": 0, \"State\": {\"Status\": \"running\", \"OOMKilled\": false, \"ExitCode\": 0, \"Health\": {\"Status\": \"healthy\"}}},\n {\"Name\": \"/worker\", \"RestartCount\": 7, \"State\": {\"Status\": \"restarting\", \"OOMKilled\": false, \"ExitCode\": 1}},\n {\"Name\": \"/cache\", \"RestartCount\": 1, \"State\": {\"Status\": \"exited\", \"OOMKilled\": true, \"ExitCode\": 137}},\n {\"Name\": \"/api\", \"RestartCount\": 0, \"State\": {\"Status\": \"running\", \"OOMKilled\": false, \"ExitCode\": 0, \"Health\": {\"Status\": \"unhealthy\"}}}\n]\"\"\")\nfor c in sorted(DATA, key=lambda c: c[\"Name\"]):\n    st = c[\"State\"]\n    reasons = []\n    if st.get(\"Health\", {}).get(\"Status\") == \"unhealthy\":\n        reasons.append(\"unhealthy\")\n    if c[\"RestartCount\"] > 3:\n        reasons.append(f\"restarts={c['RestartCount']}\")\n    if st.get(\"OOMKilled\"):\n        reasons.append(\"oom-killed\")\n    if reasons:\n        print(c[\"Name\"].lstrip(\"/\"), \", \".join(reasons))\n",
+   "expect": [
+    "api unhealthy",
+    "cache oom-killed",
+    "worker restarts=7"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "docker",
+   "python",
+   "json"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-016",
+  "area": "docker",
+  "topic": "secrets-docker",
+  "level": 3,
+  "type": "concept",
+  "q": "How should secrets (API keys, database passwords) be handled when building and running Docker images?",
+  "followups": [
+   "How would you detect a secret that leaked into an image?",
+   "Why are env vars a debated way to pass secrets?"
+  ],
+  "answer": "Never bake secrets into image layers via `ENV`, `ARG` or `COPY .env`: layers are inspectable with `docker history`/`docker save`, and registry access equals secret access. For build-time secrets (private package index tokens) use BuildKit `RUN --mount=type=secret` so they are never written to a layer. At runtime inject them from the orchestrator: Kubernetes Secrets (ideally encrypted at rest and sourced from an external manager via External Secrets/CSI driver), Docker/Swarm secrets mounted as files, or a vault agent; prefer files or in-memory injection over env vars, which leak through `docker inspect`, crash dumps and child processes. Add rotation, least privilege per service, and `.dockerignore` for `.env`/keys. Pitfall: deleting the secret in a later layer (still in earlier layer), and committing `.env` files.",
+  "pitfalls": [
+   "ENV PASSWORD=... in Dockerfile",
+   "Removing a secret in a later layer"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "security",
+   "secrets"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-017",
+  "area": "docker",
+  "topic": "compose-vs-k8s",
+  "level": 5,
+  "type": "design",
+  "q": "A team runs 6 services with Docker Compose on one VM and asks whether to move to Kubernetes. How do you advise them?",
+  "followups": [
+   "What single point of failure does the one-VM setup have?",
+   "How would you migrate stateful services such as the database?"
+  ],
+  "answer": "Decide from requirements, not fashion. Compose is enough when a single host meets availability needs, the team is small and deploys are infrequent; it is simple and cheap. Signals for an orchestrator: need for zero-downtime rolling deploys, self-healing across nodes, horizontal autoscaling, multi-node capacity, many teams/services, standard secrets/config/RBAC/network policy, or a managed platform already available. Costs of Kubernetes: operational complexity, learning curve, YAML/Helm tooling, networking and observability stack, cost of the control plane and idle capacity. Intermediate options: Compose on a few hosts with a load balancer, a managed container service (ECS/Fargate, Cloud Run, App Service) which gives most benefits with far less operating burden. Plan a migration by containerising properly first (12-factor config, health endpoints, stateless), then move service by service. Pitfall: adopting Kubernetes for a single-VM workload with no HA requirement, or staying on one VM when downtime costs real money.",
+  "pitfalls": [
+   "Adopting Kubernetes by default",
+   "Ignoring managed container services"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "architecture",
+   "kubernetes",
+   "compose"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-018",
+  "area": "docker",
+  "topic": "layer-cache-ci",
+  "level": 4,
+  "type": "scenario",
+  "q": "CI rebuilds your Docker image from scratch on every pipeline (12 minutes) because runners are ephemeral. How do you make builds fast without sacrificing correctness?",
+  "followups": [
+   "How do you make sure cached layers still receive security updates?",
+   "What is cache poisoning in CI?"
+  ],
+  "answer": "Export/import the layer cache: `docker buildx build --cache-to type=registry,ref=repo/cache,mode=max --cache-from type=registry,ref=repo/cache` (or GitHub Actions cache, S3, local persistent runner storage). Structure the Dockerfile for cacheability (dependency manifest before source, pinned dependencies with lockfile), use BuildKit cache mounts for package managers, keep a small `.dockerignore`d context, and build only when relevant paths changed (path filters). Use a shared, warm builder (remote BuildKit) if ephemeral runners dominate. Correctness: pin base images by digest and rebuild on a schedule so security patches are picked up, since a permanently cached `apt-get upgrade` layer can hide CVE fixes. Trade-offs: cache storage cost and cache poisoning risk (restrict write access to protected branches). Pitfall: `--cache-from` without `mode=max` misses intermediate stages of multi-stage builds.",
+  "pitfalls": [
+   "Caching apt-get update forever",
+   "Sharing writable caches with untrusted PR builds"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "cicd",
+   "docker",
+   "caching"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-019",
+  "area": "docker",
+  "topic": "container-debug",
+  "level": 4,
+  "type": "scenario",
+  "q": "A container that worked in staging returns 502 through the reverse proxy in production. `docker ps` shows it running. How do you debug systematically?",
+  "followups": [
+   "Why might nginx keep an old IP for a recreated container?",
+   "How do you capture traffic between containers?"
+  ],
+  "answer": "Work outward-in along the request path. 1) Inside: `docker logs`, `docker exec` and `curl localhost:PORT/health` to confirm the app is listening on the expected port and on `0.0.0.0`. 2) Container to container: from the proxy container `curl http://app:PORT` to test DNS name and network membership (are both on the same user-defined network?). 3) Proxy config: upstream name/port, `proxy_pass` typos, resolver caching an old IP after the app container was recreated (nginx resolves upstream at startup). 4) Differences between staging and prod: env vars, config, secrets, resource limits (throttling/OOM), image digest (`docker inspect` to verify the same image), TLS/host headers. 5) Health: `docker inspect` State.Health, restart count. 6) Host: firewall and published ports. Compare with a known-good environment by diffing `docker inspect` outputs. Pitfall: assuming 'running' means 'ready', and changing several things at once.",
+  "pitfalls": [
+   "Trusting docker ps status",
+   "Changing multiple variables at once"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "debugging",
+   "networking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "docker-020",
+  "area": "docker",
+  "topic": "registry-pull-fail",
+  "level": 3,
+  "type": "scenario",
+  "q": "`docker pull registry.example.com/team/app:1.4` fails with `unauthorized` or `manifest unknown` or `x509: certificate signed by unknown authority`. What does each mean and how do you fix it?",
+  "followups": [
+   "How do multi-arch manifests work?",
+   "How do you avoid Docker Hub rate limits in CI?"
+  ],
+  "answer": "`unauthorized` or `denied`: authentication/authorisation problem: `docker login`, expired token (e.g. ECR tokens last 12 h), missing pull permission for the repo, or the wrong registry/account. In CI use short-lived credentials. `manifest unknown` / `not found`: the repository or tag does not exist (typo, tag never pushed, wrong architecture in a multi-arch manifest such as building on arm64 and running amd64), or the tag was garbage-collected by a retention policy. `x509: certificate signed by unknown authority`: TLS trust: the registry uses a private/self-signed CA that the Docker daemon does not trust; install the CA cert in `/etc/docker/certs.d/<registry>/ca.crt` or the system trust store (avoid `insecure-registries` outside a lab). Also consider rate limits (`toomanyrequests` from Docker Hub) and network/proxy/DNS. Pitfall: fixing by disabling TLS verification.",
+  "pitfalls": [
+   "Using insecure-registries in production"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "registry",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

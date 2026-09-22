@@ -1,0 +1,840 @@
+[
+ {
+  "id": "oop-001",
+  "area": "oop",
+  "topic": "classes",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between a class attribute and an instance attribute in Python, and how does attribute lookup work?",
+  "followups": [
+   "What does `vars(obj)` show?",
+   "How does `__slots__` change this?"
+  ],
+  "answer": "An instance attribute lives in the instance's `__dict__` (usually set in `__init__` via `self.x = ...`); a class attribute is defined in the class body and shared by all instances. Lookup on `obj.x` checks the instance dict first, then the class, then base classes along the MRO (data descriptors such as properties take precedence over the instance dict). Reading a class attribute through an instance works, but assigning through an instance (`obj.count += 1`) creates a new instance attribute that shadows the class attribute instead of updating it. Use class attributes for constants and defaults of immutable values, and `Class.attr` (or a classmethod) to change shared state. Pitfall: a mutable class attribute (list, dict) is shared by every instance.",
+  "pitfalls": [
+   "Believing `self.count += 1` updates the class attribute",
+   "Using a class-level list as per-instance storage"
+  ],
+  "chapters": [
+   "python/oop01-classes-and-objects.html"
+  ],
+  "tags": [
+   "classes",
+   "attributes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-002",
+  "area": "oop",
+  "topic": "classes",
+  "level": 2,
+  "type": "code",
+  "q": "Show the shared mutable class attribute bug and the shadowing behaviour of `+=` on a class-level counter. Give the fix.",
+  "followups": [
+   "How would you implement an instance counter correctly?",
+   "Why do dataclasses need default_factory?"
+  ],
+  "answer": "A mutable class attribute such as `members = []` exists once on the class, so every instance's `self.members.append(...)` mutates the same list. The fix is to create per-instance state in `__init__`. For immutable class attributes, `a.count += 1` reads `Team.count` through the instance and then assigns a new value to the instance (`a.count = 1`), shadowing the class value, so other instances and the class still see 0. To update shared state deliberately, write `Team.count += 1` or use a classmethod. Linters and dataclasses (which reject mutable defaults) help catch the bug.",
+  "pitfalls": [
+   "Fixing with copy() at call sites",
+   "Not noticing that reads hide the bug until a second instance exists"
+  ],
+  "solution": {
+   "code": "class Team:\n    members = []\n    count = 0\n    def __init__(self, name):\n        self.name = name\n    def add(self, m):\n        self.members.append(m)\n\na = Team(\"a\")\nb = Team(\"b\")\na.add(\"x\")\nprint(b.members, a.members is b.members)\na.count += 1\nprint(a.count, b.count, Team.count)\n\nclass Fixed:\n    def __init__(self):\n        self.members = []\n\nf, g = Fixed(), Fixed()\nf.members.append(1)\nprint(g.members)\n",
+   "expect": [
+    "['x'] True",
+    "1 0 0",
+    "[]"
+   ]
+  },
+  "chapters": [
+   "python/oop01-classes-and-objects.html"
+  ],
+  "tags": [
+   "classes",
+   "pitfalls"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-003",
+  "area": "oop",
+  "topic": "classes",
+  "level": 1,
+  "type": "concept",
+  "q": "What do `self` and `__init__` do? How does `__new__` differ, and when would you override it?",
+  "followups": [
+   "How would you implement a singleton and why avoid it?",
+   "What does `__init_subclass__` do?"
+  ],
+  "answer": "`self` is the instance passed automatically as the first argument to instance methods; it is a convention, not a keyword. `__init__` initializes an already created instance and must return None. `__new__(cls, ...)` is a static method that actually creates and returns the instance, and it runs before `__init__`; if it returns an object that is not an instance of cls, `__init__` is skipped. Override `__new__` only for immutable built-in subclasses (str, int, tuple, where the value is fixed at creation), singletons or instance caching, and metaclass work. For everything else `__init__` is the right hook. Pitfall: implementing singletons with `__new__` makes testing harder; a module-level instance is usually simpler.",
+  "pitfalls": [
+   "Returning a value from __init__",
+   "Overriding __new__ when __init__ suffices"
+  ],
+  "chapters": [
+   "python/oop01-classes-and-objects.html"
+  ],
+  "tags": [
+   "classes",
+   "dunder"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-004",
+  "area": "oop",
+  "topic": "encapsulation",
+  "level": 2,
+  "type": "concept",
+  "q": "Python has no private members. How do underscore conventions, name mangling, and properties provide encapsulation, and what is Pythonic here?",
+  "followups": [
+   "When would you actually use double underscores?",
+   "How do you make an attribute read-only?"
+  ],
+  "answer": "A single leading underscore (`_x`) is a convention meaning internal, not part of the public API; nothing enforces it. A double leading underscore (`__x`) triggers name mangling to `_ClassName__x`, which avoids accidental clashes in subclasses; it is not security and is rarely needed. Properties let you expose an attribute-style API and add validation or computation later without breaking callers, so start with a plain public attribute and convert to a property only when you need control (no Java-style getters/setters up front). Read-only properties (no setter) protect derived values. Pythonic encapsulation is about a clear public interface, documented and stable, rather than enforcement; consenting adults. For real invariants validate in the setter or use immutable types (frozen dataclass).",
+  "pitfalls": [
+   "Writing getX/setX methods for every field",
+   "Believing `__x` makes something private and secure"
+  ],
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "encapsulation",
+   "properties"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-005",
+  "area": "oop",
+  "topic": "properties",
+  "level": 2,
+  "type": "code",
+  "q": "Implement a `Temp` class with validated `celsius`, a computed read-only `fahrenheit`, and show what happens on invalid input and on assignment to a read-only property.",
+  "followups": [
+   "What is cached_property and when does it break?",
+   "How do you validate multiple interdependent fields?"
+  ],
+  "answer": "Use `@property` for the getter and `@celsius.setter` for validation. Assigning in `__init__` through `self.celsius = c` (not `self._c = c`) routes construction through the same validator, so invalid objects cannot be created. The computed `fahrenheit` has no setter, so assignment raises AttributeError; deriving it on access avoids two fields drifting out of sync. Trade-offs: properties hide computation cost (keep them cheap and side-effect free; use a method or `functools.cached_property` for heavy work) and add indirection. Store the backing value in a differently named attribute (`_c`) to avoid infinite recursion.",
+  "pitfalls": [
+   "Setting self._c in __init__ and bypassing validation",
+   "Doing I/O inside a property"
+  ],
+  "solution": {
+   "code": "class Temp:\n    def __init__(self, c):\n        self.celsius = c\n\n    @property\n    def celsius(self):\n        return self._c\n\n    @celsius.setter\n    def celsius(self, v):\n        if v < -273.15:\n            raise ValueError(\"below absolute zero\")\n        self._c = v\n\n    @property\n    def fahrenheit(self):\n        return self._c * 9 / 5 + 32\n\nt = Temp(100)\nprint(t.fahrenheit)\nt.celsius = 0\nprint(t.fahrenheit)\ntry:\n    Temp(-300)\nexcept ValueError as e:\n    print(e)\ntry:\n    t.fahrenheit = 1\nexcept AttributeError:\n    print(\"read-only\")\n",
+   "expect": [
+    "212.0",
+    "32.0",
+    "below absolute zero",
+    "read-only"
+   ]
+  },
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "properties",
+   "validation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-006",
+  "area": "oop",
+  "topic": "dunder",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between `__repr__` and `__str__`, and what should each return?",
+  "followups": [
+   "What does `{obj!r}` do in an f-string?",
+   "How would you hide a password in a dataclass repr?"
+  ],
+  "answer": "`__repr__` is the unambiguous developer representation, used by the REPL, debuggers, logs of containers, and as the fallback for `str()`. Ideally it looks like a valid constructor call (`Point(x=1, y=2)`) so you can reproduce the object. `__str__` is the readable, user-facing text used by `print` and f-strings. If only one is defined, define `__repr__`, because `str()` falls back to it but not the reverse. Both must return `str`. Good `__repr__` is the single biggest debuggability win for classes. Pitfall: including secrets in repr leaks them into logs and tracebacks, and a repr that raises makes debugging painful; dataclasses generate a repr automatically (use `field(repr=False)` for sensitive fields).",
+  "pitfalls": [
+   "Implementing only __str__ and getting ugly reprs in containers",
+   "Putting sensitive fields in repr"
+  ],
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "dunder",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-007",
+  "area": "oop",
+  "topic": "dunder",
+  "level": 2,
+  "type": "code",
+  "q": "What is the relationship between `__eq__` and `__hash__`? Show what happens when you define only `__eq__` and how to make the object usable in sets.",
+  "followups": [
+   "Why must hashed fields not change?",
+   "What does `@dataclass` (non-frozen, eq=True) do to `__hash__`?"
+  ],
+  "answer": "Objects that compare equal must have equal hashes. When a class defines `__eq__` without `__hash__`, Python sets `__hash__` to None, making instances unhashable (TypeError in sets and as dict keys) so you cannot break the invariant by accident. To support hashing, define `__hash__` consistently with `__eq__` (hash the same fields, usually `hash((self.x, self.y))`) and make those fields effectively immutable, because mutating a key after insertion strands it in the wrong bucket. `@dataclass(frozen=True)` (or `unsafe_hash`) generates both correctly. Trade-off: mutable value objects should stay unhashable; use frozen dataclasses or tuples for keys.",
+  "pitfalls": [
+   "Defining __hash__ from mutable fields",
+   "Defining __eq__ and expecting set membership to work"
+  ],
+  "solution": {
+   "code": "class P:\n    def __init__(self, x, y):\n        self.x, self.y = x, y\n    def __eq__(self, o):\n        return isinstance(o, P) and (self.x, self.y) == (o.x, o.y)\n\nclass H(P):\n    def __hash__(self):\n        return hash((self.x, self.y))\n\nprint(P(1, 2) == P(1, 2))\ntry:\n    {P(1, 2)}\nexcept TypeError as e:\n    print(\"TypeError\", e)\ns = {H(1, 2)}\nprint(H(1, 2) in s, len({H(1, 2), H(1, 2)}))\n",
+   "expect": [
+    "True",
+    "TypeError unhashable type: 'P'",
+    "True 1"
+   ]
+  },
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "dunder",
+   "hashing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-008",
+  "area": "oop",
+  "topic": "dunder",
+  "level": 3,
+  "type": "code",
+  "q": "Implement a `Money` value class with `__eq__`, `__lt__` (using `functools.total_ordering`), `__add__`, `__radd__` (so `sum` works), and correct handling of foreign types via `NotImplemented`.",
+  "followups": [
+   "Why return NotImplemented instead of False?",
+   "What do `__iadd__` and `__add__` differ in?"
+  ],
+  "answer": "Comparison and arithmetic methods should return `NotImplemented` (not raise, not return False) for operand types they do not understand; Python then tries the reflected method on the other operand and finally raises TypeError for arithmetic or falls back to identity for `==`. `total_ordering` derives `<=`, `>`, `>=` from `__eq__` plus one ordering method, at a small speed cost. `sum()` starts with the integer 0, so `0 + Money` calls `Money.__radd__`; handle that start value explicitly. Store money as integer minor units or Decimal, not float. Operator overloading is worth it for genuine value types; for anything else a named method is clearer.",
+  "pitfalls": [
+   "Raising TypeError inside __eq__",
+   "Returning False for unknown types, blocking reflected operations"
+  ],
+  "solution": {
+   "code": "from functools import total_ordering\n\n@total_ordering\nclass Money:\n    def __init__(self, cents):\n        self.cents = cents\n    def __eq__(self, o):\n        if not isinstance(o, Money):\n            return NotImplemented\n        return self.cents == o.cents\n    def __lt__(self, o):\n        if not isinstance(o, Money):\n            return NotImplemented\n        return self.cents < o.cents\n    def __add__(self, o):\n        if not isinstance(o, Money):\n            return NotImplemented\n        return Money(self.cents + o.cents)\n    def __radd__(self, o):\n        return self if o == 0 else NotImplemented\n    def __repr__(self):\n        return f\"Money({self.cents})\"\n\nprint(sorted([Money(5), Money(1), Money(3)]))\nprint(Money(1) <= Money(2), Money(2) >= Money(3))\nprint(sum([Money(1), Money(2)]))\nprint(Money(1) == 5)\ntry:\n    Money(1) + 5\nexcept TypeError:\n    print(\"TypeError\")\n",
+   "expect": [
+    "[Money(1), Money(3), Money(5)]",
+    "True False",
+    "Money(3)",
+    "False",
+    "TypeError"
+   ]
+  },
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "dunder",
+   "operators"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-009",
+  "area": "oop",
+  "topic": "methods",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain instance methods, `@classmethod`, and `@staticmethod`. When do you use a classmethod as an alternative constructor?",
+  "followups": [
+   "Why cls instead of the class name?",
+   "When is a module-level function better than a staticmethod?"
+  ],
+  "answer": "An instance method receives `self`; a classmethod receives the class (`cls`) and can construct or configure instances, and it works correctly with subclasses because `cls(...)` builds the subclass; a staticmethod receives neither and is just a function namespaced in the class. Use classmethods for alternative constructors (`Date.from_iso(s)`, `Config.from_env()`, `User.from_row(row)`) and for class-level registries. Use a staticmethod only when the function is logically related and needs no state; often a module-level function is simpler and more Pythonic. Pitfall: hard-coding the class name inside a classmethod (`return Date(...)`) breaks subclassing; use `cls(...)`.",
+  "pitfalls": [
+   "Overusing staticmethod as Java-style utility classes",
+   "Hard-coding the class in a factory"
+  ],
+  "chapters": [
+   "python/oop01-classes-and-objects.html"
+  ],
+  "tags": [
+   "classmethod",
+   "constructors"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-010",
+  "area": "oop",
+  "topic": "inheritance",
+  "level": 1,
+  "type": "concept",
+  "q": "How does inheritance work in Python, what does `super()` do, and what is method overriding?",
+  "followups": [
+   "What happens if you forget super().__init__()?",
+   "What does isinstance check versus type()?"
+  ],
+  "answer": "A subclass inherits attributes and methods of its base class and can override them by redefining the name. `super()` returns a proxy that delegates to the next class in the MRO, not simply the parent, so `super().__init__(...)` runs the parent's initializer and keeps the chain cooperative. Always call `super().__init__` when the parent sets up state, or attributes will be missing. Inheritance models an 'is-a' relationship and lets you reuse code; the price is tight coupling to the parent's implementation (fragile base class problem). Prefer shallow hierarchies, and prefer composition when the relation is 'has-a' or when you only want to reuse behavior.",
+  "pitfalls": [
+   "Inheriting only for code reuse",
+   "Forgetting to call the parent initializer"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html"
+  ],
+  "tags": [
+   "inheritance",
+   "super"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-011",
+  "area": "oop",
+  "topic": "mro",
+  "level": 3,
+  "type": "code",
+  "q": "Explain method resolution order (C3 linearization) with a diamond. Show how cooperative `super()` visits each class once and when the MRO is inconsistent.",
+  "followups": [
+   "What signature issues break cooperative super?",
+   "Why does object come last?"
+  ],
+  "answer": "Python computes the MRO with C3 linearization: children before parents, respecting the order of bases listed, and each class appears once. In the diamond D(B, C) with B and C both deriving from A, the MRO is D, B, C, A, object. `super()` in B calls the next class in the MRO of the instance's type, which is C (not A) when the object is a D, so if every method calls `super()`, each implementation runs exactly once. That is cooperative multiple inheritance, and it requires consistent signatures (accept `*args, **kwargs` and pass them on). Inconsistent base ordering (`class X(A, B)` where B derives from A) raises TypeError at class creation. Inspect with `Class.__mro__` or `help(Class)`.",
+  "pitfalls": [
+   "Assuming super() means 'the parent class'",
+   "Calling parent methods explicitly by class name in diamonds, running A twice"
+  ],
+  "solution": {
+   "code": "class A:\n    def hi(self):\n        return [\"A\"]\n\nclass B(A):\n    def hi(self):\n        return [\"B\"] + super().hi()\n\nclass C(A):\n    def hi(self):\n        return [\"C\"] + super().hi()\n\nclass D(B, C):\n    def hi(self):\n        return [\"D\"] + super().hi()\n\nprint(D().hi())\nprint([k.__name__ for k in D.__mro__])\ntry:\n    class X(A, B):\n        pass\nexcept TypeError:\n    print(\"TypeError\")\n",
+   "expect": [
+    "['D', 'B', 'C', 'A']",
+    "['D', 'B', 'C', 'A', 'object']",
+    "TypeError"
+   ]
+  },
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html"
+  ],
+  "tags": [
+   "mro",
+   "multiple-inheritance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-012",
+  "area": "oop",
+  "topic": "mixins",
+  "level": 3,
+  "type": "concept",
+  "q": "What are mixins, and when is multiple inheritance acceptable in Python? What rules keep it safe?",
+  "followups": [
+   "Where do you place a mixin in the bases list and why?",
+   "How would you replace a mixin with composition?"
+  ],
+  "answer": "A mixin is a small class that adds one focused behavior (JSON serialization, logging, comparison) and is combined with a main base class via multiple inheritance; it is not meant to be instantiated alone and usually has no state of its own. It is acceptable when each mixin is orthogonal, stateless or minimal, named clearly (`JsonMixin`), placed to the left of the main base so its methods take precedence, and every method uses cooperative `super()` with `*args, **kwargs`. Rules: avoid diamonds with diverging `__init__` signatures, avoid name collisions, keep hierarchies shallow, and document the required interface the mixin expects from the host class. Frameworks such as Django use mixins heavily. Trade-off: mixins hide the source of behavior and make the MRO hard to reason about; composition or a Protocol is often clearer.",
+  "pitfalls": [
+   "Stateful mixins with their own __init__ conflicts",
+   "Deep multiple inheritance trees"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html"
+  ],
+  "tags": [
+   "mixins",
+   "multiple-inheritance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-013",
+  "area": "oop",
+  "topic": "composition",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain 'favor composition over inheritance' with an example, and say when inheritance is still the right tool.",
+  "followups": [
+   "What is the fragile base class problem?",
+   "How does delegation with __getattr__ work?"
+  ],
+  "answer": "Inheritance couples a subclass to the parent's implementation and exposes the whole parent interface; composition builds behavior by holding collaborators and delegating to them. Example: `class Stack(list)` exposes insert, sort, and other methods that break stack semantics; a `Stack` class holding a private list and offering only `push/pop/peek` keeps the invariant. Composition lets you swap collaborators at runtime (inject a different logger or storage), avoids combinatorial subclass explosions (`EmailAlertLogger`, `SmsAlertFileLogger`), and is easier to test with fakes. Inheritance is right for genuine is-a relationships that satisfy Liskov substitution, for frameworks that require subclassing (`unittest.TestCase`, `Exception`), and for template-method designs with a stable base. Rule of thumb: inherit for polymorphic identity, compose for reuse.",
+  "pitfalls": [
+   "Subclassing list/dict to reuse a method or two",
+   "Deep hierarchies for reuse"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "composition",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-014",
+  "area": "oop",
+  "topic": "design",
+  "level": 4,
+  "type": "design",
+  "q": "A codebase has `Notifier` subclasses `EmailNotifier`, `SmsNotifier`, `RetryingEmailNotifier`, `RetryingSmsNotifier`, `LoggingRetryingSmsNotifier`. Every new feature multiplies classes. How do you redesign it?",
+  "followups": [
+   "How does ordering of wrappers change behavior?",
+   "Where should the wiring live?"
+  ],
+  "answer": "The hierarchy mixes two axes of variation: the channel (email, SMS) and cross-cutting behaviors (retry, logging). Separate them. Define a small `Channel` protocol with `send(message)`; implement `EmailChannel` and `SmsChannel`. Implement behaviors as wrappers (decorator pattern) that hold a channel and delegate: `Retrying(channel, attempts=3)` and `Logging(channel, logger)`, each implementing the same protocol, so `Logging(Retrying(SmsChannel()))` composes at construction time and adds a new feature with one class instead of N. A `Notifier` service receives the channel via dependency injection, which makes tests trivial with a fake channel. In Python a plain function or callable can serve as a channel. Trade-offs: more small objects and indirection, and ordering matters (retry inside logging or outside changes what is logged); wiring belongs in one composition root. Migrate incrementally, keeping the old names as thin factories until callers move.",
+  "pitfalls": [
+   "Adding another subclass for each new combination",
+   "Adding boolean flags to one class until it is unreadable"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "composition",
+   "decorator-pattern",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-015",
+  "area": "oop",
+  "topic": "dataclasses",
+  "level": 2,
+  "type": "code",
+  "q": "Demonstrate `@dataclass` features: defaults, `field(default_factory=...)`, `order`, `frozen`, `replace`, `asdict`, and the mutable-default error.",
+  "followups": [
+   "When would you choose pydantic instead?",
+   "What is __post_init__ for?"
+  ],
+  "answer": "`@dataclass` generates `__init__`, `__repr__`, and `__eq__` from annotated fields; options add ordering (`order=True`, compares field tuples in order), immutability (`frozen=True`, raises FrozenInstanceError and generates `__hash__`), `slots=True` (3.10+), and `kw_only=True`. Mutable defaults are rejected with ValueError; use `field(default_factory=list)`. `field(compare=False)` excludes a field from equality and ordering, `repr=False` hides it. `dataclasses.replace` returns a modified copy of a frozen instance and `asdict` converts recursively to dict. Logic that must run after generated init goes in `__post_init__` (validation, derived fields). Trade-off: dataclasses do not validate types at runtime (use pydantic if you need that), and inheritance with defaults can produce field-ordering errors.",
+  "pitfalls": [
+   "Using a mutable default value",
+   "Expecting type annotations to be validated"
+  ],
+  "solution": {
+   "code": "from dataclasses import dataclass, field, replace, asdict\n\n@dataclass(order=True)\nclass Item:\n    name: str\n    qty: int = 0\n    tags: list = field(default_factory=list, compare=False)\n\ni = Item(\"a\")\nj = Item(\"a\", 2)\nprint(i, i < j)\ni.tags.append(\"x\")\nprint(Item(\"a\").tags)\n\n@dataclass(frozen=True)\nclass Pt:\n    x: int\n    y: int\n\np = Pt(1, 2)\ntry:\n    p.x = 3\nexcept Exception as e:\n    print(type(e).__name__)\nprint(replace(p, x=9), hash(p) == hash(Pt(1, 2)), asdict(p))\n\ntry:\n    @dataclass\n    class Bad:\n        xs: list = []\nexcept ValueError:\n    print(\"ValueError\")\n",
+   "expect": [
+    "Item(name='a', qty=0, tags=[]) True",
+    "[]",
+    "FrozenInstanceError",
+    "Pt(x=9, y=2) True {'x': 1, 'y': 2}",
+    "ValueError"
+   ]
+  },
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "dataclasses"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-016",
+  "area": "oop",
+  "topic": "dataclasses",
+  "level": 3,
+  "type": "concept",
+  "q": "Compare dataclass, namedtuple, TypedDict, pydantic model, and a plain class for representing data. How do you choose?",
+  "followups": [
+   "Why validate at the boundary only?",
+   "How does slots=True change dataclass memory?"
+  ],
+  "answer": "namedtuple/`typing.NamedTuple`: immutable, tuple-like (unpackable, indexable), light and hashable; good for small records and returns. dataclass: mutable by default, methods and defaults, generated dunder methods, no runtime validation; the default for internal domain objects. TypedDict: a typing-only description of a dict's keys, zero runtime cost, ideal for JSON-shaped data already in dict form. pydantic BaseModel: runtime validation and coercion, serialization, JSON schema; use at system boundaries (API input, config, LLM output) where data is untrusted, at a performance cost. Plain class: when behavior and invariants dominate and data is secondary. Rules: validate at the edges with pydantic, pass dataclasses or frozen dataclasses inside the core, use TypedDict when you must keep dicts. Trade-off: converting between representations costs copying and code.",
+  "pitfalls": [
+   "Using pydantic for every internal object",
+   "Using raw dicts everywhere and losing structure"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "dataclasses",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-017",
+  "area": "oop",
+  "topic": "slots",
+  "level": 3,
+  "type": "code",
+  "q": "What does `__slots__` do? Demonstrate its effect on dynamic attributes, `__dict__`, and memory, and state the caveats.",
+  "followups": [
+   "What happens to slots in a subclass?",
+   "How would you measure memory objectively?"
+  ],
+  "answer": "Defining `__slots__ = ('x',)` makes CPython store attributes in fixed slots instead of a per-instance `__dict__`. Benefits: lower memory per instance (important for millions of small objects), slightly faster attribute access, and typo protection because assigning an undeclared attribute raises AttributeError. Caveats: no dynamic attributes and no weak references unless `'__weakref__'` is listed; inheritance interacts subtly (a subclass without its own `__slots__` gets a `__dict__` again; multiple bases with non-empty slots conflict); default values via class attributes conflict with the slot names; pickle/copy may need care. Use it for large numbers of small uniform objects (or `@dataclass(slots=True)`), not as general-purpose encapsulation.",
+  "pitfalls": [
+   "Using __slots__ for privacy",
+   "Adding slots without measuring benefit"
+  ],
+  "solution": {
+   "code": "import tracemalloc\n\nclass A:\n    def __init__(self):\n        self.x = 1\n\nclass S:\n    __slots__ = (\"x\",)\n    def __init__(self):\n        self.x = 1\n\na, s = A(), S()\na.y = 2\ntry:\n    s.y = 2\nexcept AttributeError:\n    print(\"no dynamic attrs\")\nprint(hasattr(a, \"__dict__\"), hasattr(s, \"__dict__\"))\n\ndef mem(cls):\n    tracemalloc.start()\n    objs = [cls() for _ in range(2000)]\n    cur, _ = tracemalloc.get_traced_memory()\n    tracemalloc.stop()\n    return cur\n\nprint(\"slots smaller:\", mem(S) < mem(A))\n",
+   "expect": [
+    "no dynamic attrs",
+    "True False",
+    "slots smaller: True"
+   ]
+  },
+  "chapters": [
+   "python/oop01-classes-and-objects.html",
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "slots",
+   "memory"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-018",
+  "area": "oop",
+  "topic": "polymorphism",
+  "level": 2,
+  "type": "concept",
+  "q": "What is polymorphism in Python? Compare duck typing with abstract base classes and Protocols.",
+  "followups": [
+   "What is EAFP versus LBYL?",
+   "How do singledispatch and multimethods relate?"
+  ],
+  "answer": "Polymorphism means calling the same operation on different types and getting type-appropriate behavior. Python favors duck typing: if an object has the needed methods, it works ('if it quacks'); no shared base class required, which keeps code flexible and decoupled. Risks are runtime AttributeErrors and undocumented expectations. ABCs (`abc.ABC` with `@abstractmethod`) make the contract explicit and fail at instantiation if a method is missing, and support `isinstance` checks and shared code. Protocols (typing) express the contract structurally for static checkers without inheritance. Choose duck typing for small internal code, a Protocol for interfaces consumed across module boundaries, and an ABC when you provide shared behavior or need enforcement. Avoid `isinstance` chains: they are polymorphism done by hand and violate open/closed.",
+  "pitfalls": [
+   "isinstance ladders instead of polymorphic methods",
+   "Requiring inheritance where duck typing suffices"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html"
+  ],
+  "tags": [
+   "polymorphism",
+   "duck-typing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-019",
+  "area": "oop",
+  "topic": "abc",
+  "level": 3,
+  "type": "concept",
+  "q": "How do abstract base classes work in Python, and what happens when you try to instantiate one? Give a realistic example and a limitation.",
+  "followups": [
+   "How does `register()` work for virtual subclasses?",
+   "Can an abstract method have a body?"
+  ],
+  "answer": "Subclassing `abc.ABC` and marking methods with `@abstractmethod` prevents instantiation of any class that still has unimplemented abstract methods: `TypeError: Can't instantiate abstract class X with abstract method run`. This gives an early, explicit failure at object creation rather than a late AttributeError deep in a call. Realistic use: a `Storage` base with abstract `save/load` and a concrete helper `save_json`, with `LocalStorage` and `S3Storage` implementations. Abstract properties and classmethods are supported (stack `@abstractmethod` inside the other decorator). Limitations: the check happens only at instantiation, signatures are not verified (only names), and calling `super().method()` on an abstract method with a body is allowed. Also, ABCs add nominal coupling; prefer a Protocol when you do not control the implementers.",
+  "pitfalls": [
+   "Thinking ABC checks method signatures",
+   "Creating an ABC with a single method that a callable would satisfy"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html"
+  ],
+  "tags": [
+   "abc",
+   "interfaces"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-020",
+  "area": "oop",
+  "topic": "solid",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain the SOLID principles in plain terms with one sentence and one Python hint each.",
+  "followups": [
+   "Which principle do you violate most often and why?",
+   "When does SOLID become over-engineering?"
+  ],
+  "answer": "S, Single Responsibility: a class should have one reason to change; do not mix parsing, business rules, and persistence. O, Open/Closed: extend behavior by adding code (new strategy or subclass) rather than editing tested code; replace `if type == ...` chains with polymorphism or a registry. L, Liskov Substitution: a subtype must be usable anywhere its base type is expected without surprising callers (do not strengthen preconditions or raise on inherited methods). I, Interface Segregation: many small, focused interfaces beat one large one; in Python prefer small Protocols. D, Dependency Inversion: high-level policy depends on abstractions, and concrete details are passed in (constructor injection) instead of created inside. They are heuristics for managing change, not laws; applying all of them to a 50-line script is over-engineering. Pitfall: reciting the letters without a concrete example.",
+  "pitfalls": [
+   "Reciting definitions without examples",
+   "Applying patterns to trivial code"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "solid",
+   "design-principles"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-021",
+  "area": "oop",
+  "topic": "solid",
+  "level": 3,
+  "type": "concept",
+  "q": "Show how Single Responsibility and Open/Closed apply to a `Report` class that loads data, calculates totals, formats PDF/CSV output, and emails it.",
+  "followups": [
+   "How would you register formatters through a decorator?",
+   "How does this help testing?"
+  ],
+  "answer": "That class has four reasons to change (data source, calculation rules, output format, delivery), so a change in email settings risks the formatting code. Split by responsibility: a `DataSource` (loader), a pure `calculate_totals` function, formatters (`CsvFormatter`, `PdfFormatter`) that share a `render(data) -> bytes` protocol, and a `Mailer`; a small orchestrator wires them. For open/closed, adding a new format should mean adding a class and registering it (dictionary of name to formatter), not editing an `if fmt == 'csv': ... elif ...` chain in the report code. Benefits: each piece is unit-testable with fakes and changes are localized. Trade-offs: more files and indirection, so split only when there are real axes of change; a 60-line script does not need this. Watch for accidental abstractions: do not create formatter classes when there is a single format.",
+  "pitfalls": [
+   "Splitting into dozens of one-method classes without a reason",
+   "Leaving if/elif chains that grow with every format"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "solid",
+   "srp",
+   "ocp"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-022",
+  "area": "oop",
+  "topic": "solid",
+  "level": 4,
+  "type": "scenario",
+  "q": "A code reviewer says `Square(Rectangle)` violates Liskov Substitution. Explain why, how you'd detect such violations in real code, and how to fix it.",
+  "followups": [
+   "How do you write a contract test that every subclass must pass?",
+   "What does covariance of return types have to do with LSP?"
+  ],
+  "answer": "A `Rectangle` promises that width and height can be set independently, so callers reasonably assume `r.width = 5; r.height = 2` gives area 10. A `Square` overriding setters to keep sides equal breaks that promise: code correct for Rectangle gives wrong results for Square, so Square is not substitutable even though it is geometrically a rectangle. Detection in real code: subclass overrides that raise NotImplementedError or do nothing, tightened preconditions (extra validation), weakened postconditions, `isinstance` checks in callers that special-case a subclass, and tests written for the base class that fail when run against subclasses (run the base test suite against every subclass). Fixes: remove the inheritance and model both as separate `Shape` implementers with a common `area()`, make shapes immutable (a `Rectangle(w, h)` value object, and `Square(side)` just a factory), or use composition. Lesson: inheritance must be about behavior contracts, not taxonomy.",
+  "pitfalls": [
+   "Justifying inheritance because 'a square is a rectangle'",
+   "Overriding methods to raise NotImplementedError"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html",
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "solid",
+   "lsp"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-023",
+  "area": "oop",
+  "topic": "solid",
+  "level": 4,
+  "type": "design",
+  "q": "How do you apply Dependency Inversion and dependency injection in Python without a DI framework, and how does it change testing?",
+  "followups": [
+   "What is a composition root?",
+   "How does FastAPI Depends implement injection?"
+  ],
+  "answer": "Have high-level code depend on a small interface it owns (a Protocol or callable such as `Clock`, `UserRepo`, `send_email`), and pass concrete implementations in from the outside via constructor or function parameters instead of importing and instantiating them inside. Wire everything in a single composition root (main, app factory) so the object graph is visible. For tests, pass an in-memory fake repository and a fixed clock; no patching of module globals, no network. Python specifics: functions are first-class, so a plain callable parameter is often the lightest injection; default arguments can hold the production dependency (`def run(now=datetime.utcnow)`). Frameworks (FastAPI `Depends`) provide injection at the request level. Trade-offs: more parameters and a wiring layer; avoid service locators and global registries that hide dependencies, and do not introduce interfaces for things with one implementation and no test seam.",
+  "pitfalls": [
+   "Instantiating clients inside business logic",
+   "Patching module globals everywhere in tests"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html",
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "solid",
+   "dip",
+   "testing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-024",
+  "area": "oop",
+  "topic": "dunder",
+  "level": 2,
+  "type": "code",
+  "q": "Implement a container class with `__len__`, `__getitem__`, `__contains__`, `__iter__`, and `__bool__`. What happens if you only implement `__getitem__`?",
+  "followups": [
+   "What does collections.abc.Sequence give you?",
+   "How do you support slicing correctly?"
+  ],
+  "answer": "The container protocol is a set of dunder methods that make your object work with built-in syntax: `len(x)`, `x[i]` and slices, `in`, `for`, and truthiness. If `__bool__` is missing, Python uses `__len__` (zero is falsy). `__contains__` falls back to iterating when missing, and `__iter__` falls back to the legacy sequence protocol: repeatedly calling `__getitem__(0), (1), ...` until IndexError, which is why a class with just `__getitem__` is iterable and supports `in`. Explicit `__iter__` is better: it avoids surprises and lets you return a generator. Delegating to an inner list is the simple approach; subclass `collections.abc.Sequence` (implement `__getitem__` and `__len__`) to get `index`, `count`, `__contains__`, `__iter__`, and `__reversed__` for free.",
+  "pitfalls": [
+   "Subclassing list instead of implementing the protocol",
+   "Forgetting IndexError in __getitem__, causing infinite iteration"
+  ],
+  "solution": {
+   "code": "class Playlist:\n    def __init__(self, *songs):\n        self._s = list(songs)\n    def __len__(self):\n        return len(self._s)\n    def __getitem__(self, i):\n        return self._s[i]\n    def __contains__(self, x):\n        return x in self._s\n    def __iter__(self):\n        return iter(self._s)\n\np = Playlist(\"a\", \"b\", \"c\")\nprint(len(p), p[0], p[-1], p[1:], \"b\" in p, list(p), bool(Playlist()))\n\nclass Old:\n    def __getitem__(self, i):\n        if i >= 3:\n            raise IndexError\n        return i * i\n\nprint(list(Old()), 4 in Old())\n",
+   "expect": [
+    "3 a c ['b', 'c'] True ['a', 'b', 'c'] False",
+    "[0, 1, 4] True"
+   ]
+  },
+  "chapters": [
+   "python/oop02-encapsulation-special-methods.html"
+  ],
+  "tags": [
+   "dunder",
+   "protocols"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-025",
+  "area": "oop",
+  "topic": "design",
+  "level": 4,
+  "type": "code",
+  "q": "Implement an LRU cache class with O(1) `get` and `put` and a capacity limit. Explain the data structure choice and how it differs from `functools.lru_cache`.",
+  "followups": [
+   "How would you add TTL expiry?",
+   "How would you make it thread-safe?"
+  ],
+  "answer": "Combine a hash map with a recency ordering: `collections.OrderedDict` keeps insertion order and offers O(1) `move_to_end` and `popitem(last=False)`, so `get` moves the key to the end (most recent) and `put` inserts or updates, then evicts from the front when over capacity. Classic from-scratch alternative: a dict plus a doubly linked list. Complexity O(1) for both operations, O(capacity) space. Validate capacity > 0. Thread safety needs a lock, since two operations are not atomic together. `functools.lru_cache` is a decorator for pure function results and cannot be inspected or invalidated per key; a cache class offers explicit put/get/invalidate, TTL extensions, and metrics. Edge cases: updating an existing key must refresh recency, and storing `None` values needs a sentinel for misses.",
+  "pitfalls": [
+   "Evicting the most recent instead of the least recent",
+   "Not refreshing recency on get",
+   "Using a list, making operations O(n)"
+  ],
+  "solution": {
+   "code": "from collections import OrderedDict\n\nclass LRU:\n    def __init__(self, cap):\n        if cap <= 0:\n            raise ValueError(\"cap must be positive\")\n        self.cap = cap\n        self.d = OrderedDict()\n\n    def get(self, k, default=None):\n        if k not in self.d:\n            return default\n        self.d.move_to_end(k)\n        return self.d[k]\n\n    def put(self, k, v):\n        self.d[k] = v\n        self.d.move_to_end(k)\n        if len(self.d) > self.cap:\n            self.d.popitem(last=False)\n\nc = LRU(2)\nc.put(\"a\", 1)\nc.put(\"b\", 2)\nc.get(\"a\")\nc.put(\"c\", 3)\nprint(list(c.d), c.get(\"b\"), c.get(\"a\"))\n",
+   "expect": [
+    "['a', 'c'] None 1"
+   ]
+  },
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html"
+  ],
+  "tags": [
+   "design",
+   "cache",
+   "data-structures"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-026",
+  "area": "oop",
+  "topic": "design",
+  "level": 4,
+  "type": "design",
+  "q": "In an interview you are asked to design a parking lot (or a library system) with classes. Walk through how you'd approach it and what you'd say about trade-offs.",
+  "followups": [
+   "How would you handle two cars grabbing the last spot?",
+   "What changes if pricing depends on membership?"
+  ],
+  "answer": "Clarify requirements first: vehicle types, lot layout, pricing rules, concurrency (multiple entrances), persistence, and what is out of scope. List nouns and verbs to find entities (`Vehicle`, `Spot`, `Ticket`, `Lot`) and behaviors (park, unpark, compute fee), then assign responsibilities: `Lot` finds and assigns a spot (a `SpotAllocationStrategy` you can swap for nearest-first), `Ticket` records entry time and spot, a `PricingPolicy` computes the fee (strategy, so hourly or flat can change without touching Lot). Model vehicle sizes as data (an enum and a fits() rule) rather than a subclass per vehicle unless behavior differs. Keep entities small, inject the clock for testability, and raise domain errors (`LotFull`). Discuss trade-offs: in-memory versus database, locking around allocation (race for the last spot), extensibility (EV charging spots) versus YAGNI, and what you would test. Sketch the code for the main flow, then extend. Interviewers grade on clarifying questions, reasonable boundaries, and communication rather than a huge class diagram.",
+  "pitfalls": [
+   "Jumping to code without clarifying requirements",
+   "One subclass per vehicle type with no behavioral difference",
+   "A single god class Lot"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html",
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "design",
+   "interview"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-027",
+  "area": "oop",
+  "topic": "metaclasses",
+  "level": 3,
+  "type": "concept",
+  "q": "What are metaclasses and `__init_subclass__`? When would a senior engineer use them, and what are safer alternatives?",
+  "followups": [
+   "How would you build a plugin registry?",
+   "What is a metaclass conflict?"
+  ],
+  "answer": "A class is an instance of its metaclass (`type` by default), so a custom metaclass controls class creation: it can validate, modify the namespace, or register classes. `__init_subclass__` (3.6+) is a simpler hook: it runs when a class is subclassed and receives keyword arguments from the class statement, enough for plugin registries and validation (`class Handler(Base, kind='csv')`). Class decorators do the same after creation, and descriptors handle attribute-level behavior (`__set_name__`). Use a metaclass only when you truly need control over class creation itself, such as ORMs and framework internals (Django models), `abc.ABCMeta`, and enum. Reasons to avoid: metaclass conflicts in multiple inheritance, harder debugging and IDE support, and unclear behavior for the next maintainer. Rule: reach for a plain function, then a class decorator, then `__init_subclass__`, and only then a metaclass.",
+  "pitfalls": [
+   "Using a metaclass for something a decorator does",
+   "Not knowing __init_subclass__"
+  ],
+  "chapters": [
+   "python/oop03-inheritance-polymorphism.html",
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "metaclasses",
+   "advanced"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-028",
+  "area": "oop",
+  "topic": "design",
+  "level": 4,
+  "type": "concept",
+  "q": "When should you not use classes in Python? Give heuristics for functions versus classes.",
+  "followups": [
+   "How do closures compare with small classes?",
+   "What is the smell of a class with one method?"
+  ],
+  "answer": "Use a function when there is input in, output out and no state that must persist between calls. Use a module for a namespace or a singleton-like service (modules are already singletons and initialized once). Use a class when data and behavior are bound by an invariant (keep balance non-negative), when you manage a lifecycle or resource (connection with open/close), when you need polymorphism through a shared interface, or when the same state is read by multiple operations. Smells of unnecessary classes: a class with only `__init__` and one method (`Runner(x).run()`), all-static methods (a module in disguise), and 'manager' or 'helper' classes. Python supports functional style (closures, `functools.partial`, higher-order functions) naturally, and a dataclass plus functions is often clearer than an object graph. Trade-off: functions with lots of shared parameters may indicate a missing object. Choose by whether you are managing state and invariants.",
+  "pitfalls": [
+   "Turning every function into a class",
+   "Static-method-only utility classes"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html",
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "design",
+   "pythonic"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-029",
+  "area": "oop",
+  "topic": "refactoring",
+  "level": 5,
+  "type": "scenario",
+  "q": "You inherit a 3,000-line `OrderManager` class that everyone edits; releases keep breaking unrelated features. You have a quarter, no dedicated refactor time, and the business does not want a rewrite. What is your plan?",
+  "followups": [
+   "How do you decide which seam to extract first?",
+   "How do you keep the team from adding to the god class meanwhile?"
+  ],
+  "answer": "Start with the goal and constraints: which breakages hurt most, who owns the code, what the delivery schedule is. Measure before changing: git history to find hotspots (files/methods changed most, bugs by area), and map method clusters and shared state to reveal natural seams (pricing, inventory, payments, notifications). Make it safe to change: add characterization tests around the highest-churn paths first, using real inputs, and set up CI so every change is verified. Then refactor incrementally with the strangler approach: extract one responsibility at a time into a new class or module with an injected interface, have `OrderManager` delegate to it (behavior-preserving, small PRs behind the existing API), delete dead code, and never mix refactors with feature changes in the same PR. Tie extraction to feature work ('leave the campsite cleaner') in the areas being touched rather than a separate big-bang project, and add ownership boundaries (CODEOWNERS, module APIs, import rules). Communicate progress with a small metric (class size, bug count in the extracted areas) and agree explicitly with stakeholders on the trade-off: slower features initially for fewer regressions. Stop when the pain is gone, not when the code is perfect.",
+  "pitfalls": [
+   "Big-bang rewrite",
+   "Refactoring without tests",
+   "Mixing refactor and feature changes in the same commit"
+  ],
+  "chapters": [
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "refactoring",
+   "legacy",
+   "leadership"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "oop-030",
+  "area": "oop",
+  "topic": "patterns",
+  "level": 3,
+  "type": "concept",
+  "q": "How do design patterns such as Strategy, Factory, and Observer look in idiomatic Python? Which ones are often unnecessary?",
+  "followups": [
+   "How would you implement a plugin registry with a decorator?",
+   "What are the memory risks of observers?"
+  ],
+  "answer": "Because functions are first-class, many patterns collapse. Strategy: pass a function or callable (`sorted(key=...)`, a `pricing` callable) instead of a class hierarchy; use classes only when the strategy has state or several methods. Factory: a plain function or classmethod, or a dict mapping names to classes/callables (a registry), replaces factory class hierarchies. Observer: a list of callbacks (or signals such as `blinker`, event emitters) rather than Subject/Observer interfaces; weak references avoid leaks. Singleton: a module-level object. Iterator and decorator are built into the language. Patterns still matter as vocabulary (adapter, facade, repository, unit of work in data-heavy services) and for communicating design. Trade-off: heavy Java-style pattern implementations add boilerplate; but explicit classes help when behavior needs identity, state, or multiple operations. Pitfall: forcing a pattern before the problem shows up.",
+  "pitfalls": [
+   "Java-style abstract factory in Python",
+   "Singletons via __new__ instead of a module-level instance"
+  ],
+  "chapters": [
+   "python/oop04-composition-dataclasses-design.html",
+   "python/oop05-oop-project-testing-pitfalls.html"
+  ],
+  "tags": [
+   "patterns",
+   "pythonic"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

@@ -1,0 +1,1694 @@
+[
+ {
+  "id": "py-001",
+  "area": "python",
+  "topic": "mutability",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between mutable and immutable objects in Python? Give examples of each and explain why it matters for dict keys and function arguments.",
+  "followups": [
+   "Why is a tuple containing a list unhashable?",
+   "Is Python pass-by-value or pass-by-reference?"
+  ],
+  "answer": "Immutable objects (int, float, str, bytes, tuple of immutables, frozenset) cannot change after creation; any 'modification' builds a new object. Mutable objects (list, dict, set, bytearray, most user classes) change in place. It matters in three places: (1) hashability - dict keys and set members must have a stable hash, so lists/dicts are rejected while tuples of immutables work; (2) argument passing - Python passes object references, so a function that mutates a list argument changes the caller's list, while rebinding the parameter name does not; (3) safe sharing/caching - immutables can be shared and cached freely. Pitfall: a tuple is only shallowly immutable, so a tuple containing a list can still change.",
+  "pitfalls": [
+   "Saying 'Python is pass by reference' or 'pass by value' without explaining name binding",
+   "Believing tuples are deeply immutable"
+  ],
+  "chapters": [
+   "python/ch01-python-basics.html",
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "mutability",
+   "hashing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-002",
+  "area": "python",
+  "topic": "data-structures",
+  "level": 1,
+  "type": "concept",
+  "q": "When would you pick a list, tuple, set, or dict? State the time complexity of membership testing in each.",
+  "followups": [
+   "What does 'average O(1)' hide in a hash table?",
+   "Why did dict ordering become guaranteed in 3.7?"
+  ],
+  "answer": "List: ordered, mutable sequence, O(n) membership; use for ordered collections you append to. Tuple: ordered immutable record or fixed-size grouping, hashable if its items are, O(n) membership; use for returns, dict keys, coordinates. Set: unordered unique elements, average O(1) membership and set algebra (union, intersection, difference); use for dedupe and fast lookups. Dict: key to value mapping, average O(1) lookup, insertion-ordered since 3.7. Trade-off: hash containers use more memory and need hashable elements; a set of 10 items is not always faster than a tuple scan, but for repeated lookups in large data converting a list to a set is the classic O(n) to O(1) fix. Pitfall: `x in some_list` inside a loop makes the whole thing O(n*m).",
+  "pitfalls": [
+   "Using a list for repeated membership tests on large data",
+   "Assuming sets preserve insertion order"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "data-structures",
+   "complexity"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-003",
+  "area": "python",
+  "topic": "functions",
+  "level": 2,
+  "type": "code",
+  "q": "Show the mutable default argument bug, explain why it happens, and give the standard fix. Print evidence that the default is shared.",
+  "followups": [
+   "When is a mutable default acceptable?",
+   "Does the same problem apply to default values like datetime.now()?"
+  ],
+  "answer": "Default values are evaluated once, when the `def` statement runs, and stored on the function object (`__defaults__`). A mutable default such as [] is therefore one shared object across all calls that omit the argument, so state leaks between calls. The fix is a `None` sentinel: `def f(x, acc=None): if acc is None: acc = []`. Use a different sentinel (a private `object()`) if None is a legitimate value. This is also occasionally used intentionally for memoization, but that should be explicit (functools.cache) rather than accidental. Linters (ruff B006) catch it.",
+  "pitfalls": [
+   "Thinking the default is re-created on each call",
+   "Fixing it with copy() inside the function but still defaulting to a mutable"
+  ],
+  "solution": {
+   "code": "def bad(x, acc=[]):\n    acc.append(x)\n    return acc\n\ndef good(x, acc=None):\n    if acc is None:\n        acc = []\n    acc.append(x)\n    return acc\n\nprint(bad(1), bad(2))\nprint(good(1), good(2))\nprint(bad.__defaults__)\n",
+   "expect": [
+    "[1, 2] [1, 2]",
+    "[1] [2]",
+    "([1, 2],)"
+   ]
+  },
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "pitfalls",
+   "functions"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-004",
+  "area": "python",
+  "topic": "identity",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain `is` versus `==`. Why does `a = 256; b = 256; a is b` often return True but `257` may not, and when is `is` the right operator?",
+  "followups": [
+   "What does `id()` return in CPython?",
+   "Why does `x == None` misbehave with NumPy arrays?"
+  ],
+  "answer": "`==` calls `__eq__` and compares values; `is` compares object identity (same `id`). CPython caches small ints (-5..256) and interns some strings, so `is` can look like equality by accident; that is an implementation detail and must never be relied on. Use `is` only for singletons: `x is None`, `x is True`, sentinel objects. Use `==` for values. Trade-off: `is None` is preferred over `== None` because a class can override `__eq__` (NumPy arrays, pandas objects) and make `== None` return an array or something surprising. Pitfall: comparing strings or numbers with `is` passes tests locally and fails in production.",
+  "pitfalls": [
+   "Using `is` for string or int comparison",
+   "Claiming small-int caching is guaranteed by the language"
+  ],
+  "chapters": [
+   "python/ch01-python-basics.html"
+  ],
+  "tags": [
+   "identity",
+   "pitfalls"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-005",
+  "area": "python",
+  "topic": "closures",
+  "level": 3,
+  "type": "code",
+  "q": "This code prints [2, 2, 2] instead of [0, 1, 2]. Explain late-binding closures and show two fixes.",
+  "followups": [
+   "Would this happen in a list comprehension in Python 3 for the loop variable?",
+   "How does `nonlocal` relate to closure cells?"
+  ],
+  "answer": "Closures capture variables, not values. All three lambdas share the same cell for `i` in the enclosing scope, and by the time they are called the loop has finished with i == 2. Fixes: bind the current value as a default argument (`lambda i=i: i`), which is evaluated at definition time, or use `functools.partial`, or a factory function that creates a new scope per call. The default-argument trick has the downside that callers can override it by passing an argument; a factory or partial is cleaner. The same bug appears with callbacks in GUI code and threads started in loops.",
+  "pitfalls": [
+   "Believing the lambda copies the value at creation",
+   "Fixing by making i global"
+  ],
+  "solution": {
+   "code": "from functools import partial\n\nfs = [lambda: i for i in range(3)]\nprint([f() for f in fs])\n\nfs = [lambda i=i: i for i in range(3)]\nprint([f() for f in fs])\n\ndef ident(i):\n    return i\nfs = [partial(ident, i) for i in range(3)]\nprint([f() for f in fs])\n",
+   "expect": [
+    "[2, 2, 2]",
+    "[0, 1, 2]"
+   ]
+  },
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "closures",
+   "pitfalls"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-006",
+  "area": "python",
+  "topic": "dicts",
+  "level": 3,
+  "type": "scenario",
+  "q": "A nightly job crashes with `RuntimeError: dictionary changed size during iteration` only on some inputs. Where do you look and how do you fix it safely?",
+  "followups": [
+   "How would you reproduce this in a unit test?",
+   "Does the same apply to lists and sets?"
+  ],
+  "answer": "Check first for a loop over `d` (or `d.keys()/items()`) that inserts or deletes keys in the body, possibly indirectly through a helper, a callback, or another thread. Iterating a dict while its size changes is undefined for the iterator, so CPython raises. It appears only on some inputs because the mutation branch (for example `del d[k]` when a value is stale) runs only for certain data. Fixes: iterate over a snapshot (`for k in list(d)`), build a new dict with a comprehension of the survivors, or collect keys to delete and apply after the loop. If threads are involved, guard with a lock or use copy-on-write. Note that changing a value for an existing key is allowed; changing the key set is not.",
+  "pitfalls": [
+   "Wrapping the loop in try/except and ignoring it",
+   "Assuming it is a thread bug only"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "dicts",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-007",
+  "area": "python",
+  "topic": "copying",
+  "level": 2,
+  "type": "code",
+  "q": "Explain shallow versus deep copy and demonstrate with a nested list. When is deepcopy a bad idea?",
+  "followups": [
+   "How does deepcopy handle cycles?",
+   "What is the cheapest way to avoid needing deepcopy?"
+  ],
+  "answer": "A shallow copy (`list.copy()`, `copy.copy`, slicing, `dict(d)`) creates a new outer container but reuses references to the inner objects; a deep copy (`copy.deepcopy`) recursively copies everything and preserves shared/cyclic references via a memo. With shallow copies, mutating a nested object shows through in both copies. deepcopy costs time and memory proportional to the whole object graph, can copy things you did not intend (large shared caches, database connections, locks fail), and can be replaced by restructuring to immutable data or copying only the level you will change. Custom classes can control this with `__copy__` and `__deepcopy__`.",
+  "pitfalls": [
+   "Thinking `b = a` copies",
+   "Using `[:]` on a list of lists and expecting independence"
+  ],
+  "solution": {
+   "code": "import copy\n\na = [[1, 2], [3]]\ns = a.copy()\nd = copy.deepcopy(a)\na[0].append(99)\nprint(s)\nprint(d)\nprint(s[0] is a[0], d[0] is a[0])\n",
+   "expect": [
+    "[[1, 2, 99], [3]]",
+    "[[1, 2], [3]]",
+    "True False"
+   ]
+  },
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "copy",
+   "mutability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-008",
+  "area": "python",
+  "topic": "functions",
+  "level": 1,
+  "type": "concept",
+  "q": "What do `*args` and `**kwargs` do, and what are keyword-only and positional-only parameters?",
+  "followups": [
+   "How do you forward arguments in a decorator?",
+   "What happens on `f(1, a=1)` if `a` is positional-only?"
+  ],
+  "answer": "`*args` collects extra positional arguments into a tuple; `**kwargs` collects extra keyword arguments into a dict. At a call site, `*` and `**` unpack iterables/mappings into arguments. A bare `*` in the signature makes following parameters keyword-only (`def f(a, *, key)`), and `/` makes preceding ones positional-only (`def f(a, /, b)`). Use keyword-only parameters for flags and options so call sites stay readable and the API can evolve; positional-only frees parameter names from being part of the public API. Trade-off: heavy use of `**kwargs` hides the real signature from readers, IDEs, and type checkers; prefer explicit parameters and pass-through only in wrappers/decorators.",
+  "pitfalls": [
+   "Using **kwargs as a way to avoid designing an API",
+   "Forgetting args is a tuple, not a list"
+  ],
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "functions",
+   "signatures"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-009",
+  "area": "python",
+  "topic": "scope",
+  "level": 2,
+  "type": "code",
+  "q": "Explain LEGB scope resolution and `nonlocal`. Show an UnboundLocalError and a closure counter.",
+  "followups": [
+   "Why does `x += 1` on a global fail inside a function?",
+   "How does a comprehension scope differ?"
+  ],
+  "answer": "Names resolve in order: Local, Enclosing function, Global (module), Built-in. Assignment anywhere in a function makes the name local for the whole function body, so reading it before assigning raises UnboundLocalError rather than falling back to the global. `global` and `nonlocal` declare that assignment targets the module or nearest enclosing function scope. Closures with `nonlocal` give lightweight private state (counter), but for more than one piece of state a small class is clearer and testable. Pitfall: augmented assignment (`n += 1`) counts as assignment, so a closure that increments an outer variable needs `nonlocal`.",
+  "pitfalls": [
+   "Assuming Python reads the global until the assignment line executes",
+   "Using global variables for state instead of passing parameters"
+  ],
+  "solution": {
+   "code": "x = \"global\"\n\ndef outer():\n    x = \"enclosing\"\n    def inner():\n        nonlocal x\n        x = \"changed\"\n    inner()\n    return x\n\nprint(outer(), x)\n\ndef counter():\n    n = 0\n    def inc():\n        nonlocal n\n        n += 1\n        return n\n    return inc\n\nc = counter()\nc()\nprint(c())\n\ndef broken():\n    try:\n        print(y)\n        y = 1\n    except UnboundLocalError:\n        print(\"UnboundLocalError\")\n\nbroken()\n",
+   "expect": [
+    "changed global",
+    "2",
+    "UnboundLocalError"
+   ]
+  },
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "scope",
+   "closures"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-010",
+  "area": "python",
+  "topic": "tuples",
+  "level": 3,
+  "type": "code",
+  "q": "Predict what happens: `t = ([1],); t[0] += [2]`. Does it raise, does it mutate, or both? Explain.",
+  "followups": [
+   "What would `t[0] = t[0] + [2]` do?",
+   "Why do lists define `__iadd__` but tuples do not?"
+  ],
+  "answer": "Both. `t[0] += [2]` compiles to: fetch t[0], call `list.__iadd__` (which extends the list in place and returns it), then try `t[0] = result`. The in-place extend succeeds, and then the item assignment on the tuple raises TypeError. So the exception is raised but the list inside the tuple has already been mutated. It shows that augmented assignment on a subscript is a get, an in-place op, and a set. Fix: do not put mutable objects in tuples you mean to treat as immutable, or call `t[0].extend([2])` (or `.append`) which does no assignment and does not raise. Classic interview trap that tests understanding of `__iadd__`.",
+  "pitfalls": [
+   "Answering only 'TypeError' without noticing the mutation",
+   "Answering that the tuple is unchanged"
+  ],
+  "solution": {
+   "code": "t = ([1],)\ntry:\n    t[0] += [2]\nexcept TypeError:\n    print(\"TypeError\", t)\nt[0].extend([3])\nprint(t)\n",
+   "expect": [
+    "TypeError ([1, 2],)",
+    "([1, 2, 3],)"
+   ]
+  },
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "tuples",
+   "pitfalls"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-011",
+  "area": "python",
+  "topic": "dicts",
+  "level": 2,
+  "type": "code",
+  "q": "Write `first_unique(s)` returning the first non-repeating character of a string, or None. State time and space complexity.",
+  "followups": [
+   "How would you do it in a stream that cannot be re-read?",
+   "How does the answer change for Unicode grapheme clusters?"
+  ],
+  "answer": "Count occurrences in one pass with `collections.Counter`, then scan the string again in original order and return the first character with count 1. Time O(n), space O(k) where k is the alphabet size (bounded for ASCII). A single pass is possible using an insertion-ordered dict, but two passes are simpler and still linear. Trade-off: the brute force `s.count(ch)` per character is O(n^2). Edge cases: empty string returns None; Unicode strings work per code point, not per user-visible character.",
+  "pitfalls": [
+   "Using s.count in a loop (quadratic)",
+   "Iterating the Counter and losing the original order guarantee in older Python"
+  ],
+  "solution": {
+   "code": "from collections import Counter\n\ndef first_unique(s):\n    counts = Counter(s)\n    for ch in s:\n        if counts[ch] == 1:\n            return ch\n    return None\n\nprint(first_unique(\"swiss\"), first_unique(\"aabb\"), first_unique(\"leetcode\"))\n",
+   "expect": [
+    "w None l"
+   ]
+  },
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "hashing",
+   "strings"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-012",
+  "area": "python",
+  "topic": "comprehensions",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between a list comprehension and a generator expression? When do you pick each?",
+  "followups": [
+   "Can you index or len() a generator?",
+   "What happens if you iterate a generator twice?"
+  ],
+  "answer": "A list comprehension `[f(x) for x in it]` builds the whole list eagerly in memory; a generator expression `(f(x) for x in it)` produces values lazily, one at a time, with O(1) memory and can be consumed only once. Use a generator expression when the result is consumed once by something that iterates (`sum(...)`, `any(...)`, `''.join(...)`, `max(...)`), especially on large or unbounded input; use a list when you need indexing, length, multiple passes, or when the elements are cheap and the list is small. Trade-off: generators defer errors and side effects until consumption and cannot be re-iterated; `str.join` internally builds a list anyway so a list comprehension is marginally faster there.",
+  "pitfalls": [
+   "Thinking generators are always faster (they save memory, not necessarily time)",
+   "Iterating an exhausted generator and getting silently empty results"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "comprehensions",
+   "generators"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-013",
+  "area": "python",
+  "topic": "exceptions",
+  "level": 2,
+  "type": "concept",
+  "q": "Describe how try/except/else/finally work, and what is wrong with a bare `except:`. What is a good exception-handling policy in a service?",
+  "followups": [
+   "What happens if `finally` contains a return?",
+   "When do you use `contextlib.suppress`?"
+  ],
+  "answer": "`try` runs code; `except` handles matching exceptions (first match wins, so order specific before general); `else` runs only if no exception occurred, keeping the try body minimal; `finally` always runs (cleanup), even on return or exception. A bare `except:` also catches KeyboardInterrupt and SystemExit and hides bugs; `except Exception` is the broadest acceptable form and still needs to log and usually re-raise. Policy: catch narrow exceptions you can actually handle, keep try bodies small, add context with `raise NewError(...) from err`, log once at the boundary with the traceback, and let unexpected errors bubble to a top-level handler. Pitfall: swallowing exceptions with `pass` turns bugs into silent data corruption.",
+  "pitfalls": [
+   "Bare `except:` with `pass`",
+   "Putting the whole function in one try block"
+  ],
+  "chapters": [
+   "python/ch05-oop-files-errors.html"
+  ],
+  "tags": [
+   "exceptions",
+   "error-handling"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-014",
+  "area": "python",
+  "topic": "exceptions",
+  "level": 3,
+  "type": "code",
+  "q": "Demonstrate exception chaining: what do `raise X from e` and `raise X from None` do to `__cause__` and `__context__`, and when would you use each?",
+  "followups": [
+   "How does exception chaining appear in logging.exception output?",
+   "What is ExceptionGroup and except* in 3.11?"
+  ],
+  "answer": "`raise New from err` sets `__cause__ = err` and marks the traceback with 'The above exception was the direct cause', preserving the root cause when you translate low-level errors into domain errors (ValueError to ConfigError). Raising inside an except block without `from` still records the original in `__context__` ('During handling of the above exception, another exception occurred'). `raise New from None` sets `__suppress_context__ = True` and `__cause__ = None`, hiding the chained traceback; use it only when the original is noise (for example internal KeyError leaking implementation details). `__context__` is still populated. Default to `from err` because dropping the cause makes production debugging harder.",
+  "pitfalls": [
+   "Using `from None` habitually and losing root causes",
+   "Re-raising a new exception without any context in the message"
+  ],
+  "solution": {
+   "code": "class ConfigError(Exception):\n    pass\n\ndef load(v):\n    try:\n        return int(v)\n    except ValueError as e:\n        raise ConfigError(f\"bad port {v!r}\") from e\n\ntry:\n    load(\"80a\")\nexcept ConfigError as e:\n    print(e)\n    print(type(e.__cause__).__name__)\n    print(e.__suppress_context__)\n\ndef swallow():\n    try:\n        1 / 0\n    except ZeroDivisionError:\n        raise KeyError(\"x\") from None\n\ntry:\n    swallow()\nexcept KeyError as e:\n    print(e.__cause__, e.__context__ is not None)\n",
+   "expect": [
+    "bad port '80a'",
+    "ValueError",
+    "True",
+    "None True"
+   ]
+  },
+  "chapters": [
+   "python/ch05-oop-files-errors.html"
+  ],
+  "tags": [
+   "exceptions"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-015",
+  "area": "python",
+  "topic": "strings",
+  "level": 2,
+  "type": "concept",
+  "q": "Why is `s += piece` in a loop discouraged for building large strings, and what are the alternatives? Compare f-strings, format, and % formatting.",
+  "followups": [
+   "Why does logging use `logger.info('x %s', v)` instead of an f-string?",
+   "How would you build a 100 MB string incrementally?"
+  ],
+  "answer": "Strings are immutable, so each `+=` conceptually creates a new string and copies the old contents, making the loop O(n^2) in the worst case (CPython sometimes optimizes in place when the refcount is 1, but you cannot rely on it, and other interpreters do not). Collect pieces in a list and `''.join(parts)` for O(n), or write to `io.StringIO`. For formatting, f-strings (3.6+) are the default: readable and fastest, evaluated at runtime with full expression support; `str.format` is useful when the template is stored separately or reused; `%` is legacy but still what `logging` uses for lazy interpolation. Security note: never use f-strings or format on untrusted templates or to build SQL; use parameterized queries and, for logs, pass args to the logger.",
+  "pitfalls": [
+   "Building SQL with f-strings",
+   "Assuming `+=` is always quadratic or always optimized"
+  ],
+  "chapters": [
+   "python/ch01-python-basics.html"
+  ],
+  "tags": [
+   "strings",
+   "performance"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-016",
+  "area": "python",
+  "topic": "unicode",
+  "level": 3,
+  "type": "code",
+  "q": "A user's name looks identical in two records but `==` says they differ, and `len` differs. Explain and show how to compare correctly. How do `len(str)` and `len(bytes)` differ?",
+  "followups": [
+   "Which normalization form would you store and why?",
+   "What does `open()` default encoding depend on?"
+  ],
+  "answer": "Unicode allows the same visible text to be encoded as different code point sequences: precomposed 'e-acute' (U+00E9) versus 'e' plus a combining acute (U+0065 U+0301). Python `str` compares code points, so they are unequal and have different lengths. Normalize both sides to a canonical form (`unicodedata.normalize('NFC', s)`) before comparing or storing; use `casefold()` for case-insensitive matching rather than `lower()`. `len(str)` counts code points, `len(s.encode('utf-8'))` counts bytes, and neither counts user-perceived characters (grapheme clusters; use a library such as `regex` with `\\X`). Pitfall: truncating by byte count can split a multibyte character; always decode/encode explicitly and specify the encoding when reading files.",
+  "pitfalls": [
+   "Assuming len(str) is the number of visible characters",
+   "Using lower() for caseless comparison of international text"
+  ],
+  "solution": {
+   "code": "import unicodedata as u\n\na = \"\\u00e9\"\nb = \"e\\u0301\"\nprint(len(a), len(b), a == b)\nprint(u.normalize(\"NFC\", b) == a)\nprint(len(\"\\u00e9\".encode()), len(\"\\u65e5\\u672c\".encode()), len(\"\\u65e5\\u672c\"))\nprint(\"Stra\\u00dfe\".casefold() == \"STRASSE\".casefold())\n",
+   "expect": [
+    "1 2 False",
+    "True",
+    "2 6 2"
+   ]
+  },
+  "chapters": [
+   "python/ch01-python-basics.html"
+  ],
+  "tags": [
+   "unicode",
+   "strings"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-017",
+  "area": "python",
+  "topic": "sorting",
+  "level": 2,
+  "type": "code",
+  "q": "Explain stable sorting and multi-key sorts in Python. Sort records by age descending and then name ascending without writing a comparison function.",
+  "followups": [
+   "Why does `x = lst.sort()` give None?",
+   "How would you sort by a string key descending?"
+  ],
+  "answer": "`sorted` and `list.sort` use Timsort, which is stable: elements with equal keys keep their original relative order (also true with `reverse=True`). This allows multi-pass sorting (sort by the secondary key first, then the primary) or a single pass with a tuple key: `key=lambda r: (-r.age, r.name)` for mixed directions on numeric keys. For non-numeric descending keys, do two stable passes. `functools.cmp_to_key` exists for legacy comparators but is slower. Complexity O(n log n) worst case, O(n) on already-sorted input, O(n) extra space. `sort()` sorts in place and returns None, a classic bug when chaining.",
+  "pitfalls": [
+   "Writing cmp functions in Python 3 style",
+   "Assuming reverse=True reverses equal elements"
+  ],
+  "solution": {
+   "code": "rows = [(\"cat\", 30), (\"amy\", 25), (\"bob\", 30), (\"dan\", 25)]\nprint(sorted(rows, key=lambda r: r[1]))\nprint(sorted(rows, key=lambda r: (-r[1], r[0])))\nprint(sorted(rows, key=lambda r: r[1], reverse=True))\nprint(rows.sort())\n",
+   "expect": [
+    "[('amy', 25), ('dan', 25), ('cat', 30), ('bob', 30)]",
+    "[('bob', 30), ('cat', 30), ('amy', 25), ('dan', 25)]",
+    "[('cat', 30), ('bob', 30), ('amy', 25), ('dan', 25)]",
+    "None"
+   ]
+  },
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "sorting",
+   "stability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-018",
+  "area": "python",
+  "topic": "collections",
+  "level": 2,
+  "type": "concept",
+  "q": "Which structures from `collections` do you reach for and why: deque, defaultdict, Counter, OrderedDict, ChainMap? Give complexity for deque versus list operations.",
+  "followups": [
+   "How would you implement an LRU cache?",
+   "Why does defaultdict insert on read?"
+  ],
+  "answer": "`deque`: O(1) append/pop at both ends (list `pop(0)`/`insert(0)` is O(n)); use for queues and sliding windows, but indexing into the middle is O(n). `defaultdict(list/int)`: removes `setdefault`/`if key in d` boilerplate when grouping or counting; note that merely reading a missing key inserts it. `Counter`: multiset with `most_common(k)` and arithmetic; `most_common` is O(n log k) with a heap. `OrderedDict`: mostly obsolete since dicts preserve order, still useful for `move_to_end` (LRU) and order-sensitive equality. `ChainMap`: layered lookups such as CLI args over env over defaults without copying. `queue.Queue` is the thread-safe variant, `deque` alone is not a synchronization primitive (though append/pop are atomic).",
+  "pitfalls": [
+   "Using list.pop(0) as a queue",
+   "Expecting `d[k]` on a defaultdict to raise KeyError"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "collections",
+   "queues"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-019",
+  "area": "python",
+  "topic": "floats",
+  "level": 3,
+  "type": "code",
+  "q": "Why does `0.1 + 0.2 == 0.3` return False, and how do you handle money and float comparisons in Python?",
+  "followups": [
+   "What does `Decimal(0.1)` give?",
+   "When would you use `fractions.Fraction`?"
+  ],
+  "answer": "Floats are IEEE 754 binary64; 0.1, 0.2, 0.3 have no exact binary representation, so the sum is 0.30000000000000004. Compare with `math.isclose(a, b, rel_tol=..., abs_tol=...)` (supply abs_tol when comparing near zero). For money use `decimal.Decimal` constructed from strings (not floats) or integers in the smallest unit (cents), and set rounding explicitly. `round()` uses banker's rounding (round half to even), so `round(2.5) == 2`; naive float summation accumulates error (3.12 made `sum` compensated, but `math.fsum` is the guaranteed exactly rounded choice). Trade-off: Decimal is slower and not supported natively by NumPy, so use it at business-logic boundaries rather than in numeric arrays.",
+  "pitfalls": [
+   "Comparing floats with ==",
+   "Constructing Decimal from a float literal"
+  ],
+  "solution": {
+   "code": "from decimal import Decimal\nimport math\n\nprint(0.1 + 0.2 == 0.3, 0.1 + 0.2)\nprint(math.isclose(0.1 + 0.2, 0.3))\nprint(Decimal(\"0.1\") + Decimal(\"0.2\") == Decimal(\"0.3\"))\nprint(round(2.5), round(3.5), round(0.5))\nprint(0.1 * 3 == 0.3, 0.1 * 3)\n",
+   "expect": [
+    "False 0.30000000000000004",
+    "True",
+    "2 4 0",
+    "False 0.30000000000000004"
+   ]
+  },
+  "chapters": [
+   "python/ch01-python-basics.html"
+  ],
+  "tags": [
+   "floats",
+   "numerics"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-020",
+  "area": "python",
+  "topic": "unpacking",
+  "level": 2,
+  "type": "code",
+  "q": "Demonstrate extended unpacking, argument unpacking with * and **, and dict merging. What are the gotchas?",
+  "followups": [
+   "What does `a, b = 'xy'` do?",
+   "How do you merge dicts recursively?"
+  ],
+  "answer": "`first, *mid, last = seq` binds the middle to a list (may be empty); only one starred target is allowed. `f(*seq, **mapping)` unpacks at call sites; `{**a, **b}` and `a | b` (3.9+) merge dicts with later keys winning, creating a new dict, while `a |= b` updates in place. Tuple swap `a, b = b, a` evaluates the right side fully before assigning. Gotchas: unpacking requires matching counts (ValueError otherwise), `**` keys must be strings for function calls, unpacking a dict iterates keys, and merges are shallow.",
+  "pitfalls": [
+   "Expecting the first dict's value to win in `{**a, **b}`",
+   "Assuming the merge is deep"
+  ],
+  "solution": {
+   "code": "first, *mid, last = [1, 2, 3, 4, 5]\nprint(first, mid, last)\na, b = 1, 2\na, b = b, a\nprint(a, b)\n\ndef f(*args, **kw):\n    return args, kw\n\nprint(f(*[1, 2], **{\"k\": 3}))\nprint({**{\"a\": 1}, **{\"a\": 2, \"b\": 3}})\nprint({\"a\": 1} | {\"a\": 9})\n",
+   "expect": [
+    "1 [2, 3, 4] 5",
+    "2 1",
+    "((1, 2), {'k': 3})",
+    "{'a': 2, 'b': 3}",
+    "{'a': 9}"
+   ]
+  },
+  "chapters": [
+   "python/ch01-python-basics.html",
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "unpacking",
+   "dicts"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-021",
+  "area": "python",
+  "topic": "decorators",
+  "level": 1,
+  "type": "concept",
+  "q": "What is a decorator in Python and what does `@decorator` above a function actually do?",
+  "followups": [
+   "What is a decorator factory?",
+   "How do class decorators differ?"
+  ],
+  "answer": "A decorator is a callable that takes a function (or class) and returns a replacement, typically a wrapper that adds behavior such as logging, caching, auth checks, retries, or timing without editing the function body. `@deco` above `def f` is exactly `f = deco(f)` executed at definition time. A decorator with arguments (`@retry(3)`) is a decorator factory: `retry(3)` returns the real decorator. Always apply `functools.wraps` inside so the wrapper keeps `__name__`, `__doc__`, and `__wrapped__`; otherwise introspection, debuggers, and frameworks that route by function name (Flask endpoints, pytest) break. Trade-off: heavy stacking hides control flow and makes tracebacks harder to read.",
+  "pitfalls": [
+   "Forgetting functools.wraps",
+   "Confusing decorator execution time (definition) with call time"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "decorators"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-022",
+  "area": "python",
+  "topic": "decorators",
+  "level": 2,
+  "type": "code",
+  "q": "Write a `retry(times, exceptions)` decorator that preserves function metadata, retries only the listed exceptions, and re-raises the last error when attempts are exhausted.",
+  "followups": [
+   "How would you add exponential backoff with jitter?",
+   "Which operations are safe to retry?"
+  ],
+  "answer": "The pattern is three nested functions: the factory takes configuration, the decorator takes the function, and the wrapper runs the call loop. Use `functools.wraps(fn)` on the wrapper, catch only the given exception tuple (never a bare except), and re-raise the last exception so callers see the real failure. In production add exponential backoff with jitter, a max total time, and only retry idempotent operations; retrying a non-idempotent POST can duplicate side effects. Log each attempt with the exception. Trade-off: a decorator is convenient but hides retry policy; libraries such as tenacity provide tested policies.",
+  "pitfalls": [
+   "Retrying on Exception broadly (masks programming errors)",
+   "Retrying non-idempotent operations",
+   "Losing metadata by omitting wraps"
+  ],
+  "solution": {
+   "code": "import functools\n\ndef retry(times=3, exceptions=(Exception,)):\n    def deco(fn):\n        @functools.wraps(fn)\n        def wrapper(*a, **kw):\n            last = None\n            for attempt in range(1, times + 1):\n                try:\n                    return fn(*a, **kw)\n                except exceptions as e:\n                    last = e\n                    print(f\"attempt {attempt} failed: {e}\")\n            raise last\n        return wrapper\n    return deco\n\ncalls = {\"n\": 0}\n\n@retry(times=3, exceptions=(ConnectionError,))\ndef flaky():\n    \"\"\"Fetch data.\"\"\"\n    calls[\"n\"] += 1\n    if calls[\"n\"] < 3:\n        raise ConnectionError(f\"down {calls['n']}\")\n    return \"ok\"\n\nprint(flaky(), flaky.__name__, flaky.__doc__)\n\n@retry(times=2, exceptions=(ValueError,))\ndef bad():\n    raise ValueError(\"nope\")\n\ntry:\n    bad()\nexcept ValueError as e:\n    print(\"gave up:\", e)\n",
+   "expect": [
+    "attempt 1 failed: down 1",
+    "attempt 2 failed: down 2",
+    "ok flaky Fetch data.",
+    "gave up: nope"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "decorators",
+   "resilience"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-023",
+  "area": "python",
+  "topic": "decorators",
+  "level": 3,
+  "type": "concept",
+  "q": "What are the common pitfalls with decorators: stacking order, decorating methods, async functions, and decorators that need to work with and without arguments?",
+  "followups": [
+   "Why can lru_cache on an instance method leak memory?",
+   "How do you make a decorator work on both sync and async functions?"
+  ],
+  "answer": "Stacking: `@a @b def f` means `f = a(b(f))`, so b wraps f first and a is outermost; order matters for things like auth then caching. Methods: the wrapper receives `self` as the first positional arg, so use `*args, **kwargs`; a decorator that is a class instance needs `__get__` to behave as a method. Async: a sync wrapper around a coroutine function returns the coroutine unawaited and times or catches nothing useful; write an `async def wrapper` that awaits, or detect with `inspect.iscoroutinefunction`. Dual-use `@deco` and `@deco(arg)` is fragile; prefer always-called `@deco()` or check whether the first argument is callable. Also: caching decorators on methods keep `self` alive (memory leak) and mutable arguments break `lru_cache`.",
+  "pitfalls": [
+   "Using time.time around an async function without awaiting",
+   "Assuming the outermost decorator runs first at definition"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "decorators",
+   "async"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-024",
+  "area": "python",
+  "topic": "generators",
+  "level": 2,
+  "type": "code",
+  "q": "Build a lazy pipeline with generators that parses `key=value` config lines while skipping comments and blank lines. What are the advantages and the one-shot caveat?",
+  "followups": [
+   "How would you make it re-iterable?",
+   "How does a generator differ from a class implementing __iter__ and __next__?"
+  ],
+  "answer": "Each stage is a generator that pulls from the previous one, so lines flow through one at a time: memory stays O(1) regardless of input size, work happens only when values are consumed, and stages compose like Unix pipes. A generator is a one-shot iterator: once exhausted it yields nothing (no error), which causes silent bugs when someone iterates twice. Errors surface during consumption rather than at construction, so put validation where it will be visible. Use a generator for large files and streams; use a list when you need len, indexing, or multiple passes.",
+  "pitfalls": [
+   "Consuming a generator twice and getting an empty result",
+   "Materializing everything with list() and defeating laziness"
+  ],
+  "solution": {
+   "code": "def read_lines(text):\n    for line in text.splitlines():\n        yield line\n\ndef parse(lines):\n    for l in lines:\n        if not l or l.startswith(\"#\"):\n            continue\n        k, v = l.split(\"=\", 1)\n        yield k.strip(), v.strip()\n\ntext = \"# cfg\\na=1\\n\\nb = 2\\nc=3\\n\"\ng = parse(read_lines(text))\nprint(next(g))\nprint(list(g))\nprint(list(g))\nprint(type(g).__name__)\n",
+   "expect": [
+    "('a', '1')",
+    "[('b', '2'), ('c', '3')]",
+    "[]",
+    "generator"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "generators"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-025",
+  "area": "python",
+  "topic": "generators",
+  "level": 3,
+  "type": "code",
+  "q": "Explain `send()`, generator return values, and `yield from`. Write a running-average coroutine and a delegating generator.",
+  "followups": [
+   "What does close() do to a suspended generator?",
+   "Why did async/await replace generator-based coroutines?"
+  ],
+  "answer": "A generator is a suspended function. `next(g)` runs to the next `yield`; `g.send(x)` resumes with `yield` evaluating to x, so a generator can be a coroutine that holds state between calls (it must be primed with `next(g)` first). A `return value` inside a generator becomes `StopIteration.value`. `yield from sub` delegates: it forwards yielded values, `send`, `throw`, and `close` to the subgenerator, and evaluates to its return value. This is the mechanism `asyncio` originally built on before `async/await`. Use `g.close()` to raise GeneratorExit for cleanup; `finally` blocks in the generator then run.",
+  "pitfalls": [
+   "Forgetting to prime the generator",
+   "Not knowing that StopIteration carries the return value"
+  ],
+  "solution": {
+   "code": "def averager():\n    total = 0\n    n = 0\n    avg = None\n    while True:\n        x = yield avg\n        if x is None:\n            return n\n        total += x\n        n += 1\n        avg = total / n\n\ng = averager()\nnext(g)\nprint(g.send(10), g.send(20), g.send(30))\ntry:\n    g.send(None)\nexcept StopIteration as e:\n    print(\"count\", e.value)\n\ndef inner():\n    yield 1\n    yield 2\n    return \"done\"\n\ndef outer():\n    r = yield from inner()\n    yield r\n\nprint(list(outer()))\n",
+   "expect": [
+    "10.0 15.0 20.0",
+    "count 3",
+    "[1, 2, 'done']"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "generators",
+   "coroutines"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-026",
+  "area": "python",
+  "topic": "iterators",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain the iterator protocol. What is the difference between an iterable and an iterator, and how does a for loop use them?",
+  "followups": [
+   "Why can you loop over a list twice but a file once?",
+   "What does `iter(callable, sentinel)` do?"
+  ],
+  "answer": "An iterable has `__iter__` returning an iterator; an iterator has `__next__` (raising StopIteration when done) and `__iter__` returning itself. `for x in obj` calls `iter(obj)` once and then `next()` until StopIteration. Lists are iterables (each `iter()` gives a fresh independent iterator) while files and generators are iterators (one pass, `iter(it) is it`). If you write a container class, return a new iterator from `__iter__` (or make `__iter__` a generator) so it can be looped multiple times and nested; returning `self` and implementing `__next__` on the container itself makes it single-use. Legacy fallback: objects with `__getitem__` and integer indexes are also iterable.",
+  "pitfalls": [
+   "Making the container its own iterator and breaking nested loops",
+   "Catching StopIteration in user code around next() on empty input without a default"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html",
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "iterators"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-027",
+  "area": "python",
+  "topic": "context-managers",
+  "level": 2,
+  "type": "code",
+  "q": "Show a class-based context manager and a `@contextmanager` generator version. How do exceptions and multiple `with` items behave?",
+  "followups": [
+   "What does `__exit__` returning True do?",
+   "When is ExitStack the right tool?"
+  ],
+  "answer": "`with` calls `__enter__`, binds its return value, and guarantees `__exit__(exc_type, exc, tb)` runs on any exit path. If `__exit__` returns a truthy value the exception is suppressed; otherwise it propagates after cleanup. Multiple items (`with A() as a, B() as b`) nest, so they exit in reverse order. `@contextlib.contextmanager` turns a generator with one `yield` into a context manager: code before yield is setup, after is teardown, and you must wrap the yield in try/finally to run teardown on exceptions; catching the exception around the yield is how you suppress it. `contextlib.suppress` is the standard for narrow suppression, and `ExitStack` handles a dynamic number of resources.",
+  "pitfalls": [
+   "Writing a @contextmanager without try/finally",
+   "Returning True from __exit__ accidentally, hiding errors"
+  ],
+  "solution": {
+   "code": "from contextlib import contextmanager, suppress\n\nclass Res:\n    def __init__(self, name):\n        self.name = name\n    def __enter__(self):\n        print(\"open\", self.name)\n        return self\n    def __exit__(self, et, ev, tb):\n        print(\"close\", self.name, et.__name__ if et else None)\n        return False\n\n@contextmanager\ndef swallow(*exc):\n    try:\n        yield\n    except exc as e:\n        print(\"swallowed\", type(e).__name__)\n\nwith Res(\"a\"), Res(\"b\"):\n    print(\"body\")\n\nwith swallow(KeyError):\n    {}[\"x\"]\n\nwith suppress(ZeroDivisionError):\n    1 / 0\n\ntry:\n    with Res(\"c\"):\n        raise ValueError\nexcept ValueError:\n    print(\"propagated\")\n",
+   "expect": [
+    "open a\nopen b\nbody\nclose b None\nclose a None",
+    "swallowed KeyError",
+    "close c ValueError\npropagated"
+   ]
+  },
+  "chapters": [
+   "python/ch05-oop-files-errors.html",
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "context-managers"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-028",
+  "area": "python",
+  "topic": "context-managers",
+  "level": 3,
+  "type": "concept",
+  "q": "Where do context managers matter in real services (files, locks, DB transactions, temporary state), and what goes wrong if you skip them?",
+  "followups": [
+   "How does `async with` differ?",
+   "How would you diagnose a file descriptor leak in production?"
+  ],
+  "answer": "They guarantee release on every path including exceptions: closing files and sockets (leaked file descriptors eventually hit `Too many open files`), releasing locks (a lock acquired without `with` and an exception before release deadlocks every other thread), committing or rolling back DB transactions, restoring temporary state (`decimal.localcontext`, `os.chdir`, patched env vars in tests), and timing/tracing spans. Explicit `try/finally` is equivalent but easy to get wrong; `with` makes it structural. Pitfalls: relying on garbage collection to close a file works in CPython by refcounting but not on PyPy or when references linger in a traceback; a generator-based context manager with no try/finally skips cleanup on error; async resources need `async with`.",
+  "pitfalls": [
+   "Relying on __del__ or refcounting for cleanup",
+   "Acquiring locks manually without finally"
+  ],
+  "chapters": [
+   "python/ch05-oop-files-errors.html",
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "context-managers",
+   "resources"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-029",
+  "area": "python",
+  "topic": "gil",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the GIL, what does it protect, and what does it mean for multi-threaded Python programs?",
+  "followups": [
+   "Why does the GIL exist?",
+   "Is `list.append` thread-safe under the GIL?"
+  ],
+  "answer": "The Global Interpreter Lock is a mutex in CPython that lets only one thread execute Python bytecode at a time. It protects the interpreter's internal state, mainly reference counts, from concurrent modification, and keeps the C API simple. Consequences: CPU-bound pure-Python code gets no speedup from threads (it can even slow down from lock contention); I/O-bound code benefits because the GIL is released while waiting on sockets, files, and sleep; many C extensions (NumPy, hashing, compression) release the GIL during heavy work. The GIL does not make your code thread-safe: compound operations like `x += 1` or check-then-act on a dict are still races. Note: CPython 3.13 offers an experimental free-threaded build (PEP 703), but the default build still has the GIL.",
+  "pitfalls": [
+   "Saying Python cannot do multithreading at all",
+   "Believing the GIL removes the need for locks"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "gil",
+   "concurrency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-030",
+  "area": "python",
+  "topic": "concurrency",
+  "level": 4,
+  "type": "design",
+  "q": "Choose between threading, multiprocessing, and asyncio for: (a) fetching 5,000 URLs, (b) resizing 100,000 images, (c) a web service with many mostly idle websocket connections, (d) calling a blocking legacy library from an async app.",
+  "followups": [
+   "How do you bound concurrency in asyncio?",
+   "What is the cost of pickling large arguments to worker processes?"
+  ],
+  "answer": "(a) I/O-bound, high fan-out: asyncio with a bounded semaphore and connection pooling scales to thousands of tasks cheaply; a thread pool (20-100 threads) is simpler if the client library is blocking. (b) CPU-bound: multiprocessing or `ProcessPoolExecutor` sized to cores, chunking work to amortize pickling; or use a library that releases the GIL (Pillow-SIMD, OpenCV, NumPy) with threads. (c) asyncio: each idle connection costs a small coroutine rather than a thread's stack. (d) `await loop.run_in_executor(None, fn)` or `asyncio.to_thread` so the blocking call does not stall the event loop. Trade-offs: processes cost memory and IPC serialization; threads need locks; asyncio requires async-native libraries and one accidental blocking call freezes everything. Always bound concurrency and add timeouts and backpressure.",
+  "pitfalls": [
+   "Using threads for CPU-bound number crunching",
+   "Calling blocking requests.get inside an async endpoint"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "concurrency",
+   "asyncio",
+   "multiprocessing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-031",
+  "area": "python",
+  "topic": "concurrency",
+  "level": 3,
+  "type": "scenario",
+  "q": "A CPU-heavy API endpoint was moved to a ThreadPoolExecutor with 16 workers on an 8-core box and throughput did not improve; CPU shows one core at 100%. What do you check and what is the fix?",
+  "followups": [
+   "How does fork copy-on-write interact with Python refcounts?",
+   "How would you verify whether the GIL is the bottleneck?"
+  ],
+  "answer": "That pattern is the GIL: pure-Python bytecode in threads serializes onto one core. First confirm the work is CPU-bound in Python code (profile with cProfile or py-spy) and not waiting on I/O or a lock. Check whether the hot path is in a C extension that releases the GIL (NumPy, hashlib, zlib) - if so threads can scale. Fixes, in order: reduce work (algorithm, caching, vectorize with NumPy); move to a process pool (`ProcessPoolExecutor`, or multiple gunicorn/uvicorn workers) sized to cores; offload to a task queue (Celery, RQ) if latency allows; or rewrite the hot loop in a compiled extension. Watch for pickling overhead and per-process memory duplication (load large models once with fork/copy-on-write or shared memory). Also verify container CPU limits (cgroup quota) are not the real cap.",
+  "pitfalls": [
+   "Increasing thread count",
+   "Assuming the container has all 8 cores available"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "gil",
+   "performance",
+   "scenario"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-032",
+  "area": "python",
+  "topic": "asyncio",
+  "level": 2,
+  "type": "concept",
+  "q": "How does asyncio work? Explain the event loop, `await`, tasks, and the cardinal rule about blocking calls.",
+  "followups": [
+   "What is the difference between `await f()` and `create_task(f())`?",
+   "How do you cancel a task safely?"
+  ],
+  "answer": "asyncio runs a single-threaded event loop that schedules coroutines cooperatively. A coroutine runs until it hits `await` on something that is not ready (I/O, sleep, another task), yielding control so the loop can run others. `asyncio.create_task` schedules a coroutine to run concurrently; `await coro()` alone runs it sequentially; `asyncio.gather` runs many and collects results; `TaskGroup` (3.11) adds structured cancellation. The cardinal rule: never block the loop; a sync `requests.get`, `time.sleep`, or heavy computation freezes every other task, so use async libraries or `to_thread`/`run_in_executor`. Also: always keep references to fire-and-forget tasks (they can be garbage collected), handle cancellation (`CancelledError`) and set timeouts (`asyncio.timeout`).",
+  "pitfalls": [
+   "Using time.sleep in a coroutine",
+   "Creating tasks and not keeping references or awaiting them"
+  ],
+  "chapters": [
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "asyncio"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-033",
+  "area": "python",
+  "topic": "concurrency",
+  "level": 4,
+  "type": "design",
+  "q": "You must call a rate-limited third-party API for 50,000 records, respecting 20 requests/second, with retries on 429/5xx, and produce a resumable result. Outline the concurrency design.",
+  "followups": [
+   "How would you guarantee at-least-once versus exactly-once processing?",
+   "How do you test rate limiting deterministically?"
+  ],
+  "answer": "Use asyncio with an async HTTP client (httpx/aiohttp) and a bounded worker pool consuming from an `asyncio.Queue`, rather than launching 50,000 tasks at once. Enforce the rate with a token bucket or `asyncio.Semaphore` plus a time-based limiter (leaky bucket) shared by all workers; concurrency of roughly rate x latency is enough. Retry only idempotent calls with exponential backoff and jitter, honoring `Retry-After`; cap attempts and send exhausted items to a dead-letter list. Make it resumable by persisting each result (or a done-marker keyed by record id) as it completes, in SQLite or append-only JSONL, and skipping done ids at startup. Add timeouts on every call, a global cancellation path for shutdown, structured logs and counters (success, retried, failed), and a test with a fake server. Trade-off: multiprocess is unnecessary here because it is I/O-bound; threads would work but cost more per connection.",
+  "pitfalls": [
+   "Firing all requests with gather and no limit",
+   "Retrying without backoff, amplifying an outage",
+   "Keeping results only in memory"
+  ],
+  "chapters": [
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "asyncio",
+   "rate-limiting",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-034",
+  "area": "python",
+  "topic": "threading",
+  "level": 3,
+  "type": "concept",
+  "q": "If the GIL exists, why do you still need locks? Give a concrete race and the right primitives.",
+  "followups": [
+   "How would you reproduce a race deterministically in a test?",
+   "What is a deadlock and how do you prevent one?"
+  ],
+  "answer": "The GIL serializes single bytecode instructions, not your logical operations. `counter += 1` is load, add, store; a thread switch between them loses updates. Check-then-act on shared state (`if key not in cache: cache[key] = compute()`) can compute twice or overwrite. The switch interval (5 ms default) makes such races rare and therefore hard to reproduce. Use `threading.Lock` (with `with lock:`) around the critical section, `queue.Queue` for producer/consumer handoff (thread-safe by design), thread-local storage for per-thread state, or avoid shared mutability with message passing. `RLock` for reentrancy, `Event`/`Condition` for signaling. Keep critical sections short and always acquire multiple locks in a consistent order to avoid deadlock. Individual `list.append` and `dict[key] = v` are atomic in CPython but you should not build designs on that.",
+  "pitfalls": [
+   "Assuming the GIL makes `+=` atomic",
+   "Holding a lock while doing I/O"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "threading",
+   "gil"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-035",
+  "area": "python",
+  "topic": "memory",
+  "level": 2,
+  "type": "concept",
+  "q": "How does CPython manage memory? Explain reference counting, the cyclic garbage collector, and when objects are actually freed.",
+  "followups": [
+   "What does `sys.getrefcount` report and why is it off by one?",
+   "Why might RSS stay high after `del big_list`?"
+  ],
+  "answer": "CPython frees most objects immediately when their reference count drops to zero, which makes `with`-less file closing usually appear to work. Reference counting cannot free reference cycles (a refers to b refers to a), so a generational cyclic garbage collector periodically finds unreachable cycles; `gc.collect()` forces it. Objects with `__del__` in cycles used to be uncollectable and are handled since 3.4, but finalizer timing is still unreliable, so do cleanup with context managers instead. Memory returned to the allocator (pymalloc arenas) is not always returned to the OS, so process RSS may not shrink after freeing large data. `weakref` lets you refer to an object without keeping it alive (caches, observers). PyPy and free-threaded builds use different strategies, so do not depend on timing.",
+  "pitfalls": [
+   "Relying on `__del__` for cleanup",
+   "Believing Python never leaks memory"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "memory",
+   "gc"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-036",
+  "area": "python",
+  "topic": "memory",
+  "level": 3,
+  "type": "code",
+  "q": "Demonstrate that a reference cycle is not freed by reference counting alone but is collected by the cyclic GC, using weakref to observe it.",
+  "followups": [
+   "What does the generational aspect of the GC optimize?",
+   "How do you find what is keeping an object alive?"
+  ],
+  "answer": "Two objects referencing each other keep each other's count above zero after all external names are deleted, so refcounting never frees them; `gc.collect()` traverses container objects, finds the unreachable cycle, and frees it. A `weakref.ref` does not increase the refcount, so it returns None once the object is gone, which makes it the right tool to observe lifetime, and to build caches (`WeakValueDictionary`) and observers that must not keep objects alive. In real code, break cycles with weak references for parent/child back-pointers and avoid `__del__`. Disabling the GC (`gc.disable()`) is used in some latency-sensitive services, then collecting at controlled times, but you must then avoid creating cycles.",
+  "pitfalls": [
+   "Thinking `del` frees an object",
+   "Storing parent back-references as strong references in trees"
+  ],
+  "solution": {
+   "code": "import gc\nimport weakref\n\ngc.disable()\n\nclass Node:\n    pass\n\na = Node()\nb = Node()\na.other = b\nb.other = a\nr = weakref.ref(a)\ndel a, b\nprint(\"alive after del:\", r() is not None)\ngc.collect()\nprint(\"alive after collect:\", r() is not None)\ngc.enable()\n",
+   "expect": [
+    "alive after del: True",
+    "alive after collect: False"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "memory",
+   "gc",
+   "weakref"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-037",
+  "area": "python",
+  "topic": "memory",
+  "level": 4,
+  "type": "scenario",
+  "q": "A long-running Python worker's memory grows from 300 MB to 6 GB over a week and is OOM-killed. How do you find and fix the leak?",
+  "followups": [
+   "Why can RSS grow without Python objects growing?",
+   "How would you monitor this continuously?"
+  ],
+  "answer": "First establish whether it is a true leak (objects retained), fragmentation, or a legitimate cache. Plot RSS over time and correlate with traffic. Reproduce with a load test and use `tracemalloc` snapshots (compare two snapshots by line) or `objgraph`/`gc.get_objects()` counts by type to see which type grows; `memray` or `py-spy` help for native allocations. Usual causes: unbounded module-level caches or dicts keyed by request ids, `lru_cache` on methods (holds self), lists of results never cleared, log handlers or callbacks registered repeatedly, exception tracebacks stored (they hold frames and locals), reference cycles with big buffers, and C-extension leaks. Fixes: bound caches (maxsize/TTL), use weak references, release large objects explicitly, and as a safety net recycle workers (`max_requests` in gunicorn, `maxtasksperchild` in multiprocessing) and set memory limits with alerts. If tracemalloc shows nothing but RSS grows, suspect native memory or fragmentation and try `malloc_trim` or jemalloc.",
+  "pitfalls": [
+   "Restarting nightly and calling it fixed with no root cause",
+   "Guessing without measuring"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "memory",
+   "debugging",
+   "scenario"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-038",
+  "area": "python",
+  "topic": "itertools",
+  "level": 2,
+  "type": "code",
+  "q": "Show practical uses of `itertools`: groupby (and its sorting requirement), islice on infinite iterators, accumulate, pairwise.",
+  "followups": [
+   "When would you use defaultdict instead of groupby?",
+   "What is the memory cost of itertools.product?"
+  ],
+  "answer": "`groupby` groups only consecutive equal keys, so you must sort by the same key first or you get repeated groups, and each group iterator is invalidated when the outer iterator advances (materialize with list). `count`, `cycle`, and `repeat` are infinite, so pair them with `islice` or `zip`. `accumulate` gives running totals (prefix sums), `pairwise` (3.10+) yields overlapping neighbours (differences, monotonic checks), `chain.from_iterable` flattens one level lazily, `product/permutations/combinations` generate combinatorics without building lists. All are lazy and memory-cheap, written in C. Trade-off: for grouping arbitrary data a `defaultdict(list)` is simpler and does not need sorting, at the cost of holding everything in memory.",
+  "pitfalls": [
+   "Using groupby without sorting",
+   "Consuming a group after advancing the outer iterator"
+  ],
+  "solution": {
+   "code": "from itertools import groupby, islice, count, accumulate, pairwise\n\ndata = [\"apple\", \"avocado\", \"banana\", \"blueberry\", \"apple\"]\nprint([(k, len(list(g))) for k, g in groupby(data, key=lambda s: s[0])])\nprint([(k, len(list(g))) for k, g in groupby(sorted(data))])\nprint(list(islice(count(1), 5)))\nprint(list(accumulate([1, 2, 3, 4])))\nprint(list(pairwise([1, 4, 9, 16])))\n",
+   "expect": [
+    "[('a', 2), ('b', 2), ('a', 1)]",
+    "[('apple', 2), ('avocado', 1), ('banana', 1), ('blueberry', 1)]",
+    "[1, 2, 3, 4, 5]",
+    "[1, 3, 6, 10]",
+    "[(1, 4), (4, 9), (9, 16)]"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "itertools"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-039",
+  "area": "python",
+  "topic": "caching",
+  "level": 2,
+  "type": "code",
+  "q": "Use `functools.lru_cache` to speed up a recursive function, inspect it, and explain its limits (hashable args, memory, methods, staleness).",
+  "followups": [
+   "How would you cache with a time-to-live?",
+   "What happens on the recursion limit with cached deep recursion?"
+  ],
+  "answer": "`lru_cache` memoizes results keyed by the call arguments, turning exponential recursion (naive Fibonacci) into linear time, and exposes `cache_info()` and `cache_clear()`. Limits: arguments must be hashable (a list raises TypeError); `maxsize=None` is unbounded and grows forever (use a bound or `functools.cache` only for small key spaces); on instance methods the cache holds strong references to `self`, leaking instances; there is no TTL so results can go stale, and it is per-process, so it does not share across workers. The cached function should be pure (same inputs, same output, no side effects). For time-based expiry or shared caching use `cachetools` or Redis. Deep recursion still hits the recursion limit; consider an iterative bottom-up version.",
+  "pitfalls": [
+   "Caching functions with side effects",
+   "Unbounded caches in long-lived services"
+  ],
+  "solution": {
+   "code": "from functools import lru_cache\n\ncalls = 0\n\n@lru_cache(maxsize=None)\ndef fib(n):\n    global calls\n    calls += 1\n    return n if n < 2 else fib(n - 1) + fib(n - 2)\n\nprint(fib(30), calls)\nprint(fib.cache_info())\nfib.cache_clear()\n\n@lru_cache(maxsize=2)\ndef ident(x):\n    return x\n\ntry:\n    ident([1])\nexcept TypeError as e:\n    print(\"TypeError\", e)\n",
+   "expect": [
+    "832040 31",
+    "misses=31",
+    "TypeError unhashable type: 'list'"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "caching",
+   "functools"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-040",
+  "area": "python",
+  "topic": "performance",
+  "level": 5,
+  "type": "scenario",
+  "q": "Your team says 'Python is too slow' and wants to rewrite a service in another language. How do you respond and decide?",
+  "followups": [
+   "What would you measure first?",
+   "How would you migrate incrementally if a rewrite is justified?"
+  ],
+  "answer": "Ask what 'slow' means: which endpoint or job, what SLO (p99 latency, throughput, cost), and what it is measured against. Then profile before deciding: cProfile/py-spy for hot spots, check whether time goes to I/O, database queries, serialization, or actual Python computation. Most wins come from fixing N+1 queries, adding indexes and caching, batching, using better data structures, vectorizing with NumPy, or async I/O; these are often 10x and cost days. If a small hot loop is truly CPU-bound, isolate it and use NumPy/Numba/Cython/Rust (PyO3) while keeping the rest in Python. Scale horizontally with more workers if the cost is acceptable. A rewrite is justified only with evidence: measured bottleneck that cannot be fixed within Python, clear target numbers, a team that can maintain the new language, and the cost of losing the ecosystem and re-implementing behavior (with a strangler-style incremental migration rather than big-bang). Decide with data and a time-boxed spike, and document the trade-offs.",
+  "pitfalls": [
+   "Rewriting without profiling",
+   "Micro-optimizing code that is not on the hot path"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "performance",
+   "profiling",
+   "judgment"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-041",
+  "area": "python",
+  "topic": "packaging",
+  "level": 1,
+  "type": "concept",
+  "q": "What is a virtual environment and why do you use one? What is the difference between `pip install`, `requirements.txt`, and `pyproject.toml`?",
+  "followups": [
+   "What does activating a venv actually change?",
+   "Why prefer `python -m pip`?"
+  ],
+  "answer": "A virtual environment (`python -m venv .venv`) is an isolated interpreter plus site-packages per project, so projects with conflicting dependency versions do not clash and you never modify the system Python (which OS tools may depend on). `pip install` installs packages into the active environment. `requirements.txt` is a flat list of dependencies, usually pinned for applications (`pkg==1.2.3`). `pyproject.toml` is the standard project metadata file (PEP 621): name, version, dependencies, entry points, and build backend, plus tool configuration (ruff, pytest, mypy); it is how libraries are built and published. Applications commonly use pyproject plus a lock file. Pitfall: installing with the wrong `pip` (use `python -m pip` so pip matches the interpreter) or committing the venv to git.",
+  "pitfalls": [
+   "Installing globally with sudo pip",
+   "Committing .venv to version control"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "packaging",
+   "venv"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-042",
+  "area": "python",
+  "topic": "packaging",
+  "level": 2,
+  "type": "concept",
+  "q": "How do you get reproducible dependency installs for a Python application? Compare loose ranges, pinned requirements, and lock files with hashes.",
+  "followups": [
+   "Why not pin libraries strictly?",
+   "How do you handle a vulnerable transitive dependency?"
+  ],
+  "answer": "Loose ranges (`requests>=2`) are right for libraries because they let downstream users resolve compatibly, but they make application builds non-reproducible: a new upstream release can break production on the next deploy. For applications, pin the full transitive tree. Tools such as pip-tools (`pip-compile`), Poetry, PDM, and uv produce a lock file from top-level requirements; `--require-hashes` adds integrity checking against tampered or replaced wheels. Keep direct dependencies in pyproject and the lock as generated output, separate dev/test groups from runtime, and update on a schedule with automated PRs (Dependabot/Renovate) and CI to catch breakage. Also pin the Python version and build in a container so system libraries are fixed. Trade-off: pins go stale and hide security fixes, so scan with pip-audit.",
+  "pitfalls": [
+   "Deploying with unpinned requirements",
+   "Pinning only top-level packages"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "packaging",
+   "dependencies",
+   "reproducibility"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-043",
+  "area": "python",
+  "topic": "modules",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain how Python imports work: modules versus packages, `__init__.py`, absolute versus relative imports, `sys.path`, and the `if __name__ == '__main__'` idiom.",
+  "followups": [
+   "What is a namespace package?",
+   "Why is `sys.path.append` in code a smell?"
+  ],
+  "answer": "Importing a module executes its top-level code once and caches it in `sys.modules`; later imports reuse that object. A package is a directory of modules (with `__init__.py`, or a namespace package without one). The import system searches `sys.path` (script directory, PYTHONPATH, site-packages). Prefer absolute imports (`from app.utils import x`); explicit relative imports (`from .utils import x`) work only inside packages and fail when the file is run as a script. `__name__ == '__main__'` is true when the file is executed directly (or `python -m pkg.mod`), so it separates import-time from script-time behavior and keeps modules import-safe. Avoid side effects at import time (network calls, reading config, creating clients), since importing should be cheap and testable. Use `python -m package.module` instead of editing `sys.path`.",
+  "pitfalls": [
+   "Running package modules directly as scripts and hitting relative import errors",
+   "Doing heavy work at import time"
+  ],
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "modules",
+   "imports"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-044",
+  "area": "python",
+  "topic": "imports",
+  "level": 3,
+  "type": "scenario",
+  "q": "After a refactor, `ImportError: cannot import name 'X' from partially initialized module` appears at startup. What is happening and how do you fix it?",
+  "followups": [
+   "What does TYPE_CHECKING do?",
+   "How could you detect cycles automatically in CI?"
+  ],
+  "answer": "That is a circular import: module A imports B while B (transitively) imports A, and A has not finished executing, so the name is not yet defined. Check the traceback chain to identify the cycle. Fixes, cheapest first: move the shared code (class, constants, types) to a third module that both import; import the module (`import pkg.a`) rather than the name and access attributes at call time; move the import inside the function that needs it (a lazy import); for type hints only, use `from __future__ import annotations` or `if TYPE_CHECKING:`. Longer term the cycle signals tangled responsibilities: enforce layering (for example with import-linter) so dependencies flow one way. Do not hide it by reordering imports, which is fragile.",
+  "pitfalls": [
+   "Reordering imports until it works",
+   "Wrapping in try/except ImportError"
+  ],
+  "chapters": [
+   "python/ch03-functions-modules.html"
+  ],
+  "tags": [
+   "imports",
+   "debugging",
+   "scenario"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-045",
+  "area": "python",
+  "topic": "environment",
+  "level": 3,
+  "type": "scenario",
+  "q": "A script works on your laptop but fails on the server with `ModuleNotFoundError` even though `pip install` succeeded. How do you diagnose it?",
+  "followups": [
+   "Why might cron use a different Python?",
+   "How does a local file named `email.py` break things?"
+  ],
+  "answer": "The installed package and the interpreter running the code are not the same environment. Check in order: `which python` and `python -c 'import sys; print(sys.executable, sys.path)'` on the failing invocation (cron, systemd, and IDEs often use a different interpreter than the shell); verify `python -m pip show pkg` prints a location inside that interpreter's site-packages; confirm the venv is activated or that the service unit calls the venv's python by absolute path; check for multiple Python versions (a package installed for 3.9 while running 3.11); look at PYTHONPATH and the working directory (local module shadowing, for example a file named `random.py` or `requests.py`); and for compiled packages check the wheel matches the platform (manylinux vs musl/Alpine, architecture). Fix by using explicit interpreter paths, `python -m pip`, and reproducible builds (containers) so dev and prod match.",
+  "pitfalls": [
+   "Reinstalling repeatedly with a different pip",
+   "Assuming pip and python point to the same environment"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "environment",
+   "debugging",
+   "scenario"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-046",
+  "area": "python",
+  "topic": "project-structure",
+  "level": 4,
+  "type": "design",
+  "q": "Design the structure and tooling of a new Python service repository for a team of six. What goes in, and what do you enforce in CI?",
+  "followups": [
+   "Why src layout?",
+   "How do you introduce type checking into an existing untyped codebase?"
+  ],
+  "answer": "Use a `src/` layout (`src/app/...`) so tests import the installed package rather than the working directory, catching packaging errors; `tests/` mirroring modules; `pyproject.toml` as the single source for metadata, dependencies (runtime versus dev groups), and tool config; a lock file for reproducible installs; and a Dockerfile pinned to a Python minor version. Tooling: ruff for lint and format (fast, one tool), mypy or pyright for types (start lenient on new code, tighten gradually), pytest with coverage as a signal not a goal, pre-commit hooks to run the same checks locally. CI: install from lock, lint, type-check, tests on the target Python version (matrix if a library), build the image, security scan (pip-audit, secrets scan), and block merges on failures. Add a README with run/test commands, a Makefile or task runner, config via environment variables (12-factor), structured logging, and a CODEOWNERS/PR template. Trade-off: too much process on a tiny service slows the team; start with lint, tests, and types and add the rest as risk grows.",
+  "pitfalls": [
+   "Flat layout where tests import local files by accident",
+   "Config values hard-coded or committed secrets"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "project-structure",
+   "tooling",
+   "ci"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-047",
+  "area": "python",
+  "topic": "typing",
+  "level": 1,
+  "type": "concept",
+  "q": "Are Python type hints enforced at runtime? What are they for?",
+  "followups": [
+   "How does FastAPI use type hints at runtime?",
+   "What is `Any` and why is it dangerous?"
+  ],
+  "answer": "No. Annotations are metadata stored on the function or class (`__annotations__`) and ignored by the interpreter; passing a str to a parameter annotated int runs fine. Their value comes from tools and readers: static checkers (mypy, pyright) catch mismatches before running, IDEs give autocomplete and refactoring, and libraries deliberately read them at runtime (Pydantic and FastAPI validate and serialize from hints, dataclasses build fields from them). Hints also document intent. They can be gradual: you can annotate part of a codebase. Trade-off: hints add maintenance and can give false confidence if `Any` leaks in or the checker is not run in CI. Do not use `assert isinstance` sprinkled everywhere to imitate checking; validate at boundaries (API input) with a validation library.",
+  "pitfalls": [
+   "Believing hints raise TypeError",
+   "Never running the type checker in CI"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "typing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-048",
+  "area": "python",
+  "topic": "typing",
+  "level": 2,
+  "type": "code",
+  "q": "Show that annotations are not enforced, then use `Optional`, `TypedDict`, and a runtime-checkable `Protocol`, and read hints with `get_type_hints`.",
+  "followups": [
+   "What is the difference between Protocol and ABC?",
+   "Why can isinstance with a Protocol be misleading?"
+  ],
+  "answer": "The interpreter ignores annotations, so `add('x', 'y')` returns 'xy' even though it is annotated int. `Optional[int]` (or `int | None`) forces callers to handle the missing case, which a checker enforces. `TypedDict` describes the keys of a plain dict for the checker only; at runtime it is still a dict, so wrong value types are not rejected. A `Protocol` describes structure (any object with a `close()` method) instead of inheritance; `@runtime_checkable` lets `isinstance` check that the method exists, but only its presence, not its signature. `typing.get_type_hints` resolves annotations (including string forward references) for tooling. Use `Protocol` at seams where you want duck typing with checker support, and pydantic when you need actual runtime validation.",
+  "pitfalls": [
+   "Expecting TypedDict to validate at runtime",
+   "Using Optional to mean 'has a default'"
+  ],
+  "solution": {
+   "code": "from typing import Optional, Protocol, TypedDict, get_type_hints, runtime_checkable\n\ndef add(a: int, b: int) -> int:\n    return a + b\n\nprint(add(\"x\", \"y\"))\nprint(get_type_hints(add))\n\n@runtime_checkable\nclass Closer(Protocol):\n    def close(self) -> None: ...\n\nclass F:\n    def close(self):\n        pass\n\nprint(isinstance(F(), Closer), isinstance(object(), Closer))\n\nclass User(TypedDict):\n    name: str\n    age: int\n\nu: User = {\"name\": \"a\", \"age\": \"not an int\"}\nprint(type(u).__name__)\n\ndef first(xs: list[int]) -> Optional[int]:\n    return xs[0] if xs else None\n\nprint(first([]), first([7]))\n",
+   "expect": [
+    "xy",
+    "{'a': <class 'int'>, 'b': <class 'int'>, 'return': <class 'int'>}",
+    "True False",
+    "dict",
+    "None 7"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "typing",
+   "protocol"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-049",
+  "area": "python",
+  "topic": "typing",
+  "level": 3,
+  "type": "concept",
+  "q": "Compare `Protocol` (structural typing) with an abstract base class (nominal typing). When do you choose each?",
+  "followups": [
+   "How do you mark a Protocol method as required in mypy?",
+   "Give an example where subclassing an ABC is the better choice."
+  ],
+  "answer": "An ABC requires explicit inheritance (or registration) and can provide shared concrete methods and instantiation guards (cannot instantiate with abstract methods missing); runtime `isinstance` works reliably. A Protocol declares the required shape and any class with matching methods satisfies it without importing or inheriting from anything, which decouples the consumer from providers, suits third-party classes you cannot modify, and makes test fakes trivial. Choose Protocol at boundaries where the consumer defines what it needs (a `Repository` or `Clock` interface used by a service) and ABC when you want shared implementation, template-method behavior, or enforcement at instantiation time. Trade-offs: Protocol conformance is checked only by the type checker (runtime_checkable checks names only); ABCs create coupling to a base class. Keep interfaces small (interface segregation) either way.",
+  "pitfalls": [
+   "Building deep ABC hierarchies for what a two-method Protocol expresses",
+   "Trusting runtime_checkable to verify signatures"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "typing",
+   "design",
+   "protocol"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-050",
+  "area": "python",
+  "topic": "typing",
+  "level": 4,
+  "type": "scenario",
+  "q": "You inherit a 50k-line untyped codebase and management wants type checking. How do you roll out mypy without stopping feature work?",
+  "followups": [
+   "Why per-module strictness instead of global strict?",
+   "How do you handle third-party libraries without stubs?"
+  ],
+  "answer": "Make it incremental and non-blocking. Start with a config that only checks annotated functions (default) and `ignore_missing_imports` for untyped third parties; get a baseline that passes in CI (record existing errors with a baseline file or per-module `ignore_errors`, so the checker never blocks on old code). Require types for new and modified code: enable `disallow_untyped_defs` for new packages/modules via per-module overrides, and expand the strict set as modules are cleaned. Prioritize high-value spots first: public interfaces, data models, and boundaries where None bugs occur (`--strict-optional` is on by default). Use tools to bootstrap annotations (monkeytype, pyright inference) but review them; avoid mass `Any` and `# type: ignore` without codes. Track progress with a metric (percent typed functions) and make it a team habit through code review and pre-commit. Trade-off: the payoff arrives gradually, so pick modules with heavy churn or many production incidents first.",
+  "pitfalls": [
+   "Big-bang annotation sprint that blocks releases",
+   "Blanket `# type: ignore`"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "typing",
+   "migration",
+   "mypy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-051",
+  "area": "python",
+  "topic": "testing",
+  "level": 1,
+  "type": "concept",
+  "q": "What makes a good unit test, and how do pytest and unittest differ?",
+  "followups": [
+   "What is the test pyramid?",
+   "How do you test code that uses the current time?"
+  ],
+  "answer": "A good unit test is fast, deterministic, isolated (no shared state, network, or clock dependence), tests one behavior, and has a name that describes it; structure it as arrange-act-assert and assert on outcomes rather than implementation details so refactors do not break it. `unittest` is the stdlib xUnit-style framework (TestCase classes, `self.assertEqual`, setUp/tearDown). `pytest` uses plain functions and bare `assert` with rich failure output, fixtures for setup with dependency injection, parametrization, markers, and a large plugin ecosystem; it also runs unittest tests. Trade-off: pytest's fixture magic can be harder to trace, but it is the industry default. Test the boundaries and error paths, not just the happy path.",
+  "pitfalls": [
+   "Tests that depend on execution order",
+   "Asserting on private implementation details"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "testing",
+   "pytest"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-052",
+  "area": "python",
+  "topic": "testing",
+  "level": 2,
+  "type": "code",
+  "q": "Write unit tests with unittest covering normal cases, edge cases via `subTest`, and an expected exception, and run them programmatically to get a pass/fail result.",
+  "followups": [
+   "How do you parametrize in pytest?",
+   "How do you run a single failing test?"
+  ],
+  "answer": "Define a `TestCase`; each `test_*` method is independent. `assertEqual` for values, `assertRaises` as a context manager for expected exceptions, `subTest` to run a table of inputs where each failure is reported separately without stopping the loop. Run programmatically with a loader and `TextTestRunner`, then inspect `testsRun`, `wasSuccessful()`, `failures`, and `errors`; that is how you embed tests in a notebook or script. In real projects use pytest with `parametrize` for the same table style. Edge cases to include: empty input, whitespace, None (wrong type), and boundaries. A test is only as valuable as its ability to fail: verify it fails when the code is wrong (mutation mindset).",
+  "pitfalls": [
+   "Testing only the happy path",
+   "Loops in tests that stop at the first failing input"
+  ],
+  "solution": {
+   "code": "import io\nimport unittest\n\ndef slugify(s):\n    return \"-\".join(s.lower().split())\n\nclass T(unittest.TestCase):\n    def test_basic(self):\n        self.assertEqual(slugify(\"Hello World\"), \"hello-world\")\n\n    def test_spaces(self):\n        self.assertEqual(slugify(\"  a   b \"), \"a-b\")\n\n    def test_table(self):\n        for s, exp in [(\"A B\", \"a-b\"), (\"x\", \"x\"), (\"\", \"\")]:\n            with self.subTest(s=s):\n                self.assertEqual(slugify(s), exp)\n\n    def test_none(self):\n        with self.assertRaises(AttributeError):\n            slugify(None)\n\nsuite = unittest.defaultTestLoader.loadTestsFromTestCase(T)\nres = unittest.TextTestRunner(stream=io.StringIO()).run(suite)\nprint(res.testsRun, res.wasSuccessful(), len(res.failures))\n",
+   "expect": [
+    "4 True 0"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "testing",
+   "unittest"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-053",
+  "area": "python",
+  "topic": "testing",
+  "level": 3,
+  "type": "concept",
+  "q": "How do you use mocks well? Discuss `patch` targets, mocks versus fakes, over-mocking, and autospec.",
+  "followups": [
+   "Why patch where used rather than where defined?",
+   "How do you test code that sleeps or retries?"
+  ],
+  "answer": "Mock only at the boundaries you do not control or that are slow/non-deterministic: network, clock, filesystem, third-party APIs. Patch where the name is looked up, not where it is defined: if `app.service` does `from client import get`, patch `app.service.get`. Prefer fakes (a small in-memory implementation, for example a dict-backed repository) over mocks for things you touch a lot, because fakes exercise behavior instead of call sequences. Over-mocking couples tests to implementation: asserting `assert_called_with` on five collaborators fails on every refactor and passes even when the real integration is broken. Use `create_autospec` or `spec=True` so typos and wrong signatures raise instead of silently succeeding. Back mocked units with a few integration tests (real DB in a container) and contract tests for external APIs. Prefer dependency injection so you can pass a fake instead of patching module globals.",
+  "pitfalls": [
+   "Patching the definition site and wondering why the code still calls the real function",
+   "Tests that mirror the implementation line by line"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "testing",
+   "mocking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-054",
+  "area": "python",
+  "topic": "testing",
+  "level": 3,
+  "type": "code",
+  "q": "Demonstrate mocking an HTTP-like client: return values, sequential side effects including an exception, `patch.object` restoration, and `create_autospec` catching a typo.",
+  "followups": [
+   "Why is a bare Mock dangerous?",
+   "How do you assert call order across mocks?"
+  ],
+  "answer": "`Mock` returns configurable values (`return_value`) and records calls for `assert_called_once_with`. `side_effect` set to a list yields one item per call and raises any item that is an exception instance, which is ideal for simulating a timeout followed by a success (retry logic). `patch.object(Class, 'method', ...)` replaces the attribute for the duration of the `with` block and restores it after, even if the test fails. A plain `Mock` accepts any attribute, so a typo like `gett` passes silently; `create_autospec(Client, instance=True)` restricts to the real API and signatures, turning that typo into an AttributeError. Inject the client as a parameter to avoid patching altogether.",
+  "pitfalls": [
+   "Using Mock without spec and testing nothing real",
+   "Forgetting that patches must be undone (use with or decorators)"
+  ],
+  "solution": {
+   "code": "from unittest import mock\n\nclass Client:\n    def get(self, url):\n        raise RuntimeError(\"network\")\n\ndef fetch_title(client, url):\n    r = client.get(url)\n    return r[\"title\"].upper()\n\nc = mock.Mock()\nc.get.return_value = {\"title\": \"hi\"}\nprint(fetch_title(c, \"http://x\"))\nc.get.assert_called_once_with(\"http://x\")\n\nc.get.side_effect = [TimeoutError(\"t\"), {\"title\": \"ok\"}]\ntry:\n    fetch_title(c, \"u\")\nexcept TimeoutError:\n    print(\"timeout\")\nprint(fetch_title(c, \"u\"))\n\nwith mock.patch.object(Client, \"get\", return_value={\"title\": \"patched\"}):\n    print(fetch_title(Client(), \"u\"))\ntry:\n    Client().get(\"u\")\nexcept RuntimeError:\n    print(\"restored\")\n\nm = mock.create_autospec(Client, instance=True)\ntry:\n    m.gett(\"u\")\nexcept AttributeError:\n    print(\"autospec caught typo\")\n",
+   "expect": [
+    "HI",
+    "timeout",
+    "OK",
+    "PATCHED",
+    "restored",
+    "autospec caught typo"
+   ]
+  },
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "testing",
+   "mocking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-055",
+  "area": "python",
+  "topic": "testing",
+  "level": 2,
+  "type": "concept",
+  "q": "What are pytest fixtures, parametrization, and markers, and how do you keep fixtures maintainable?",
+  "followups": [
+   "How does `monkeypatch` differ from `mock.patch`?",
+   "When is a session-scoped fixture risky?"
+  ],
+  "answer": "A fixture is a function that provides setup (and teardown after `yield`) and is injected by parameter name; scope (`function`, `module`, `session`) controls how often it runs. Built-ins include `tmp_path` (a fresh temp directory), `monkeypatch` (safely set env vars and attributes), `capsys`, and `caplog`. `@pytest.mark.parametrize` runs one test over a table of inputs with clear per-case ids. Markers tag tests (`slow`, `integration`) so you can select or skip them, and `xfail` records known bugs. Keep fixtures small and composable, put shared ones in `conftest.py`, prefer function scope for isolation, and avoid fixtures that hide essential test context (a test should read top to bottom). Session-scoped expensive resources (a container DB) need per-test cleanup such as transaction rollback. Beware autouse fixtures: implicit behavior surprises readers.",
+  "pitfalls": [
+   "Wide-scope fixtures that leak state between tests",
+   "Giant conftest files with hidden autouse behavior"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "testing",
+   "pytest"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-056",
+  "area": "python",
+  "topic": "testing",
+  "level": 4,
+  "type": "design",
+  "q": "How would you test a data-processing/ML feature pipeline so it is reliable and not flaky?",
+  "followups": [
+   "How do you test training code without a GPU or long runtimes?",
+   "What would you monitor after deployment?"
+  ],
+  "answer": "Layer the tests. Unit-test pure transformation functions with small handcrafted frames and property-style checks (idempotence, row count preserved, no NaN after imputation). Seed every source of randomness and pin library versions; compare floats with tolerances (`pytest.approx`, `np.testing.assert_allclose`). Add schema and data-quality contracts at boundaries (pandera/pydantic/Great Expectations: dtypes, ranges, uniqueness, null rates) and run them on real batches in production as well. Use small golden files (a few dozen rows) for regression on end-to-end outputs, stored in the repo. Integration-test with a tiny slice of real data against a real storage or database in a container. For model code, test invariants (output shape, probabilities sum to 1, monotonic behavior on obvious cases) and a smoke training run that overfits a handful of examples. Flakiness comes from time, randomness, ordering (sets, dict, parallel), shared temp files, and network; inject clocks, sort before comparing, and isolate paths per test.",
+  "pitfalls": [
+   "Testing only that the pipeline runs without an error",
+   "Exact float equality on model outputs"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "testing",
+   "data",
+   "ml"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-057",
+  "area": "python",
+  "topic": "pitfalls",
+  "level": 2,
+  "type": "concept",
+  "q": "What goes wrong when you remove items from a list while iterating over it, and what are the safe alternatives?",
+  "followups": [
+   "Why does `remove` inside a loop make it quadratic?",
+   "What does `xs[:] = ...` do differently from `xs = ...`?"
+  ],
+  "answer": "The list iterator tracks an index; deleting an element shifts the following elements left, so the iterator skips the element that moves into the current position. For `for x in xs: if pred(x): xs.remove(x)` on `[1,2,2,3]` removing 2s leaves a 2 behind. Alternatives: build a new list with a comprehension `[x for x in xs if not pred(x)]` (clearest, O(n)); assign back in place with `xs[:] = [...]` if other references must see the change; iterate over a copy (`for x in xs[:]`), noting that `remove` inside is O(n) each so overall O(n^2); or iterate in reverse by index. For dicts and sets, mutating during iteration raises RuntimeError instead of silently skipping, so iterate over `list(d)` or collect keys to delete afterwards.",
+  "pitfalls": [
+   "Assuming it raises an error like dicts do",
+   "Using remove in a loop over a large list"
+  ],
+  "chapters": [
+   "python/ch04-data-structures.html"
+  ],
+  "tags": [
+   "pitfalls",
+   "lists"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-058",
+  "area": "python",
+  "topic": "logging",
+  "level": 3,
+  "type": "concept",
+  "q": "Why use the `logging` module rather than `print` in services, and what are the common logging mistakes?",
+  "followups": [
+   "How would you propagate a request id into every log line?",
+   "Why does the root logger drop INFO by default?"
+  ],
+  "answer": "`logging` gives levels, per-module named loggers, handlers and formatters (file, stdout, syslog, JSON), filtering, and configuration without code changes, and integrates with frameworks and log shippers. Common mistakes: calling `basicConfig` in library code (only applications configure logging; libraries just get `logging.getLogger(__name__)`); eager f-string formatting (`logger.debug(f'{expensive()}')` builds the string even if debug is off; use `logger.debug('x=%s', x)`); logging and re-raising at every layer, producing duplicate stack traces (log once at the boundary); using `logger.error(str(e))` instead of `logger.exception` or `exc_info=True`, losing the traceback; adding handlers repeatedly so messages duplicate; logging secrets or PII; and unstructured messages that cannot be searched (use JSON with request/trace ids). Trade-off: verbose logging costs I/O and money; sample or raise levels dynamically.",
+  "pitfalls": [
+   "print() debugging in production",
+   "Duplicate handlers producing double lines"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html"
+  ],
+  "tags": [
+   "logging",
+   "observability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-059",
+  "area": "python",
+  "topic": "security",
+  "level": 4,
+  "type": "concept",
+  "q": "List the Python-specific security pitfalls you check in code review: pickle, eval, subprocess, yaml, SQL, secrets, temp files.",
+  "followups": [
+   "Why is `random` unsuitable for tokens?",
+   "How do you safely serve user-uploaded filenames?"
+  ],
+  "answer": "`pickle.load` (and `shelve`, some ML model formats) can execute arbitrary code on untrusted data: use JSON or a safe format, or sign and verify the payload. `eval`/`exec` on user input is code execution; use `ast.literal_eval` for literals. `subprocess` with `shell=True` and string interpolation is command injection; pass a list of args with `shell=False` and validate inputs. `yaml.load` without `SafeLoader` can construct arbitrary objects; use `yaml.safe_load`. SQL built with f-strings is injection; use parameterized queries or an ORM. Secrets belong in the environment or a secret manager, never in code or git history; use `secrets` (not `random`) for tokens and `hmac.compare_digest` for comparisons. Temp files: use `tempfile` (secure creation) instead of predictable names in /tmp. Also: `requests` with `verify=False`, unbounded timeouts, path traversal from user-supplied filenames (`pathlib` resolve and check parent), and dependency supply chain (pin, audit, hash-check). Run bandit and pip-audit in CI.",
+  "pitfalls": [
+   "Trusting pickled model files from the internet",
+   "shell=True with user input"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "py-060",
+  "area": "python",
+  "topic": "judgment",
+  "level": 5,
+  "type": "scenario",
+  "q": "You inherit an undocumented 5,000-line single-file Python script that runs nightly and 'must never break'. You have two weeks to make it maintainable. What do you do?",
+  "followups": [
+   "How would you build characterization tests when the script has side effects?",
+   "What would make you decide a rewrite is warranted?"
+  ],
+  "answer": "First clarify goals and risk: what does it produce, who depends on it, what is the failure cost, and what does 'maintainable' mean to stakeholders (fewer incidents, ability to change, handover). Do not start by rewriting. Week one: freeze behavior. Capture inputs and outputs from real runs as golden characterization tests, add logging and alerting around the existing run (exit codes, run duration, row counts), put it in version control and a repeatable environment (pinned dependencies, container or venv), and move secrets and paths into configuration. Then find seams: split by responsibility (extract, transform, load, I/O) with pure functions and dependency injection, doing behavior-preserving refactors in small commits, each guarded by the characterization tests. Week two: add unit tests around the riskiest logic, type hints on the new interfaces, a short README/runbook (how to run, rerun, and recover), idempotency and retry where safe, and a dry-run mode. Agree on what you are not doing (features, redesign) and report risks and next steps. Trade-off: a partial, tested refactor with monitoring beats a complete untested rewrite of something that must not break.",
+  "pitfalls": [
+   "Big-bang rewrite without tests",
+   "Refactoring with no way to verify behavior is unchanged",
+   "Never asking what the business depends on"
+  ],
+  "chapters": [
+   "python/ch06-professional-python.html",
+   "python/ch07-python-devops-apis.html"
+  ],
+  "tags": [
+   "judgment",
+   "legacy",
+   "refactoring"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

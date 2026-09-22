@@ -1,0 +1,638 @@
+[
+ {
+  "id": "dsa-001",
+  "area": "dsa",
+  "topic": "complexity",
+  "level": 1,
+  "type": "code",
+  "q": "Given four small functions (a single loop, a double loop over all pairs, a halving loop, and a loop over unordered pairs), state the Big-O of each and show by counting operations what happens when n doubles.",
+  "followups": [
+   "What is amortized O(1) for list.append?",
+   "Why is O(n log n) the lower bound for comparison sorts?"
+  ],
+  "answer": "Count basic operations empirically to make the growth visible. A single loop is O(n): doubling n doubles the work. Two nested full loops are O(n^2): doubling n quadruples the work. A loop that halves n each step is O(log n): doubling n adds one step. The triangular pair loop does n(n-1)/2 iterations, still O(n^2) because constants and lower-order terms are dropped. Big-O describes growth rate for large n, not wall-clock time; a small-n O(n^2) can beat an O(n log n) with heavy constants. Always state which case (worst, average, amortized) and include space. Pitfall: calling the triangular loop O(n^2/2) or missing that `x in list` inside a loop hides another factor of n.",
+  "pitfalls": [
+   "Keeping constants in Big-O",
+   "Forgetting hidden linear operations like `in list` or slicing"
+  ],
+  "solution": {
+   "code": "def linear(n):\n    c = 0\n    for _ in range(n):\n        c += 1\n    return c\n\ndef quadratic(n):\n    c = 0\n    for i in range(n):\n        for j in range(n):\n            c += 1\n    return c\n\ndef logarithmic(n):\n    c = 0\n    while n > 1:\n        n //= 2\n        c += 1\n    return c\n\ndef pairs(n):\n    c = 0\n    for i in range(n):\n        for j in range(i + 1, n):\n            c += 1\n    return c\n\nfor n in (8, 16, 1024):\n    print(n, linear(n), quadratic(n), logarithmic(n), pairs(n))\n",
+   "expect": [
+    "8 8 64 3 28",
+    "16 16 256 4 120",
+    "1024 1024 1048576 10 523776"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "complexity",
+   "big-o"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-002",
+  "area": "dsa",
+  "topic": "hashing",
+  "level": 1,
+  "type": "code",
+  "q": "Two Sum: return the indices of two numbers in a list that add up to a target. Give an O(n) solution and compare it to brute force.",
+  "followups": [
+   "How would you solve it if the input is sorted?",
+   "What if the input is too large for memory?"
+  ],
+  "answer": "Brute force checks all pairs in O(n^2) time and O(1) space. With a hash map from value to index, scan once: for each x look up `target - x` among previously seen values, return immediately on a hit, otherwise store x. That is O(n) average time and O(n) space, trading memory for time. Checking before inserting handles duplicates such as `[3, 3]` with target 6 and never pairs an element with itself. If the array is sorted and you may not use extra space, use two pointers (O(n) time, O(1) space). Edge cases: no solution (return None), negative numbers, and clarifying whether exactly one solution exists.",
+  "pitfalls": [
+   "Inserting before checking, pairing an element with itself",
+   "Sorting and losing original indices"
+  ],
+  "solution": {
+   "code": "def two_sum(nums, target):\n    seen = {}\n    for i, x in enumerate(nums):\n        j = seen.get(target - x)\n        if j is not None:\n            return [j, i]\n        seen[x] = i\n    return None\n\nprint(two_sum([2, 7, 11, 15], 9), two_sum([3, 3], 6), two_sum([1, 2], 10), two_sum([3, 2, 4], 6))\n",
+   "expect": [
+    "[0, 1] [0, 1] None [1, 2]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "hashing",
+   "arrays"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-003",
+  "area": "dsa",
+  "topic": "stack",
+  "level": 1,
+  "type": "code",
+  "q": "Valid parentheses: given a string containing ()[]{} and possibly other characters, decide whether the brackets are balanced and correctly nested.",
+  "followups": [
+   "How would you return the index of the first error?",
+   "Can you do it in O(1) space for one bracket type?"
+  ],
+  "answer": "Use a stack: push opening brackets; on a closing bracket, the stack must be non-empty and its top must be the matching opener, otherwise the string is invalid; at the end the stack must be empty. O(n) time and O(n) space. Key edge cases: a closing bracket first (empty stack), leftover openers (`((`), interleaving (`(]`), the empty string (valid), and ignoring non-bracket characters if the spec allows. A counter alone works for a single bracket type but not for multiple types. The same pattern solves expression parsing and undo stacks.",
+  "pitfalls": [
+   "Using only counters for multiple bracket types",
+   "Forgetting the empty-stack check on a closing bracket"
+  ],
+  "solution": {
+   "code": "def valid(s):\n    pairs = {\")\": \"(\", \"]\": \"[\", \"}\": \"{\"}\n    st = []\n    for ch in s:\n        if ch in pairs.values():\n            st.append(ch)\n        elif ch in pairs:\n            if not st or st.pop() != pairs[ch]:\n                return False\n    return not st\n\nprint([valid(x) for x in [\"()[]{}\", \"([{}])\", \"(]\", \"((\", \"\", \")(\"]])\n",
+   "expect": [
+    "[True, True, False, False, True, False]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "stack"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-004",
+  "area": "dsa",
+  "topic": "hashing",
+  "level": 2,
+  "type": "code",
+  "q": "Group anagrams: given a list of words, group the words that are anagrams of each other.",
+  "followups": [
+   "How would you use a count tuple as the key?",
+   "What if the words have Unicode combining characters?"
+  ],
+  "answer": "Two words are anagrams if their sorted letters (or their letter-count vectors) are equal, so use that canonical form as a dict key: `defaultdict(list)` keyed by `''.join(sorted(w))`, O(N * K log K) for N words of length K. Using a 26-count tuple as the key gives O(N * K) for lowercase ASCII. Keys must be hashable, so use a tuple or string, never a list. Output order of groups is not defined, so sort for deterministic tests. Trade-off: sorting is simpler; counting is faster for long words but needs a fixed alphabet assumption. Edge cases: empty strings group together, uppercase versus lowercase, and Unicode normalization.",
+  "pitfalls": [
+   "Using a list as a dict key",
+   "Assuming group order is stable across runs"
+  ],
+  "solution": {
+   "code": "from collections import defaultdict\n\ndef group(words):\n    g = defaultdict(list)\n    for w in words:\n        g[\"\".join(sorted(w))].append(w)\n    return sorted(sorted(v) for v in g.values())\n\nprint(group([\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"]))\nprint(group([\"\"]), group([]))\n",
+   "expect": [
+    "[['ate', 'eat', 'tea'], ['bat'], ['nat', 'tan']]",
+    "[['']] []"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "hashing",
+   "strings"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-005",
+  "area": "dsa",
+  "topic": "sliding-window",
+  "level": 2,
+  "type": "code",
+  "q": "Longest substring without repeating characters: return the length of the longest substring of s with all distinct characters.",
+  "followups": [
+   "How would you return the substring itself?",
+   "How does it change for at most k distinct characters?"
+  ],
+  "answer": "Sliding window with a dict storing the last index of each character: move the right pointer every step; if the current character was seen at an index inside the current window (`last[ch] >= start`), jump `start` to `last[ch] + 1`; update the best length. O(n) time, O(min(n, alphabet)) space; every character enters and leaves the window at most once. The `last[ch] >= start` check is the classic bug: stale entries from before the window must be ignored (see `abba`). A set-based window with a while loop that shrinks from the left is equivalent. Edge cases: empty string, all identical characters, all distinct.",
+  "pitfalls": [
+   "Not checking that the previous occurrence is inside the window (fails on abba)",
+   "Restarting the scan from scratch for each start (O(n^2))"
+  ],
+  "solution": {
+   "code": "def longest(s):\n    last = {}\n    start = 0\n    best = 0\n    for i, ch in enumerate(s):\n        if ch in last and last[ch] >= start:\n            start = last[ch] + 1\n        last[ch] = i\n        best = max(best, i - start + 1)\n    return best\n\nprint(longest(\"abcabcbb\"), longest(\"bbbbb\"), longest(\"pwwkew\"), longest(\"\"), longest(\"abba\"))\n",
+   "expect": [
+    "3 1 3 0 2"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "sliding-window",
+   "strings"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-006",
+  "area": "dsa",
+  "topic": "two-pointers",
+  "level": 2,
+  "type": "code",
+  "q": "Two pointers in place: (a) remove duplicates from a sorted array in place and return the new length; (b) move all zeroes to the end while keeping the order of the other elements.",
+  "followups": [
+   "How do you allow at most two copies of each value?",
+   "What is the minimum number of writes for move zeroes?"
+  ],
+  "answer": "Use a read pointer that scans and a write pointer that marks where the next kept element goes. (a) Sorted duplicates are adjacent, so compare the read element to the last kept one (`a[w-1]`), and write when different: O(n) time, O(1) space, and the first `w` elements are the result. (b) Swap non-zero elements forward into the write position; zeroes accumulate at the end, and stability of non-zeros is preserved. Both are single passes with no extra array. Pitfalls: comparing to `a[r-1]` after overwriting, forgetting the empty array, and deleting from a list in a loop (O(n^2) and skips elements).",
+  "pitfalls": [
+   "Using list.remove or del inside the loop",
+   "Comparing with the wrong neighbor after overwriting"
+  ],
+  "solution": {
+   "code": "def dedupe(a):\n    if not a:\n        return 0\n    w = 1\n    for r in range(1, len(a)):\n        if a[r] != a[w - 1]:\n            a[w] = a[r]\n            w += 1\n    return w\n\na = [1, 1, 2, 2, 2, 3]\nk = dedupe(a)\nprint(k, a[:k], dedupe([]))\n\ndef move_zeroes(a):\n    w = 0\n    for r in range(len(a)):\n        if a[r] != 0:\n            a[w], a[r] = a[r], a[w]\n            w += 1\n    return a\n\nprint(move_zeroes([0, 1, 0, 3, 12]))\n",
+   "expect": [
+    "3 [1, 2, 3] 0",
+    "[1, 3, 12, 0, 0]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "two-pointers",
+   "arrays"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-007",
+  "area": "dsa",
+  "topic": "binary-search",
+  "level": 2,
+  "type": "code",
+  "q": "Given a sorted array and a target, return the first and last index of the target, or [-1, -1]. Implement it in O(log n).",
+  "followups": [
+   "How do you binary search on the answer (e.g. minimum capacity)?",
+   "How does rotated-array search change the invariant?"
+  ],
+  "answer": "Implement a `lower_bound` binary search (first index with value >= x) using a half-open interval `[lo, hi)`: if `a[mid] < x` move `lo = mid + 1`, else `hi = mid`. The first occurrence is `lower_bound(x)` (verify it is in range and equals x), and the last is `lower_bound(x + 1) - 1` for integers (or an upper_bound function for general types). O(log n) time, O(1) space. Using the half-open template avoids the classic infinite-loop and off-by-one bugs; `mid = lo + (hi - lo) // 2` avoids overflow in fixed-width languages. In production use `bisect.bisect_left/right`. Edge cases: empty array, target smaller or larger than all elements, duplicates at the boundaries.",
+  "pitfalls": [
+   "Off-by-one with closed intervals and `lo <= hi` templates",
+   "Not checking bounds after lower_bound"
+  ],
+  "solution": {
+   "code": "def lower_bound(a, x):\n    lo, hi = 0, len(a)\n    while lo < hi:\n        mid = (lo + hi) // 2\n        if a[mid] < x:\n            lo = mid + 1\n        else:\n            hi = mid\n    return lo\n\ndef search_range(a, x):\n    l = lower_bound(a, x)\n    if l == len(a) or a[l] != x:\n        return [-1, -1]\n    return [l, lower_bound(a, x + 1) - 1]\n\na = [5, 7, 7, 8, 8, 8, 10]\nprint(search_range(a, 8), search_range(a, 6), search_range([], 1), lower_bound(a, 9))\nimport bisect\nprint(bisect.bisect_left(a, 8), bisect.bisect_right(a, 8) - 1)\n",
+   "expect": [
+    "[3, 5] [-1, -1] [-1, -1] 6",
+    "3 5"
+   ]
+  },
+  "chapters": [
+   "dsa/ds04-sorting-searching-mock-interview.html"
+  ],
+  "tags": [
+   "binary-search"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-008",
+  "area": "dsa",
+  "topic": "dynamic-programming",
+  "level": 2,
+  "type": "code",
+  "q": "Maximum subarray: find the largest sum of a contiguous subarray (the array may contain negatives). Explain the recurrence.",
+  "followups": [
+   "How would you also return the indices?",
+   "How does this extend to the circular array version?"
+  ],
+  "answer": "Kadane's algorithm: let `cur` be the best sum of a subarray ending at the current element; either extend the previous subarray or start fresh: `cur = max(x, cur + x)`; track `best = max(best, cur)`. O(n) time, O(1) space. It is a DP where the state only depends on the previous one. Initialize with the first element, not 0, so all-negative arrays return the largest (least negative) element rather than an empty sum. If the empty subarray is allowed the answer is at least 0; clarify with the interviewer. To recover the subarray, track the start index when you restart. Brute force is O(n^2) with prefix sums.",
+  "pitfalls": [
+   "Initializing best to 0 and returning 0 for all-negative input",
+   "Resetting cur incorrectly when it goes negative"
+  ],
+  "solution": {
+   "code": "def max_sub(a):\n    best = cur = a[0]\n    for x in a[1:]:\n        cur = max(x, cur + x)\n        best = max(best, cur)\n    return best\n\nprint(max_sub([-2, 1, -3, 4, -1, 2, 1, -5, 4]), max_sub([-3, -1, -2]), max_sub([5]))\n",
+   "expect": [
+    "6 -1 5"
+   ]
+  },
+  "chapters": [
+   "dsa/ds03-dynamic-programming-greedy.html"
+  ],
+  "tags": [
+   "dynamic-programming",
+   "arrays"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-009",
+  "area": "dsa",
+  "topic": "recursion",
+  "level": 3,
+  "type": "code",
+  "q": "Generate all subsets and all permutations of a list of distinct numbers using recursion/backtracking. State counts and complexity.",
+  "followups": [
+   "How do you handle duplicate elements?",
+   "How do you prune N-Queens?"
+  ],
+  "answer": "Backtracking builds candidates incrementally and undoes choices. Subsets: for each element decide include or exclude (two recursive branches, depth n) giving 2^n subsets; each copy costs O(n) so total O(n * 2^n). Permutations: at each position try each unused element (mark used, recurse, unmark), giving n! results and O(n * n!) time. The recursion depth is n, so stack space is O(n) beyond output. Remember to append a copy (`cur[:]`) of the current path, not the mutable list itself, or every result aliases one list. For duplicates, sort and skip equal siblings at the same depth. Pruning (early stop when a constraint is violated) is what makes backtracking practical for problems like N-Queens.",
+  "pitfalls": [
+   "Appending the mutable path without copying",
+   "Forgetting to undo the choice (pop/unmark)"
+  ],
+  "solution": {
+   "code": "def subsets(nums):\n    res = []\n    def bt(i, cur):\n        if i == len(nums):\n            res.append(cur[:])\n            return\n        bt(i + 1, cur)\n        cur.append(nums[i])\n        bt(i + 1, cur)\n        cur.pop()\n    bt(0, [])\n    return res\n\ndef permutations(nums):\n    res, used, cur = [], [False] * len(nums), []\n    def bt():\n        if len(cur) == len(nums):\n            res.append(cur[:])\n            return\n        for i, x in enumerate(nums):\n            if used[i]:\n                continue\n            used[i] = True\n            cur.append(x)\n            bt()\n            cur.pop()\n            used[i] = False\n    bt()\n    return res\n\nprint(len(subsets([1, 2, 3])), subsets([1, 2]))\nprint(len(permutations([1, 2, 3])), permutations([1, 2]))\n",
+   "expect": [
+    "8 [[], [2], [1], [1, 2]]",
+    "6 [[1, 2], [2, 1]]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds02-trees-graphs-recursion.html"
+  ],
+  "tags": [
+   "recursion",
+   "backtracking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-010",
+  "area": "dsa",
+  "topic": "dynamic-programming",
+  "level": 3,
+  "type": "code",
+  "q": "Coin change: given coin denominations and an amount, return the fewest coins needed or -1 if impossible. Explain why greedy fails and give a DP solution.",
+  "followups": [
+   "How would you count the number of ways instead?",
+   "When is greedy correct for coins?"
+  ],
+  "answer": "Greedy (take the largest coin first) fails for arbitrary denominations: with coins [1, 3, 4] and amount 6, greedy picks 4+1+1 (3 coins) but 3+3 uses 2. Use bottom-up DP: `dp[a]` = fewest coins for amount a, `dp[0] = 0`, `dp[a] = min(dp[a - c] + 1)` over coins c <= a, using a large sentinel (amount + 1) for unreachable. O(amount * len(coins)) time, O(amount) space. Return -1 when `dp[amount]` is still the sentinel. Top-down memoization is equivalent but hits recursion depth limits for large amounts. Greedy is correct only for canonical coin systems (such as standard currency) and that needs proof. Edge cases: amount 0 returns 0; coins larger than the amount.",
+  "pitfalls": [
+   "Using greedy on non-canonical denominations",
+   "Using 0 or -1 as the unreachable sentinel and corrupting min()"
+  ],
+  "solution": {
+   "code": "def coin_change(coins, amount):\n    INF = amount + 1\n    dp = [0] + [INF] * amount\n    for a in range(1, amount + 1):\n        for c in coins:\n            if c <= a:\n                dp[a] = min(dp[a], dp[a - c] + 1)\n    return dp[amount] if dp[amount] != INF else -1\n\nprint(coin_change([1, 2, 5], 11), coin_change([2], 3), coin_change([1], 0), coin_change([1, 3, 4], 6))\nprint(coin_change([186, 419, 83, 408], 6249))\n",
+   "expect": [
+    "3 -1 0 2",
+    "20"
+   ]
+  },
+  "chapters": [
+   "dsa/ds03-dynamic-programming-greedy.html"
+  ],
+  "tags": [
+   "dynamic-programming",
+   "greedy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-011",
+  "area": "dsa",
+  "topic": "two-pointers",
+  "level": 3,
+  "type": "code",
+  "q": "3Sum: return all unique triplets in an array that sum to zero. Aim for O(n^2) and avoid duplicate triplets.",
+  "followups": [
+   "How would you generalize to k-sum?",
+   "What changes for the closest-sum variant?"
+  ],
+  "answer": "Sort the array, fix the first element `i`, then run two pointers `l` and `r` over the rest: sum too small moves `l` right, too large moves `r` left, and equal records a triplet. Duplicate handling is the hard part: skip `i` when `nums[i] == nums[i-1]`, and after recording a hit move `l` past equal values. Early exit when `nums[i] > 0` because all following numbers are positive. O(n^2) time (sorting O(n log n) is dominated), O(1) extra space beyond output and sorting. Using a set of tuples to dedupe works but costs memory and time. Trade-off: hash-based two-sum inside the loop is also O(n^2) but needs extra space and messier dedupe.",
+  "pitfalls": [
+   "Duplicate triplets from not skipping equal values",
+   "O(n^3) triple loop"
+  ],
+  "solution": {
+   "code": "def three_sum(nums):\n    nums = sorted(nums)\n    res = []\n    for i in range(len(nums) - 2):\n        if i and nums[i] == nums[i - 1]:\n            continue\n        if nums[i] > 0:\n            break\n        l, r = i + 1, len(nums) - 1\n        while l < r:\n            s = nums[i] + nums[l] + nums[r]\n            if s < 0:\n                l += 1\n            elif s > 0:\n                r -= 1\n            else:\n                res.append([nums[i], nums[l], nums[r]])\n                l += 1\n                r -= 1\n                while l < r and nums[l] == nums[l - 1]:\n                    l += 1\n    return res\n\nprint(three_sum([-1, 0, 1, 2, -1, -4]), three_sum([0, 0, 0, 0]), three_sum([1, 2]))\n",
+   "expect": [
+    "[[-1, -1, 2], [-1, 0, 1]] [[0, 0, 0]] []"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "two-pointers",
+   "sorting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-012",
+  "area": "dsa",
+  "topic": "trees",
+  "level": 3,
+  "type": "code",
+  "q": "Binary tree essentials: implement level-order traversal, maximum depth, iterative in-order traversal, and BST validation (with the classic pitfall).",
+  "followups": [
+   "How would you find the lowest common ancestor?",
+   "How do you traverse in O(1) extra space (Morris)?"
+  ],
+  "answer": "Level-order uses a queue and processes one level per outer iteration by snapshotting `len(q)`: O(n) time, O(width) space. Depth is a simple recursion `1 + max(left, right)`; on degenerate (linked-list-like) trees recursion depth reaches n, so use an iterative BFS for very deep inputs. Iterative in-order uses an explicit stack: push left spine, pop, visit, move right; for a BST it yields sorted output. BST validation must pass down bounds (`lo < node < hi`) rather than only comparing a node with its children, because a node in the right subtree must exceed every ancestor on the left path (`5 -> right 4 -> left 3`... is invalid even though each parent-child pair looks fine). O(n) time, O(h) space.",
+  "pitfalls": [
+   "Validating a BST by comparing only parent and child",
+   "Recursing on very deep trees and hitting the recursion limit"
+  ],
+  "solution": {
+   "code": "from collections import deque\n\nclass T:\n    def __init__(self, v, l=None, r=None):\n        self.v, self.l, self.r = v, l, r\n\ndef level_order(root):\n    if not root:\n        return []\n    out, q = [], deque([root])\n    while q:\n        level = []\n        for _ in range(len(q)):\n            n = q.popleft()\n            level.append(n.v)\n            if n.l:\n                q.append(n.l)\n            if n.r:\n                q.append(n.r)\n        out.append(level)\n    return out\n\ndef depth(n):\n    return 0 if not n else 1 + max(depth(n.l), depth(n.r))\n\ndef inorder(root):\n    out, st, cur = [], [], root\n    while cur or st:\n        while cur:\n            st.append(cur)\n            cur = cur.l\n        cur = st.pop()\n        out.append(cur.v)\n        cur = cur.r\n    return out\n\ndef is_bst(n, lo=float(\"-inf\"), hi=float(\"inf\")):\n    if not n:\n        return True\n    if not (lo < n.v < hi):\n        return False\n    return is_bst(n.l, lo, n.v) and is_bst(n.r, n.v, hi)\n\nroot = T(3, T(9), T(20, T(15), T(7)))\nprint(level_order(root), depth(root), inorder(root))\ngood = T(8, T(3, T(1), T(6)), T(10))\nbad = T(5, T(1), T(4, T(3), T(6)))\nprint(is_bst(root), is_bst(good), is_bst(bad), inorder(good))\n",
+   "expect": [
+    "[[3], [9, 20], [15, 7]] 3 [9, 3, 15, 20, 7]",
+    "False True False [1, 3, 6, 8, 10]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds02-trees-graphs-recursion.html"
+  ],
+  "tags": [
+   "trees",
+   "bfs",
+   "bst"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-013",
+  "area": "dsa",
+  "topic": "graphs",
+  "level": 3,
+  "type": "code",
+  "q": "Number of islands: given a grid of '1' (land) and '0' (water), count connected components of land (4-directional). Explain BFS/DFS and how to avoid recursion depth issues.",
+  "followups": [
+   "How would you count islands in a stream of added land cells?",
+   "What changes with 8-directional connectivity?"
+  ],
+  "answer": "Treat the grid as an implicit graph. Scan every cell; when unvisited land is found, increment the count and flood-fill its component with DFS or BFS, marking cells visited (a `seen` set, or mutate the grid if allowed). Each cell is visited a constant number of times: O(R*C) time and O(R*C) space in the worst case (all land). Use an explicit stack or queue rather than recursion because a large all-land grid can exceed Python's recursion limit (default ~1000). Bounds checks before indexing are essential. Variants: diagonal connectivity (8 directions), largest island area, and Union-Find for dynamic additions. Clarify whether input cells are strings or ints and whether mutation of the input is allowed.",
+  "pitfalls": [
+   "Recursive DFS on large grids (RecursionError)",
+   "Not marking visited before pushing, causing duplicates"
+  ],
+  "solution": {
+   "code": "def num_islands(grid):\n    if not grid:\n        return 0\n    R, C = len(grid), len(grid[0])\n    seen = set()\n    n = 0\n    for r in range(R):\n        for c in range(C):\n            if grid[r][c] == \"1\" and (r, c) not in seen:\n                n += 1\n                stack = [(r, c)]\n                seen.add((r, c))\n                while stack:\n                    y, x = stack.pop()\n                    for dy, dx in ((1, 0), (-1, 0), (0, 1), (0, -1)):\n                        ny, nx = y + dy, x + dx\n                        if 0 <= ny < R and 0 <= nx < C and grid[ny][nx] == \"1\" and (ny, nx) not in seen:\n                            seen.add((ny, nx))\n                            stack.append((ny, nx))\n    return n\n\ng1 = [\"11000\", \"11000\", \"00100\", \"00011\"]\nprint(num_islands(g1), num_islands([]), num_islands([\"000\"]), num_islands([\"1\" * 500] * 500))\n",
+   "expect": [
+    "3 0 0 1"
+   ]
+  },
+  "chapters": [
+   "dsa/ds02-trees-graphs-recursion.html"
+  ],
+  "tags": [
+   "graphs",
+   "dfs",
+   "grid"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-014",
+  "area": "dsa",
+  "topic": "graphs",
+  "level": 3,
+  "type": "code",
+  "q": "Course schedule: given n tasks and prerequisite pairs, return a valid order or an empty list if a cycle makes it impossible. Use topological sort.",
+  "followups": [
+   "How would you detect the cycle members?",
+   "How do you run independent tasks in parallel using the same idea?"
+  ],
+  "answer": "Kahn's algorithm: build adjacency lists and in-degree counts; start a queue with all zero in-degree nodes; repeatedly pop a node, append it to the order, and decrement the in-degree of its dependents, enqueueing any that reach zero. If the result contains fewer than n nodes, a cycle exists. O(V + E) time and space. An alternative is DFS with three colors (unvisited, in-progress, done) to detect back edges, then reverse the post-order. Direction matters: for pair `[a, b]` meaning 'a requires b', the edge is b -> a. Use cases: build systems, CI job graphs, package dependency resolution, DAG schedulers such as Airflow. Multiple valid orders may exist; tests should validate constraints rather than compare exact order unless order is specified.",
+  "pitfalls": [
+   "Reversing the edge direction",
+   "Not detecting cycles (returning a partial order)"
+  ],
+  "solution": {
+   "code": "from collections import deque, defaultdict\n\ndef order(n, prereqs):\n    g = defaultdict(list)\n    indeg = [0] * n\n    for a, b in prereqs:\n        g[b].append(a)\n        indeg[a] += 1\n    q = deque(i for i in range(n) if indeg[i] == 0)\n    out = []\n    while q:\n        u = q.popleft()\n        out.append(u)\n        for v in g[u]:\n            indeg[v] -= 1\n            if indeg[v] == 0:\n                q.append(v)\n    return out if len(out) == n else []\n\nprint(order(4, [[1, 0], [2, 0], [3, 1], [3, 2]]), order(2, [[0, 1], [1, 0]]), order(3, []))\n",
+   "expect": [
+    "[0, 1, 2, 3] [] [0, 1, 2]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds02-trees-graphs-recursion.html"
+  ],
+  "tags": [
+   "graphs",
+   "topological-sort"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-015",
+  "area": "dsa",
+  "topic": "sliding-window",
+  "level": 4,
+  "type": "code",
+  "q": "Minimum window substring: find the smallest substring of s that contains every character of t (with multiplicity), or an empty string. Aim for O(n).",
+  "followups": [
+   "How does the algorithm change if t has Unicode characters?",
+   "How would you return all minimal windows?"
+  ],
+  "answer": "Two-pointer sliding window with a need-count map and a `missing` counter of characters still required. Expand the right pointer, decrementing `need[ch]` (it goes negative for surplus) and decrementing `missing` only when the character was still needed. When `missing == 0` the window is valid: shrink from the left while the left character is surplus (`need[s[l]] < 0`), record the best window, then drop one needed character to invalidate the window and continue. Each pointer moves at most n times: O(n + m) time, O(alphabet) space. The subtle parts are multiplicity (t = 'aa') and updating `missing` only for genuinely needed characters. Edge cases: t longer than s, t empty (define the answer), and no valid window.",
+  "pitfalls": [
+   "Ignoring multiplicity of characters in t",
+   "Recounting the window each step (O(n*m))"
+  ],
+  "solution": {
+   "code": "from collections import Counter\n\ndef min_window(s, t):\n    if not t or len(t) > len(s):\n        return \"\"\n    need = Counter(t)\n    missing = len(t)\n    best = (0, float(\"inf\"))\n    l = 0\n    for r, ch in enumerate(s):\n        if need[ch] > 0:\n            missing -= 1\n        need[ch] -= 1\n        if missing == 0:\n            while need[s[l]] < 0:\n                need[s[l]] += 1\n                l += 1\n            if r - l < best[1] - best[0]:\n                best = (l, r)\n            need[s[l]] += 1\n            missing += 1\n            l += 1\n    return \"\" if best[1] == float(\"inf\") else s[best[0]:best[1] + 1]\n\nprint(min_window(\"ADOBECODEBANC\", \"ABC\"), min_window(\"a\", \"a\"), repr(min_window(\"a\", \"aa\")), min_window(\"aa\", \"aa\"))\n",
+   "expect": [
+    "BANC a '' aa"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "sliding-window",
+   "hashing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-016",
+  "area": "dsa",
+  "topic": "graphs",
+  "level": 4,
+  "type": "code",
+  "q": "Shortest path in a weighted graph with non-negative edge weights from a source: implement Dijkstra with a heap, and explain why it fails with negative edges.",
+  "followups": [
+   "How do you reconstruct the path?",
+   "When would you use Bellman-Ford or A* instead?"
+  ],
+  "answer": "Maintain a min-heap of `(distance, node)`, popping the closest unfinalized node and relaxing its outgoing edges; push an update only when it improves the best known distance. Skip stale heap entries (`d > dist[u]`) instead of doing decrease-key, which `heapq` does not support. O((V + E) log V) with a binary heap, O(V) space. Correctness relies on non-negative weights: once a node is popped its distance is final, since any other path would have to be at least as long. With negative edges this invariant breaks; use Bellman-Ford (O(VE), also detects negative cycles). For unweighted graphs BFS suffices; for a single target with a good heuristic use A*. Unreachable nodes simply do not appear in `dist`. Pitfall: using a visited set that finalizes nodes on first push.",
+  "pitfalls": [
+   "Marking nodes visited when pushed rather than when popped",
+   "Using Dijkstra with negative edge weights"
+  ],
+  "solution": {
+   "code": "import heapq\n\ndef dijkstra(graph, src):\n    dist = {src: 0}\n    pq = [(0, src)]\n    while pq:\n        d, u = heapq.heappop(pq)\n        if d > dist.get(u, float(\"inf\")):\n            continue\n        for v, w in graph.get(u, []):\n            nd = d + w\n            if nd < dist.get(v, float(\"inf\")):\n                dist[v] = nd\n                heapq.heappush(pq, (nd, v))\n    return dist\n\ng = {\"A\": [(\"B\", 4), (\"C\", 1)], \"C\": [(\"B\", 2), (\"D\", 7)], \"B\": [(\"D\", 1)], \"D\": [], \"E\": [(\"A\", 1)]}\nprint(sorted(dijkstra(g, \"A\").items()))\n",
+   "expect": [
+    "[('A', 0), ('B', 3), ('C', 1), ('D', 4)]"
+   ]
+  },
+  "chapters": [
+   "dsa/ds02-trees-graphs-recursion.html"
+  ],
+  "tags": [
+   "graphs",
+   "heap",
+   "shortest-path"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-017",
+  "area": "dsa",
+  "topic": "heap",
+  "level": 4,
+  "type": "code",
+  "q": "Merge k sorted lists into one sorted list efficiently. Compare heap-based merging with repeated pairwise merging and with sorting everything.",
+  "followups": [
+   "How would you merge sorted files that do not fit in memory?",
+   "Why include the list index in the heap tuple?"
+  ],
+  "answer": "Put the first element of each non-empty list in a min-heap as `(value, list_index, element_index)`; pop the smallest, append it to the output, and push the next element from the same list. The list and element indices break ties without comparing payload objects. Time O(N log k) for N total elements, space O(k) beyond the output. Compared with concatenating and sorting (O(N log N)) it exploits the existing order; compared with merging lists one by one left to right (O(N * k) worst case) it is asymptotically better; pairwise divide-and-conquer merging also achieves O(N log k). In Python, `heapq.merge` implements this lazily and is the production choice for streams too large for memory. Edge cases: empty lists, no lists, duplicates.",
+  "pitfalls": [
+   "Comparing payload objects on ties",
+   "Merging lists sequentially (O(N*k))"
+  ],
+  "solution": {
+   "code": "import heapq\n\ndef merge_k(lists):\n    h = [(l[0], i, 0) for i, l in enumerate(lists) if l]\n    heapq.heapify(h)\n    out = []\n    while h:\n        v, i, j = heapq.heappop(h)\n        out.append(v)\n        if j + 1 < len(lists[i]):\n            heapq.heappush(h, (lists[i][j + 1], i, j + 1))\n    return out\n\ndata = [[1, 4, 5], [1, 3, 4], [2, 6], []]\nprint(merge_k(data), merge_k([]), merge_k([[], []]))\nprint(list(heapq.merge(*data)) == merge_k(data))\n",
+   "expect": [
+    "[1, 1, 2, 3, 4, 4, 5, 6] [] []",
+    "True"
+   ]
+  },
+  "chapters": [
+   "dsa/ds04-sorting-searching-mock-interview.html"
+  ],
+  "tags": [
+   "heap",
+   "sorting",
+   "merge"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-018",
+  "area": "dsa",
+  "topic": "sorting",
+  "level": 4,
+  "type": "code",
+  "q": "Count inversions in an array (pairs i < j with a[i] > a[j]) in O(n log n) using merge sort. Explain how this connects to sorting stability and why quadratic brute force is too slow.",
+  "followups": [
+   "How would a Fenwick tree solve it?",
+   "Why is merge sort stable and quicksort not?"
+  ],
+  "answer": "Modify merge sort so merging also counts cross inversions: when merging sorted halves, if the right element is strictly smaller than the current left element, it forms an inversion with every remaining element in the left half (`len(left) - i`). Total inversions are those in the left half plus the right half plus the cross count. O(n log n) time, O(n) space. Use `<=` when taking from the left so equal elements are not counted as inversions and the merge stays stable (equal items keep original order). Brute force checks all pairs in O(n^2), impractical beyond ~10^5 elements. Inversion count measures how far an array is from sorted (used in ranking-correlation metrics such as Kendall tau). A Fenwick tree gives an alternative O(n log n) solution after coordinate compression.",
+  "pitfalls": [
+   "Counting equal elements as inversions",
+   "Slicing without noticing the extra O(n) memory"
+  ],
+  "solution": {
+   "code": "def count_inv(a):\n    def sort(a):\n        if len(a) <= 1:\n            return a, 0\n        m = len(a) // 2\n        l, x = sort(a[:m])\n        r, y = sort(a[m:])\n        merged, i, j, inv = [], 0, 0, x + y\n        while i < len(l) and j < len(r):\n            if l[i] <= r[j]:\n                merged.append(l[i])\n                i += 1\n            else:\n                merged.append(r[j])\n                j += 1\n                inv += len(l) - i\n        merged += l[i:] + r[j:]\n        return merged, inv\n    return sort(list(a))[1]\n\ndef brute(a):\n    return sum(1 for i in range(len(a)) for j in range(i + 1, len(a)) if a[i] > a[j])\n\nprint(count_inv([2, 4, 1, 3, 5]), count_inv([5, 4, 3, 2, 1]), count_inv([1, 2, 3]), count_inv([]), count_inv([2, 2, 1]))\ndata = [(i * 37) % 101 for i in range(200)]\nprint(count_inv(data) == brute(data))\n",
+   "expect": [
+    "3 10 0 0 2",
+    "True"
+   ]
+  },
+  "chapters": [
+   "dsa/ds04-sorting-searching-mock-interview.html"
+  ],
+  "tags": [
+   "sorting",
+   "divide-and-conquer"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-019",
+  "area": "dsa",
+  "topic": "heap",
+  "level": 5,
+  "type": "code",
+  "q": "Design a data structure that supports `add(x)` for a stream of numbers and `median()` at any time. Discuss exactness, complexity, memory, and what changes for a huge or windowed stream.",
+  "followups": [
+   "How do you support a sliding window median?",
+   "When is an approximate quantile sketch acceptable?"
+  ],
+  "answer": "Two heaps: a max-heap `lo` for the smaller half (store negatives in `heapq`) and a min-heap `hi` for the larger half, kept balanced so `len(lo)` is equal to or one more than `len(hi)`. Add: push into `lo`, move the largest of `lo` to `hi`, then rebalance if `hi` is bigger. Median: top of `lo` if odd count, otherwise the average of both tops. `add` is O(log n), `median` O(1), space O(n). Clarify requirements first: exact versus approximate, stream size (fits in memory?), deletions or a sliding window, and duplicates. For a sliding window you need removal, which heaps do not support directly; use lazy deletion with counters or two multisets (`sortedcontainers`). If the value range is small and bounded (ages, scores 0-100), a count array gives O(range) median with O(1) memory. For unbounded huge streams use approximate quantile sketches (t-digest, GK, KLL) with bounded memory and known error, which is what production monitoring systems use. Trade-off: exactness costs O(n) memory.",
+  "pitfalls": [
+   "Sorting the whole list on every median call (O(n log n) per query)",
+   "Not clarifying exactness, window, or memory limits before coding"
+  ],
+  "solution": {
+   "code": "import heapq\nimport statistics\n\nclass MedianFinder:\n    def __init__(self):\n        self.lo = []\n        self.hi = []\n\n    def add(self, x):\n        heapq.heappush(self.lo, -x)\n        heapq.heappush(self.hi, -heapq.heappop(self.lo))\n        if len(self.hi) > len(self.lo):\n            heapq.heappush(self.lo, -heapq.heappop(self.hi))\n\n    def median(self):\n        if not self.lo:\n            raise ValueError(\"empty\")\n        if len(self.lo) > len(self.hi):\n            return float(-self.lo[0])\n        return (-self.lo[0] + self.hi[0]) / 2\n\nm = MedianFinder()\nout = []\nfor x in [5, 15, 1, 3]:\n    m.add(x)\n    out.append(m.median())\nprint(out)\n\ndata = [(i * 37) % 101 - 30 for i in range(300)]\nm = MedianFinder()\nok = True\nfor i, x in enumerate(data):\n    m.add(x)\n    ok = ok and abs(m.median() - statistics.median(data[:i + 1])) < 1e-9\nprint(\"matches statistics.median:\", ok)\n",
+   "expect": [
+    "[5.0, 10.0, 5.0, 4.0]",
+    "matches statistics.median: True"
+   ]
+  },
+  "chapters": [
+   "dsa/ds04-sorting-searching-mock-interview.html"
+  ],
+  "tags": [
+   "heap",
+   "streaming",
+   "design"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "dsa-020",
+  "area": "dsa",
+  "topic": "linked-list",
+  "level": 2,
+  "type": "code",
+  "q": "Reverse a singly linked list iteratively, and detect a cycle in a linked list in O(1) space.",
+  "followups": [
+   "How do you find where the cycle starts?",
+   "How would you reverse nodes in groups of k?"
+  ],
+  "answer": "Reversal: keep `prev` and the current node; for each node save `next`, point `current.next` at `prev`, then advance both: O(n) time, O(1) space. The recursive version uses O(n) stack. Save `next` before overwriting, or the rest of the list is lost. Cycle detection: Floyd's tortoise and hare, with a slow pointer moving one step and a fast pointer moving two; if they ever meet there is a cycle, if fast reaches None there is none. O(n) time, O(1) space, versus a visited-set approach with O(n) space. Edge cases: empty list, single node, two nodes, a self-loop. Follow-ups: find the cycle entry (reset one pointer to the head and move both one step at a time), reverse a sublist, and merge two sorted lists.",
+  "pitfalls": [
+   "Losing the rest of the list by not saving next",
+   "Not handling empty or single-node lists"
+  ],
+  "solution": {
+   "code": "class Node:\n    def __init__(self, v, nxt=None):\n        self.v = v\n        self.next = nxt\n\ndef build(xs):\n    head = None\n    for x in reversed(xs):\n        head = Node(x, head)\n    return head\n\ndef to_list(h):\n    out = []\n    while h:\n        out.append(h.v)\n        h = h.next\n    return out\n\ndef reverse(h):\n    prev = None\n    while h:\n        nxt = h.next\n        h.next = prev\n        prev = h\n        h = nxt\n    return prev\n\ndef has_cycle(h):\n    slow = fast = h\n    while fast and fast.next:\n        slow = slow.next\n        fast = fast.next.next\n        if slow is fast:\n            return True\n    return False\n\nprint(to_list(reverse(build([1, 2, 3, 4]))), to_list(reverse(build([]))), to_list(reverse(build([1]))))\nh = build([1, 2, 3, 4])\nprint(has_cycle(h))\ntail = h\nwhile tail.next:\n    tail = tail.next\ntail.next = h.next\nprint(has_cycle(h), has_cycle(None))\n",
+   "expect": [
+    "[4, 3, 2, 1] [] [1]",
+    "False",
+    "True False"
+   ]
+  },
+  "chapters": [
+   "dsa/ds01-arrays-strings-hashing.html"
+  ],
+  "tags": [
+   "linked-list",
+   "two-pointers"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

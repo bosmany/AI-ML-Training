@@ -1,0 +1,549 @@
+[
+ {
+  "id": "linux-001",
+  "area": "linux",
+  "topic": "processes",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between a process and a thread, and what happens to a process's memory when it forks?",
+  "followups": [
+   "What is the GIL's relationship to threads in CPython?",
+   "How do containers relate to processes?"
+  ],
+  "answer": "A process has its own virtual address space, file descriptor table and PID; threads within a process share the address space and file descriptors but have their own stack and registers, so they are cheaper to create and share data easily (and race easily). `fork()` creates a child with a copy-on-write copy of the parent's address space: pages are shared until either side writes, so forking a big process is fast. `exec()` then replaces the program image. Pitfall: forking a multi-threaded process copies only the calling thread, leaving locks held by other threads locked forever in the child.",
+  "pitfalls": [
+   "Saying fork copies all memory immediately"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "processes",
+   "fundamentals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-002",
+  "area": "linux",
+  "topic": "zombie-process",
+  "level": 2,
+  "type": "concept",
+  "q": "`ps` shows many processes in state `Z` (defunct). What are they, can you kill them, and how do you get rid of them?",
+  "followups": [
+   "What does state D indicate and how do you investigate it?",
+   "What is an orphan process?"
+  ],
+  "answer": "A zombie is a process that has exited but whose parent has not yet called `wait()` to read its exit status; it holds only a process table entry (PID), no memory or CPU. `kill -9` does nothing since it is already dead. Fix by getting the parent to reap: send the parent `SIGCHLD`, fix the bug (parent must `wait`/handle SIGCHLD, or use `signal.SIG_IGN` for SIGCHLD), or kill/restart the parent, after which init (PID 1) adopts and reaps them. Danger is PID exhaustion when thousands accumulate. In containers, a PID 1 that does not reap children is the classic cause; use `tini`/`--init`. Pitfall: confusing zombies with `D` state (uninterruptible sleep on I/O), which cannot be killed either but is a different problem.",
+  "pitfalls": [
+   "Trying kill -9 on the zombie",
+   "Confusing Z with D state"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "processes",
+   "containers"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-003",
+  "area": "linux",
+  "topic": "load-average",
+  "level": 2,
+  "type": "scenario",
+  "q": "A server's load average is 25 on a 4-core machine but CPU utilisation is only 5%. What can explain this and how do you find the cause?",
+  "followups": [
+   "How would you check for swap thrashing?",
+   "What does iowait actually mean?"
+  ],
+  "answer": "On Linux load average counts tasks that are runnable plus tasks in uninterruptible sleep (D state, usually waiting on disk or NFS), so high load with idle CPU points to I/O wait rather than CPU contention. Check `vmstat 1` (b column blocked, wa iowait), `iostat -x 1` (await, %util, queue depth), `top` for D-state processes, `ps -eo state,pid,cmd | awk '$1==\"D\"'`, `dmesg` for disk or NFS errors, and `iotop`/`pidstat -d` for the offender. Causes: failing or saturated disk, hung NFS mount, swap thrashing, cloud volume throttled (burst credits exhausted). Compare load to core count only after knowing its composition. Pitfall: assuming load 25 means CPU-bound and adding cores.",
+  "pitfalls": [
+   "Assuming high load equals high CPU",
+   "Ignoring D-state"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "performance",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-004",
+  "area": "linux",
+  "topic": "permissions-basics",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain what `chmod 750 script.sh` does, and how the umask relates to default file permissions.",
+  "followups": [
+   "Why can't a user enter a directory that has r but not x?",
+   "What is the sticky bit for?"
+  ],
+  "answer": "750 = owner rwx (7), group r-x (5), others none (0). New files start from 666 (files) or 777 (directories) and the umask bits are removed: umask 022 gives 644 files and 755 directories; umask 077 gives 600/700. Directories need `x` to traverse (cd, access entries), `r` to list, `w` to create or delete entries within. Deleting a file needs write permission on the directory, not the file. Pitfall: `chmod -R 777` as a fix for a permission error, which is a security hole and hides the real cause (wrong owner or missing `x` on a parent directory).",
+  "pitfalls": [
+   "Recursively using 777",
+   "Forgetting x on parent directories"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "permissions",
+   "fundamentals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-005",
+  "area": "linux",
+  "topic": "perm-decode",
+  "level": 2,
+  "type": "code",
+  "q": "Write code that converts an octal mode such as `0o4755` or `0o1777` into the `ls -l` style string (including setuid, setgid and sticky bit) and use it to decode a few common modes.",
+  "followups": [
+   "Why is setuid ignored on interpreted scripts?",
+   "What does capabilities offer instead of setuid root?"
+  ],
+  "answer": "Python's `stat.filemode()` does this: it takes the full mode including file type bits, so OR in `stat.S_IFREG` or `S_IFDIR`. Setuid shows as `s` (or `S` if the owner has no x) in the owner triplet, setgid in the group triplet, sticky as `t`/`T` in the others triplet. Setuid on an executable runs it as the file owner (e.g. /usr/bin/passwd); sticky on a directory (/tmp) restricts deletion to the file's owner. Pitfall: setuid on shell scripts is ignored by Linux and setuid binaries are a privilege-escalation risk; audit them with `find / -perm -4000`.",
+  "pitfalls": [
+   "Believing setuid works on scripts"
+  ],
+  "solution": {
+   "code": "import stat\ndef fmt(mode, is_dir=False):\n    return stat.filemode(mode | (stat.S_IFDIR if is_dir else stat.S_IFREG))\nprint(fmt(0o644))\nprint(fmt(0o755, True))\nprint(fmt(0o4755))\nprint(fmt(0o1777, True))\nprint(fmt(0o2750, True))\nprint(fmt(0o4644))\n",
+   "expect": [
+    "-rw-r--r--",
+    "drwxr-xr-x",
+    "-rwsr-xr-x",
+    "drwxrwxrwt",
+    "drwxr-s---",
+    "-rwSr--r--"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "permissions",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-006",
+  "area": "linux",
+  "topic": "disk-full",
+  "level": 3,
+  "type": "scenario",
+  "q": "Monitoring says the root filesystem is 100% full and a service is failing to write. Walk through diagnosing and fixing it, including the case where `df` shows full but `du` cannot account for the space.",
+  "followups": [
+   "Why can df show 100% when a normal user sees free space?",
+   "How would you predict disk-full before it happens?"
+  ],
+  "answer": "1) `df -h` to see which mount, `df -i` to check inodes (millions of tiny files can exhaust inodes with free blocks). 2) Find big consumers: `du -xh --max-depth=1 / | sort -h`, `ncdu`, logs in /var/log and journal (`journalctl --vacuum-size`), Docker (`docker system df`), package caches, core dumps. 3) If df is much larger than du, a deleted file is still held open by a process: `lsof +L1` or `lsof | grep deleted`; restart or truncate via `: > /proc/PID/fd/N` to free the space. 4) Also check for reserved blocks and files hidden under a mount point (unmount to see). 5) Free space safely (rotate/compress logs, do not `rm` a live log without addressing the writer), then fix the cause: logrotate config, retention, alert at 80% and on growth rate, separate /var partition. Pitfall: deleting an active log file with rm, leaving the space still allocated.",
+  "pitfalls": [
+   "rm on a log that a process still writes",
+   "Ignoring inode exhaustion"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "disk",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-007",
+  "area": "linux",
+  "topic": "df-parse",
+  "level": 2,
+  "type": "code",
+  "q": "Parse the output of `df -h` (text below) and print every filesystem above 85% use, sorted by usage descending; skip tmpfs. Explain one weakness of parsing `df -h` output in scripts.",
+  "followups": [
+   "How do you also alert on inode usage?",
+   "Why use shutil.disk_usage in monitoring agents?"
+  ],
+  "answer": "Split each line with `split(None, 5)` so mount points with spaces survive, strip `%` from the use column and compare as ints. In scripts prefer `df -P` (POSIX, no line wrapping of long device names), `df --output=source,pcent,target`, or `os.statvfs`/`shutil.disk_usage` in Python instead of parsing human-readable output. Also check inodes with `df -i`. Pitfall: long device names make `df` wrap onto two lines, breaking column parsing.",
+  "pitfalls": [
+   "Parsing df -h with split() on a wrapped line"
+  ],
+  "solution": {
+   "code": "OUT = \"\"\"Filesystem      Size  Used Avail Use% Mounted on\n/dev/nvme0n1p1   50G   46G  4.0G  92% /\ntmpfs           3.9G     0  3.9G   0% /dev/shm\n/dev/nvme1n1    500G  430G   70G  86% /var/lib/docker\n/dev/nvme2n1    200G   90G  110G  45% /data\ntmpfs           3.9G  3.9G     0 100% /run\n\"\"\"\nrows = []\nfor line in OUT.splitlines()[1:]:\n    fs, size, used, avail, pct, mnt = line.split(None, 5)\n    if fs == \"tmpfs\":\n        continue\n    rows.append((int(pct.rstrip(\"%\")), fs, mnt))\nfor pct, fs, mnt in sorted(rows, reverse=True):\n    if pct > 85:\n        print(f\"{mnt} {pct}% ({fs})\")\n",
+   "expect": [
+    "/ 92% (/dev/nvme0n1p1)",
+    "/var/lib/docker 86% (/dev/nvme1n1)"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "disk",
+   "python",
+   "parsing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-008",
+  "area": "linux",
+  "topic": "oom-killer",
+  "level": 4,
+  "type": "scenario",
+  "q": "A Java service on a Linux VM keeps disappearing with no application error. `dmesg` shows `Out of memory: Killed process 4211 (java)`. How do you investigate and prevent it?",
+  "followups": [
+   "How does the kernel choose the victim?",
+   "What differs when this happens inside Kubernetes?"
+  ],
+  "answer": "The kernel OOM killer picked the process because the system (or its cgroup) ran out of memory. Confirm in `dmesg -T | grep -i oom` or `journalctl -k`: the report shows the memory state and per-process RSS. Distinguish system-wide OOM from cgroup/container OOM (which shows a memory limit and cgroup name). Investigate what grew: heap sized larger than RAM (`-Xmx` plus metaspace, threads, direct buffers means RSS exceeds heap), a leak, other processes, page cache is reclaimable so usually not the cause. Fix by right-sizing JVM (`-XX:MaxRAMPercentage`), setting container memory limits above JVM total footprint, adding swap cautiously, fixing the leak (heap dump), tuning `oom_score_adj` for critical daemons, and alerting on memory saturation before the kill. Pitfall: `free` shows small 'free' memory but it is mostly cache; use `available`. Also `-Xmx` equals the container limit, leaving no room for non-heap.",
+  "pitfalls": [
+   "Setting -Xmx equal to the memory limit",
+   "Reading 'free' instead of 'available'"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "memory",
+   "troubleshooting",
+   "oom"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-009",
+  "area": "linux",
+  "topic": "ss-ports",
+  "level": 1,
+  "type": "concept",
+  "q": "How do you find which process is listening on port 8080, and how do you check whether a remote port is reachable?",
+  "followups": [
+   "What is the difference between refused and timed out?",
+   "How would you check firewall rules on the host?"
+  ],
+  "answer": "Local: `ss -ltnp | grep :8080` (or `lsof -i :8080`, `fuser 8080/tcp`); `-l` listening, `-t` TCP, `-n` numeric, `-p` process (needs root for other users' processes). Note whether it binds to `127.0.0.1` (only local) or `0.0.0.0`/`::` (all interfaces), a frequent 'works locally, not remotely' cause. Remote: `nc -zv host 8080`, `curl -v telnet://host:8080` or `curl -sv http://host:8080/`; timeouts usually mean a firewall/security group dropping packets, 'connection refused' means the host answered but nothing listens. Also test DNS separately with `dig`. Pitfall: `ping` failing does not mean the service is down (ICMP may be blocked) and ping working does not prove the port is open.",
+  "pitfalls": [
+   "Using ping to test a TCP service",
+   "Not checking the bind address"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "networking",
+   "commands"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-010",
+  "area": "linux",
+  "topic": "ssh-unreachable",
+  "level": 3,
+  "type": "scenario",
+  "q": "You cannot SSH to a production server: the connection hangs. Other servers in the same subnet are fine. How do you isolate the problem?",
+  "followups": [
+   "It works from the bastion but not from your laptop; what now?",
+   "How do you avoid locking yourself out when changing sshd config?"
+  ],
+  "answer": "Determine which layer fails. Hang (timeout) vs immediate 'refused' vs 'permission denied' point to different causes. 1) `ssh -vvv` shows how far it got (TCP connect, banner, key exchange, auth). 2) From another host in the subnet, `nc -zv host 22`; if it works from there but not from you, the issue is network/firewall/security group/NACL/VPN path between you and the host; if it fails everywhere, the host may be down, hung, out of memory/IO, or sshd/dependency broken. 3) Check `ping`, ARP/ICMP, the cloud console (instance status checks, system log, serial console), and load balancers/bastion. 4) Use out-of-band access: cloud serial console/SSM Session Manager/IPMI. 5) Common causes: security group change, host firewall (ufw/iptables), fail2ban ban of your IP, disk full or OOM making sshd unusable, sshd config error after change, DNS resolving to the wrong IP, MTU issues. Pitfall: rebooting first, destroying evidence.",
+  "pitfalls": [
+   "Rebooting immediately",
+   "Checking only the local machine"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "ssh",
+   "networking",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-011",
+  "area": "linux",
+  "topic": "dns-debug",
+  "level": 2,
+  "type": "scenario",
+  "q": "`curl https://api.internal.example` fails with 'Could not resolve host' from one server, while it works from your laptop. What do you check?",
+  "followups": [
+   "Why can DNS work in dig but not in the application?",
+   "How does ndots affect Kubernetes pods?"
+  ],
+  "answer": "Separate DNS from connectivity. `dig api.internal.example` and `dig @<resolver>` to test the server's configured resolvers from `/etc/resolv.conf` (or `resolvectl status` on systemd-resolved). Compare against another resolver, check `search` domains and `ndots`, `/etc/hosts` overrides, and `/etc/nsswitch.conf` order. Split-horizon DNS means internal names resolve only via the internal resolver, so a server using a public resolver (DHCP/cloud-init change) fails. `getent hosts name` shows what applications will see (uses the libc path), whereas `dig` bypasses nsswitch. Check security groups/firewall allow UDP and TCP 53 to the resolver, and cache staleness (`resolvectl flush-caches`). Pitfall: testing with `nslookup`/`dig` only, while the app uses a different resolution path.",
+  "pitfalls": [
+   "Assuming the network is broken",
+   "Ignoring /etc/hosts and nsswitch"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "dns",
+   "networking",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-012",
+  "area": "linux",
+  "topic": "ps-parse",
+  "level": 2,
+  "type": "code",
+  "q": "Given `ps aux` output as text, find the top 3 processes by resident memory and total the RSS per user (in MiB). Process command fields contain spaces.",
+  "followups": [
+   "Why does summing RSS overstate memory use?",
+   "What is the difference between VSZ and RSS?"
+  ],
+  "answer": "Use `split(None, 10)` because the COMMAND column is the 11th field and can contain spaces. RSS is in KiB in `ps aux`. Sort by int RSS. In real scripts prefer `ps -eo user,pid,rss,comm --sort=-rss` (stable format) or read `/proc/<pid>/status`, or use `psutil`. Remember RSS double counts shared pages between processes; PSS is more accurate for accounting. Pitfall: parsing fixed columns or forgetting KiB units.",
+  "pitfalls": [
+   "Split on every space",
+   "Treating RSS as bytes"
+  ],
+  "solution": {
+   "code": "from collections import defaultdict\nPS = \"\"\"USER   PID %CPU %MEM    VSZ   RSS TTY STAT START TIME COMMAND\nroot     1  0.0  0.1 168000 11000 ?   Ss   Oct01 0:05 /sbin/init splash\npostgres 812 1.2 8.0 900000 655360 ?  Ss   Oct01 3:10 postgres: main checkpointer\napp    2210 5.5 12.5 4000000 1048576 ? Sl  Oct02 40:00 java -Xmx2g -jar app.jar\napp    2301 0.1  0.4 200000 32768 ?   S    Oct02 0:02 python worker.py --queue high\nnobody 3100 0.0  0.0 100000 2048 ?    S    Oct03 0:00 sleep 60\n\"\"\"\nprocs = []\nfor line in PS.splitlines()[1:]:\n    f = line.split(None, 10)\n    procs.append((f[0], int(f[1]), int(f[5]), f[10]))\nfor user, pid, rss, cmd in sorted(procs, key=lambda p: -p[2])[:3]:\n    print(f\"{pid} {rss // 1024}MiB {cmd.split()[0]}\")\ntot = defaultdict(int)\nfor user, pid, rss, cmd in procs:\n    tot[user] += rss\nprint(sorted((u, kb // 1024) for u, kb in tot.items()))\n",
+   "expect": [
+    "2210 1024MiB java",
+    "812 640MiB postgres:",
+    "2301 32MiB python",
+    "('app', 1056)"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "processes",
+   "python",
+   "memory"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-013",
+  "area": "linux",
+  "topic": "signals",
+  "level": 1,
+  "type": "concept",
+  "q": "What is the difference between SIGTERM, SIGKILL and SIGINT, and how should a service behave when it receives SIGTERM?",
+  "followups": [
+   "Why does `docker stop` take 10 seconds for some images?",
+   "What signal does `kill` send by default?"
+  ],
+  "answer": "SIGTERM (15) is a polite request to terminate; it can be caught, so the program can finish in-flight work, flush buffers, close connections and exit. SIGINT (2) is Ctrl-C, similar semantics. SIGKILL (9) cannot be caught or ignored: the kernel just removes the process, leaving no cleanup (stale locks, half-written files). A well-behaved service stops accepting new work (fail readiness / deregister from the load balancer), drains in-flight requests within a deadline, then exits with status 0. Orchestrators rely on this: Kubernetes sends SIGTERM and after `terminationGracePeriodSeconds` sends SIGKILL. Pitfall: shell-form entrypoints (`CMD npm start` via `sh -c`) where PID 1 is a shell that does not forward SIGTERM, so the app is always SIGKILLed after 30 s.",
+  "pitfalls": [
+   "Using kill -9 as the default",
+   "Not forwarding signals in the entrypoint"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "signals",
+   "processes"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-014",
+  "area": "linux",
+  "topic": "netstat-states",
+  "level": 3,
+  "type": "code",
+  "q": "Given `ss -tan` style lines, count TCP connections by state and flag a possible problem if TIME-WAIT or CLOSE-WAIT counts are high. Explain what a growing CLOSE-WAIT count indicates.",
+  "followups": [
+   "What causes ephemeral port exhaustion and what are mitigations?",
+   "What is the difference between FIN-WAIT-2 and CLOSE-WAIT?"
+  ],
+  "answer": "CLOSE-WAIT means the remote side closed and the local application has not yet called `close()`; a growing count is an application bug (leaked sockets or connection handling), not a network issue. TIME-WAIT is normal after the side that closes first; a large count means many short-lived outgoing connections (use keep-alive/connection pooling; ephemeral port exhaustion is the danger). SYN-RECV piling up can indicate a SYN flood or a full backlog. Parsing: the state is the first column in `ss -tan` output. Pitfall: tuning `tcp_tw_reuse` first instead of reusing connections.",
+  "pitfalls": [
+   "Blaming the network for CLOSE-WAIT",
+   "Disabling TIME-WAIT recycling blindly"
+  ],
+  "solution": {
+   "code": "from collections import Counter\nSS = \"\"\"State      Recv-Q Send-Q Local Address:Port  Peer Address:Port\nESTAB      0      0      10.0.0.5:443        10.0.1.9:51000\nESTAB      0      0      10.0.0.5:443        10.0.1.10:51001\nCLOSE-WAIT 1      0      10.0.0.5:8080       10.0.2.7:40000\nCLOSE-WAIT 1      0      10.0.0.5:8080       10.0.2.7:40001\nCLOSE-WAIT 1      0      10.0.0.5:8080       10.0.2.8:40002\nTIME-WAIT  0      0      10.0.0.5:443        10.0.1.11:51002\nLISTEN     0      128    0.0.0.0:22          0.0.0.0:*\n\"\"\"\nc = Counter(line.split()[0] for line in SS.splitlines()[1:])\nfor state, n in c.most_common():\n    print(state, n)\nif c[\"CLOSE-WAIT\"] >= 3:\n    print(\"WARN: CLOSE-WAIT leak, app is not closing sockets\")\n",
+   "expect": [
+    "CLOSE-WAIT 3",
+    "ESTAB 2",
+    "WARN: CLOSE-WAIT leak"
+   ]
+  },
+  "chapters": [
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "networking",
+   "python",
+   "tcp"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-015",
+  "area": "linux",
+  "topic": "file-descriptors",
+  "level": 3,
+  "type": "scenario",
+  "q": "A service logs `Too many open files` under load. How do you diagnose and fix it?",
+  "followups": [
+   "How do you check the limit of an already-running process?",
+   "What is the difference between soft and hard limits?"
+  ],
+  "answer": "Each socket and file consumes a file descriptor and the process has a per-process limit (`ulimit -n`, RLIMIT_NOFILE, often 1024 soft by default) plus a system-wide `fs.file-max`. Check the process's actual limit `cat /proc/PID/limits`, count usage `ls /proc/PID/fd | wc -l` and what they are (`lsof -p PID`, group by type: many sockets in CLOSE-WAIT means a leak). Fix in two directions: raise limits properly for the service (systemd `LimitNOFILE=65536`, container `--ulimit nofile`; editing /etc/security/limits.conf does not apply to systemd services) and fix leaks (unclosed files or HTTP clients, no connection pooling). A higher limit only postpones a leak; watch the fd count as a metric. Pitfall: `ulimit -n` in your shell is not the limit of the running daemon.",
+  "pitfalls": [
+   "Raising limits without checking for leaks",
+   "Checking the shell ulimit instead of /proc/PID/limits"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "limits",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-016",
+  "area": "linux",
+  "topic": "slow-server",
+  "level": 4,
+  "type": "scenario",
+  "q": "Users report that a Linux application server is 'slow'. You have SSH access. Describe your first five minutes using a systematic method.",
+  "followups": [
+   "What is steal time?",
+   "How would you profile a CPU-bound process on production safely?"
+  ],
+  "answer": "Use the USE method (utilization, saturation, errors) for each resource. `uptime` (load trend), `dmesg -T | tail` (OOM, disk, NIC errors), `vmstat 1` (run queue r, blocked b, swap si/so, cpu us/sy/wa/st), `mpstat -P ALL 1` (one hot core vs all), `pidstat 1` (which process), `iostat -xz 1` (disk await/util), `free -m` (available, swap), `sar -n DEV 1` or `ss -s` for network, `top`. Interpret: high `us` means user CPU (profile the app), high `sy` means kernel/syscalls, high `wa` means storage, high `st` means a noisy neighbour on the hypervisor, swap activity means memory shortage. Then go application-side: slow queries, connection pool, GC, downstream latency, and compare with recent changes/deploys. Pitfall: guessing and restarting, which erases the evidence and may just hide a recurring problem.",
+  "pitfalls": [
+   "Restarting the service first",
+   "Looking only at top's CPU"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "performance",
+   "troubleshooting",
+   "methodology"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-017",
+  "area": "linux",
+  "topic": "crontab-env",
+  "level": 2,
+  "type": "scenario",
+  "q": "A shell script works when you run it manually but fails when run from cron. List the usual causes and how to debug.",
+  "followups": [
+   "How do you avoid overlapping runs?",
+   "When would you use a systemd timer instead of cron?"
+  ],
+  "answer": "Cron runs with a minimal environment: a short PATH (`/usr/bin:/bin`), no login profile, different HOME, no TTY, `sh` instead of bash, and `%` characters treated specially in the crontab line. Debug by capturing output (`>> /var/log/job.log 2>&1`), printing `env`, using absolute paths for commands and files, setting `PATH` and `SHELL` at the top of the crontab, and checking `journalctl -u cron`/`/var/log/syslog` to confirm it actually ran. Also check permissions/user (which user's crontab), relative paths (working dir is HOME), missing execute bit or shebang, and mail sink filling. Add locking with `flock` and alert on failure. Pitfall: leaving stdout/stderr unhandled so errors vanish, or rely on shell aliases.",
+  "pitfalls": [
+   "Assuming cron loads ~/.bashrc"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "cron",
+   "automation",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-018",
+  "area": "linux",
+  "topic": "systemd-service",
+  "level": 3,
+  "type": "concept",
+  "q": "How do you find out why a systemd service keeps restarting, and what does `Restart=` and a crash loop look like in status?",
+  "followups": [
+   "What does exit status 137 usually mean?",
+   "Difference between After= and Requires=?"
+  ],
+  "answer": "`systemctl status svc` (state, last exit code or signal, restart count), `journalctl -u svc -b --no-pager` (logs), `journalctl -u svc -f` to follow. `systemctl show svc -p ExecMainStatus,NRestarts,Result` gives exact reasons; exit codes like 137 (SIGKILL, often OOM) or 143 (SIGTERM). `Restart=on-failure` with `RestartSec` restarts after failures; systemd rate-limits with `StartLimitIntervalSec/StartLimitBurst` and marks the unit failed (`start-limit-hit`) once exceeded, which needs `systemctl reset-failed`. Verify unit file with `systemd-analyze verify`, check dependencies (`After=`/`Requires=` ordering, network-online), environment files, and permissions (User=, sandboxing options like ProtectSystem making paths read-only). Pitfall: editing /etc/systemd/system files without `systemctl daemon-reload`.",
+  "pitfalls": [
+   "Forgetting daemon-reload",
+   "Confusing ordering and dependency directives"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "systemd",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-019",
+  "area": "linux",
+  "topic": "perm-troubleshoot",
+  "level": 3,
+  "type": "scenario",
+  "q": "A web server process (user `www-data`) returns 403 for files in `/srv/site/public` even though the files are mode 644. What do you check?",
+  "followups": [
+   "What does the `x` bit mean on a directory?",
+   "How do you diagnose SELinux denials?"
+  ],
+  "answer": "Permissions must allow traversal of every parent directory: `namei -l /srv/site/public/index.html` lists each path component with owner and mode so you can see a directory missing `x` for `www-data`. Then check ownership and group membership (`id www-data`), ACLs (`getfacl`), and mandatory access control: SELinux (`ls -Z`, `ausearch -m avc`, `restorecon`) or AppArmor logs, which can deny access despite correct Unix permissions. Also check server config (document root, `Require all granted`, symlink options), and mount options (`noexec`, `nosuid`, read-only). The error log of the web server gives the real reason. Pitfall: chmod 777 on the tree, which masks the actual cause and creates a security hole.",
+  "pitfalls": [
+   "chmod -R 777",
+   "Checking only the file, not the parent directories"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "permissions",
+   "troubleshooting",
+   "selinux"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "linux-020",
+  "area": "linux",
+  "topic": "log-grep-awk",
+  "level": 2,
+  "type": "code",
+  "q": "Given auth log lines, extract the source IPs of failed SSH logins and print the top offenders with counts, as you would with `grep | awk | sort | uniq -c | sort -nr`. Do it in Python.",
+  "followups": [
+   "How would you block these automatically and avoid banning yourself?",
+   "What would you check to confirm no login succeeded?"
+  ],
+  "answer": "The shell pipeline is `grep 'Failed password' auth.log | awk '{print $(NF-3)}' | sort | uniq -c | sort -nr | head`; the Python equivalent uses a regex to capture the IP after `from` and a `Counter`. Anchoring on `from <ip> port` is more robust than counting fields, which shift when the username is invalid (`Failed password for invalid user x from ...`). Action follows analysis: rate-limit or block with fail2ban, disable password auth, move to keys/MFA, restrict source ranges. Pitfall: using `$NF` positions that differ between message variants.",
+  "pitfalls": [
+   "Relying on fixed field positions"
+  ],
+  "solution": {
+   "code": "import re\nfrom collections import Counter\nLOG = \"\"\"Oct 10 03:01:01 srv sshd[1]: Failed password for root from 203.0.113.7 port 51000 ssh2\nOct 10 03:01:03 srv sshd[2]: Failed password for invalid user admin from 203.0.113.7 port 51002 ssh2\nOct 10 03:01:09 srv sshd[3]: Accepted publickey for deploy from 198.51.100.4 port 40000 ssh2\nOct 10 03:02:11 srv sshd[4]: Failed password for root from 192.0.2.99 port 40122 ssh2\nOct 10 03:02:15 srv sshd[5]: Failed password for invalid user test from 203.0.113.7 port 51010 ssh2\n\"\"\"\npat = re.compile(r\"Failed password for (?:invalid user )?(\\S+) from (\\d+\\.\\d+\\.\\d+\\.\\d+)\")\nips = Counter(m.group(2) for m in map(pat.search, LOG.splitlines()) if m)\nfor ip, n in ips.most_common():\n    print(n, ip)\n",
+   "expect": [
+    "3 203.0.113.7",
+    "1 192.0.2.99"
+   ]
+  },
+  "chapters": [
+   "devops/do01-log-parsing-text-processing.html"
+  ],
+  "tags": [
+   "logs",
+   "security",
+   "python"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

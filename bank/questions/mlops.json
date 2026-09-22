@@ -1,0 +1,547 @@
+[
+ {
+  "id": "mlops-001",
+  "area": "mlops",
+  "topic": "reproducibility",
+  "level": 1,
+  "type": "concept",
+  "q": "What must be captured to reproduce an ML training run six months later?",
+  "followups": [
+   "Why can the same seed give different results?",
+   "Where do you store data snapshots?"
+  ],
+  "answer": "Everything that determines the model: code version (git SHA), data version (immutable snapshot or content hash plus the query/filters that produced it), configuration and hyperparameters, random seeds, environment (pinned dependencies, lockfile, base image digest, Python and CUDA versions) and hardware where it matters. Log all of it with the run and store the resulting artifacts. Pitfalls: `latest` tables that change under you, unpinned `pip install`, an unsorted SQL query without ORDER BY feeding a seeded shuffle, and non-deterministic GPU ops. Bit-exact reproducibility is often impossible on GPU; aim for statistically equivalent results plus a fully recorded lineage, and say so.",
+  "pitfalls": [
+   "Only saving the model file",
+   "Fixing the seed and calling it reproducible"
+  ],
+  "chapters": [
+   "mlops-practice/mp01-reproducibility-data-validation.html"
+  ],
+  "tags": [
+   "reproducibility",
+   "lineage"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-002",
+  "area": "mlops",
+  "topic": "experiment tracking",
+  "level": 1,
+  "type": "concept",
+  "q": "What should you log in an experiment tracker such as MLflow, and why not just use a spreadsheet or notebook names?",
+  "followups": [
+   "What is the difference between a run, an experiment and a registered model?",
+   "How do you log a model so it can be loaded for serving?"
+  ],
+  "answer": "Per run: parameters, code SHA, data version, environment, metrics (per step and final, on train and validation and test), artifacts (model, plots, confusion matrix, feature list), tags (owner, purpose) and the evaluation dataset used. A tracker gives queryable comparison across runs, a link from any deployed model back to the exact run, and collaboration; spreadsheets drift from reality and cannot be tied to artifacts. Pitfall: comparing runs evaluated on different data splits or with different metric definitions, and tuning on the test set while logging it as if it were held out.",
+  "pitfalls": [
+   "Logging only the best run",
+   "Logging metrics without the dataset version"
+  ],
+  "chapters": [
+   "mlops-practice/mp02-experiment-tracking-model-registry.html"
+  ],
+  "tags": [
+   "mlflow",
+   "tracking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-003",
+  "area": "mlops",
+  "topic": "model registry",
+  "level": 1,
+  "type": "concept",
+  "q": "What problem does a model registry solve and what does it hold?",
+  "followups": [
+   "How does rollback work with aliases?",
+   "What checks gate a promotion?"
+  ],
+  "answer": "It is the versioned catalog between training and serving: each registered model has numbered versions that point to run artifacts, plus metadata (metrics, data and code lineage, signature/schema, owner), lifecycle state (e.g. aliases like `staging` and `production` in current MLflow rather than fixed stages) and approvals. It lets deployment refer to `models:/fraud@champion` instead of a file path, gives one place for promotion and rollback, and an audit trail of who changed what. Pitfall: promoting by manually copying files, or promoting without automated quality gates and a schema check against what serving expects.",
+  "pitfalls": [
+   "Treating S3 folders as a registry",
+   "No link back to the training run"
+  ],
+  "chapters": [
+   "mlops-practice/mp02-experiment-tracking-model-registry.html"
+  ],
+  "tags": [
+   "registry",
+   "mlflow"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-004",
+  "area": "mlops",
+  "topic": "run fingerprint",
+  "level": 2,
+  "type": "code",
+  "q": "Write a function that computes a deterministic run fingerprint from config, dataset rows and code version, so that identical inputs give the same id and any change gives a different one. What must it ignore?",
+  "followups": [
+   "Would you include the wall-clock time?",
+   "How do you hash a 200 GB dataset?"
+  ],
+  "answer": "Hash a canonical serialisation: JSON with sorted keys for config, each dataset row serialised canonically and sorted (or a hash of the file bytes for large data), plus the code version, through SHA-256. Ignore incidental things: dict key order, timestamps and absolute paths. Include everything that changes results (hyperparameters, data, code, seed). The fingerprint lets a pipeline skip a step whose inputs are unchanged (caching) and lets you detect that two runs claiming to be the same are not. For big data hash the storage version or a manifest of file hashes, as DVC does, instead of reading every row in Python.",
+  "pitfalls": [
+   "Hashing the repr() of a dict",
+   "Including timestamps in the fingerprint"
+  ],
+  "chapters": [
+   "mlops-practice/mp01-reproducibility-data-validation.html",
+   "mlops-practice/mp03-pipelines-orchestration.html"
+  ],
+  "tags": [
+   "reproducibility",
+   "hashing",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import hashlib, json\n\ndef run_id(config, rows, code_version):\n    h = hashlib.sha256()\n    h.update(json.dumps(config, sort_keys=True).encode())\n    for r in sorted(json.dumps(r, sort_keys=True) for r in rows):\n        h.update(r.encode())\n    h.update(code_version.encode())\n    return h.hexdigest()[:12]\n\nrows = [{\"x\": 1, \"y\": 0}, {\"x\": 2, \"y\": 1}]\nbase = run_id({\"lr\": 0.1, \"depth\": 3}, rows, \"abc123\")\nprint(\"same inputs, key order changed:\", base == run_id({\"depth\": 3, \"lr\": 0.1}, rows, \"abc123\"))\nprint(\"row order changed:\", base == run_id({\"lr\": 0.1, \"depth\": 3}, list(reversed(rows)), \"abc123\"))\nprint(\"lr changed:\", base == run_id({\"lr\": 0.2, \"depth\": 3}, rows, \"abc123\"))\nprint(\"one label changed:\", base == run_id({\"lr\": 0.1, \"depth\": 3}, [{\"x\": 1, \"y\": 1}, rows[1]], \"abc123\"))\nprint(\"code changed:\", base == run_id({\"lr\": 0.1, \"depth\": 3}, rows, \"abc124\"))\n",
+   "expect": [
+    "key order changed: True",
+    "row order changed: True",
+    "lr changed: False",
+    "one label changed: False",
+    "code changed: False"
+   ]
+  }
+ },
+ {
+  "id": "mlops-005",
+  "area": "mlops",
+  "topic": "data versioning",
+  "level": 2,
+  "type": "concept",
+  "q": "Why not just commit datasets to git? Describe how DVC-style data versioning or a lakehouse table format solves the problem, and its trade-offs.",
+  "followups": [
+   "How do you handle GDPR deletion with immutable snapshots?",
+   "What is lineage?"
+  ],
+  "answer": "Git stores full copies of binary blobs, bloats the repo and cannot handle large data. DVC keeps small pointer files (content hash and path) in git and the actual data in remote object storage, so a git commit pins exactly one data version and `dvc pull` restores it; pipelines (`dvc.yaml`) also record which inputs produced which outputs, enabling caching. Alternatives: table formats with time travel (Delta, Iceberg) or immutable, date-partitioned snapshots. Trade-offs: extra tooling and remote storage to manage, garbage collection of old versions, and privacy obligations (deleting personal data from old snapshots). Pitfall: versioning the file but not the query or feature logic that produced it.",
+  "pitfalls": [
+   "Committing CSVs to git",
+   "Versioning raw data but not derived features"
+  ],
+  "chapters": [
+   "mlops-practice/mp01-reproducibility-data-validation.html"
+  ],
+  "tags": [
+   "dvc",
+   "data-versioning"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-006",
+  "area": "mlops",
+  "topic": "train/serve skew",
+  "level": 2,
+  "type": "concept",
+  "q": "What is training-serving skew, what typically causes it, and how do you prevent it?",
+  "followups": [
+   "How do you detect it after deployment?",
+   "What is point-in-time correctness?"
+  ],
+  "answer": "Skew is any difference between the features a model saw in training and the features it receives in production, which degrades quality without any code error. Causes: two implementations of the same transformation (Python in training, SQL or Java in serving), different imputation, scaling or category encodings (fitted on training data but not persisted), time-travel leakage where training uses data not available at prediction time, stale or missing features online, and different data sources. Prevent: one shared feature code path or a feature store, package preprocessing with the model (a pipeline object saved together), golden-set parity tests comparing offline and online features for the same entities, schema and range validation at serving, and logging served features to compare against training distributions.",
+  "pitfalls": [
+   "Saying the model is 'overfit'",
+   "Retraining as the first response"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html",
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "skew",
+   "features"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-007",
+  "area": "mlops",
+  "topic": "kinds of drift",
+  "level": 2,
+  "type": "concept",
+  "q": "Distinguish data (covariate) drift, label (prior) drift and concept drift. Which can you detect without labels?",
+  "followups": [
+   "Why can data drift be harmless?",
+   "What if labels arrive after 60 days?"
+  ],
+  "answer": "Covariate drift: the input distribution P(X) changes (a new customer segment) while P(y|X) may remain valid. Label drift: P(y) changes (fraud rate doubles). Concept drift: the relationship P(y|X) changes (behaviour after a policy change), so the model is wrong even if inputs look the same. Input and prediction distributions can be monitored without labels (PSI, KS test, chi-square for categoricals, missing-rate and range checks); concept drift is only confirmed by ground truth or proxies such as downstream business metrics. Pitfall: alerting on every statistically significant drift; with large samples tiny shifts are significant, so use effect-size thresholds and link alerts to impact on performance.",
+  "pitfalls": [
+   "Treating any drift as a reason to retrain",
+   "Using p-values alone on millions of rows"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "drift",
+   "monitoring"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-008",
+  "area": "mlops",
+  "topic": "PSI",
+  "level": 2,
+  "type": "code",
+  "q": "Implement Population Stability Index for a numeric feature using fixed bin edges from the training data. Interpret 0.208 for a shifted feature, and explain how you handle empty bins.",
+  "followups": [
+   "How would you compute it for a categorical feature?",
+   "Why not compare means only?"
+  ],
+  "answer": "PSI = sum over bins of (actual% - expected%) x ln(actual% / expected%). Bin edges come from the reference (training) data, often deciles, and are applied to both samples. An empty bin gives ln(0) or division by zero, so clip proportions to a small epsilon (e.g. 1e-4) or merge bins. Rule of thumb: below 0.1 stable, 0.1 to 0.25 moderate shift worth investigating, above 0.25 major shift. In the example a +15 shift on a 0-99 feature gives about 0.208 (moderate), and +40 gives 2.475. PSI is symmetric-ish but depends on the binning, ignores ordering inside bins and says nothing about whether the model got worse, so pair it with performance or proxy metrics.",
+  "pitfalls": [
+   "Recomputing bin edges on the new data",
+   "No epsilon for empty bins"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html",
+   "math/ch09-probability-statistics.html"
+  ],
+  "tags": [
+   "psi",
+   "drift",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import math\n\ndef psi(expected, actual, edges, eps=1e-4):\n    def frac(data):\n        counts = [0] * (len(edges) - 1)\n        for x in data:\n            for i in range(len(edges) - 1):\n                if edges[i] <= x < edges[i + 1]:\n                    counts[i] += 1\n                    break\n        n = len(data)\n        return [max(c / n, eps) for c in counts]\n    e, a = frac(expected), frac(actual)\n    return sum((ai - ei) * math.log(ai / ei) for ei, ai in zip(e, a))\n\nedges = [float(\"-inf\"), 25, 50, 75, float(\"inf\")]\nref = list(range(100))\nprint(\"identical:\", round(psi(ref, ref, edges), 3))\nprint(\"shift +15:\", round(psi(ref, [x + 15 for x in ref], edges), 3))\nprint(\"shift +40:\", round(psi(ref, [x + 40 for x in ref], edges), 3))\n",
+   "expect": [
+    "identical: 0.0",
+    "shift +15: 0.208",
+    "shift +40: 2.475"
+   ]
+  }
+ },
+ {
+  "id": "mlops-009",
+  "area": "mlops",
+  "topic": "batch vs online serving",
+  "level": 2,
+  "type": "concept",
+  "q": "When do you choose batch prediction, online (real-time) serving, or streaming? Give trade-offs.",
+  "followups": [
+   "How do you keep batch and online features consistent?",
+   "How do you serve a large model cost-effectively?"
+  ],
+  "answer": "Batch: precompute predictions on a schedule and store them (recommendations, churn scores); cheap, simple, easy to validate and roll back, high throughput, but stale and wasteful for entities never requested. Online: a service computes on request (fraud check, search ranking); fresh, can use request context, but needs low-latency infrastructure, autoscaling, feature availability at request time and tighter reliability. Streaming: consume events and update features/predictions continuously; freshness without request coupling, but the most complex. Choose by freshness requirement, latency SLO, request volume versus entity count, and cost. Many systems combine them: batch-computed features or candidates plus an online model that reranks. Pitfall: building online serving when a daily batch would meet the requirement.",
+  "pitfalls": [
+   "Always choosing real-time",
+   "Ignoring feature availability at request time"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "serving",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-010",
+  "area": "mlops",
+  "topic": "ML CI/CD",
+  "level": 3,
+  "type": "concept",
+  "q": "What does CI/CD for an ML system test beyond ordinary unit tests, and what runs on each trigger?",
+  "followups": [
+   "What is a shadow deployment?",
+   "How do you version the serving image against the model?"
+  ],
+  "answer": "Code CI on every PR: lint, unit tests for feature/preprocessing code, and a fast smoke training run on a tiny fixture dataset. Data checks: schema, null rates, ranges and distribution expectations (Great Expectations or pandera) on new data. Model checks: metric thresholds on a fixed validation set, comparison with the current champion (no regression beyond tolerance, per-slice metrics for key segments), invariance and directional tests, latency and size budgets, and a serving contract test (input/output schema, model loads in the serving image). CD: build the image once, promote through staging (shadow or canary) to production with automatic rollback on SLO breach. Continuous training pipelines are triggered by schedule, new data or drift alerts, and should register the model but not auto-promote without gates. Pitfall: slow full training in PR CI, and gates on aggregate metrics that hide a broken segment.",
+  "pitfalls": [
+   "Only running pytest",
+   "Auto-promoting every retrained model"
+  ],
+  "chapters": [
+   "mlops/ch32-mlops-fundamentals-capstone.html",
+   "projects/ch33-production-ml-pipeline.html"
+  ],
+  "tags": [
+   "cicd",
+   "testing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-011",
+  "area": "mlops",
+  "topic": "prod accuracy drop",
+  "level": 3,
+  "type": "scenario",
+  "q": "A model's business KPI fell 15% last week. Nothing was deployed. How do you investigate, in order?",
+  "followups": [
+   "What if labels arrive weeks later?",
+   "How do you prove a data bug versus real drift?"
+  ],
+  "answer": "1) Confirm it is real: check the KPI definition, logging, seasonality and an unrelated dashboard change. 2) Check the pipeline health before the model: upstream data freshness, null and default rates, schema changes, a feature that started arriving as constant or zero. 3) Compare input and prediction distributions to a reference window (PSI/KS per feature, score histogram); find which features moved. 4) If labels are available, compute performance by slice and by time to see whether error rose overall or in a segment. 5) Look for external causes: a product change, new market, fraud pattern, upstream vendor. 6) Decide the response: fix data bug, rollback to the previous model, retrain on recent data, or add a rule. Communicate status early. Pitfall: retraining first, which can bake a data bug into the new model.",
+  "pitfalls": [
+   "Jumping to retraining",
+   "Looking only at aggregate metrics"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "incident",
+   "drift",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-012",
+  "area": "mlops",
+  "topic": "feature parity test",
+  "level": 3,
+  "type": "code",
+  "q": "Write a parity test that runs the same raw records through the training feature code and the serving feature code and reports which features disagree. Use it to catch a serving bug.",
+  "followups": [
+   "How do you test unseen categories?",
+   "Where does the golden set come from?"
+  ],
+  "answer": "Keep a golden set of raw records, compute features with both code paths and compare per feature within a tolerance; fail CI if any differ. In the example serving forgets `log1p` on income and does not strip/lowercase the city, so both features are flagged. The durable fix is a single shared transformation (one library or a feature store) so parity holds by construction, with the parity test as a safety net. Also run the same comparison on sampled production requests using logged raw inputs and served features (shadow computation), because golden sets miss real-world edge cases such as nulls and unseen categories.",
+  "pitfalls": [
+   "Only comparing aggregate statistics",
+   "Testing with clean synthetic inputs"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html",
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "skew",
+   "testing",
+   "code"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import math\n\ndef train_features(raw):\n    return {\"age\": raw[\"age\"],\n            \"income_log\": math.log1p(raw[\"income\"]),\n            \"city_len\": len(raw[\"city\"].strip().lower())}\n\ndef serve_features(raw):            # buggy re-implementation\n    return {\"age\": raw[\"age\"],\n            \"income_log\": raw[\"income\"],\n            \"city_len\": len(raw[\"city\"])}\n\ngolden = [{\"age\": 30, \"income\": 50000, \"city\": \" Paris\"},\n          {\"age\": 41, \"income\": 0, \"city\": \"rome\"}]\n\nbad = set()\nfor raw in golden:\n    t, s = train_features(raw), serve_features(raw)\n    for k in t:\n        if abs(t[k] - s[k]) > 1e-9:\n            bad.add(k)\nprint(\"skewed features:\", sorted(bad))\nprint(\"parity ok:\", not bad)\n",
+   "expect": [
+    "skewed features: ['city_len', 'income_log']",
+    "parity ok: False"
+   ]
+  }
+ },
+ {
+  "id": "mlops-013",
+  "area": "mlops",
+  "topic": "non-determinism",
+  "level": 3,
+  "type": "scenario",
+  "q": "A colleague reruns last month's training with the same seed and code and gets AUC 0.874 instead of 0.881. Is that a bug? How do you narrow it down?",
+  "followups": [
+   "How do you set seeds in PyTorch fully?",
+   "How many seeds do you run?"
+  ],
+  "answer": "Not necessarily; first define tolerated variance by running several seeds to see the seed-to-seed spread (a 0.007 gap may be inside it). Then eliminate the systematic sources: data (was the table refreshed, rows added, unsorted query returning a different order before a seeded shuffle, or a different train/test split), dependencies (unpinned library versions changed defaults), config drift, hardware (GPU non-deterministic kernels, different thread counts affecting float summation), and multiple unseeded RNGs (numpy, Python, framework, dataloader workers). Compare data hashes and lockfiles first, since they are cheap. Fix by pinning data snapshots and environments, seeding every RNG, and reporting metrics as mean and std over seeds. Pitfall: declaring a model better on a difference smaller than seed noise.",
+  "pitfalls": [
+   "Trusting one seed",
+   "Assuming setting numpy seed covers everything"
+  ],
+  "chapters": [
+   "mlops-practice/mp01-reproducibility-data-validation.html"
+  ],
+  "tags": [
+   "reproducibility",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-014",
+  "area": "mlops",
+  "topic": "monitoring without labels",
+  "level": 3,
+  "type": "scenario",
+  "q": "Ground-truth labels arrive 45 days after prediction (loan defaults). How do you monitor the model in the meantime?",
+  "followups": [
+   "What is selection bias in this setup?",
+   "How do you log predictions for later join?"
+  ],
+  "answer": "Monitor what is available immediately: input feature distributions and data quality (PSI/KS, null rates, ranges), prediction/score distribution and approval rate, operational metrics (latency, errors), and proxy or early-signal labels (first missed payment at 30 days, a customer complaint or manual review outcomes). Use a delayed-label pipeline that joins outcomes to logged predictions by a prediction id and computes performance per cohort as labels mature, with the delay stated on the dashboard. Keep a holdout or exploration slice to avoid selection bias when only approved loans have outcomes. Set alerts on effect size and business impact, not on every significant p-value. Trade-off: proxies are noisy and can mislead; treat them as early warning, not proof.",
+  "pitfalls": [
+   "Waiting 45 days to look at anything",
+   "Alerting on p-values from huge samples"
+  ],
+  "chapters": [
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "monitoring",
+   "labels"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-015",
+  "area": "mlops",
+  "topic": "rollout strategies",
+  "level": 3,
+  "type": "concept",
+  "q": "Explain shadow, canary and A/B deployment of a new model version. When do you use which?",
+  "followups": [
+   "How do you pick the sample size?",
+   "How do you rollback in seconds?"
+  ],
+  "answer": "Shadow: the new model receives a copy of live traffic and its predictions are logged but not returned; zero user risk, good for checking latency, errors and prediction distribution against the champion, but shows no business effect and no feedback on decisions it did not make. Canary: a small share (1-5%) of real traffic is served by the new model, ramped up on healthy SLO and metric guardrails with automatic rollback; tests the real path. A/B test: randomised, statistically powered comparison of business metrics between models over a fixed duration; needed when the question is whether the new model is better for users, not just whether it works. Typical sequence: offline evaluation, shadow, canary, then A/B or full rollout. Pitfalls: sample ratio mismatch, novelty effects, interacting experiments, and peeking early at results.",
+  "pitfalls": [
+   "Using A/B when only safety is needed",
+   "Stopping a test when the p-value first dips below 0.05"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html",
+   "mlops-practice/mp02-experiment-tracking-model-registry.html"
+  ],
+  "tags": [
+   "deployment",
+   "experiments"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-016",
+  "area": "mlops",
+  "topic": "retraining triggers",
+  "level": 4,
+  "type": "design",
+  "q": "How do you decide when and how a model gets retrained? Compare schedule-, drift- and performance-triggered retraining and design the loop.",
+  "followups": [
+   "How do you choose the training window?",
+   "How do you avoid feedback loops?"
+  ],
+  "answer": "Schedule-based (weekly/monthly) is simple and predictable, but wastes compute when nothing changed and reacts slowly to sudden shifts. Drift-triggered retrains when input or prediction distributions move past a threshold; it is label-free and fast but noisy, and can retrain on a data bug. Performance-triggered uses delayed labels and is the most meaningful but slowest. A sound design combines a baseline schedule with alerts from drift and performance monitors that start the pipeline, never auto-deploy: the pipeline trains on a defined window (rolling or expanding), evaluates against the champion on a fixed time-forward holdout plus slices, registers the candidate, and promotes through canary if gates pass, with a human approval for high-risk models. Track cost and training data quality checks. Trade-off: a longer window is more stable but adapts slowly; a shorter one adapts but forgets rare events.",
+  "pitfalls": [
+   "Auto-deploying retrained models",
+   "Retraining on data containing the bug that caused the alert"
+  ],
+  "chapters": [
+   "mlops-practice/mp03-pipelines-orchestration.html",
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "retraining",
+   "pipelines"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-017",
+  "area": "mlops",
+  "topic": "feature store",
+  "level": 4,
+  "type": "design",
+  "q": "Design the feature layer for a model that needs the same features for training and for a 50 ms online API. Discuss point-in-time correctness and storage choices.",
+  "followups": [
+   "How would you detect a stale online feature?",
+   "How does it change with real-time features computed in the request?"
+  ],
+  "answer": "Define each feature once (a declarative definition or shared code) and materialise it to two stores: an offline store (warehouse or lake) for training and backfills, and a low-latency online store (Redis, DynamoDB, Cassandra) for serving keyed by entity id. Batch features are computed on a schedule and pushed to online; streaming features come from an event processor for freshness. Training data must be built with point-in-time joins: for each label row at time t, take the feature values as they were known at t (not later) or you leak the future and get inflated offline metrics that collapse in production. Handle: TTLs and staleness alarms, default values on missing features, backfills, feature versioning and ownership, and monitoring of online vs offline distributions (skew). Trade-off: a feature store adds infrastructure and process; for one or two models, a shared library plus a materialised table may be enough.",
+  "pitfalls": [
+   "Joining features by latest value for historic labels",
+   "Separate feature code per environment"
+  ],
+  "chapters": [
+   "mlops/ch31-model-deployment.html",
+   "mlops-practice/mp04-monitoring-and-drift.html"
+  ],
+  "tags": [
+   "feature-store",
+   "skew",
+   "leakage"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-018",
+  "area": "mlops",
+  "topic": "training pipeline design",
+  "level": 4,
+  "type": "design",
+  "q": "Design an orchestrated training pipeline (Airflow/Prefect/Kubeflow style) that is safe to rerun and easy to debug. What properties should each task have?",
+  "followups": [
+   "How do you backfill 90 days safely?",
+   "Where do secrets and configs live?"
+  ],
+  "answer": "Break into stages: ingest, validate, build features, split, train, evaluate, register. Each task is idempotent (rerunning with the same inputs gives the same outputs and overwrites or versions its own output, never appends blindly), takes explicit inputs and produces immutable, versioned artifacts (path includes run id or content hash) so downstream tasks and reruns are cache-friendly and lineage is queryable. Parameterise by data interval (logical date) rather than `now`, so backfills work. Add validation gates that fail fast (schema, freshness, row counts), retries with backoff for transient infra errors only, timeouts, alerts with the run id, and resource limits. Keep orchestration separate from business logic so stages run locally and in unit tests. Trade-off: fine-grained tasks improve caching and debugging but add overhead and artifact passing.",
+  "pitfalls": [
+   "Tasks that use `datetime.now()`",
+   "Non-idempotent appends causing duplicates on retry"
+  ],
+  "chapters": [
+   "mlops-practice/mp03-pipelines-orchestration.html",
+   "projects/ch33-production-ml-pipeline.html"
+  ],
+  "tags": [
+   "pipelines",
+   "orchestration",
+   "idempotency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-019",
+  "area": "mlops",
+  "topic": "promotion and rollback",
+  "level": 4,
+  "type": "scenario",
+  "q": "A new fraud model passed offline evaluation and was promoted. Two hours later the false-positive rate doubled. Walk through response and how the process should have prevented it.",
+  "followups": [
+   "How do you set the decision threshold?",
+   "What is in the postmortem?"
+  ],
+  "answer": "Immediate: roll back by moving the `champion` alias in the registry to the previous version (serving loads by alias, so rollback is seconds, not a rebuild), confirm metrics recover, and open an incident with a timeline. Diagnose using logged features and predictions: compare feature distributions and score histograms to the offline evaluation set (skew, threshold miscalibrated for live class balance, feature missing online) and check for slice failures. Prevention: canary or shadow phase with automatic guardrails on live approval rate and false-positive proxies, calibration and threshold checks against production priors, slice-level gates, parity tests on serving features, and alerts tied to the promotion event. Record the learning in a blameless postmortem and add the missed check to the pipeline. Pitfall: evaluating on a test set whose class balance or time period differs from production.",
+  "pitfalls": [
+   "Hot-fixing the model in place",
+   "Evaluating only AUC"
+  ],
+  "chapters": [
+   "mlops-practice/mp02-experiment-tracking-model-registry.html",
+   "mlops-practice/mp04-monitoring-and-drift.html",
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "incident",
+   "registry",
+   "rollback"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "mlops-020",
+  "area": "mlops",
+  "topic": "adopting MLOps",
+  "level": 5,
+  "type": "scenario",
+  "q": "Leadership says: 'we need MLOps'. You are the first ML engineer with a team of three data scientists who ship notebooks by hand to one service. How do you decide what to build in the first three months?",
+  "followups": [
+   "What would you buy versus build?",
+   "How do you get data scientists to adopt it?"
+  ],
+  "answer": "Start with the pains, not the tools: interview the team and map the path from notebook to production, recording lead time, failures and incidents (manual copy errors, unreproducible models, silent degradation). Rank by risk and cost. A sensible order: (1) reproducibility basics, meaning git for code, pinned environments, a data snapshot convention and an experiment tracker; (2) a one-command, containerised, tested path to deploy a model behind an API with a versioned registry and rollback; (3) CI with data and model quality gates; (4) basic monitoring of inputs, predictions, latency and a delayed-label performance job; (5) only then orchestration and a feature store, when there are several models or shared features. Agree success metrics (time from experiment to production, mean time to rollback, percentage of models with monitoring) and keep tools boring and managed where possible. Say what you will not do yet and why, and check in with stakeholders every few weeks. Trade-off: platform work delays visible model improvements, so ship one model through the new path early as proof.",
+  "pitfalls": [
+   "Adopting Kubeflow on day one",
+   "Building a platform without a first user"
+  ],
+  "chapters": [
+   "mlops-practice/mp05-mlops-python-mock-interview.html",
+   "mlops/ch32-mlops-fundamentals-capstone.html"
+  ],
+  "tags": [
+   "strategy",
+   "ambiguity",
+   "adoption"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

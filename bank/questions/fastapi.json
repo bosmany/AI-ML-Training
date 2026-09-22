@@ -1,0 +1,530 @@
+[
+ {
+  "id": "fastapi-001",
+  "area": "fastapi",
+  "topic": "async vs def",
+  "level": 1,
+  "type": "concept",
+  "q": "When do you declare a FastAPI endpoint with `async def` and when with plain `def`?",
+  "followups": [
+   "How big is the threadpool and how do you change it?",
+   "How would you call a blocking function from an async endpoint?"
+  ],
+  "answer": "Use `async def` only when everything blocking inside is awaited (async DB driver, httpx.AsyncClient, asyncio.sleep). Plain `def` endpoints are run by Starlette in a worker threadpool (AnyIO), so blocking libraries such as requests, psycopg2 or synchronous SQLAlchemy are safe there and do not stall other requests. The pitfall is `async def` plus a blocking call: it runs on the event loop thread and freezes every concurrent request. I verified this in FastAPI 0.141: three concurrent requests to an `async def` calling time.sleep(0.3) took ~0.9s, versus ~0.3s for the same body in a `def` endpoint or with await asyncio.sleep. Trade-off: the threadpool is finite (default 40 threads), so sync endpoints are bounded by it; async scales to many more idle connections.",
+  "pitfalls": [
+   "'async is always faster'",
+   "Putting requests.get inside async def"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html"
+  ],
+  "tags": [
+   "async",
+   "concurrency"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-002",
+  "area": "fastapi",
+  "topic": "validation errors",
+  "level": 1,
+  "type": "concept",
+  "q": "A client posts a JSON body missing a required field. What does FastAPI return and where does that behaviour come from?",
+  "followups": [
+   "How do you customise the error format globally?",
+   "Should you echo `input` back in production?"
+  ],
+  "answer": "FastAPI returns HTTP 422 Unprocessable Entity with a JSON body `{\"detail\": [ {type, loc, msg, input} ]}` (verified: `type: 'missing'`, `loc: ['body','tag']`, `msg: 'Field required'`). It is produced by Pydantic validation of the declared parameters and raised as RequestValidationError, which the default exception handler formats. `loc` starts with the source (body, query, path, header) so clients can map errors to fields. You can override the handler with `@app.exception_handler(RequestValidationError)` to change the envelope, but keep the field locations. Pitfall: 400 is often expected by clients; 422 is FastAPI's default and part of the OpenAPI schema.",
+  "pitfalls": [
+   "Saying it returns 400",
+   "Catching ValidationError yourself in every endpoint"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html",
+   "fastapi/ch37-dependency-injection-error-handling.html"
+  ],
+  "tags": [
+   "validation",
+   "errors"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-003",
+  "area": "fastapi",
+  "topic": "routing order",
+  "level": 1,
+  "type": "concept",
+  "q": "You define `GET /users/{user_id}` before `GET /users/me`. What goes wrong and how do you fix it?",
+  "followups": [
+   "What happens with two routers that overlap?",
+   "How would a trailing-slash difference behave?"
+  ],
+  "answer": "Routes are matched in declaration order, so `/users/me` matches `/users/{user_id}` first with user_id='me'. With `user_id: int` the client gets a 422 (verified: `int_parsing` on `['path','user_id']`); with `user_id: str` the wrong handler silently runs, which is worse. Fix: declare fixed paths before parametrised ones, or use a path-converter/regex constraint. Same rule applies across routers included with `include_router`, so order of inclusion matters.",
+  "pitfalls": [
+   "Blaming the type hint",
+   "Thinking FastAPI picks the most specific path"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html"
+  ],
+  "tags": [
+   "routing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-004",
+  "area": "fastapi",
+  "topic": "pydantic v2 required fields",
+  "level": 2,
+  "type": "concept",
+  "q": "In Pydantic v2, does `tag: Optional[str]` (no default) make the field optional? How does this differ from v1 and why does it matter for API clients?",
+  "followups": [
+   "How does `model_fields_set` help PATCH handlers?",
+   "What does bump-pydantic change automatically?"
+  ],
+  "answer": "No. In v2 `Optional[str]` means the value may be None but the key is still required, unless you give a default (`= None`). I verified that posting a body without `tag` returned 422 with type 'missing', while an explicit `\"tag\": null` was accepted. In v1 `Optional[X]` implied a default of None, so code migrated blindly can start rejecting requests that used to pass. Use `tag: str | None = None` for a truly optional field. This distinction is also what lets PATCH endpoints tell 'not sent' from 'sent null' via `model_fields_set`.",
+  "pitfalls": [
+   "Assuming v1 semantics",
+   "Adding `= None` everywhere and losing required-ness"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html"
+  ],
+  "tags": [
+   "pydantic-v2",
+   "migration"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-005",
+  "area": "fastapi",
+  "topic": "pydantic coercion",
+  "level": 2,
+  "type": "concept",
+  "q": "Pydantic v2 in default (lax) mode: what happens with `price: int` given `\"5\"`, `5.0`, `\"5.5\"` and `true`? How do you turn coercion off?",
+  "followups": [
+   "Why does strict mode break form or query params?",
+   "What does `model_validate_json` do differently from `model_validate`?"
+  ],
+  "answer": "Lax mode coerces where lossless: `\"5\"` -> 5, `5.0` -> 5, and `true` -> 1 (verified), while `\"5.5\"` fails with `int_parsing`. This is convenient for query strings but can hide client bugs (a boolean accepted as a number). Set `ConfigDict(strict=True)` on the model, `Field(strict=True)` on one field, or use `StrictInt`; strict rejects `\"1\"` with error type `int_type` (verified). Trade-off: strict JSON bodies are safer for public APIs, but strict mode on query/path params breaks because they always arrive as strings, so keep lax there.",
+  "pitfalls": [
+   "Saying v2 is always strict",
+   "Using strict for query params"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html"
+  ],
+  "tags": [
+   "pydantic-v2",
+   "validation"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-006",
+  "area": "fastapi",
+  "topic": "response_model",
+  "level": 2,
+  "type": "scenario",
+  "q": "A `POST /users` endpoint takes `{name, password}` and returns the saved user object. QA finds password hashes in responses. What is the root cause and the correct fix?",
+  "followups": [
+   "What does `response_model_exclude_unset` do?",
+   "How does it interact with `from_attributes`?"
+  ],
+  "answer": "The handler returned the full internal object with no output model. Declare a separate output schema (`UserOut` with only public fields) and use `response_model=UserOut` or a return annotation `-> UserOut`; FastAPI validates and filters the returned value through it (verified: extra `password` dropped in both forms). Keep distinct In/Out/DB models rather than one model with `exclude=`, because exclusion lists silently leak whenever someone adds a new sensitive column. Also do not reuse the ORM model as the response, and add a test asserting sensitive keys are absent. Trade-off: extra models cost boilerplate but make the API contract explicit.",
+  "pitfalls": [
+   "Using `exclude={'password'}` in a dict conversion",
+   "Relying on the frontend to hide fields"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html",
+   "fastapi/ch39-authentication-security.html"
+  ],
+  "tags": [
+   "schemas",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-007",
+  "area": "fastapi",
+  "topic": "dependency caching",
+  "level": 2,
+  "type": "concept",
+  "q": "If two dependencies in the same request both `Depends(get_db)`, is `get_db` called twice? How does a `yield` dependency clean up?",
+  "followups": [
+   "How would you get a fresh session for a sub-task?",
+   "What order do nested yield dependencies close in?"
+  ],
+  "answer": "Within one request FastAPI caches a dependency's result per callable, so it runs once and both receive the same object (verified: call count 1; with `Depends(dep, use_cache=False)` it ran twice). That makes a per-request DB session naturally shared. For `yield` dependencies, code before `yield` runs before the handler and code after it (typically in `finally`) runs after the response is produced (verified order: open, handler, close). Put commit/rollback/close there. Pitfall: in this version the teardown runs after the response has started, so raising HTTPException there is too late (verified: RuntimeError 'response already started'); handle errors in the handler or an exception handler instead.",
+  "pitfalls": [
+   "Assuming a new session per Depends",
+   "Doing commit after yield and expecting error to reach client"
+  ],
+  "chapters": [
+   "fastapi/ch37-dependency-injection-error-handling.html",
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "dependencies",
+   "sqlalchemy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-008",
+  "area": "fastapi",
+  "topic": "PATCH semantics",
+  "level": 2,
+  "type": "concept",
+  "q": "Implement partial update semantics for `PATCH /items/{id}` with Pydantic v2. How do you distinguish 'field omitted' from 'field explicitly null'?",
+  "followups": [
+   "How do you PUT versus PATCH idempotently?",
+   "How do you handle JSON Merge Patch vs JSON Patch?"
+  ],
+  "answer": "Make every field optional with default None in an update schema, then call `model_dump(exclude_unset=True)` and apply only those keys. `exclude_unset` keeps fields the client actually sent, including explicit nulls (verified: body `{age: null}` gave `{'age': None}`), whereas `exclude_none=True` drops them and so makes it impossible to clear a value. `model_fields_set` exposes the same set. Pitfall: `model_dump()` with no flags writes None over every omitted column. Also validate that at least one field was provided, and guard immutable fields by not including them in the schema.",
+  "pitfalls": [
+   "Using exclude_none and being unable to null a field",
+   "Dumping the whole model into the ORM object"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html",
+   "fastapi/ch38-databases-sqlalchemy.html"
+  ],
+  "tags": [
+   "pydantic-v2",
+   "http"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-009",
+  "area": "fastapi",
+  "topic": "dependency_overrides",
+  "level": 2,
+  "type": "concept",
+  "q": "How do you test an endpoint that depends on the current user and a database without real auth or a real DB?",
+  "followups": [
+   "What if the dependency is defined inside a class or with parameters?",
+   "How do you keep a rolled-back-transaction fixture per test?"
+  ],
+  "answer": "Set `app.dependency_overrides[get_current_user] = lambda: fake_user` (and likewise for `get_db`, pointing at an in-memory SQLite or a transaction that rolls back) and clear it in a fixture teardown (verified: override returned 'fake', after `.clear()` the real one). The key must be the exact callable used in `Depends`. This tests the endpoint logic in isolation; separately keep a few tests that go through the real auth dependency to protect the security wiring. Pitfall: forgetting to clear overrides leaks state between tests, since `app` is a module-level singleton.",
+  "pitfalls": [
+   "Monkeypatching the function instead of overriding",
+   "Never testing real auth"
+  ],
+  "chapters": [
+   "fastapi/ch40-testing-middleware-background-tasks.html",
+   "fastapi/ch37-dependency-injection-error-handling.html"
+  ],
+  "tags": [
+   "testing",
+   "dependencies"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-010",
+  "area": "fastapi",
+  "topic": "lifespan and TestClient",
+  "level": 2,
+  "type": "concept",
+  "q": "Startup code loads a model in `lifespan`. Your tests instantiate `TestClient(app)` and get `AttributeError` for the model. Why, and what is the modern way to write startup/shutdown?",
+  "followups": [
+   "How do you run lifespan for async httpx tests?",
+   "Where should you store the loaded model?"
+  ],
+  "answer": "Lifespan only runs when the ASGI server, or TestClient used as a context manager, starts the app (verified: `TestClient(app)` alone left state empty; inside `with TestClient(app):` startup ran and shutdown ran on exit). Same with `httpx.ASGITransport`, which does not run lifespan (verified). So use `with TestClient(app) as client:` in a fixture. `@app.on_event('startup')` is deprecated; use an `@asynccontextmanager lifespan(app)` passed to `FastAPI(lifespan=...)`, storing resources on `app.state` or yielding them. Trade-off: heavy resources in lifespan make tests slow, so make them injectable and override in tests.",
+  "pitfalls": [
+   "Using on_event in new code",
+   "Loading resources at import time"
+  ],
+  "chapters": [
+   "fastapi/ch40-testing-middleware-background-tasks.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "lifespan",
+   "testing"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-011",
+  "area": "fastapi",
+  "topic": "blocking the event loop",
+  "level": 3,
+  "type": "scenario",
+  "q": "p50 latency is fine but p99 jumps to seconds under load, CPU is low, and the endpoints are `async def` calling `requests.get` and a sync SQLAlchemy session. What do you check first and how do you fix it?",
+  "followups": [
+   "Why is CPU low while latency is high?",
+   "When is a process pool preferable?"
+  ],
+  "answer": "Suspect event-loop blocking: each blocking call in `async def` stops the single loop, so all in-flight requests queue behind it. Confirm by lowering load and checking loop lag (asyncio debug slow-callback logging, or a heartbeat task measuring delay) and by grepping for sync I/O in async handlers. Fixes in order of cost: change those endpoints to plain `def` (threadpool, verified 3x faster than blocking `async def`), switch to an async client/driver (httpx.AsyncClient, asyncpg or SQLAlchemy async), or wrap with `run_in_threadpool`/`asyncio.to_thread`. For CPU-bound work use a process pool or worker service, since threads do not bypass the GIL. Add timeouts on all outbound calls.",
+  "pitfalls": [
+   "Scaling workers before diagnosing",
+   "Adding more `async` keywords"
+  ],
+  "chapters": [
+   "fastapi/ch36-fastapi-fundamentals.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "async",
+   "performance",
+   "debugging"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-012",
+  "area": "fastapi",
+  "topic": "JWT from scratch",
+  "level": 3,
+  "type": "code",
+  "q": "Write a minimal HS256 JWT `sign(payload, key)` and `verify(token, key, now)` using only the standard library. It must pin the algorithm, use constant-time comparison, and require an unexpired `exp`. Show a valid token, a tampered token, an `alg: none` token and an expired token.",
+  "followups": [
+   "How do you revoke a JWT before expiry?",
+   "HS256 vs RS256: when would you switch?"
+  ],
+  "answer": "A JWT is base64url(header).base64url(payload).base64url(HMAC-SHA256(key, header.payload)). Verification must (1) reject any header alg other than the one you expect (the classic 'alg: none' and algorithm-confusion attacks), (2) compare signatures with `hmac.compare_digest` to avoid timing leaks, (3) check the signature before trusting any claim, and (4) require `exp` (a missing exp means a token valid forever). In production use PyJWT and always pass `algorithms=[...]`; do not hand-roll. JWTs are signed, not encrypted, so never put secrets in the payload.",
+  "pitfalls": [
+   "Trusting the alg in the header",
+   "Using == for the signature",
+   "Treating a missing exp as valid"
+  ],
+  "chapters": [
+   "fastapi/ch39-authentication-security.html"
+  ],
+  "tags": [
+   "jwt",
+   "auth",
+   "security"
+  ],
+  "reviewed": "ai-executed",
+  "solution": {
+   "code": "import base64, hashlib, hmac, json\n\ndef b64(b): return base64.urlsafe_b64encode(b).rstrip(b\"=\").decode()\ndef unb64(s): return base64.urlsafe_b64decode(s + \"=\" * (-len(s) % 4))\ndef _mac(key, msg): return hmac.new(key.encode(), msg.encode(), hashlib.sha256).digest()\n\ndef sign(payload, key):\n    h = b64(json.dumps({\"alg\": \"HS256\", \"typ\": \"JWT\"}, separators=(\",\", \":\")).encode())\n    p = b64(json.dumps(payload, separators=(\",\", \":\")).encode())\n    return f\"{h}.{p}.{b64(_mac(key, h + '.' + p))}\"\n\ndef verify(token, key, now):\n    try:\n        h, p, s = token.split(\".\")\n        header = json.loads(unb64(h))\n    except Exception:\n        return \"malformed\"\n    if header.get(\"alg\") != \"HS256\":\n        return \"bad alg\"\n    if not hmac.compare_digest(_mac(key, h + \".\" + p), unb64(s)):\n        return \"bad signature\"\n    claims = json.loads(unb64(p))\n    if \"exp\" not in claims:\n        return \"no exp\"\n    if claims[\"exp\"] <= now:\n        return \"expired\"\n    return \"ok:\" + claims[\"sub\"]\n\ntok = sign({\"sub\": \"u1\", \"exp\": 2000}, \"secret\")\nprint(verify(tok, \"secret\", 1000))\nh, p, s = tok.split(\".\")\ntampered = h + \".\" + b64(json.dumps({\"sub\": \"admin\", \"exp\": 2000}, separators=(\",\", \":\")).encode()) + \".\" + s\nprint(verify(tampered, \"secret\", 1000))\nnone_h = b64(json.dumps({\"alg\": \"none\"}).encode())\nprint(verify(none_h + \".\" + p + \".\", \"secret\", 1000))\nprint(verify(tok, \"secret\", 2000))\nprint(verify(tok, \"wrong\", 1000))\n",
+   "expect": [
+    "ok:u1",
+    "bad signature",
+    "bad alg",
+    "expired"
+   ]
+  }
+ },
+ {
+  "id": "fastapi-013",
+  "area": "fastapi",
+  "topic": "401 vs 403",
+  "level": 3,
+  "type": "scenario",
+  "q": "Your API returns 403 for both a missing token and a token lacking permission. A client team cannot tell when to re-authenticate. What is the correct contract in FastAPI?",
+  "followups": [
+   "Where do OAuth2 scopes fit in?",
+   "How should refresh be signalled to clients?"
+  ],
+  "answer": "401 means unauthenticated (missing/invalid/expired credentials) and must carry a `WWW-Authenticate` header (e.g. `Bearer`); 403 means authenticated but not permitted. In the venv's FastAPI 0.141, `HTTPBearer` and `OAuth2PasswordBearer` return 401 with `WWW-Authenticate: Bearer` and `{'detail': 'Not authenticated'}` when the header is missing (verified); older releases returned 403 for `HTTPBearer`, so pin expectations to your version in tests. Raise `HTTPException(401, headers={'WWW-Authenticate':'Bearer'})` for bad or expired tokens and 403 from an authorization dependency (roles/scopes). Return 404 instead of 403 when revealing a resource's existence is itself sensitive.",
+  "pitfalls": [
+   "Using 403 for everything",
+   "Omitting WWW-Authenticate"
+  ],
+  "chapters": [
+   "fastapi/ch39-authentication-security.html"
+  ],
+  "tags": [
+   "auth",
+   "http-status"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-014",
+  "area": "fastapi",
+  "topic": "PyJWT algorithms",
+  "level": 3,
+  "type": "scenario",
+  "q": "In review you see `jwt.decode(token, SECRET)` in a FastAPI dependency (PyJWT). Another service issues tokens with RS256. What is the risk and what should the call look like?",
+  "followups": [
+   "What claims besides exp do you validate?",
+   "How do you rotate signing keys without downtime?"
+  ],
+  "answer": "Current PyJWT refuses to decode without an explicit `algorithms` list (verified: `DecodeError: It is required that you pass in a value for the \"algorithms\" argument`), because letting the token header choose the algorithm enables algorithm-confusion attacks (e.g. presenting an HS256 token signed with the RSA public key as the HMAC secret). Correct: `jwt.decode(token, public_key, algorithms=['RS256'], audience='my-api', issuer='https://issuer')`; a token with another alg raises `InvalidAlgorithmError` (verified), and an expired one raises `ExpiredSignatureError` (verified). Map those exceptions to 401 in the dependency. Fetch the issuer's public keys via JWKS and cache them with kid rotation.",
+  "pitfalls": [
+   "Passing both HS256 and RS256 in algorithms",
+   "Catching bare Exception and returning 500"
+  ],
+  "chapters": [
+   "fastapi/ch39-authentication-security.html"
+  ],
+  "tags": [
+   "jwt",
+   "security"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-015",
+  "area": "fastapi",
+  "topic": "multiple workers and state",
+  "level": 4,
+  "type": "scenario",
+  "q": "Locally the app's in-memory rate limiter and cache work; in production with `--workers 4` behind a load balancer users see inconsistent limits and cache misses. Explain and fix.",
+  "followups": [
+   "Fail-open or fail-closed for the rate limiter?",
+   "Gunicorn with uvicorn workers vs plain uvicorn --workers?"
+  ],
+  "answer": "Each uvicorn/gunicorn worker is a separate process with its own memory, so module-level dicts, lru_caches and in-process counters are per worker, and the load balancer spreads a user across them (and across pods). Move shared state to Redis (atomic INCR/EXPIRE or a Lua token bucket) or a DB, and keep the app stateless. Also note `--reload` is dev only; in uvicorn 0.53 `--workers` is ignored with a warning when `--reload` is set (verified), so do not test multi-worker behaviour with reload. In Kubernetes prefer one worker per pod and scale replicas, unless CPU cores per pod justify several. Trade-off: Redis adds a network hop and a failure dependency; decide fail-open or fail-closed for the limiter.",
+  "pitfalls": [
+   "Using a global dict as cache in prod",
+   "Sticky sessions as the fix"
+  ],
+  "chapters": [
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "deployment",
+   "state",
+   "scaling"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-016",
+  "area": "fastapi",
+  "topic": "reverse proxy",
+  "level": 3,
+  "type": "scenario",
+  "q": "Behind an nginx/ALB TLS terminator your app logs the proxy's IP for every client and redirects (e.g. trailing-slash 307) point to `http://` URLs, breaking the browser. What is happening and how do you configure it?",
+  "followups": [
+   "Why is trusting X-Forwarded-For dangerous?",
+   "What does root_path fix?"
+  ],
+  "answer": "The app sees a plain-HTTP connection from the proxy, so `request.client` is the proxy and generated absolute URLs use http. Redirects use the request's scheme and host (verified: `/slash` -> 307 with `location: http://testserver/slash/`). Have the proxy send `X-Forwarded-For/Proto/Host` and run uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy ips>`; proxy headers are on by default but only trusted from 127.0.0.1, so a proxy on another host needs the allow-list. Never use `*` when the app is directly reachable, since clients could spoof their IP. If you mount under a path prefix, set `root_path` so docs and links are right. Also prefer declaring routes without trailing-slash ambiguity.",
+  "pitfalls": [
+   "Hard-coding https URLs",
+   "Setting forwarded-allow-ips=* on a public listener"
+  ],
+  "chapters": [
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "deployment",
+   "proxy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-017",
+  "area": "fastapi",
+  "topic": "testing async",
+  "level": 3,
+  "type": "scenario",
+  "q": "Tests that use `httpx.AsyncClient(transport=ASGITransport(app=app))` fail because the DB pool created in `lifespan` is missing. What do you do, and what other test-layer choices matter?",
+  "followups": [
+   "How do you test WebSockets or streaming?",
+   "How do you avoid slow tests with a real DB?"
+  ],
+  "answer": "`ASGITransport` does not run the ASGI lifespan (verified: state stayed empty), so startup never ran. Either use `with TestClient(app)` (which does), enter the lifespan explicitly (e.g. `asgi-lifespan`'s LifespanManager), or better make the resource injectable via a dependency and override it in tests. Use async tests only when you need to await your own async code in the test; TestClient is sync and simpler otherwise. Isolation: override DB dependency with a per-test transaction rolled back at teardown, and assert on status code, body and side effects. Pitfall: sharing a module-level app and leaving overrides in place.",
+  "pitfalls": [
+   "Mocking the whole framework",
+   "Testing implementation details instead of HTTP behaviour"
+  ],
+  "chapters": [
+   "fastapi/ch40-testing-middleware-background-tasks.html"
+  ],
+  "tags": [
+   "testing",
+   "async",
+   "lifespan"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-018",
+  "area": "fastapi",
+  "topic": "layered design",
+  "level": 4,
+  "type": "design",
+  "q": "Design the structure of a FastAPI service with ~30 endpoints, a Postgres DB and an external payments API so it stays testable and evolvable. Where do transactions, validation and errors live?",
+  "followups": [
+   "How do you version the API?",
+   "Where would you put the outbox pattern?"
+  ],
+  "answer": "Layers: routers (HTTP only: parse, call service, map result to response), services (business rules, no FastAPI imports), repositories (SQLAlchemy queries), plus clients/adapters for external APIs behind an interface. Pydantic schemas at the edge, separate from ORM models. Use dependencies for the per-request session (yield, commit on success, rollback on exception) and for auth; inject services so tests override them. Transactions belong at the service/unit-of-work boundary, not per repository call. Domain errors are custom exceptions mapped to HTTP codes by exception handlers, so services do not raise HTTPException. Payments: timeouts, retries with idempotency keys, and never hold a DB transaction open across the network call. Trade-off: more layers mean more files; for a small CRUD app, routers plus repositories suffice.",
+  "pitfalls": [
+   "Business logic in route functions",
+   "One global session",
+   "Raising HTTPException from the domain layer"
+  ],
+  "chapters": [
+   "fastapi/ch37-dependency-injection-error-handling.html",
+   "fastapi/ch38-databases-sqlalchemy.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "architecture",
+   "sqlalchemy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-019",
+  "area": "fastapi",
+  "topic": "BackgroundTasks vs queue",
+  "level": 4,
+  "type": "design",
+  "q": "A product manager wants 'send email and generate a PDF after signup'. When is BackgroundTasks enough and when do you introduce Celery/RQ/Arq or a managed queue?",
+  "followups": [
+   "How do you make the email task idempotent?",
+   "What happens to background tasks on SIGTERM?"
+  ],
+  "answer": "BackgroundTasks run in the same process after the response is sent (verified order: handler, then task). They are fine for short, cheap, best-effort work (an audit log, cache warm). They have no persistence, retries, scheduling, rate limiting or visibility: if the worker restarts or crashes the task is lost, and a slow CPU-bound task steals threadpool or event-loop time from requests. Use a durable queue with separate workers when work must not be lost, takes seconds or more, needs retries with backoff, or must be observable. Combine with the outbox pattern (write the job in the same DB transaction as the signup) and make tasks idempotent since delivery is at-least-once. Trade-off: a queue adds infrastructure and operational cost.",
+  "pitfalls": [
+   "Believing BackgroundTasks survive restarts",
+   "Sending email inside the request"
+  ],
+  "chapters": [
+   "fastapi/ch40-testing-middleware-background-tasks.html",
+   "fastapi/ch41-fastapi-capstone-deployment.html"
+  ],
+  "tags": [
+   "background-tasks",
+   "queues",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "fastapi-020",
+  "area": "fastapi",
+  "topic": "model serving",
+  "level": 5,
+  "type": "scenario",
+  "q": "The team says 'our model API is slow' and wants it 'production ready' by Friday. You own a FastAPI service wrapping a scikit-learn/PyTorch model. Lay out how you scope and what you change first.",
+  "followups": [
+   "How do you detect train/serve skew from this service?",
+   "When would you split the model into its own service?"
+  ],
+  "answer": "Clarify first: slow means what (p50, p99, throughput, cold start), against what SLO, and what traffic. Measure before changing: per-stage timings (validation, feature fetch, inference, serialisation). Typical fixes: load the model once in `lifespan` (not per request) and keep it on `app.state`; run CPU-bound inference in a `def` endpoint or process pool so the event loop and other requests are not blocked; batch or micro-batch for GPU; cap request size and add timeouts; warm up on startup. Production readiness: separate `/healthz` (liveness) from `/readyz` (model loaded), pinned versions, container with non-root user, resource limits, metrics (latency histogram, error rate, prediction distribution), structured logs with a request id and model version, model version in responses, canary or shadow deploy with rollback. Say what you would defer (autoscaling tuning, A/B framework) and why. Trade-off: more workers give throughput but multiply model memory.",
+  "pitfalls": [
+   "Optimising blind",
+   "Loading the model inside the handler",
+   "Ignoring readiness vs liveness"
+  ],
+  "chapters": [
+   "fastapi/ch41-fastapi-capstone-deployment.html",
+   "mlops/ch31-model-deployment.html"
+  ],
+  "tags": [
+   "ml-serving",
+   "production",
+   "ambiguity"
+  ],
+  "reviewed": "ai-executed"
+ }
+]

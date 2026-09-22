@@ -1,0 +1,552 @@
+[
+ {
+  "id": "k8s-001",
+  "area": "k8s",
+  "topic": "pod-basics",
+  "level": 1,
+  "type": "concept",
+  "q": "What is a Pod, why does Kubernetes schedule Pods rather than containers, and when would you put more than one container in a Pod?",
+  "followups": [
+   "What are ephemeral containers used for?",
+   "How do sidecars affect Job completion?"
+  ],
+  "answer": "A Pod is the smallest deployable unit: one or more containers sharing a network namespace (one IP, localhost between them), storage volumes and lifecycle, and always scheduled together on one node. Multiple containers are for tightly coupled helpers: sidecars (log shipper, proxy, secret refresher), adapters, and init containers that run to completion first. Do not put an app and its database in one Pod; they scale and fail independently. Pods are ephemeral and not self-healing on their own: use a controller (Deployment, StatefulSet, Job) so replacements are created. Pitfall: creating bare Pods in production, which are not rescheduled if the node dies.",
+  "pitfalls": [
+   "Treating a Pod like a VM",
+   "Running bare Pods in production"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "pods",
+   "fundamentals"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-002",
+  "area": "k8s",
+  "topic": "deployment-vs-statefulset",
+  "level": 2,
+  "type": "concept",
+  "q": "Deployment vs StatefulSet vs DaemonSet: when do you choose each?",
+  "followups": [
+   "Why does a StatefulSet need a headless Service?",
+   "What happens to PVCs when you delete a StatefulSet?"
+  ],
+  "answer": "Deployment: stateless replicas that are interchangeable, managed through ReplicaSets with rolling updates and rollbacks (web APIs). StatefulSet: stable network identity (`pod-0`, `pod-1` via a headless Service), stable per-replica persistent volumes (volumeClaimTemplates), ordered start/stop and updates; for databases, Kafka, ZooKeeper, but it does not add replication logic: the app still must handle clustering, backups and failover (often via an operator). DaemonSet: one Pod per node (log agents, node exporters, CNI). Job/CronJob: run-to-completion. Trade-off: StatefulSets are harder to operate (slower rollouts, PVCs survive deletion, node loss needs careful handling). Pitfall: running a database as a Deployment with a shared PVC.",
+  "pitfalls": [
+   "Deployment with one shared ReadWriteOnce PVC for replicas"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "workloads",
+   "statefulset"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-003",
+  "area": "k8s",
+  "topic": "service-types",
+  "level": 1,
+  "type": "concept",
+  "q": "Explain ClusterIP, NodePort, LoadBalancer and Ingress, and how a Service finds its Pods.",
+  "followups": [
+   "How do you check what a Service actually routes to?",
+   "What does externalTrafficPolicy: Local change?"
+  ],
+  "answer": "A Service is a stable virtual IP and DNS name that load balances to Pods selected by label; kube-proxy (iptables/IPVS) or the CNI programs the forwarding, and the EndpointSlice controller tracks ready Pod IPs. ClusterIP is internal only; NodePort opens a port (30000-32767) on every node; LoadBalancer asks the cloud provider for an external LB in front of a NodePort; Ingress (plus an ingress controller) does HTTP(S) L7 routing by host/path for many services behind one LB; Gateway API is the successor. Headless Service (`clusterIP: None`) returns Pod IPs directly in DNS. Only Pods passing readiness are endpoints. Pitfall: a selector that does not match Pod labels gives a Service with no endpoints and connection failures.",
+  "pitfalls": [
+   "Mismatched label selector",
+   "Exposing every service as LoadBalancer (cost)"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "services",
+   "networking"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-004",
+  "area": "k8s",
+  "topic": "probes",
+  "level": 2,
+  "type": "concept",
+  "q": "Explain liveness, readiness and startup probes and what goes wrong when they are misconfigured.",
+  "followups": [
+   "Why use a startup probe instead of initialDelaySeconds?",
+   "Which probe protects you during a rolling update?"
+  ],
+  "answer": "Readiness decides whether the Pod receives Service traffic (failing removes it from endpoints, no restart). Liveness decides whether the kubelet restarts the container (use only for deadlocks the process cannot recover from). Startup probe delays liveness/readiness until a slow application has started, replacing huge `initialDelaySeconds`. Design: liveness should check only the process itself, not dependencies; a liveness probe that hits the database will restart every Pod when the database blips, turning an outage into a cascade. Readiness may reflect dependencies and warm-up. Tune `periodSeconds`, `timeoutSeconds` and `failureThreshold` against real latency. Pitfall: liveness probe with a short timeout under GC/CPU throttling causing restart loops; no readiness probe so traffic hits Pods still starting during rollouts.",
+  "pitfalls": [
+   "Liveness probe checking downstream dependencies",
+   "No readiness probe"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "probes",
+   "reliability"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-005",
+  "area": "k8s",
+  "topic": "requests-limits",
+  "level": 2,
+  "type": "concept",
+  "q": "What do resource requests and limits do, how do they map to QoS classes, and what are the consequences of setting each badly?",
+  "followups": [
+   "Why is CPU throttling hard to notice?",
+   "How does the HPA use requests?"
+  ],
+  "answer": "Requests are what the scheduler reserves when placing a Pod and the guaranteed share under contention (CPU shares); limits are the enforced ceiling. CPU over limit is throttled; memory over limit is OOMKilled. QoS: Guaranteed (requests = limits for all containers), Burstable (some requests), BestEffort (none); under node memory pressure BestEffort then Burstable Pods are evicted first. Too-low requests overcommit nodes and cause noisy neighbours and evictions; too-high wastes money and causes Pending. Tight CPU limits cause latency through throttling even when nodes are idle, so many teams set CPU requests but no CPU limits, while always setting memory limits (memory is not compressible). Use VPA recommendations or metrics for right-sizing, and LimitRange/ResourceQuota for guardrails. Pitfall: HPA on CPU utilisation is computed against requests, so missing requests break autoscaling.",
+  "pitfalls": [
+   "No requests set",
+   "Limits far below actual peak usage"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "resources",
+   "qos"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-006",
+  "area": "k8s",
+  "topic": "crashloop",
+  "level": 3,
+  "type": "scenario",
+  "q": "A Pod is in `CrashLoopBackOff`. Walk through how you diagnose it.",
+  "followups": [
+   "The logs are empty; what now?",
+   "How do you distinguish OOMKilled from a failed liveness probe?"
+  ],
+  "answer": "CrashLoopBackOff means the container starts, exits, and the kubelet is backing off restarts (10s, 20s ... up to 5 min). Steps: `kubectl describe pod` (Last State: Terminated, Reason and Exit Code, Events); `kubectl logs POD --previous` for the crashed instance (current logs may be empty); exit codes: 1/2 app error or bad config, 126/127 bad command, 137 SIGKILL (OOMKilled if reason says so, or failed liveness), 139 segfault, 143 SIGTERM. Then check: missing env/ConfigMap/Secret keys, wrong args/entrypoint, dependency unreachable at startup with no retry, permission errors (runAsNonRoot, read-only FS), liveness probe killing a slow starter (Events show `Liveness probe failed`), memory limit too low. Reproduce with `kubectl run debug --image=... --command -- sleep infinity`, override the command, or use `kubectl debug`. Fix the cause; do not just increase backoff. Pitfall: only reading `kubectl logs` without `--previous`, and bumping resources blindly.",
+  "pitfalls": [
+   "Not using --previous",
+   "Deleting the pod repeatedly"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "troubleshooting",
+   "crashloopbackoff"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-007",
+  "area": "k8s",
+  "topic": "pending-pod",
+  "level": 3,
+  "type": "scenario",
+  "q": "A new Pod stays `Pending` for 10 minutes. What are the common causes and how do you find the specific one?",
+  "followups": [
+   "What is the difference between Pending and ContainerCreating?",
+   "How does the Cluster Autoscaler decide to add a node?"
+  ],
+  "answer": "Run `kubectl describe pod`; the Events section states the reason from the scheduler. `FailedScheduling: 0/5 nodes are available: 3 Insufficient cpu, 2 node(s) had untolerated taint` tells you exactly. Causes: insufficient CPU/memory relative to requests (fix requests or add capacity; Cluster Autoscaler triggers on this), node selectors/affinity/anti-affinity that no node satisfies, taints without tolerations, PVC unbound (no matching PersistentVolume/StorageClass, zone mismatch with the volume, `WaitForFirstConsumer`), ResourceQuota exceeded (`forbidden: exceeded quota` at creation), too many Pods per node/IP exhaustion, topology spread constraints, and priority/preemption. If there is no scheduling event, the Pod may be waiting on the image or volume attach on an assigned node (then it is `ContainerCreating`, not Pending). Also check `kubectl get pvc` and `kubectl describe node` allocations. Pitfall: adding nodes when the real cause is an unsatisfiable nodeSelector or an unbound PVC.",
+  "pitfalls": [
+   "Adding nodes without reading events"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "troubleshooting",
+   "scheduling",
+   "pending"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-008",
+  "area": "k8s",
+  "topic": "imagepullbackoff",
+  "level": 3,
+  "type": "scenario",
+  "q": "Pods show `ErrImagePull` then `ImagePullBackOff` after a deployment. How do you resolve it?",
+  "followups": [
+   "Why is the pull secret namespaced?",
+   "How does imagePullPolicy affect this?"
+  ],
+  "answer": "`kubectl describe pod` Events show the underlying error. Common: typo in image name or tag or a tag that was never pushed (`manifest unknown`); private registry without credentials (`unauthorized`) so an `imagePullSecrets` entry is missing in the Pod or ServiceAccount, or a secret in the wrong namespace or expired token (ECR); wrong architecture; registry unreachable from nodes (DNS, egress firewall, proxy) or rate-limited; private CA not trusted by the node's container runtime. Verify by pulling from a node (`crictl pull image`) or a debug pod. Fix the reference or create the pull secret: `kubectl create secret docker-registry ...` and reference it. Mitigate: use immutable tags/digests, pre-push in CI before the deploy step, mirror images in a registry close to the cluster. Pitfall: assuming the cluster is broken when the pipeline pushed a different tag than the manifest references.",
+  "pitfalls": [
+   "Secret created in the wrong namespace",
+   "Using latest tag with IfNotPresent"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "troubleshooting",
+   "registry"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-009",
+  "area": "k8s",
+  "topic": "service-no-endpoints",
+  "level": 3,
+  "type": "scenario",
+  "q": "Your Service exists but requests time out, and `kubectl get endpoints myapp` shows `<none>`. What do you check?",
+  "followups": [
+   "How do you test DNS from inside the cluster?",
+   "What is an EndpointSlice?"
+  ],
+  "answer": "Endpoints are built from Pods that match the Service selector and are Ready. Compare `kubectl get svc myapp -o yaml` selector with `kubectl get pods --show-labels`. Then check readiness: `kubectl get pods` READY column, describe for failing readiness probes. Verify `targetPort` matches the container's listening port (and named ports), that the app listens on `0.0.0.0` not `127.0.0.1`, and that Pods are in the same namespace. If endpoints exist but traffic fails: test from a debug pod (`kubectl run -it --rm curl --image=curlimages/curl -- curl svc:port`), check NetworkPolicies, kube-proxy/CNI health, and DNS resolution (`nslookup`). Pitfall: label typos (`app: my-app` vs `app: myapp`) and changing Deployment labels that are immutable in the selector.",
+  "pitfalls": [
+   "Checking only that pods are Running"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "systems/sf02-networking-microservices.html"
+  ],
+  "tags": [
+   "services",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-010",
+  "area": "k8s",
+  "topic": "rolling-update",
+  "level": 2,
+  "type": "concept",
+  "q": "Describe how a Deployment rolling update works, including maxSurge and maxUnavailable, and how you roll back.",
+  "followups": [
+   "What does maxUnavailable: 0 with maxSurge: 1 imply for capacity?",
+   "Why might a rolling update drop connections?"
+  ],
+  "answer": "The Deployment creates a new ReplicaSet and gradually scales it up while scaling the old one down, keeping Pod counts within `replicas + maxSurge` and `replicas - maxUnavailable` (percentages: surge rounds up, unavailable rounds down; default 25%/25%). A new Pod counts as available only after passing readiness for `minReadySeconds`, so a good readiness probe is what makes rollouts safe. If new Pods never become ready the rollout stalls (progressDeadlineSeconds then marks it failed) and old Pods keep serving. Monitor with `kubectl rollout status`; roll back with `kubectl rollout undo deployment/x` (`--to-revision`), history kept by `revisionHistoryLimit`. For zero downtime add PodDisruptionBudgets, preStop hooks and graceful shutdown, plus `maxUnavailable: 0`. Pitfall: rollback does not revert ConfigMaps, secrets or database migrations.",
+  "pitfalls": [
+   "No readiness probe",
+   "Assuming undo reverts database schema"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "deployments",
+   "rollout"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-011",
+  "area": "k8s",
+  "topic": "networkpolicy",
+  "level": 4,
+  "type": "design",
+  "q": "How would you use NetworkPolicies to isolate a three-tier app (web, api, db) in one namespace, and what assumptions must hold?",
+  "followups": [
+   "How do you debug a connection blocked by a policy?",
+   "Difference between ingress and egress default-deny?"
+  ],
+  "answer": "NetworkPolicy is additive allow-lists that apply only to Pods selected by a policy; once a Pod is selected for ingress (or egress) everything not allowed is denied. Start with a default-deny policy for ingress and egress in the namespace (`podSelector: {}`), then allow: ingress controller -> web:8080; web -> api:8000; api -> db:5432; and egress DNS to kube-dns (UDP/TCP 53) plus egress to needed external endpoints. Use label selectors, namespaceSelector for cross-namespace flows, and ports. Assumption: the CNI must enforce NetworkPolicy (Calico, Cilium; plain flannel does not), otherwise policies are silently ignored. Test with connectivity probes in CI. Trade-offs: L3/L4 only (no L7 unless Cilium/mesh), operational overhead, and forgetting DNS or monitoring egress breaks apps mysteriously. Pitfall: writing a policy that selects nothing, or forgetting that policies do not apply to hostNetwork Pods.",
+  "pitfalls": [
+   "Assuming every CNI enforces policies",
+   "Blocking DNS"
+  ],
+  "chapters": [
+   "systems/sf02-networking-microservices.html",
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "security",
+   "networking",
+   "networkpolicy"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-012",
+  "area": "k8s",
+  "topic": "node-notready",
+  "level": 4,
+  "type": "scenario",
+  "q": "A node goes `NotReady` and Pods on it stop responding. What happens automatically, and what do you check?",
+  "followups": [
+   "What does `kubectl drain` do and what can block it?",
+   "How do PodDisruptionBudgets interact with node failure?"
+  ],
+  "answer": "The kubelet stops posting heartbeats (Lease); after the node-monitor grace period the node controller marks the node NotReady/Unknown and adds `node.kubernetes.io/unreachable` and `not-ready` taints; Pods tolerate these for `tolerationSeconds` (default 300 s), then get evicted and recreated elsewhere if they belong to controllers. StatefulSet Pods are not force-moved until the node is confirmed gone (to avoid two writers), so they can stay stuck. Investigate: `kubectl describe node` (conditions: MemoryPressure, DiskPressure, PIDPressure, NetworkUnavailable), then on the node `systemctl status kubelet containerd`, `journalctl -u kubelet`, disk space, memory, CNI, clock, network to the API server, and cloud instance status. Fix or replace/drain (`cordon`, `drain --ignore-daemonsets`). Design for it: multiple replicas across zones with anti-affinity/topology spread, PDBs, and shorter tolerationSeconds for critical services. Pitfall: single replica Pods whose recovery time is five minutes plus start time.",
+  "pitfalls": [
+   "Single replica on a critical path",
+   "Force-deleting StatefulSet pods carelessly"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "nodes",
+   "reliability",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-013",
+  "area": "k8s",
+  "topic": "k8s-json-pods",
+  "level": 3,
+  "type": "code",
+  "q": "From `kubectl get pods -A -o json` style data, report Pods that are unhealthy: phase Pending, containers in CrashLoopBackOff/ImagePullBackOff/ErrImagePull (from waiting reasons), or with restartCount above 5. Print one line per problem pod sorted by namespace and name.",
+  "followups": [
+   "Which kube-state-metrics series would replicate this?",
+   "How would you attach the last termination reason?"
+  ],
+  "answer": "`kubectl get -o json` returns a List with `items`; each Pod has `status.phase`, `status.containerStatuses[].state.waiting.reason` and `restartCount`; `lastState.terminated.reason` explains previous crashes (OOMKilled). Use `.get()` chains because fields are absent for Pending Pods. In production this logic belongs in Prometheus alert rules on kube-state-metrics (`kube_pod_container_status_waiting_reason`), not cron scripts. Pitfall: reading only `phase`: a CrashLooping Pod's phase is `Running`.",
+  "pitfalls": [
+   "Using phase alone, since CrashLoopBackOff pods are Running"
+  ],
+  "solution": {
+   "code": "import json\nDATA = json.loads(\"\"\"{\"items\": [\n {\"metadata\": {\"namespace\": \"prod\", \"name\": \"api-1\"}, \"status\": {\"phase\": \"Running\", \"containerStatuses\": [\n   {\"name\": \"api\", \"restartCount\": 12, \"state\": {\"waiting\": {\"reason\": \"CrashLoopBackOff\"}}, \"lastState\": {\"terminated\": {\"reason\": \"OOMKilled\", \"exitCode\": 137}}}]}},\n {\"metadata\": {\"namespace\": \"prod\", \"name\": \"web-1\"}, \"status\": {\"phase\": \"Running\", \"containerStatuses\": [\n   {\"name\": \"web\", \"restartCount\": 0, \"state\": {\"running\": {}}}]}},\n {\"metadata\": {\"namespace\": \"dev\", \"name\": \"job-9\"}, \"status\": {\"phase\": \"Pending\", \"containerStatuses\": [\n   {\"name\": \"job\", \"restartCount\": 0, \"state\": {\"waiting\": {\"reason\": \"ImagePullBackOff\"}}}]}},\n {\"metadata\": {\"namespace\": \"dev\", \"name\": \"db-0\"}, \"status\": {\"phase\": \"Pending\"}},\n {\"metadata\": {\"namespace\": \"dev\", \"name\": \"cron-3\"}, \"status\": {\"phase\": \"Running\", \"containerStatuses\": [\n   {\"name\": \"c\", \"restartCount\": 6, \"state\": {\"running\": {}}}]}}\n]}\"\"\")\nBAD = {\"CrashLoopBackOff\", \"ImagePullBackOff\", \"ErrImagePull\"}\nfor p in sorted(DATA[\"items\"], key=lambda p: (p[\"metadata\"][\"namespace\"], p[\"metadata\"][\"name\"])):\n    st = p[\"status\"]\n    why = []\n    if st.get(\"phase\") == \"Pending\":\n        why.append(\"Pending\")\n    for c in st.get(\"containerStatuses\", []):\n        r = c.get(\"state\", {}).get(\"waiting\", {}).get(\"reason\")\n        if r in BAD:\n            why.append(r)\n        if c[\"restartCount\"] > 5:\n            last = c.get(\"lastState\", {}).get(\"terminated\", {}).get(\"reason\")\n            why.append(f\"restarts={c['restartCount']}\" + (f\" last={last}\" if last else \"\"))\n    if why:\n        print(f\"{p['metadata']['namespace']}/{p['metadata']['name']}: {', '.join(why)}\")\n",
+   "expect": [
+    "dev/cron-3: restarts=6",
+    "dev/db-0: Pending",
+    "dev/job-9: Pending, ImagePullBackOff",
+    "prod/api-1: CrashLoopBackOff, restarts=12 last=OOMKilled"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "kubectl",
+   "python",
+   "json"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-014",
+  "area": "k8s",
+  "topic": "k8s-quantity-fit",
+  "level": 3,
+  "type": "code",
+  "q": "Parse Kubernetes resource quantities (`250m`, `2`, `512Mi`, `1Gi`) and determine, for a node with 4 CPU / 8Gi allocatable and existing requests, how many more replicas of a Pod requesting 500m / 1Gi fit. Explain why a Pod can be Pending even when 'usage' is low.",
+  "followups": [
+   "What is the difference between capacity and allocatable?",
+   "How do LimitRanges give default requests?"
+  ],
+  "answer": "The scheduler places Pods by summed *requests* against node *allocatable* (capacity minus system and kube reserved), not by actual usage. Convert `m` to cores/1000 and `Ki/Mi/Gi` to bytes (powers of 1024; `M`/`G` are powers of 1000). Replicas that fit = min(free_cpu // cpu_req, free_mem // mem_req). Inflated requests strand capacity: a node at 5% CPU usage but 100% requested is full for scheduling. Right-size requests from observed usage (VPA), and use `kubectl describe node` (Allocated resources) to see request totals. Pitfall: mixing Mi and M, or forgetting DaemonSet Pods consume requests on every node.",
+  "pitfalls": [
+   "Confusing Mi with M",
+   "Comparing against usage, not requests"
+  ],
+  "solution": {
+   "code": "SUFFIX = {\"Ki\": 1024, \"Mi\": 1024**2, \"Gi\": 1024**3, \"K\": 1000, \"M\": 1000**2, \"G\": 1000**3}\ndef cpu(q):\n    return int(q[:-1]) if q.endswith(\"m\") else int(float(q) * 1000)  # millicores\ndef mem(q):\n    for s, mult in SUFFIX.items():\n        if q.endswith(s):\n            return int(q[:-len(s)]) * mult\n    return int(q)\nalloc_cpu, alloc_mem = cpu(\"4\"), mem(\"8Gi\")\nexisting = [(\"1500m\", \"3Gi\"), (\"500m\", \"512Mi\"), (\"250m\", \"1Gi\")]\nused_cpu = sum(cpu(c) for c, _ in existing)\nused_mem = sum(mem(m) for _, m in existing)\nfree_cpu, free_mem = alloc_cpu - used_cpu, alloc_mem - used_mem\nprint(\"free cpu (m):\", free_cpu)\nprint(\"free mem (Mi):\", free_mem // 1024**2)\nn = min(free_cpu // cpu(\"500m\"), free_mem // mem(\"1Gi\"))\nprint(\"replicas that fit:\", n)\nprint(\"limiting resource:\", \"cpu\" if free_cpu // cpu(\"500m\") < free_mem // mem(\"1Gi\") else \"memory\")\n",
+   "expect": [
+    "free cpu (m): 1750",
+    "free mem (Mi): 3584",
+    "replicas that fit: 3",
+    "limiting resource: memory"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "scheduling",
+   "python",
+   "resources"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-015",
+  "area": "k8s",
+  "topic": "k8s-rollout-math",
+  "level": 3,
+  "type": "code",
+  "q": "Compute the minimum and maximum number of Pods during a rolling update for given replicas, maxSurge and maxUnavailable (integers or percentages). Show how percentages are rounded and what happens for 10 replicas with 25% / 25%.",
+  "followups": [
+   "What happens when new Pods never become Ready?",
+   "How does minReadySeconds change the pace?"
+  ],
+  "answer": "Kubernetes rounds maxSurge up and maxUnavailable down when given as percentages. For 10 replicas at 25%: surge = ceil(2.5) = 3, unavailable = floor(2.5) = 2, so total Pods can reach 13 and available Pods never drop below 8. If both compute to zero the controller forces maxUnavailable to 1 to guarantee progress (for 0 and 0 explicitly it is rejected). `maxSurge: 1, maxUnavailable: 0` gives the safest rollout at the price of needing one spare capacity slot and a slower update. Pitfall: forgetting that surge Pods need node capacity, otherwise they stay Pending and the rollout stalls.",
+  "pitfalls": [
+   "Rounding both values the same way"
+  ],
+  "solution": {
+   "code": "import math\ndef bounds(replicas, surge, unavail):\n    def val(v, up):\n        if isinstance(v, str) and v.endswith(\"%\"):\n            x = replicas * int(v[:-1]) / 100\n            return math.ceil(x) if up else math.floor(x)\n        return int(v)\n    s, u = val(surge, True), val(unavail, False)\n    if s == 0 and u == 0:\n        u = 1\n    return replicas + s, replicas - u\nfor r, s, u in [(10, \"25%\", \"25%\"), (3, \"25%\", \"25%\"), (4, 1, 0), (1, \"25%\", \"25%\")]:\n    hi, lo = bounds(r, s, u)\n    print(f\"replicas={r} surge={s} unavail={u} -> max pods {hi}, min available {lo}\")\n",
+   "expect": [
+    "replicas=10 surge=25% unavail=25% -> max pods 13, min available 8",
+    "replicas=3 surge=25% unavail=25% -> max pods 4, min available 3",
+    "replicas=4 surge=1 unavail=0 -> max pods 5, min available 4",
+    "replicas=1 surge=25% unavail=25% -> max pods 2, min available 1"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "deployments",
+   "python",
+   "rollout"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-016",
+  "area": "k8s",
+  "topic": "k8s-yaml-lint",
+  "level": 3,
+  "type": "code",
+  "q": "Write a small linter for Deployment YAML text (without a YAML library) that flags containers lacking resource requests/limits, liveness or readiness probes, or using an image with the `latest` tag or no tag. Print findings per container.",
+  "followups": [
+   "Where would you enforce this: CI, admission controller or both?",
+   "What do kube-score and Kyverno add?"
+  ],
+  "answer": "A proper linter parses YAML (PyYAML, `kubeconform`, `kube-score`, Polaris, or OPA/Kyverno admission policies), but a line-based scan with indentation is enough to show the checks: split the text into container blocks at `- name:` lines under `containers:`, then look for keys within each block. These rules matter: missing requests breaks scheduling and HPA, missing limits allows noisy neighbours, no readiness probe sends traffic to unready Pods during rollouts, `latest` breaks reproducibility. Pitfall: text scanning is brittle (comments, anchors, multi-document files), so use a real parser and enforce in CI and via admission control.",
+  "pitfalls": [
+   "Regex-parsing YAML in production"
+  ],
+  "solution": {
+   "code": "YAML = \"\"\"apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n      containers:\n      - name: api\n        image: registry/api:latest\n        resources:\n          requests:\n            cpu: 100m\n        readinessProbe:\n          httpGet: {path: /ready, port: 8000}\n      - name: sidecar\n        image: registry/logship:2.1\n        resources:\n          requests: {cpu: 50m}\n          limits: {memory: 64Mi}\n        livenessProbe:\n          exec: {command: [true]}\n        readinessProbe:\n          exec: {command: [true]}\n\"\"\"\nblocks, cur = [], None\nfor line in YAML.splitlines():\n    s = line.strip()\n    if s.startswith(\"- name:\"):\n        cur = {\"name\": s.split(\":\", 1)[1].strip(), \"text\": \"\"}\n        blocks.append(cur)\n    elif cur is not None:\n        cur[\"text\"] += line + \"\\n\"\nfor b in blocks:\n    t, issues = b[\"text\"], []\n    image = next(l.split(\"image:\")[1].strip() for l in t.splitlines() if \"image:\" in l)\n    if image.endswith(\":latest\") or \":\" not in image.split(\"/\")[-1]:\n        issues.append(\"image tag not pinned\")\n    if \"requests:\" not in t:\n        issues.append(\"no requests\")\n    if \"limits:\" not in t:\n        issues.append(\"no limits\")\n    if \"livenessProbe:\" not in t:\n        issues.append(\"no liveness\")\n    if \"readinessProbe:\" not in t:\n        issues.append(\"no readiness\")\n    print(b[\"name\"], \"->\", \", \".join(issues) or \"ok\")\n",
+   "expect": [
+    "api -> image tag not pinned, no limits, no liveness",
+    "sidecar -> ok"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "yaml",
+   "python",
+   "lint"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-017",
+  "area": "k8s",
+  "topic": "k8s-events",
+  "level": 3,
+  "type": "code",
+  "q": "Group Kubernetes Events (JSON) by reason and involved object, and print a diagnosis hint for the top reasons (FailedScheduling, BackOff, FailedMount, Unhealthy).",
+  "followups": [
+   "How long do events live and how do you persist them?",
+   "Which reasons page vs. ticket?"
+  ],
+  "answer": "Events are the first place to look: `kubectl get events --sort-by=.lastTimestamp` or describe. Each has `reason`, `message`, `involvedObject`, `count`, `type`. Aggregating by reason gives quick triage; a map from reason to hint encodes tribal knowledge into a runbook helper. Note events expire (default 1 h) and are rate-limited/aggregated, so ship them to your log system (event exporter) for history. Pitfall: relying on events for long-term evidence, and reading `Normal` events only.",
+  "pitfalls": [
+   "Assuming events are kept forever"
+  ],
+  "solution": {
+   "code": "import json\nfrom collections import Counter\nEVENTS = json.loads(\"\"\"[\n {\"reason\": \"FailedScheduling\", \"type\": \"Warning\", \"count\": 3, \"involvedObject\": {\"name\": \"db-0\"}, \"message\": \"0/3 nodes are available: 3 Insufficient memory.\"},\n {\"reason\": \"BackOff\", \"type\": \"Warning\", \"count\": 40, \"involvedObject\": {\"name\": \"api-1\"}, \"message\": \"Back-off restarting failed container\"},\n {\"reason\": \"Scheduled\", \"type\": \"Normal\", \"count\": 1, \"involvedObject\": {\"name\": \"web-1\"}, \"message\": \"Successfully assigned\"},\n {\"reason\": \"BackOff\", \"type\": \"Warning\", \"count\": 12, \"involvedObject\": {\"name\": \"api-2\"}, \"message\": \"Back-off restarting failed container\"},\n {\"reason\": \"FailedMount\", \"type\": \"Warning\", \"count\": 5, \"involvedObject\": {\"name\": \"db-0\"}, \"message\": \"MountVolume.SetUp failed: secret db-cred not found\"}\n]\"\"\")\nHINT = {\n \"FailedScheduling\": \"check requests vs node allocatable, taints, PVC binding\",\n \"BackOff\": \"kubectl logs --previous; check exit code and probes\",\n \"FailedMount\": \"missing Secret/ConfigMap/PVC or wrong namespace\",\n \"Unhealthy\": \"probe failing: check path, port and timeouts\",\n}\ntot = Counter()\nfor e in EVENTS:\n    if e[\"type\"] == \"Warning\":\n        tot[e[\"reason\"]] += e[\"count\"]\nfor reason, n in tot.most_common():\n    print(f\"{reason} x{n}: {HINT.get(reason, 'unknown')}\")\n",
+   "expect": [
+    "BackOff x52: kubectl logs --previous; check exit code and probes",
+    "FailedMount x5: missing Secret/ConfigMap/PVC or wrong namespace",
+    "FailedScheduling x3: check requests vs node allocatable, taints, PVC binding"
+   ]
+  },
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "events",
+   "python",
+   "json"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-018",
+  "area": "k8s",
+  "topic": "zero-downtime",
+  "level": 4,
+  "type": "design",
+  "q": "How do you deploy a stateless API on Kubernetes so that a rolling update drops no requests? List all the moving parts.",
+  "followups": [
+   "Why can a terminating Pod still get traffic?",
+   "What changes for WebSocket or long-lived connections?"
+  ],
+  "answer": "Combine: (1) readiness probe that only passes when the app can serve, so new Pods get traffic only when ready; (2) rolling update `maxUnavailable: 0`, `maxSurge: 1+`; (3) graceful shutdown: on SIGTERM the app stops accepting new connections, finishes in-flight requests, then exits; set `terminationGracePeriodSeconds` above the longest request; (4) a `preStop` hook with a short sleep (5-10 s) because endpoint removal and load balancer/kube-proxy/ingress updates propagate asynchronously, so a terminating Pod can still receive traffic briefly; (5) PodDisruptionBudget and multiple replicas spread across nodes/zones for node drains; (6) connection handling: keep-alive and load balancer draining, HTTP/2 GOAWAY; (7) backward-compatible schema and API changes (expand/contract) because old and new versions run together; (8) enough capacity for surge and autoscaler headroom. Verify with load testing during a rollout. Pitfall: the app exiting immediately on SIGTERM (or shell-form entrypoint never receiving it), giving 502s at every deploy.",
+  "pitfalls": [
+   "No preStop delay",
+   "App ignoring SIGTERM"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "deployments",
+   "reliability",
+   "graceful-shutdown"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-019",
+  "area": "k8s",
+  "topic": "oom-vs-throttle",
+  "level": 4,
+  "type": "scenario",
+  "q": "After setting a memory limit of 512Mi and CPU limit of 500m, a Java service on Kubernetes shows restarts with `OOMKilled` and also high latency spikes. What is going on and how do you fix it?",
+  "followups": [
+   "How do you read throttling metrics?",
+   "Why might removing CPU limits be controversial?"
+  ],
+  "answer": "Two separate limits. OOMKilled (exit 137, `lastState.terminated.reason: OOMKilled`) means container memory exceeded the cgroup limit; JVM total memory is heap plus metaspace, thread stacks, direct buffers and code cache, so `-Xmx512m` in a 512Mi container is guaranteed to be killed. Set heap as a fraction (`-XX:MaxRAMPercentage=70`) and leave headroom, check actual working set with metrics, and load-test. Latency spikes come from CPU throttling: a 500m limit gives 50 ms of CPU per 100 ms period across all threads; JIT compilation, GC threads and a burst of requests use it up early in the period so threads are paused, visible in `container_cpu_cfs_throttled_periods_total`. Fix by raising or removing the CPU limit (keep the request), tuning GC and thread counts to the CPU count the JVM sees, and using warm-up. Pitfall: raising the memory limit without understanding growth, which just delays a leak.",
+  "pitfalls": [
+   "Setting Xmx equal to the memory limit",
+   "Ignoring throttling"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html"
+  ],
+  "tags": [
+   "resources",
+   "java",
+   "troubleshooting"
+  ],
+  "reviewed": "ai-executed"
+ },
+ {
+  "id": "k8s-020",
+  "area": "k8s",
+  "topic": "k8s-upgrade-strategy",
+  "level": 5,
+  "type": "design",
+  "q": "You own a production cluster running critical workloads on Kubernetes 1.28 and need to get to a supported version. Outline an upgrade strategy and its risk controls.",
+  "followups": [
+   "Why blue/green clusters instead of in-place?",
+   "What is the version skew policy between kubelet and API server?"
+  ],
+  "answer": "Kubernetes supports only the last few minors and upgrades one minor at a time (control plane, then nodes within version skew). Plan: read release notes and deprecation guides; scan manifests and live objects for removed APIs (`kubent`, `pluto`, audit logs for deprecated API usage); check compatibility of CNI, CSI, ingress controller, service mesh, operators and admission webhooks; upgrade a non-production cluster that mirrors prod first and run the smoke and load suites; take etcd snapshots and confirm restore works (or for managed control planes, confirm backup options). Execute: control plane first (managed: provider upgrade; kubeadm: `upgrade plan/apply`), then nodes via a rolling replacement (new node group and drain, or surge upgrades) honouring PDBs, with multiple replicas and topology spread so drains do not cause outages; do one node pool or one cluster at a time; observe SLOs between steps with clear abort criteria. Rollback is difficult for the control plane, so the safe rollback is to keep the old node pool or old cluster and shift traffic back (blue/green clusters), which costs more but limits blast radius. Communicate windows, freeze deploys, and run a postmortem. Pitfall: upgrading with removed API versions in Helm charts, or discovering webhook failures that block all Pod creation mid-upgrade.",
+  "pitfalls": [
+   "Skipping minor versions",
+   "No etcd backup or restore test"
+  ],
+  "chapters": [
+   "systems/sf04-linux-docker-kubernetes.html",
+   "devops/do04-cloud-and-container-ops.html"
+  ],
+  "tags": [
+   "upgrade",
+   "operations",
+   "architecture"
+  ],
+  "reviewed": "ai-executed"
+ }
+]
