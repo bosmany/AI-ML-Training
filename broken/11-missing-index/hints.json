@@ -1,0 +1,22 @@
+{
+  "hints": [
+    {
+      "level": 1,
+      "penalty": 10,
+      "label": "nudge",
+      "text": "Look at how the database executes the two queries, not at how the Python around them is written. SQLite can tell you its plan."
+    },
+    {
+      "level": 2,
+      "penalty": 20,
+      "label": "pointer to the signal",
+      "text": "Run EXPLAIN QUERY PLAN on RECENT_SQL and SUMMARY_SQL (python app/bench.py prints one). Is it a SCAN or a SEARCH? Which columns do the queries filter on, and which columns are indexed?"
+    },
+    {
+      "level": 3,
+      "penalty": 30,
+      "label": "near-solution",
+      "text": "Add an index in app/schema.py whose leading column is customer_id (adding created_at as the second column also removes the sort). Then confirm the plan says SEARCH ... USING INDEX (customer_id=?)."
+    }
+  ]
+}

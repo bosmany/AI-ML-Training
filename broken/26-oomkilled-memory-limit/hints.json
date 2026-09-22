@@ -1,0 +1,22 @@
+{
+  "hints": [
+    {
+      "level": 1,
+      "penalty": 10,
+      "label": "nudge",
+      "text": "Exit code 137 is 128 + 9: the process was killed with SIGKILL, and nobody in your code sent it. Ask who has the authority to do that to a container."
+    },
+    {
+      "level": 2,
+      "penalty": 20,
+      "label": "pointer to the signal",
+      "text": "Run the job, then `docker inspect <container> --format '{{.State.OOMKilled}} {{.State.ExitCode}} {{.HostConfig.Memory}}'`. Compare the memory limit to how much memory report.py holds at once (it builds a list of every chunk before it hashes)."
+    },
+    {
+      "level": 3,
+      "penalty": 30,
+      "label": "near-solution",
+      "text": "Either stream the data (hash each chunk and drop it, so the working set is one chunk) or raise mem_limit above the real working set plus headroom (memswap_limit must be raised with it). Keep a limit: removing it, setting it to gigabytes or disabling the OOM killer are not fixes."
+    }
+  ]
+}

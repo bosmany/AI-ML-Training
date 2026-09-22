@@ -1,0 +1,15 @@
+services:
+  web:
+    image: python:3.12-alpine
+    command: ["python", "/srv/main.py"]
+    volumes:
+      - ./service:/srv:ro
+    environment:
+      WORKERS: "4"
+      PORT: "8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/healthz', timeout=1)"]
+      interval: 1s
+      timeout: 2s
+      retries: 3

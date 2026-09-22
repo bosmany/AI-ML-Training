@@ -1,0 +1,22 @@
+{
+  "hints": [
+    {
+      "level": 1,
+      "penalty": 10,
+      "label": "nudge",
+      "text": "Ask what the database is doing on the write side while the batch runs, not why the web handler is slow. Who holds what, and for how long?"
+    },
+    {
+      "level": 2,
+      "penalty": 20,
+      "label": "pointer to the signal",
+      "text": "Read process_pending() top to bottom and mark where the transaction begins, where it ends, and what happens in between (look at the enrich() call). python app/demo.py reproduces the error with a short timeout."
+    },
+    {
+      "level": 3,
+      "penalty": 30,
+      "label": "near-solution",
+      "text": "Do not hold a write transaction across the slow enrich() call. Read the pending jobs, call enrich() with no transaction open, then write each result in its own short transaction. Raising the busy timeout or enabling WAL does not help because SQLite still allows only one writer."
+    }
+  ]
+}

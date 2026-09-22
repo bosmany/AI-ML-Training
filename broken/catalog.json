@@ -1,0 +1,2006 @@
+{
+ "version": 1,
+ "scoring": {
+  "base": 100,
+  "hintCosts": [
+   10,
+   20,
+   30
+  ],
+  "timePenaltyCap": 20,
+  "preventionBonus": 10
+ },
+ "categories": [
+  {
+   "id": "app",
+   "name": "Application",
+   "blurb": "Bugs in code you own: memory, CPU, concurrency, correctness"
+  },
+  {
+   "id": "db",
+   "name": "Database",
+   "blurb": "Slow queries, locks, replication, disk and recovery"
+  },
+  {
+   "id": "network",
+   "name": "Network",
+   "blurb": "DNS, MTU, TLS, firewalls, load balancers, clocks"
+  },
+  {
+   "id": "k8s",
+   "name": "Kubernetes & containers",
+   "blurb": "Pods that will not start, stay up or keep their data"
+  },
+  {
+   "id": "cicd",
+   "name": "CI/CD",
+   "blurb": "Flaky pipelines, stale artefacts, leaked secrets, unsafe releases"
+  },
+  {
+   "id": "cloud",
+   "name": "Cloud & cost",
+   "blurb": "Exposure, surprise bills, throttling, drift, regional failure"
+  },
+  {
+   "id": "secobs",
+   "name": "Security, observability & ML",
+   "blurb": "Injection, tracing, alerting and silent model decay"
+  }
+ ],
+ "scenarios": [
+  {
+   "id": "01-memory-leak",
+   "num": "01",
+   "category": "app",
+   "title": "Memory leak",
+   "difficulty": 2,
+   "symptom": "A report-rendering worker starts at about 60 MB and climbs steadily under traffic. After a few hours the container is OOM-killed and restarts, then the cycle repeats. Latency is fine right up to the kill, and CPU stays low.",
+   "objective": "Show which data structure grows with traffic, why it never shrinks, and change the code so memory stays flat while hot requests are still served from cache.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Memory grows in proportion to requests, not in proportion to traffic spikes. Something is being kept that nobody ever asks for again."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Run app/loadgen.py and watch RSS, then look at the worker's module-level containers. Compare how many entries the cache holds with how many distinct keys are ever asked for again."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The cache is keyed by the raw query string and has no size limit or expiry. Bound it (an LRU with a maximum size) and keep normalising the key so repeat queries still hit."
+    }
+   ],
+   "success": [
+    "Retained memory after the 40,000-request soak stays under the 8 MB budget",
+    "Hot queries are still served from cache (no recompute storm)",
+    "Results are unchanged and existing tests stay green",
+    "A regression test guards the memory bound"
+   ],
+   "skills": [
+    "profiling",
+    "tracemalloc",
+    "caching",
+    "LRU",
+    "python"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "02-regex-cpu",
+   "num": "02",
+   "category": "app",
+   "title": "One input pins the CPU",
+   "difficulty": 3,
+   "symptom": "Every few days one API worker sits at 100% CPU and stops answering. Health checks fail, the pod is restarted, and it happens again later. The log line just before each incident is a signup request with a very long, odd-looking username.",
+   "objective": "Find the input shape that makes validation take exponential time, explain why, and rewrite the validators to run in linear time with identical accept/reject behaviour.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The slow request is not big; it is shaped a certain way. Try the same input with one more character and time it."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Time the username and tag validators with a string of 30 letters followed by a character that is not allowed. Look at how the pattern lets the engine split a run of letters between nested groups."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A quantified group whose body can match the same text in several ways causes backtracking explosion. Make each step of the pattern unambiguous (a run, then an optional separator, then a run) and re-run the old-vs-new comparison on short strings."
+    }
+   ],
+   "success": [
+    "Adversarial inputs finish in milliseconds",
+    "Accept/reject results match the old validators on every short string",
+    "Valid long names are still accepted (no length-cap band-aid)",
+    "Existing tests stay green"
+   ],
+   "skills": [
+    "regex",
+    "ReDoS",
+    "profiling",
+    "input validation",
+    "python"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "03-deadlock",
+   "num": "03",
+   "category": "app",
+   "title": "Requests hang forever",
+   "difficulty": 4,
+   "symptom": "Under load, a growing number of transfer requests never return. CPU is idle, the database is healthy, and thread dumps show worker threads parked waiting on locks. Restarting clears it for a few hours.",
+   "objective": "Explain the circular wait, reproduce it deterministically, and remove the possibility of deadlock without serialising the whole service.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "All stuck threads are waiting, none are working. Ask who each one is waiting for."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Dump thread stacks and list which lock each thread holds and which it wants. Look at transfers between the same two accounts in opposite directions."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Two code paths acquire the same two locks in opposite orders. Impose one global ordering (for example by account id) and add an acquire timeout as a safety net."
+    }
+   ],
+   "success": [
+    "Concurrent opposite-direction transfers complete",
+    "Money is conserved across all accounts",
+    "Throughput does not fall to a single global lock",
+    "A stress test guards against regression"
+   ],
+   "skills": [
+    "threading",
+    "locks",
+    "deadlock",
+    "thread dumps"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "04-double-charge",
+   "num": "04",
+   "category": "app",
+   "title": "Double charge",
+   "difficulty": 3,
+   "symptom": "Support is receiving tickets from customers who were charged twice for one order. It correlates with slow payment-provider days. The ledger shows two rows a few seconds apart with different charge ids but identical customer, amount and order.",
+   "objective": "Identify why a retried request creates a second charge, and make retries safe under both sequential and concurrent duplicates without breaking legitimate repeat purchases.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The client did nothing wrong: it timed out and retried, which is normal. Ask what the server does when it sees the same request twice."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the request headers the client sends and check what the server does with them. Compare the two ledger rows and the timing of the timeout against the commit."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The server never honours the Idempotency-Key. Store it with a hash of the request under a unique (customer, key) constraint, claim it atomically before charging, replay the stored response on a repeat, and return 409 when the same key arrives with a different body."
+    }
+   ],
+   "success": [
+    "A retry after a lost response yields exactly one charge and the same response",
+    "Concurrent duplicates yield exactly one charge",
+    "Different keys still create separate charges",
+    "Same key with a different body is rejected with 409"
+   ],
+   "skills": [
+    "idempotency",
+    "payments",
+    "concurrency",
+    "sqlite",
+    "api design"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "05-pool-exhaustion",
+   "num": "05",
+   "category": "app",
+   "title": "Timeouts under load",
+   "difficulty": 3,
+   "symptom": "After about ten minutes of normal traffic the API starts returning 500 with 'timed out waiting for a database connection'. The database shows almost no active queries. A restart fixes it, until it happens again, faster on busy days.",
+   "objective": "Establish that connections are not being returned to the pool, find every code path that leaks, and fix them so the pool is always fully available after each request.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The database is idle but the app says it cannot get a connection. Connections are going somewhere and not coming back."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Print the pool's in-use count after each kind of request (found, not found, invalid input, cancelled). One kind moves the number up and it never comes down."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Handlers acquire a connection and then raise or return early before releasing it. Use a context manager or try/finally for every acquire, on every path, then verify in-use returns to zero."
+    }
+   ],
+   "success": [
+    "Pool in-use count returns to 0 after every request type",
+    "No pool timeouts under concurrent load with a small pool",
+    "Errors still propagate to callers (nothing is swallowed)",
+    "Existing tests stay green"
+   ],
+   "skills": [
+    "connection pools",
+    "resource management",
+    "context managers",
+    "sqlite"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "06-n-plus-one",
+   "num": "06",
+   "category": "app",
+   "title": "The slow orders endpoint",
+   "difficulty": 2,
+   "symptom": "GET /reports/orders takes 4 seconds for a customer with 300 orders and 40 ms for one with 3. The database CPU is low, but the query log for a single request is thousands of lines long. Adding hardware did not help.",
+   "objective": "Show how the number of queries scales with the data, replace it with a constant number of queries, and keep the output byte-for-byte identical.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Time grows with the size of the customer. Count statements, not seconds."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Enable a statement counter on the connection and compare 3 orders with 300. The count grows linearly, in more than one place (orders, then their lines, then products)."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The report issues a query per order and another per line. Fetch orders, lines and product names with a JOIN or with IN-batched queries and group in Python; keep ordering and the empty-order cases the same."
+    }
+   ],
+   "success": [
+    "Query count is constant as data grows",
+    "Output is identical including ordering and empty orders",
+    "No result-limiting or caching band-aid",
+    "Existing tests stay green"
+   ],
+   "skills": [
+    "ORMs",
+    "N+1",
+    "SQL joins",
+    "query counting",
+    "sqlite"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "07-blocked-event-loop",
+   "num": "07",
+   "category": "app",
+   "title": "The API stalls",
+   "difficulty": 3,
+   "symptom": "An async API serves most requests in 10 ms, but every time the /export endpoint is called, every other endpoint freezes for two to three seconds, including the health check. CPU on the host is barely used.",
+   "objective": "Prove the event loop is being blocked, identify the offending call, and fix it without making the export slower for its own caller.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Everything freezes together, so something is holding the one thread that serves all requests."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Turn on asyncio debug mode (slow-callback warnings) and hit /export while polling /health. Look at what the export handler calls without await."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A blocking call (sync HTTP, file or sleep) runs inside an async handler. Use an async client, or run the blocking work with asyncio.to_thread / a process pool."
+    }
+   ],
+   "success": [
+    "Health check stays under 50 ms while an export runs",
+    "Export result unchanged",
+    "No blocking calls remain on the loop",
+    "A test asserts the loop stays responsive"
+   ],
+   "skills": [
+    "asyncio",
+    "event loop",
+    "profiling",
+    "python"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "08-retry-storm",
+   "num": "08",
+   "category": "app",
+   "title": "The outage that made itself worse",
+   "difficulty": 4,
+   "symptom": "A downstream dependency had a 90-second blip. The incident lasted 40 minutes because, after it recovered, it kept falling over. Request volume to it was 8x normal throughout. All services were 'just retrying'.",
+   "objective": "Explain how well-meant retries amplified a short blip into a long outage, and add the protections so failures shed load instead of multiplying it.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The dependency was healthy again, yet load stayed 8x. Where does the extra traffic come from?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Graph request rate against error rate and look at the retry counts per layer. Multiply the retry counts of each layer that calls the next."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Retries are immediate and unbounded at several layers. Use a retry budget, exponential backoff with full jitter, retry at one layer only, and a circuit breaker."
+    }
+   ],
+   "success": [
+    "Total attempts are bounded by a retry budget",
+    "Backoff has jitter and increases",
+    "A breaker opens under sustained failure and recovers",
+    "Load test shows no amplification"
+   ],
+   "skills": [
+    "resilience",
+    "backoff",
+    "circuit breakers",
+    "load testing"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "09-dst-bug",
+   "num": "09",
+   "category": "app",
+   "title": "Reports off by an hour",
+   "difficulty": 3,
+   "symptom": "Daily revenue reports are correct all year except for two days per year, when some orders land in the wrong day and totals are off. A customer in another time zone also sees 'tomorrow' for orders placed before midnight local time.",
+   "objective": "Find where local time and UTC are mixed, and store and compare instants correctly so reports are right across DST changes and time zones.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "It only breaks on two dates a year. What changes on those dates?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look at how timestamps are created and stored: are they aware of a timezone? Print the tzinfo of values coming out of the database."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Naive local datetimes are stored and compared. Store aware UTC instants, convert to the report's zone only at the edges, and use zoneinfo for day boundaries."
+    }
+   ],
+   "success": [
+    "Reports correct across both DST transitions",
+    "Day boundaries correct for other time zones",
+    "Stored values are timezone-aware UTC",
+    "A test pins the DST dates"
+   ],
+   "skills": [
+    "datetime",
+    "zoneinfo",
+    "UTC",
+    "testing"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "10-swallowed-error",
+   "num": "10",
+   "category": "app",
+   "title": "Jobs silently missing",
+   "difficulty": 3,
+   "symptom": "Nightly export jobs are 'successful' in the dashboard, yet about 3% of customers never receive their file. Logs are clean. There is no error, no retry and no alert, just gaps.",
+   "objective": "Discover why failures are invisible, surface them, and make the pipeline fail loudly or retry so no job is lost silently.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "A success status does not prove every unit of work succeeded. What does 'success' actually measure?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare the number of jobs enqueued with the number of files produced, then find where work is handed to threads or tasks and how their results are checked."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "An exception inside a worker thread is never collected. Gather futures and call result(), log with context, count failures and make the job exit non-zero or retry."
+    }
+   ],
+   "success": [
+    "Every failure is logged with context",
+    "The job status reflects partial failure",
+    "Failed items are retried or reported",
+    "A test injects a failure and asserts it is surfaced"
+   ],
+   "skills": [
+    "concurrent.futures",
+    "exceptions",
+    "observability",
+    "python"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "11-missing-index",
+   "num": "11",
+   "category": "db",
+   "title": "The 30-second query",
+   "difficulty": 2,
+   "symptom": "The orders search page went from instant to 30 seconds over a few months as the table grew. Database CPU spikes to 100% on each search and other requests queue behind it. The query has not changed.",
+   "objective": "Read the query plan, identify what forces a full scan, and add the right index without breaking writes or results.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The query did not change but the data did. What scales with table size?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Run EXPLAIN (or EXPLAIN QUERY PLAN) on the slow statement and look for a sequential or full-table scan on the filter columns."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Add a composite index that matches the filter and sort columns in the right order, then confirm the plan uses it and that writes remain correct."
+    }
+   ],
+   "success": [
+    "The plan uses an index for the search",
+    "Results are identical",
+    "Write path still works",
+    "Query time drops by orders of magnitude"
+   ],
+   "skills": [
+    "EXPLAIN",
+    "indexing",
+    "SQL",
+    "performance"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "12-long-transaction",
+   "num": "12",
+   "category": "db",
+   "title": "Writes stall",
+   "difficulty": 4,
+   "symptom": "Every so often all writes to the accounts table stall for minutes, then release at once. Reads are fine. The application logs show no errors, only rising latency, and the stall always starts when the nightly report script runs.",
+   "objective": "Find the session holding locks, explain why it blocks writers, and change the code so long work no longer holds a write lock.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Reads succeed and writes queue, so someone is holding something exclusive. Who has been running the longest?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look at the list of open transactions with their age and the locks they hold. One is older than everything else and is idle-in-transaction or scanning."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The report opens a transaction, takes write locks, and then does slow non-database work. Keep transactions short: read, commit, process outside, write in a separate short transaction."
+    }
+   ],
+   "success": [
+    "Writers are never blocked for longer than a short bound",
+    "Report output unchanged",
+    "No transaction stays open across slow work",
+    "A test measures writer latency during a report"
+   ],
+   "skills": [
+    "transactions",
+    "locks",
+    "isolation",
+    "SQL"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "13-replica-lag",
+   "num": "13",
+   "category": "db",
+   "title": "Users see stale data",
+   "difficulty": 3,
+   "symptom": "After a customer saves a profile change, the next page shows the old data, and refreshing a second later shows the new data. It is worse during batch imports and never happens when developers test locally.",
+   "objective": "Show that reads are served by a lagging replica right after a write, and make read-your-writes consistent without sending everything to the primary.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The write succeeded, so the data is right somewhere. Which server did the next read hit?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare the timestamp or log position on the primary and the replica right after a write and note the lag during batch imports."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Route reads that follow a write (session, cookie or token with the write position) to the primary until the replica catches up, and alert on lag."
+    }
+   ],
+   "success": [
+    "Read after write always returns the new data",
+    "Other reads still use replicas",
+    "Lag is monitored with a threshold",
+    "A test simulates lag"
+   ],
+   "skills": [
+    "replication",
+    "consistency",
+    "read replicas",
+    "monitoring"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "14-wal-disk-full",
+   "num": "14",
+   "category": "db",
+   "title": "Database down: no space left",
+   "difficulty": 4,
+   "symptom": "Postgres stopped accepting writes at 3 a.m. with 'No space left on device'. The data directory is small; nearly all of the disk is under the write-ahead log directory. Nothing changed in the app in weeks.",
+   "objective": "Find what prevents WAL segments from being recycled, free space safely without corrupting the database, and prevent recurrence.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Data files are small but the disk is full. What else does the database write continuously?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check replication slots and archive status. One slot has a restart position far behind current."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "An abandoned replication slot (or failing archive command) pins WAL forever. Drop the dead slot, fix archiving, cap with max_slot_wal_keep_size, and alert on disk and slot lag."
+    }
+   ],
+   "success": [
+    "Free space restored without data loss",
+    "Dead slot or archive failure identified",
+    "A cap and alert prevent recurrence",
+    "The recovery steps are documented"
+   ],
+   "skills": [
+    "Postgres",
+    "WAL",
+    "replication slots",
+    "disk"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "15-migration-lock",
+   "num": "15",
+   "category": "db",
+   "title": "Deploy freezes the app",
+   "difficulty": 4,
+   "symptom": "During a deploy, a database migration that 'just adds a column' makes the whole application hang for two minutes. Health checks fail, the load balancer drains, and the deploy is rolled back in a panic.",
+   "objective": "Explain how a quick DDL statement blocked all traffic, and redesign the migration so it is safe on a live table.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "A tiny change froze a busy table. What did that statement have to wait for, and what waited for it?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check the lock queue during the deploy: a long-running query held a lock, the ALTER queued behind it, and every new query queued behind the ALTER."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Set lock_timeout and retry, avoid table rewrites (add nullable column, backfill in batches, then add constraint), and run migrations outside peak or with an online-schema-change tool."
+    }
+   ],
+   "success": [
+    "Migration completes without blocking traffic",
+    "lock_timeout with retry configured",
+    "Backfill done in small batches",
+    "A rehearsal against a busy table is documented"
+   ],
+   "skills": [
+    "migrations",
+    "locks",
+    "zero-downtime deploys",
+    "PostgreSQL"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "16-update-order-deadlock",
+   "num": "16",
+   "category": "db",
+   "title": "Random deadlocks",
+   "difficulty": 4,
+   "symptom": "Once or twice a minute, a batch update fails with 'deadlock detected'. Retrying usually works, so it went unnoticed until volume grew. No two runs fail the same way.",
+   "objective": "Identify the interleaving that causes the deadlock cycle and change the update order so it cannot happen.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Deadlocks need two sessions and two resources acquired in opposite order. What are the two resources here?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the deadlock log: it names both statements and the rows. See how two batches update the same rows in different orders."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Sort rows by primary key before updating (or lock them in a consistent order with SELECT ... FOR UPDATE ORDER BY id) and keep transactions short."
+    }
+   ],
+   "success": [
+    "Concurrent batches never deadlock",
+    "Results identical",
+    "Updates use a deterministic order",
+    "A concurrency test runs both batches in parallel"
+   ],
+   "skills": [
+    "deadlocks",
+    "transactions",
+    "locking",
+    "SQL"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "17-max-connections",
+   "num": "17",
+   "category": "db",
+   "title": "Too many connections",
+   "difficulty": 3,
+   "symptom": "After the autoscaler adds pods during a traffic spike, the database starts refusing connections with 'too many clients'. More pods make it worse, and the database itself is barely busy.",
+   "objective": "Work out the connection arithmetic and change the architecture so scaling out no longer exhausts the database.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Each new pod adds capacity for the app but also something for the database. What?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Multiply pods by workers by pool size and compare with the server's max_connections."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Add a connection pooler (transaction pooling) between the app and the database, cap per-pod pools, and set alerts on connection utilisation."
+    }
+   ],
+   "success": [
+    "Total connections stay under the cap at max scale",
+    "Per-pod pool sizes are bounded",
+    "Pooler configured and tested",
+    "An alert exists for connection saturation"
+   ],
+   "skills": [
+    "connection pooling",
+    "PgBouncer",
+    "capacity",
+    "autoscaling"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "18-untested-backup",
+   "num": "18",
+   "category": "db",
+   "title": "The backup that could not restore",
+   "difficulty": 3,
+   "symptom": "A table was dropped by mistake. Backups have run nightly and monitoring is green, but the restore fails: the newest dumps are 0 bytes, and the last good one is from five weeks ago.",
+   "objective": "Find why backups were silently empty, recover what is possible, and set up restore drills so a green job means a usable backup.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Green jobs and empty files can co-exist. What does the job actually check?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check file sizes and the exit code and error output of the dump command over time. When did it start producing empty files?"
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The dump fails (credentials or permission change) but the wrapper ignores the exit code. Fail the job on a non-zero exit, verify size and checksum, and automate a periodic test restore."
+    }
+   ],
+   "success": [
+    "Failure of the dump fails the job",
+    "Backup verified by an actual restore",
+    "Alert on missing or tiny backups",
+    "Recovery point documented"
+   ],
+   "skills": [
+    "backups",
+    "disaster recovery",
+    "restore testing",
+    "shell"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "19-dns-ttl",
+   "num": "19",
+   "category": "network",
+   "title": "Some users hit the old host",
+   "difficulty": 3,
+   "symptom": "After migrating the service to a new load balancer, a fraction of users keep reaching the old one for hours. The old system was supposed to be switched off, so those users see errors. Everyone in the office is fine.",
+   "objective": "Explain why different clients resolve to different addresses after the cutover, and plan the migration so it does not depend on caches expiring.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The change is done, but not everyone sees it at the same time. What in the path remembers answers?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Query the record from different resolvers and compare TTLs. Note the TTL that was in place before the change."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The old record had a long TTL and some clients ignore or extend it. Lower TTL well before cutover, keep the old endpoint serving (or redirecting) until traffic drains, then decommission."
+    }
+   ],
+   "success": [
+    "Traffic drains from the old target before it is removed",
+    "TTL lowered in advance",
+    "Old endpoint returns a helpful redirect",
+    "Cutover checklist written"
+   ],
+   "skills": [
+    "DNS",
+    "TTL",
+    "migrations",
+    "dig"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "20-mtu",
+   "num": "20",
+   "category": "network",
+   "title": "Large uploads fail",
+   "difficulty": 4,
+   "symptom": "Small requests work. Uploads above a few kilobytes hang and time out, but only for users on certain networks and only over the VPN. Pings work. TLS handshakes sometimes stall at the first large packet.",
+   "objective": "Demonstrate that packets above a size threshold are silently lost, find the path MTU, and fix it (or make the path tolerate it).",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Small works and big does not, on some paths. What limit could depend on packet size?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Send pings with the do-not-fragment flag and increasing sizes to find the largest packet that survives. Check whether ICMP 'fragmentation needed' messages are being dropped."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A tunnel reduces the path MTU and ICMP is blocked, so path MTU discovery fails. Lower the MTU/clamp MSS on the tunnel interface and allow the required ICMP types."
+    }
+   ],
+   "success": [
+    "Large transfers complete over the VPN",
+    "MSS clamping or MTU set correctly",
+    "ICMP type 3 code 4 is permitted",
+    "The path MTU is documented"
+   ],
+   "skills": [
+    "MTU",
+    "TCP MSS",
+    "ping",
+    "VPN"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "21-expired-tls-cert",
+   "num": "21",
+   "category": "network",
+   "title": "Everything is red at 09:00",
+   "difficulty": 2,
+   "symptom": "At exactly 09:00 UTC, API clients begin failing with certificate errors while the site works in browsers that have it cached. Internal services that call each other also start failing at the same moment. Nothing was deployed.",
+   "objective": "Find which certificate expired, why nobody was warned, and how to renew and prevent it from recurring.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Failures started at a precise moment with no deploy. Time itself is the trigger."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check the validity dates of the certificate chain the server presents (openssl s_client), including intermediates."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The certificate (or an intermediate) expired and renewal was manual. Renew, automate issuance, and add an expiry monitor with a lead time of at least 21 days."
+    }
+   ],
+   "success": [
+    "The new certificate is deployed and chain is complete",
+    "Renewal is automated",
+    "An expiry alert exists with lead time",
+    "The runbook is written"
+   ],
+   "skills": [
+    "TLS",
+    "openssl",
+    "certificates",
+    "monitoring"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "22-security-group-change",
+   "num": "22",
+   "category": "network",
+   "title": "Service unreachable after a tidy-up",
+   "difficulty": 2,
+   "symptom": "After an infrastructure clean-up, the checkout service can no longer reach the payment service. The connection just hangs (no refused, no error), from some hosts but not others. Both services report healthy.",
+   "objective": "Prove where packets are being dropped, identify the rule change, and restore only the access that is needed.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "A hang without an error usually means packets are dropped, not rejected. Which layer drops silently?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Test the port from the failing host and from a working one. Compare the firewall or security group rules attached to each."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A tidy-up removed the rule allowing the checkout group to reach the payment port. Add back a narrow rule referencing the source group, and keep it in code."
+    }
+   ],
+   "success": [
+    "Connectivity restored for the right source only",
+    "No 0.0.0.0/0 shortcut",
+    "Rule defined in code",
+    "A connectivity test guards it"
+   ],
+   "skills": [
+    "security groups",
+    "firewalls",
+    "netcat",
+    "IaC"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "23-lb-health-flapping",
+   "num": "23",
+   "category": "network",
+   "title": "Intermittent 502s",
+   "difficulty": 3,
+   "symptom": "Users see a 502 for about one in twenty requests, in bursts. Backend logs show no errors, and every backend is healthy when tested by hand. The load balancer's target list flips between healthy and unhealthy every few minutes.",
+   "objective": "Identify why healthy backends are being pulled from rotation and adjust health checking so it reflects reality.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The backends look fine yet the load balancer disagrees. What does the balancer test exactly?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the health check configuration (path, timeout, thresholds) and compare with the backend's response time on that path."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The health check hits a slow endpoint with a timeout shorter than its worst-case latency and a very strict threshold. Use a cheap dedicated health endpoint, a sane timeout and thresholds, and connection draining."
+    }
+   ],
+   "success": [
+    "No flapping over a long test",
+    "Dedicated lightweight health path",
+    "Thresholds and timeout set deliberately",
+    "Draining configured"
+   ],
+   "skills": [
+    "load balancers",
+    "health checks",
+    "HTTP",
+    "timeouts"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "24-clock-skew",
+   "num": "24",
+   "category": "network",
+   "title": "Auth fails on one node",
+   "difficulty": 3,
+   "symptom": "One of six API nodes rejects a small share of requests with 'token not yet valid' or 'token expired', while others accept the same tokens. Restarting the node does not help; it started after a VM migration.",
+   "objective": "Show the node's clock is off, explain why tokens fail, and fix time synchronisation and add tolerance and monitoring.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Same token, different verdicts. The difference is the node. What does token validation compare against?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare the time on each node with a reference (date -u, chronyc tracking). One is off by minutes."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "NTP/chrony is not syncing on the migrated VM. Fix time sync, allow small leeway in token validation (60 s), and alert on clock offset."
+    }
+   ],
+   "success": [
+    "All nodes within a small offset",
+    "Token leeway configured",
+    "Clock offset alert",
+    "Sync verified after reboot"
+   ],
+   "skills": [
+    "NTP",
+    "JWT",
+    "time",
+    "monitoring"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "25-crashloop-bad-env",
+   "num": "25",
+   "category": "k8s",
+   "title": "CrashLoopBackOff",
+   "difficulty": 2,
+   "symptom": "A new deployment's pod goes Running, then Error, then CrashLoopBackOff, with restarts climbing and the back-off growing. The previous version ran fine and the image builds and starts locally.",
+   "objective": "Use pod status, events and logs to find why the container exits, and fix the manifest so it stays up.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The container starts and then exits. Kubernetes is doing what it was told; find what the container says on the way out."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the logs of the previous container instance and the pod events, and note the exit code."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "An environment variable the app requires is missing or has the wrong value/name in the manifest. Fix the variable (or its ConfigMap/Secret reference) and roll out."
+    }
+   ],
+   "success": [
+    "Pod becomes Ready and stays stable",
+    "No restarts after fix",
+    "The cause is identified from logs, not by guessing",
+    "Config validated in CI"
+   ],
+   "skills": [
+    "kubectl",
+    "logs",
+    "exit codes",
+    "config"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "26-oomkilled-memory-limit",
+   "num": "26",
+   "category": "k8s",
+   "title": "OOMKilled",
+   "difficulty": 3,
+   "symptom": "A pod restarts every few minutes with reason OOMKilled (exit code 137). The application logs stop mid-request with no error. It only happens with real traffic, not in a quick test.",
+   "objective": "Compare the working set to the memory limit, decide between fixing the limit and fixing the code, and apply a change that survives real load.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Exit 137 is not an application error. Who sent the kill?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare peak memory (metrics or the app's own report) with resources.limits.memory. Notice the gap between request and limit."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The limit is below the app's working set. Size requests and limits from measured peak plus headroom, tune runtime memory settings if relevant, and add a memory alert."
+    }
+   ],
+   "success": [
+    "Pod stays up under load",
+    "Requests and limits sized from measurements",
+    "Memory alert exists",
+    "Reason for chosen numbers documented"
+   ],
+   "skills": [
+    "kubernetes resources",
+    "OOM",
+    "capacity",
+    "monitoring"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "27-imagepullbackoff",
+   "num": "27",
+   "category": "k8s",
+   "title": "ImagePullBackOff",
+   "difficulty": 1,
+   "symptom": "A rollout is stuck: new pods sit in ErrImagePull and then ImagePullBackOff while the old pods keep serving. The pipeline reported a successful push a few minutes ago.",
+   "objective": "Read the event message, decide whether the tag or the credentials are wrong, and fix it so the rollout completes.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The cluster cannot get the image. Two things must be right: what to pull, and permission to pull it."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Describe the pod and read the event text. Compare the exact tag with what the registry has, and check imagePullSecrets in the namespace."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The manifest references a tag that was never pushed (or the pull secret is missing/expired). Reference an immutable digest or the built tag, and fix the secret."
+    }
+   ],
+   "success": [
+    "Rollout completes",
+    "Image referenced by an existing immutable tag or digest",
+    "Pull secret valid",
+    "CI publishes the tag it deploys"
+   ],
+   "skills": [
+    "container registries",
+    "kubectl describe",
+    "secrets",
+    "image tags"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "28-pending-pods",
+   "num": "28",
+   "category": "k8s",
+   "title": "Pods stuck in Pending",
+   "difficulty": 2,
+   "symptom": "Three new replicas stay Pending indefinitely. The cluster has plenty of nodes, some nearly idle, and other workloads schedule fine. Nothing in the logs because nothing has started.",
+   "objective": "Read the scheduler's reasons, decide which constraint is unsatisfiable, and fix the request or the cluster so pods schedule.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Pending means not scheduled yet. The scheduler tells you why, if you ask."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Describe the pod and read the FailedScheduling event. Compare requests with node allocatable, and check node taints and selectors."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The pod requests more than any node can offer, or lacks a toleration for tainted nodes. Right-size the request or add the toleration/selector appropriately."
+    }
+   ],
+   "success": [
+    "All replicas scheduled",
+    "Requests sized realistically",
+    "Tolerations/selectors deliberate",
+    "Reason documented"
+   ],
+   "skills": [
+    "scheduling",
+    "taints and tolerations",
+    "resource requests",
+    "kubectl"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "29-bad-rollout",
+   "num": "29",
+   "category": "k8s",
+   "title": "Bad rollout takes traffic",
+   "difficulty": 3,
+   "symptom": "A release with a startup bug went to 100% of users within a minute. Kubernetes reported the rollout as successful, and the bad pods received traffic immediately. Pods were 'Running' the whole time.",
+   "objective": "Explain why Kubernetes let unready pods take traffic and configure probes and rollout settings so bad versions stall safely.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Running is not the same as ready to serve. What tells Kubernetes the difference?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look at the deployment's readinessProbe and rolling-update parameters. Is a probe defined, and does it test real readiness?"
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "No (or a trivial) readiness probe and aggressive maxUnavailable. Add a meaningful readiness probe, minReadySeconds, and progressDeadlineSeconds so a bad version stalls."
+    }
+   ],
+   "success": [
+    "A bad version never becomes Ready and never gets traffic",
+    "Rollout stalls and can be undone",
+    "Probe reflects real dependencies",
+    "Rollout settings documented"
+   ],
+   "skills": [
+    "readiness probes",
+    "rolling updates",
+    "deployments",
+    "kubectl rollout"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "30-liveness-kills-slow-starter",
+   "num": "30",
+   "category": "k8s",
+   "title": "Liveness kills the slow starter",
+   "difficulty": 3,
+   "symptom": "A service that needs about 90 seconds to warm its cache never becomes healthy in Kubernetes. It restarts every 30 seconds forever. Run manually, the same image is fine.",
+   "objective": "Explain why a healthy application is killed, and use the right probe type to protect slow startup without losing failure detection.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "It would be fine if left alone. Something restarts it before it finishes starting."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare the liveness probe's initial delay and failure threshold with the real startup time from the logs."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Liveness starts checking before the app can answer. Add a startupProbe with a generous budget, keep liveness strict afterwards, and keep readiness separate."
+    }
+   ],
+   "success": [
+    "Pod starts and stays up",
+    "Startup probe covers the slowest start",
+    "Liveness still detects real hangs",
+    "Probe design documented"
+   ],
+   "skills": [
+    "probes",
+    "startup",
+    "kubelet",
+    "troubleshooting"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "31-hpa-thrash",
+   "num": "31",
+   "category": "k8s",
+   "title": "HPA thrash",
+   "difficulty": 4,
+   "symptom": "The autoscaler scales up and down every few minutes between 2 and 20 replicas, even though traffic is smooth. Users see latency spikes each time it scales down, and cost is higher than expected.",
+   "objective": "Find why the replica count oscillates and tune the metric, threshold and behaviour to be stable.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Smooth traffic and wild scaling means the control loop is unstable, not the load."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look at the HPA's metric and target, the current values over time, and its stabilisation behaviour. Note that a scale-out changes the metric it reads."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The metric reacts to replica count itself (for example per-pod average of a lagging metric) and scale-down is unrestricted. Choose a better metric, add stabilisation windows and rate limits, and set sane min/max."
+    }
+   ],
+   "success": [
+    "Replica count is stable under steady load",
+    "Scale-down has stabilisation window",
+    "Metric is appropriate",
+    "Behaviour validated with a load test"
+   ],
+   "skills": [
+    "HPA",
+    "control loops",
+    "metrics",
+    "autoscaling"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "32-data-lost-on-drain",
+   "num": "32",
+   "category": "k8s",
+   "title": "Data lost on node drain",
+   "difficulty": 3,
+   "symptom": "After the platform team drained a node for maintenance, a service lost uploaded files that customers had saved earlier that day. The pod came back healthy but empty.",
+   "objective": "Determine where the data lived, why draining destroyed it, and move state to storage that outlives a pod.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The pod came back healthy but empty. Where did the pod write its files?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check the pod spec's volumes. Is it a claim, or something tied to the pod's life?"
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The files were on an emptyDir (pod-lifetime storage). Use a PersistentVolumeClaim (StatefulSet if identity matters), and add backups and a PodDisruptionBudget."
+    }
+   ],
+   "success": [
+    "Data survives pod deletion and drains",
+    "Uses a PVC with proper access mode",
+    "PDB configured",
+    "Backup path documented"
+   ],
+   "skills": [
+    "volumes",
+    "PVC",
+    "StatefulSets",
+    "PDB"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "33-flaky-order-dependence",
+   "num": "33",
+   "category": "cicd",
+   "title": "Flaky tests",
+   "difficulty": 3,
+   "symptom": "The CI pipeline fails about one run in five with a different test each time. Re-running usually turns it green. Locally, every test passes. The team has started ignoring red builds.",
+   "objective": "Show that failures depend on test order or shared state, find the leak, and make tests independent.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The same code passes and fails. Something differs between runs that is not the code."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Run the suite in random order, several times, and also each failing test alone. Note that it passes alone and fails after certain others."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Tests share mutable global state (or files/time) and depend on run order. Isolate state with fixtures, reset it per test, and run in random order in CI."
+    }
+   ],
+   "success": [
+    "Suite passes in any order, repeatedly",
+    "Failing test passes alone and in sequence",
+    "Shared state isolated",
+    "Random ordering enabled in CI"
+   ],
+   "skills": [
+    "pytest",
+    "test isolation",
+    "fixtures",
+    "CI"
+   ],
+   "status": "available"
+  },
+  {
+   "id": "34-stale-cache",
+   "num": "34",
+   "category": "cicd",
+   "title": "Old code deployed",
+   "difficulty": 3,
+   "symptom": "A fix was merged, the pipeline is green, the deploy job succeeded, and production still has the bug. The same commit builds correctly on a laptop. The image on the server is older than the merge.",
+   "objective": "Trace the artefact from commit to running container and find where an old layer or cache is reused.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Green pipeline and old behaviour. Which step could produce an artefact that is not from this commit?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare commit SHA labels and image digests at each stage. Look at the build cache keys and the deploy tag."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The pipeline restores a cache keyed too coarsely and deploys a mutable tag (latest) the cluster already has. Key caches by lockfile/source hash, tag by commit SHA, and deploy by digest."
+    }
+   ],
+   "success": [
+    "Deployed image matches the commit SHA",
+    "Cache keys include content hashes",
+    "Deploys use immutable references",
+    "A post-deploy check verifies version"
+   ],
+   "skills": [
+    "CI caching",
+    "image tags",
+    "digests",
+    "provenance"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "35-secret-in-git-history",
+   "num": "35",
+   "category": "cicd",
+   "title": "Secret in git history",
+   "difficulty": 3,
+   "symptom": "A security scanner reports a live cloud access key in the repository. The file containing it was deleted six months ago, and the current code is clean, but the key is still reported.",
+   "objective": "Explain why deleting a file does not remove a secret, respond in the right order, and prevent future commits of secrets.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The file is gone from the working tree, but git remembers everything. What else can read history?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Search history for the key pattern and check who has cloned or forked the repository. Check the key's last-used time."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Revoke and rotate the key first, then rewrite history if required (and coordinate), and add pre-commit and CI secret scanning with the secret moved to a manager."
+    }
+   ],
+   "success": [
+    "The key is revoked and rotated",
+    "Usage audited for abuse",
+    "Scanning prevents recurrence",
+    "Secrets come from a manager"
+   ],
+   "skills": [
+    "git",
+    "secrets management",
+    "incident response",
+    "scanning"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "36-no-rollback",
+   "num": "36",
+   "category": "cicd",
+   "title": "The bad release that stayed",
+   "difficulty": 3,
+   "symptom": "A release broke checkout at 14:05. It took 55 minutes to restore service because nobody could redeploy the previous version: old artefacts were purged, the database migration was not reversible, and the process was a wiki page.",
+   "objective": "Explain what made rollback impossible and build a rollback path that is fast, rehearsed and safe with data changes.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The team knew what was wrong within minutes, yet recovery took nearly an hour. What was missing?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "List what a rollback would need: the previous artefact, config, and a database that the old code can read."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Keep the last N immutable artefacts, make migrations backward-compatible (expand then contract), automate one-command rollback, and rehearse it."
+    }
+   ],
+   "success": [
+    "One command restores the previous version",
+    "Migrations are backward compatible",
+    "Old artefacts are retained",
+    "Rollback rehearsed and timed"
+   ],
+   "skills": [
+    "release engineering",
+    "rollbacks",
+    "migrations",
+    "runbooks"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "37-unpinned-dependency",
+   "num": "37",
+   "category": "cicd",
+   "title": "Build broke, code did not change",
+   "difficulty": 2,
+   "symptom": "Monday morning the main branch fails to build with an import error nobody touched. The previous green build was Friday. The developer's laptop, with an older environment, still works.",
+   "objective": "Identify which dependency changed between the two builds and make builds reproducible.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Same commit, different result. What input to the build is not in the commit?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare the resolved dependency versions of the green and red builds. Look at how requirements are declared."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A dependency (or a transitive one) is unpinned and released a breaking version. Pin with a lockfile and hashes, update deliberately, and build from the lock in CI."
+    }
+   ],
+   "success": [
+    "Builds are reproducible",
+    "Dependencies pinned with a lock",
+    "Updates go through a reviewed process",
+    "CI installs strictly from the lock"
+   ],
+   "skills": [
+    "dependency management",
+    "pip",
+    "lockfiles",
+    "reproducibility"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "38-slow-docker-builds",
+   "num": "38",
+   "category": "cicd",
+   "title": "Slow Docker builds",
+   "difficulty": 2,
+   "symptom": "Every push spends eight minutes rebuilding the image, even for a one-line change to a README. Dependency installation runs each time. CI minutes are burning and developers wait.",
+   "objective": "Explain why the build cache never hits and restructure the Dockerfile so unchanged inputs are reused.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "A tiny change causes a full rebuild. Docker's cache is a chain that breaks at the first changed layer."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the Dockerfile in order and find where the whole source is copied, relative to the dependency install."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "COPY of the whole source occurs before installing dependencies, so any change invalidates the install layer. Copy only the dependency manifest first, install, then copy the source; add a .dockerignore."
+    }
+   ],
+   "success": [
+    "A source-only change reuses the dependency layer",
+    "Build time drops substantially",
+    "Context excludes junk",
+    "Image content unchanged"
+   ],
+   "skills": [
+    "Docker",
+    "layer caching",
+    "build context",
+    "CI"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "39-public-bucket",
+   "num": "39",
+   "category": "cloud",
+   "title": "Public bucket",
+   "difficulty": 2,
+   "symptom": "A researcher finds customer export files by browsing a URL that requires no credentials. Nobody intended the bucket to be public; the application team thought access was locked down.",
+   "objective": "Determine which policy or ACL exposes the bucket, close it, and add guardrails to stop it reoccurring.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Someone unauthenticated can read your data. What grants access to everyone?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Check the bucket policy, ACLs and the account-level public access block settings."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A policy statement with a wildcard principal (or a public ACL) is in place. Remove it, enable Block Public Access, and add a policy check and an alert."
+    }
+   ],
+   "success": [
+    "Public access closed",
+    "Block Public Access enabled at account level",
+    "Access-log review for exposure",
+    "Automated policy check exists"
+   ],
+   "skills": [
+    "S3",
+    "IAM policies",
+    "least privilege",
+    "incident response"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "40-bill-spike",
+   "num": "40",
+   "category": "cloud",
+   "title": "The bill doubled",
+   "difficulty": 3,
+   "symptom": "The monthly cloud bill doubled. Traffic is flat. The cost breakdown shows the largest new line item is data transfer, plus a few resources nobody recognises.",
+   "objective": "Find what generates the extra cost, attribute it, and put controls in place so it cannot silently recur.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Traffic is flat but the bill is not. Cost has to be attributed, not guessed."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Group costs by service and usage type and find the line that jumped. Look for NAT gateway processing and for resources without owners."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Traffic to a managed service is going through a NAT gateway instead of a VPC endpoint, and orphaned volumes/IPs remain. Add endpoints, clean up orphans, tag everything, and set budgets and anomaly alerts."
+    }
+   ],
+   "success": [
+    "Cost source identified and reduced",
+    "Orphaned resources removed",
+    "Tag policy and budget alerts in place",
+    "Cost review documented"
+   ],
+   "skills": [
+    "cloud cost",
+    "NAT gateways",
+    "VPC endpoints",
+    "tagging"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "41-rate-limited-429",
+   "num": "41",
+   "category": "cloud",
+   "title": "429 Too Many Requests",
+   "difficulty": 2,
+   "symptom": "A batch job that calls a third-party API works for the first minute and then almost every call fails with 429. The job then retries immediately and fails harder. The vendor has emailed about abuse.",
+   "objective": "Make the client respect rate limits: back off, honour Retry-After, and keep total request rate within the quota.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The server is telling you to slow down. Is the client listening?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the response headers on a 429 and compare the request rate with the documented quota."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The client retries at once with no delay and no rate control. Honour Retry-After, use exponential backoff with jitter, and add client-side rate limiting."
+    }
+   ],
+   "success": [
+    "Job completes without sustained 429s",
+    "Retry-After honoured",
+    "Request rate bounded",
+    "Backoff with jitter"
+   ],
+   "skills": [
+    "rate limiting",
+    "backoff",
+    "HTTP",
+    "API clients"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "42-terraform-state-drift",
+   "num": "42",
+   "category": "cloud",
+   "title": "Terraform state lock and drift",
+   "difficulty": 3,
+   "symptom": "terraform apply hangs with 'Error acquiring the state lock', and after the lock is forced open the plan wants to destroy and recreate a database that someone had modified by hand in the console.",
+   "objective": "Explain the lock and the drift, recover safely without destroying data, and stop it recurring.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "A lock means someone or something else is (or was) running. Who holds it and are they still there?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Read the lock info (ID, who, when) and compare the plan to the real resource; do not apply until you understand each diff."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "A crashed run left the lock, and manual console edits caused drift. Verify no run is active before force-unlock, import or refresh state rather than recreate, and restrict console changes."
+    }
+   ],
+   "success": [
+    "No resource destroyed unintentionally",
+    "State matches reality",
+    "Manual changes prevented or detected",
+    "Locking reliable"
+   ],
+   "skills": [
+    "Terraform",
+    "state",
+    "drift detection",
+    "IaC"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "43-asg-flapping",
+   "num": "43",
+   "category": "cloud",
+   "title": "Auto Scaling flaps",
+   "difficulty": 3,
+   "symptom": "The auto scaling group launches instances and terminates them minutes later, again and again. Instance count oscillates, costs are high, and users see short bursts of errors on each termination.",
+   "objective": "Find what drives the oscillation and stabilise it with cooldowns, warm-up and healthier thresholds.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Instances are coming and going faster than the workload changes. What causes each decision?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look at scaling policies, the alarm thresholds, cooldown and instance warm-up times, and the metric's behaviour after a launch."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Thresholds are close together with no cooldown or warm-up, so new capacity has not started before the next decision. Widen the gap, add cooldown/warm-up, and use target tracking."
+    }
+   ],
+   "success": [
+    "Group is stable under steady load",
+    "Warm-up and cooldown configured",
+    "Thresholds have a gap",
+    "Validated with a load test"
+   ],
+   "skills": [
+    "Auto Scaling",
+    "cooldown",
+    "metrics",
+    "capacity"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "44-region-outage-no-failover",
+   "num": "44",
+   "category": "cloud",
+   "title": "Region outage, no failover",
+   "difficulty": 4,
+   "symptom": "A regional cloud outage took the product completely offline for four hours. The team had 'multi-AZ' and a documented DR plan, but the plan required a database replica that was never created and DNS changes nobody had practised.",
+   "objective": "Explain why the design could not fail over and design a tested failover with clear RTO and RPO.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Multi-AZ is not multi-region. What would a second region need in order to serve?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "List every dependency of the service (data, DNS, secrets, images) and mark whether it exists in the second region and has been tested."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Replicate data cross-region, keep images and config there, use health-checked DNS or a global router, define RTO/RPO, and run game days."
+    }
+   ],
+   "success": [
+    "Failover procedure is documented and tested",
+    "RTO and RPO defined",
+    "Data is replicated across regions",
+    "Game-day results recorded"
+   ],
+   "skills": [
+    "disaster recovery",
+    "multi-region",
+    "RTO/RPO",
+    "DNS"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "45-sql-injection",
+   "num": "45",
+   "category": "secobs",
+   "title": "SQL injection",
+   "difficulty": 2,
+   "symptom": "A search box on the admin site returns every customer when a tester types a single quote and an OR clause. Sorting by a chosen column also behaves strangely. A WAF is in front of the site and did not object.",
+   "objective": "Show how input reaches the query text, fix all injectable places (including ORDER BY), and add a test that would have caught it.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "User text is becoming part of the SQL. Where is the query built?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Look for string formatting or concatenation in query construction, including places where you cannot use placeholders directly (identifiers)."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Use parameterised queries for values and an allow-list for column names and directions, apply least-privilege database credentials, and add injection tests."
+    }
+   ],
+   "success": [
+    "Injection payloads treated as data",
+    "Sort columns allow-listed",
+    "DB user has least privilege",
+    "Regression tests included"
+   ],
+   "skills": [
+    "SQL",
+    "OWASP",
+    "input handling",
+    "least privilege"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "46-ssrf-url-fetcher",
+   "num": "46",
+   "category": "secobs",
+   "title": "SSRF in the URL fetcher",
+   "difficulty": 4,
+   "symptom": "A 'preview this link' feature lets a tester fetch http://169.254.169.254/ and read instance credentials, and internal admin URLs, through the service. The URL was validated to be http(s).",
+   "objective": "Explain why scheme validation alone fails and harden the fetcher against internal-address access including redirects.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The service fetches whatever it is told from inside your network. What can it reach that outsiders cannot?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Try internal addresses, redirects to internal addresses and alternative IP encodings. Note where the check happens relative to the connection."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Resolve the host and block private, loopback and link-local ranges after DNS resolution, pin the resolved IP for the connection, re-check on every redirect, and enforce allow-lists and IMDSv2."
+    }
+   ],
+   "success": [
+    "Internal targets are refused",
+    "Redirects re-validated",
+    "DNS rebinding cannot bypass",
+    "Egress restricted at the network layer"
+   ],
+   "skills": [
+    "SSRF",
+    "network security",
+    "DNS",
+    "cloud metadata"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "47-no-correlation-ids",
+   "num": "47",
+   "category": "secobs",
+   "title": "Cannot trace a request",
+   "difficulty": 2,
+   "symptom": "A customer reports one failed order. Logs from five services contain thousands of similar lines and there is no way to tell which belong to that request. The investigation takes half a day.",
+   "objective": "Introduce a correlation ID that follows a request across services and appears in every log line and outgoing call.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "You have the logs but no thread to pull. What links lines that belong together?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Trace one request across services and note where identifying information is lost when the call leaves a service."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Generate a request ID at the edge, propagate it via a header (or W3C traceparent) through every outgoing call, and include it in structured log fields."
+    }
+   ],
+   "success": [
+    "A single ID appears in all services' logs for a request",
+    "IDs propagate on outgoing calls",
+    "Logs are structured",
+    "Tests assert propagation"
+   ],
+   "skills": [
+    "observability",
+    "logging",
+    "tracing",
+    "middleware"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "48-alert-fatigue",
+   "num": "48",
+   "category": "secobs",
+   "title": "Alert fatigue",
+   "difficulty": 3,
+   "symptom": "The on-call engineer gets 120 pages a week, most auto-resolve in a minute, and a real outage was acknowledged late because it looked like the usual noise. People mute the channel.",
+   "objective": "Classify alerts by whether they need a human action, and restructure the alerting so pages are rare, actionable and tied to user impact.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Most pages need no action. Which ones would you mourn if they disappeared?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Export a month of alerts with duration and action taken. Group by rule and see which flap or never lead to action."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Page on symptoms (SLO burn rate) instead of causes, add for-durations and hysteresis, move the rest to tickets or dashboards, and review alerts every week."
+    }
+   ],
+   "success": [
+    "Pages are actionable and rare",
+    "Alerts based on SLO burn",
+    "Noisy rules removed or ticketed",
+    "Runbook linked from each page"
+   ],
+   "skills": [
+    "alerting",
+    "SLOs",
+    "on-call",
+    "Prometheus"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "49-data-drift",
+   "num": "49",
+   "category": "secobs",
+   "title": "The model quietly got worse",
+   "difficulty": 4,
+   "symptom": "Conversion driven by the recommendation model has slowly fallen over two months. There were no errors, latency is normal, and the offline metrics from the last training run are still excellent.",
+   "objective": "Establish that the world changed under the model, quantify drift on inputs and outputs, and add monitoring and a retraining trigger.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "Nothing crashed. The code is the same, so what changed is the data."
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Compare feature distributions in recent serving traffic with the training set (PSI or KS) and watch the prediction distribution over time."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "Input distributions shifted (for example a new user segment or upstream change). Monitor drift and delayed-label performance, alert on thresholds, and retrain on recent data."
+    }
+   ],
+   "success": [
+    "Drift is quantified per feature",
+    "Monitoring with thresholds and alerts",
+    "Retraining trigger defined",
+    "Rollback to the previous model possible"
+   ],
+   "skills": [
+    "drift detection",
+    "PSI/KS",
+    "monitoring",
+    "MLOps"
+   ],
+   "status": "planned"
+  },
+  {
+   "id": "50-train-serve-skew",
+   "num": "50",
+   "category": "secobs",
+   "title": "Great offline, poor online",
+   "difficulty": 4,
+   "symptom": "After a feature change, the new model scores 0.93 AUC offline and only 0.71 in production, with no exceptions. The old model held up fine. Feature values in the logs look plausible.",
+   "objective": "Prove that serving computes features differently from training, and unify the computation so both paths produce identical values.",
+   "hints": [
+    {
+     "level": 1,
+     "cost": 10,
+     "text": "The model is the same in both places. What is different between the numbers it saw in training and the numbers it sees now?"
+    },
+    {
+     "level": 2,
+     "cost": 20,
+     "text": "Take a handful of logged production requests, recompute their features with the training pipeline and diff the values column by column."
+    },
+    {
+     "level": 3,
+     "cost": 30,
+     "text": "The feature was reimplemented separately for serving (different scaling, missing-value handling or time window). Share one implementation, or a feature store, and add a skew test."
+    }
+   ],
+   "success": [
+    "Training and serving features match on sampled requests",
+    "One shared implementation",
+    "A skew test runs in CI",
+    "Production metric recovers"
+   ],
+   "skills": [
+    "feature engineering",
+    "skew",
+    "MLOps",
+    "testing"
+   ],
+   "status": "planned"
+  }
+ ]
+}

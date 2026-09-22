@@ -1,5 +1,5 @@
 # One-command local environment for the labs. Works in Codespaces/devcontainer and on any machine with Python 3.11+.
-# Usage: make bootstrap | doctor | labs | grade LAB=<lab-folder> | kind | kind-down | site-check
+# Usage: make bootstrap | doctor | labs | grade LAB=<lab-folder> | kind | kind-down | site-check | broken ID=<NN>
 SHELL := /bin/bash
 include versions.env
 VENV ?= .venv
@@ -36,4 +36,12 @@ kind-down:
 site-check: ## HTML structure check for the course pages
 	node scripts/verify-html.js
 
-.PHONY: bootstrap doctor labs grade kind kind-down site-check
+broken: ## broken-system lab: make broken ID=01 [HINTS=1,2 MINUTES=35]; BROKEN_TARGET=solution checks the reference
+	@test -n "$(ID)" || (echo "usage: make broken ID=<NN> [HINTS=1,2] [MINUTES=<n>]   (see broken/README.md)"; exit 1)
+	@PYTHONDONTWRITEBYTECODE=1 BROKEN_TARGET=$${BROKEN_TARGET:-app} HINTS="$(HINTS)" MINUTES="$(MINUTES)" \
+	  $(if $(wildcard $(PY)),$(PY),python3) broken/run.py $(ID)
+
+broken-check: ## every broken lab must FAIL on app/ and PASS on solution/
+	@PYTHONDONTWRITEBYTECODE=1 $(if $(wildcard $(PY)),$(PY),python3) broken/check_contract.py
+
+.PHONY: bootstrap doctor labs grade kind kind-down site-check broken broken-check

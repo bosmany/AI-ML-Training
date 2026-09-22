@@ -1,0 +1,22 @@
+{
+  "hints": [
+    {
+      "level": 1,
+      "penalty": 10,
+      "label": "nudge",
+      "text": "The client did nothing wrong: it timed out and retried, which is normal. Ask what the server does when it sees the same request twice."
+    },
+    {
+      "level": 2,
+      "penalty": 20,
+      "label": "pointer to the signal",
+      "text": "Read the request headers the client sends and check what the server does with them. Compare the two ledger rows and the timing of the timeout against the commit."
+    },
+    {
+      "level": 3,
+      "penalty": 30,
+      "label": "near-solution",
+      "text": "The server never honours the Idempotency-Key. Store it with a hash of the request under a unique (customer, key) constraint, claim it atomically before charging, replay the stored response on a repeat, and return 409 when the same key arrives with a different body."
+    }
+  ]
+}
