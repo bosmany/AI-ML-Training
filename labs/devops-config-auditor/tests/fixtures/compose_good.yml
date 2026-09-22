@@ -1,0 +1,23 @@
+services:
+  web:
+    image: nginx:1.27
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD}
+      LOG_LEVEL: debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost"]
+    mem_limit: 256m
+  db:
+    image: registry.local:5000/postgres@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+    privileged: false
+    environment:
+      - POSTGRES_PASSWORD_FILE=/run/secrets/db_password
+      - POSTGRES_USER=app
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+    deploy:
+      resources:
+        limits:
+          memory: 1g

@@ -8,7 +8,16 @@ One-command setup anywhere: `make bootstrap && make doctor && make labs` (Codesp
 The chapters in this course run in the browser, which cannot start a real server, talk to AWS, drive Kubernetes
 or run Docker. These labs fill that gap: each one is a small **real Python project** that you run on your own
 machine, graded by `pytest`, using the same libraries you would use at work (FastAPI, SQLAlchemy, boto3, subprocess,
-prometheus_client, scipy...). The tests never touch the network, a real cloud account or a real cluster.
+prometheus_client, scipy...).
+
+Most labs are fully hermetic (no network, no real cloud account, no real cluster). The `-real-*` labs are
+different on purpose: they spin up real local infrastructure you already have (Docker, a real MLflow server, a
+real Prometheus/Grafana stack, a real LocalStack container) so the graded tests exercise the real thing, not a
+mock. Three labs (`agentic-ai-real-llm-tool-calling`, `rag-real-vector-db-deploy`, `fastapi-real-deploy-cicd-live`)
+go one step further: everything graded by `pytest` still runs offline with zero account needed, but each has a
+clearly separate "go live" path that only works once *you* add your own free API key or account (a Groq key, a
+Hugging Face account, a Fly.io account+token) — each lab's README says exactly which env var/secret to set and
+where to get it, and no output is ever shown as real unless it was actually captured from a real run.
 
 ## The labs
 
@@ -22,9 +31,23 @@ prometheus_client, scipy...). The tests never touch the network, a real cloud ac
 | [`fastapi-deploy-cicd`](fastapi-deploy-cicd/README.md) | Easy-Medium | 2-3 h | hardened Dockerfile, Compose, GitHub Actions, static policy tests | [FastAPI ch. 41: capstone and deployment](../fastapi/ch41-fastapi-capstone-deployment.html), [Systems 4](../systems/sf04-linux-docker-kubernetes.html) |
 | [`mlops-experiment-tracker`](mlops-experiment-tracker/README.md) | Medium | 3-4 h | experiment tracking, model registry, reproducibility | [MLOps practice 2: experiment tracking](../mlops-practice/mp02-experiment-tracking-model-registry.html), [MLOps practice 1](../mlops-practice/mp01-reproducibility-data-validation.html) |
 | [`mlops-drift-monitor`](mlops-drift-monitor/README.md) | Medium-Hard | 3-5 h | drift statistics with scipy, metrics with prometheus_client, monitoring | [MLOps practice 4: monitoring and drift](../mlops-practice/mp04-monitoring-and-drift.html), [MLOps ch. 32](../mlops/ch32-mlops-fundamentals-capstone.html) |
+| [`fastapi-url-shortener`](fastapi-url-shortener/README.md) | Medium | 4-6 h | FastAPI, SQLAlchemy 2, unique-index collision retry, URL validation, 301/302/404/410, expiry with a fake clock, click counting, pagination | [FastAPI ch. 36-38](../fastapi/ch36-fastapi-fundamentals.html), [Systems 1: APIs and HTTP](../systems/sf01-apis-http-fundamentals.html) |
+| [`devops-config-auditor`](devops-config-auditor/README.md) | Medium | 5-7 h | PyYAML `safe_load`, JSON pointers and line numbers, rule engine, docker-compose and Kubernetes policies, JSON/text reports, CI exit codes | [DevOps 2: config formats](../devops/do02-config-yaml-json-toml.html), [DevOps 4](../devops/do04-cloud-and-container-ops.html), [Python ch. 6](../python/ch06-professional-python.html) |
+| [`python-expense-tracker`](python-expense-tracker/README.md) | Easy-Medium | 4-6 h | argparse subcommands, money as integer cents, atomic JSON writes, corrupt-file handling, exit codes, monthly budgets | [Python ch. 3](../python/ch03-functions-modules.html), [Python ch. 5](../python/ch05-oop-files-errors.html), [Python ch. 6](../python/ch06-professional-python.html), [OOP 4](../python/oop04-composition-dataclasses-design.html) |
+| [`python-async-link-checker`](python-async-link-checker/README.md) | Hard | 6-8 h | asyncio, semaphore-bounded concurrency, httpx timeouts, HEAD/GET fallback, redirects, retries with backoff, cancellation, local fixture HTTP server | [Python ch. 6](../python/ch06-professional-python.html), [Python ch. 7](../python/ch07-python-devops-apis.html), [Systems 1: APIs and HTTP](../systems/sf01-apis-http-fundamentals.html), [Systems 2: networking](../systems/sf02-networking-microservices.html) |
+| [`agentic-ai-real-llm-tool-calling`](agentic-ai-real-llm-tool-calling/README.md) | Medium-Hard | 4-6 h | real LLM tool calling (Groq/OpenAI SDK), ReAct loop, prompt-injection guardrail, trimmed conversation memory, token/cost tracking, streaming reassembly | [Projects ch. 34: Agentic AI system](../projects/ch34-agentic-ai-system.html), [Python ch. 6](../python/ch06-professional-python.html) |
+| [`mlops-real-experiment-tracking`](mlops-real-experiment-tracking/README.md) | Medium | 4-6 h | a real local MLflow server, real sklearn training runs, real model registry promotion, querying the real REST API | [MLOps practice 2: experiment tracking](../mlops-practice/mp02-experiment-tracking-model-registry.html) |
+| [`mlops-real-container-deploy`](mlops-real-container-deploy/README.md) | Medium-Hard | 4-6 h | a real FastAPI model server, a real multi-stage Dockerfile built and run with `docker build`/`docker run`, health checks, non-root; k8s manifests and rolling updates documented for `kind` | [MLOps ch. 31: model deployment](../mlops/ch31-model-deployment.html), [Systems 4](../systems/sf04-linux-docker-kubernetes.html) |
+| [`mlops-real-monitoring-stack`](mlops-real-monitoring-stack/README.md) | Medium-Hard | 4-6 h | a real Prometheus + Grafana stack via docker-compose, a real `/metrics` endpoint, generating real load, a real alert rule that actually fires | [MLOps practice 4: monitoring and drift](../mlops-practice/mp04-monitoring-and-drift.html) |
+| [`devops-real-terraform-localstack`](devops-real-terraform-localstack/README.md) | Medium-Hard | 4-6 h | real Terraform HCL (S3, IAM, Lambda) against a real local LocalStack container, boto3 verification, a real Lambda invoke | [DevOps 4: cloud ops](../devops/do04-cloud-and-container-ops.html) |
+| [`rag-real-vector-db-deploy`](rag-real-vector-db-deploy/README.md) | Medium-Hard | 5-7 h | a real local vector DB (chromadb), real retrieval + grounding, a Hugging Face Spaces app (Gradio) you deploy yourself for a public URL | [Projects ch. 35: RAG chatbot, deployed](../projects/ch35-rag-chatbot-deployed.html) |
+| [`fastapi-real-deploy-cicd-live`](fastapi-real-deploy-cicd-live/README.md) | Medium | 3-5 h | a real `fly.toml` + GitHub Actions workflow (tests gate the deploy, health check, rollback on failure) that goes live once you add your own Fly.io account and secret | [FastAPI ch. 41: capstone and deployment](../fastapi/ch41-fastapi-capstone-deployment.html) |
 
 Times are for someone who has read the linked chapters. Each lab README has the goal, numbered tasks, collapsible
 hints, stretch goals, how the topic comes up in interviews and an honest "what this lab does not cover" section.
+
+One exception to "tests never touch the network": `agentic-ai-real-llm-tool-calling` has an opt-in `-m live` tier
+(3 tests, real Groq API, free key) that is excluded by default and never runs as part of grading or `run_all.sh`.
 
 ## Setup
 

@@ -1,0 +1,66 @@
+# Reference/manual - see scripts/kind_demo.sh and the README "Kubernetes (reference, manual)" section.
+# This is NOT part of the pytest-graded contract (kind is unavailable in the sandbox this lab was built
+# in); it is a complete, correct Deployment for a human with kind/kubectl to apply for real.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iris-model-server
+  labels:
+    app: iris-model-server
+spec:
+  replicas: 3
+  # Real rolling-update strategy: at most 1 extra pod during a rollout, never more than 1 pod
+  # unavailable, so `kubectl set image` (or `kubectl rollout undo`) never drops capacity to zero.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: iris-model-server
+  template:
+    metadata:
+      labels:
+        app: iris-model-server
+    spec:
+      # kind_demo.sh loads the image straight into the kind node (kind load docker-image), so
+      # imagePullPolicy must NOT be Always - Always would make the kubelet try (and fail) to pull
+      # from a registry instead of using the image already sitting on the node.
+      containers:
+        - name: iris-model-server
+          image: mlops-real-container-deploy:demo
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            - name: MODEL_PATH
+              value: /srv/model/model.joblib
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]

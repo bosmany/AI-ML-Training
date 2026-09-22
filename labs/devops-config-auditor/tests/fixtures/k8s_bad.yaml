@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  template:
+    spec:
+      containers:
+        - name: api
+          image: myorg/api:latest
+          securityContext:
+            privileged: true
+          ports:
+            - containerPort: 8080
+              hostPort: 8080
+          env:
+            - name: API_TOKEN
+              value: abc123
+          resources:
+            limits:
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: debug
+spec:
+  containers:
+    - name: shell
+      image: busybox

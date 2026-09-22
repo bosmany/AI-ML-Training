@@ -1,0 +1,10 @@
+# TODO (task 2): GitHub Actions workflow that deploys to Fly.io on push to main.
+#   - on: push, branches: [main] only (never pull_request/pull_request_target - forks must not get FLY_API_TOKEN)
+#   - top-level least-privilege permissions (contents: read)
+#   - job "test": checkout, setup-python (cache: pip), install, pytest tests/health_check.py
+#   - job "deploy": needs: test; installs flyctl (superfly/flyctl-actions/setup-flyctl); runs
+#     `flyctl deploy --remote-only` with FLY_API_TOKEN from ${{ secrets.FLY_API_TOKEN }}
+#   - a health-check step AFTER the deploy step that curls https://<your-app>.fly.dev/health with retries
+#   - a rollback step gated on `if: failure()` that runs `flyctl releases rollback --yes`
+#   - pin every action to a version tag or commit SHA, timeout-minutes on every job
+# Check yourself any time with:  python -m lab   (run from the starter/ folder)

@@ -1,0 +1,32 @@
+# Real Prometheus alerting rules, evaluated by the real Prometheus container (not asserted by the
+# test in Python) - the test only *reads back* /api/v1/alerts to see whether these fired.
+groups:
+  - name: fastapi-app-alerts
+    rules:
+      - alert: HighPredictRequestLatency
+        # p95 latency of /predict over the last 15s. The test induces a real ~1.2s sleep inside the
+        # handler (see PredictRequest.simulate_latency_seconds), which is far above every bucket
+        # boundary under 1s, so a real spike pushes this over 1 second.
+        expr: >
+          histogram_quantile(
+            0.95,
+            sum(rate(http_request_duration_seconds_bucket{endpoint="/predict"}[15s])) by (le)
+          ) > 1
+        for: 6s
+        labels:
+          severity: critical
+        annotations:
+          summary: "p95 /predict latency above 1s"
+          description: "Real p95 latency of the /predict endpoint has exceeded 1 second for 6s straight."
+
+      - alert: HighPredictionDrift
+        # The gauge holds the most recent |mean(features) - reference_mean|; it does not decay
+        # between requests, so once a real out-of-distribution request sets it high it stays high
+        # (and keeps satisfying `for:`) until the next request changes it.
+        expr: prediction_drift_score > 5
+        for: 6s
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prediction input drift above threshold"
+          description: "prediction_drift_score has been above 5 for 6s straight - inputs look far from the training distribution."

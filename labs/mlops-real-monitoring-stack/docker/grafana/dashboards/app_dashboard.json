@@ -1,0 +1,65 @@
+{
+  "title": "FastAPI model-serving app",
+  "uid": "fastapi-app-real-monitoring",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "time": { "from": "now-15m", "to": "now" },
+  "refresh": "5s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Request rate by endpoint",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (endpoint, status_code)",
+          "legendFormat": "{{endpoint}} [{{status_code}}]",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "p95 /predict latency (seconds)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{endpoint=\"/predict\"}[1m])) by (le))",
+          "legendFormat": "p95 /predict",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [ { "value": null, "color": "green" }, { "value": 1, "color": "red" } ] } }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Prediction drift score",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "prediction_drift_score", "legendFormat": "drift score", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": { "thresholds": { "steps": [ { "value": null, "color": "green" }, { "value": 5, "color": "red" } ] } }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Total requests",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "Prometheus" },
+      "targets": [
+        { "expr": "sum(http_requests_total)", "legendFormat": "requests", "refId": "A" }
+      ]
+    }
+  ]
+}

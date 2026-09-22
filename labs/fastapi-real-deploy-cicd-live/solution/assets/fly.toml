@@ -1,0 +1,32 @@
+# fly.toml — Fly.io app configuration for the FastAPI service built in labs/fastapi-deploy-cicd.
+# Docs: https://fly.io/docs/reference/configuration/
+#
+# This file is only ever READ by `flyctl deploy` (flyctl would normally generate a first draft via
+# `flyctl launch`); nothing here needs a live Fly.io account to be correct.
+
+app = "candidate-api"
+primary_region = "iad"
+
+[build]
+
+[env]
+  PORT = "8000"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "15s"
+    timeout = "2s"
+    method = "GET"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

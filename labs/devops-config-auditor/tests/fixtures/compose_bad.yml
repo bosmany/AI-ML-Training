@@ -1,0 +1,19 @@
+services:
+  web:
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    privileged: true
+    environment:
+      DB_PASSWORD: hunter2
+      LOG_LEVEL: debug
+  db:
+    image: postgres
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=secret123
+      - POSTGRES_USER=app
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+    mem_limit: 512m
