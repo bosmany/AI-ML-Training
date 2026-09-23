@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Advanced 2: Fine-Tuning LLMs: SFT, LoRA, QLoRA</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  for the console (used only for light, non-torch/transformers snippets in this chapter).
+  IMPORTANT: real PyTorch + HuggingFace transformers/datasets/peft/bitsandbytes cannot run inside
+  Pyodide/WebAssembly (large compiled native libraries, some needing a real CUDA GPU) — this
+  chapter's code blocks are reference-only (no Run button). A real Colab notebook is linked at
+  the top of the lesson and in the project section — that notebook is where you actually execute
+  this chapter's code. Practice exercises here are graded by checking the CODE YOU TYPE for
+  required patterns (not by executing it) — same spirit as every other Colab-pattern chapter's
+  autograder (see dl/ch22, nlp/ch28), adapted to libraries this browser genuinely cannot run.
+  Every code example in this file was independently run for real in a CPU-only Python venv
+  (torch 2.14 cpu, transformers 5.17, peft 0.21, datasets 5.0, accelerate 1.15) before being
+  written here — the "actual output" blocks are real captured output, not invented numbers.
+-->
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.colab{background:var(--gold-bg);border-color:rgba(255,184,0,.3);color:var(--gold)}
+
+.colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.14),rgba(124,92,252,.08));border:1px solid rgba(255,184,0,.3);border-radius:14px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;gap:18px}
+.colab-banner .cb-icon{font-size:32px;flex-shrink:0}
+.colab-banner h3{font-size:15px;font-weight:800;margin-bottom:4px}
+.colab-banner p{font-size:13px;color:var(--t2);line-height:1.6}
+.colab-btn{margin-left:auto;background:var(--gold);color:#1a1200;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;text-decoration:none;flex-shrink:0}
+.colab-btn:hover{background:#ffc933}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+.tt-wrap{overflow-x:auto;margin:16px 0}
+.tt-wrap .lesson-table{margin:0;min-width:480px}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+.out-pre{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:0 0 16px;padding:8px 14px 10px;font:12px/1.55 var(--mono);color:#9BE8CD;white-space:pre-wrap;overflow-x:auto}
+.out-pre::before{content:'actual output (captured from a real CPU-only run)';display:block;font:700 9.5px var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .colab-banner{flex-wrap:wrap}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+/* console minimize */
+#content{min-width:0}
+.cd-title{white-space:nowrap}
+.cd-header{cursor:pointer;user-select:none;gap:8px}
+.cd-header .cd-status{margin-left:auto;margin-right:2px;white-space:nowrap}
+.cd-min-btn{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:5px;width:26px;height:22px;font-size:13px;line-height:1;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.cd-min-btn:hover,.cd-min-btn:focus-visible{color:var(--text);border-color:var(--violet);outline:none}
+#console-dock.cd-min{height:auto;width:auto;min-width:200px;border-top-left-radius:10px;overflow:hidden}
+#console-dock.cd-min .cd-status,#console-dock.cd-min #cd-out,#console-dock.cd-min .cd-out,#console-dock.cd-min .cd-input-row{display:none}
+#console-dock.cd-min .cd-header{border-bottom:none}
+@media(min-width:821px){body.cd-min #topbar,body.cd-min #main-content{margin-right:0}}
+@media(max-width:820px){#console-dock.cd-min{width:100%;border-top-left-radius:0}}
+</style>
+<!-- theme:css -->
+<style>
+/* theme: light/dark ------------------------------------------------------ */
+:root{color-scheme:dark}
+html[data-theme="dark"]{color-scheme:dark}
+
+/* ---- toggle button (both themes) ---- */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;min-width:32px;padding:0 12px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);letter-spacing:0;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s,background-color .12s;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:var(--violet)}
+.theme-toggle:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.theme-toggle svg{width:16px;height:16px;flex-shrink:0;display:block}
+.theme-toggle .tt-sun{display:none;color:var(--gold)}
+.theme-toggle .tt-moon{color:var(--violet-light)}
+html[data-theme="light"] .theme-toggle .tt-sun{display:block}
+html[data-theme="light"] .theme-toggle .tt-moon{display:none}
+#topbar .theme-toggle{margin-left:2px}
+#topnav .theme-toggle{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 8px -2px var(--card)}
+.theme-toggle.tt-fixed{position:fixed;top:12px;right:14px;z-index:300}
+.theme-toggle.tt-index{position:absolute;top:18px;right:28px;z-index:5}
+.theme-toggle.tt-mob{display:none;height:30px;padding:0 9px}
+.theme-toggle.tt-mob .tt-label{display:none}
+@media(max-width:820px){
+  #topbar .theme-toggle.tt-desk{display:none}
+  #mob-menu .theme-toggle.tt-mob{display:inline-flex}
+}
+@media(max-width:560px){
+  .theme-toggle .tt-label{display:none}
+  .theme-toggle{padding:0;width:32px}
+  .theme-toggle.tt-index{right:16px}
+}
+
+/* ---- LIGHT PALETTE ---- */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F9; --card:#FFFFFF; --card2:#EEF0F7; --border:#D3D8E6;
+  --violet:#5B3FE0; --violet-light:#4B30CC; --violet-bg:rgba(91,63,224,.09);
+  --cyan:#00694F; --cyan-bg:rgba(0,105,79,.08);
+  --gold:#855300; --gold-bg:rgba(178,114,0,.12);
+  --red:#B91C24; --red-bg:rgba(185,28,36,.08);
+  --green:#146B36; --green-bg:rgba(20,107,54,.09);
+  --blue:#1D4ED8; --blue-bg:rgba(29,78,216,.08);
+  --text:#181C2B; --t2:#4A5068; --t3:#5F657B;
+}
+
+/* ---- dark "islands": code/terminal panels stay dark in both themes ---- */
+html[data-theme="light"] .code-block,
+html[data-theme="light"] .ex-task,
+html[data-theme="light"] .ex-editor,
+html[data-theme="light"] .ex-output,
+html[data-theme="light"] .pe-output,
+html[data-theme="light"] textarea#project-editor,
+html[data-theme="light"] .q-code-input,
+html[data-theme="light"] .out-pre,
+html[data-theme="light"] #console-dock .cd-out,
+html[data-theme="light"] #console-dock .cd-input-row{
+  color-scheme:dark;
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --red:#FF5757; --green:#22C55E;
+  --text:#E8EAF0; --t2:#9196A8; --t3:#8B91A5;
+}
+html[data-theme="light"] .cm{color:#7F92AE}
+html[data-theme="light"] .code-block{border-color:#2A2D3E;box-shadow:0 1px 3px rgba(20,24,40,.12)}
+html[data-theme="light"] .ex-task{border-color:#2A2D3E}
+html[data-theme="light"] .ex-editor,html[data-theme="light"] .ex-output,html[data-theme="light"] .q-code-input{border-color:#2A2D3E}
+html[data-theme="light"] .pe-output{border-top-color:#2A2D3E}
+html[data-theme="light"] .ex-output.ok{border-color:rgba(34,197,94,.3)}
+html[data-theme="light"] .ex-output.err{border-color:rgba(255,87,87,.3)}
+html[data-theme="light"] #console-dock .cd-out{border-top:1px solid #2A2D3E}
+html[data-theme="light"] #console-dock .cd-input-row{border-top-color:#2A2D3E}
+html[data-theme="light"] #console-dock .cd-clear{border-color:#3A3E52}
+
+/* ---- callouts / banners with hard-coded dark-theme text colours ---- */
+html[data-theme="light"] .info-box.note{color:#1E3A8A;border-color:rgba(29,78,216,.28)}
+html[data-theme="light"] .info-box.tip{color:#064E3B;border-color:rgba(0,105,79,.28)}
+html[data-theme="light"] .info-box.warn{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .info-box.danger{color:#7F1D1D;border-color:rgba(185,28,36,.28)}
+html[data-theme="light"] .prereq-note{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .q-feedback.correct{color:#14532D;border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .q-feedback.wrong{color:#7F1D1D;border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .ex-result.pass,html[data-theme="light"] .ex-result.fail{border-width:1px;border-style:solid}
+html[data-theme="light"] .ex-result.pass{border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .ex-result.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .quiz-result-banner.pass{background:linear-gradient(135deg,rgba(20,107,54,.12),rgba(0,105,79,.06));border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .quiz-result-banner.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .colab-btn{background:#FFB800;color:#1a1200}
+html[data-theme="light"] .colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(91,63,224,.07));border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .badge.colab{border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .lesson-table tr:nth-child(even) td{background:rgba(24,28,43,.03)}
+html[data-theme="light"] .back-top{box-shadow:0 4px 16px rgba(24,28,43,.15)}
+html[data-theme="light"] .ptag,
+html[data-theme="light"] .quiz-score,
+html[data-theme="light"] #mob-console-btn{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .lesson-intro{border-color:rgba(91,63,224,.25)}
+html[data-theme="light"] .project-banner{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-theme="light"] .quiz-card,html[data-theme="light"] .project-editor{box-shadow:0 1px 2px rgba(24,28,43,.05)}
+
+/* ---- layout fixes (top bar + console header) ---- */
+@media(min-width:821px){
+  #topbar,body.cd-min #topbar{margin-right:0}
+}
+.tb-chip{white-space:nowrap}
+#topbar{flex-wrap:nowrap;min-width:0}
+.cd-header{min-width:0}
+.cd-header .cd-status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cd-header .cd-title{flex-shrink:0}
+
+/* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
+html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
+html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
+</style>
+<!-- /theme:css -->
+<!-- feat:search-css:start --><style>
+.aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
+.aiml-sb:hover{border-color:var(--violet)}
+.aiml-sb:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.aiml-sb kbd{font:600 10px var(--mono,ui-monospace,monospace);color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:4px;padding:2px 5px}
+.aiml-sb-index{position:absolute;top:18px;right:124px;z-index:5}
+.wrap:has(>.aiml-sb-index){position:relative}
+.aiml-sb-fixed{position:fixed;top:12px;right:112px;z-index:300}
+.aiml-sb-nav{margin:0 8px 0 4px}
+.aiml-sb-mob{display:none;height:30px;padding:0 9px}
+.aiml-sb-mob .aiml-sb-t,.aiml-sb-mob kbd{display:none}
+@media(max-width:820px){#topbar .aiml-sb{display:none}#mob-menu .aiml-sb-mob{display:inline-flex}}
+@media(max-width:560px){.aiml-sb kbd{display:none}.aiml-sb-index{right:60px}.aiml-sb-fixed{right:54px}.aiml-sb-nav .aiml-sb-t{display:none}}
+@media print{.aiml-sb{display:none!important}}
+</style><!-- feat:search-css:end --></head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Adv 2: LLM Fine-Tuning</div>
+  <!-- feat:search-mob:start --><button type="button" class="aiml-sb aiml-sb-mob" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-mob:end --><button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Module 10: AI/ML + MLOps Mastery · Part 2 of 7</div>
+  </a>
+  <a class="sb-back" href="adv01-advanced-pytorch.html">← Adv 1: Advanced PyTorch</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Advanced 2 · Colab Notebook</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Project (Capstone)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 10</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Adv 3: LLM Inference &amp; Serving (Colab)</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Advanced 2 of 7</div>
+    <div class="tb-title">Fine-Tuning LLMs: SFT, LoRA, QLoRA</div>
+    <div class="tb-gap"></div><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-bar" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end -->
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Advanced 1 quiz in this browser yet.</span></div>
+
+  <div class="lesson-intro">
+    <h1>Advanced 2:<br/><span>Fine-Tuning LLMs: SFT, LoRA, QLoRA</span></h1>
+    <p>This chapter assumes you already know <code>pipeline()</code>, <code>AutoTokenizer</code>/<code>AutoModel</code>, tokenization for LLMs, and next-token prediction (nlp/ch28-29) — none of that is re-taught here. It also assumes attention and the general transformer architecture (dl/ch25) — referenced, not re-derived. What ch28.5 explicitly deferred ("a runnable [fine-tuning] example is out of scope") is exactly this chapter's job: real supervised fine-tuning data pipelines, the parameter-count math behind why full fine-tuning is usually the wrong tool, and LoRA/QLoRA as the actual, GPU-budget-aware way engineers do this today.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~70 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 capstone project</span>
+      <span class="badge colab">🎬 Colab Notebook</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <div class="colab-banner">
+    <div class="cb-icon">🎬</div>
+    <div>
+      <h3>PyTorch/transformers/peft/bitsandbytes can't run in this browser — use Colab</h3>
+      <p>Pyodide (the in-browser Python powering the rest of this course) can't load real PyTorch, HuggingFace <code>transformers</code>/<code>datasets</code>/<code>peft</code>, or <code>bitsandbytes</code> — several are large compiled native libraries, and <code>bitsandbytes</code>' 4-bit kernels additionally require a real CUDA GPU. Open the companion notebook in Google Colab (free, no install, optional free GPU) to actually run everything below. Every example was also run for real by the author in a CPU-only venv before being written here — see the "actual output" panels.</p>
+    </div>
+    <a class="colab-btn" href="https://colab.research.google.com/github/bosmany/ai-ml-zero-to-hero/blob/main/advanced/adv02-llm-finetuning.ipynb" target="_blank" rel="noopener">Open in Colab →</a>
+  </div>  <!-- 2.1 -->
+  <!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="IIvORO248Zs" data-title="LLM Fine Tuning Crash Course | LLM Fine Tuning Tutorial" data-chan="codebasics">Fine-tuning crash course</button><button type="button" class="vid-tab" role="tab" data-id="l5a_uKnbEr4" data-title="Part 2-LoRA,QLoRA Indepth Mathematical Intuition- Finetuning LLM Models" data-chan="Krish Naik">LoRA &amp; QLoRA math intuition</button><button type="button" class="vid-tab" role="tab" data-id="Vg3dS-NLUT4" data-title="Steps By Step Tutorial To Fine Tune LLAMA 2 With Custom Dataset Using LoRA And QLoRA Techniques" data-chan="Krish Naik">Fine-tuning LLaMA with PEFT/LoRA</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+<div class="lesson-h2">2.1 — SFT: What Fine-Tuning Actually Changes</div>
+  <p class="lesson-p">Chapter 29.5 taught prompting — zero-shot, few-shot, chain-of-thought — and Chapter 28.2 taught reusing a frozen pretrained model as-is via <code>pipeline()</code>. Both leave the model's weights untouched: you're steering behavior entirely through the text you send at inference time. <strong>Supervised Fine-Tuning (SFT)</strong> is different in kind, not degree: you run real gradient steps against the model's own weights, using your own dataset of (prompt, response) pairs, so the desired behavior gets baked into the parameters. Ask the fine-tuned model something with a bare prompt and no instructions, and it still responds the way you trained it to — because the update lives in the weights, not in whatever text happened to precede the request.</p>
+  <p class="lesson-p">This has a real cost: labeled data to curate, GPU time to spend, and careful evaluation to avoid overfitting a small dataset (exactly the warning ch28.5 gave). So the decision rule practicing engineers actually use is: reach for prompting/RAG first — it's free to iterate on, instantly reversible, and often gets you 90% of the way there. Reach for SFT when (a) you need a fixed output format, tone, or vocabulary the model won't reliably hold no matter how the prompt is engineered, (b) you have enough real labeled pairs for the task, or (c) the behavior needs to be cheap per-request — no re-sending a long system prompt or a stack of few-shot examples on every call, which is real latency and real token cost at scale. SFT still starts from a pretrained checkpoint (the transfer-learning idea from ch28.1) — you are never training a language model from nothing.</p>
+  <p class="lesson-p">Two failure modes are specific to SFT and worth naming up front. <strong>Overfitting a small SFT set</strong> looks like training loss dropping nicely while held-out perplexity gets worse — the model is memorizing your handful of examples' exact phrasing rather than learning the underlying task; more data, fewer epochs, a lower learning rate, and dropout on the adapter (Section 2.5) all push back against it. <strong>Catastrophic forgetting</strong> is the model quietly losing general capability it had before fine-tuning because the SFT set only reinforces one narrow behavior — a model fine-tuned hard on customer-support replies can lose its ability to write working code, even though nothing in the recipe was "about" code. Section 2.8 covers the concrete check: eval on a small general-capability held-out set, not only your task's own metric. Also distinguish two shapes of SFT in the wild: <em>single-task fine-tuning</em> (this chapter's running example — one narrow behavior, a small focused dataset) versus <em>instruction-tuning</em> (a large, diverse mixture of many tasks phrased as instructions, the recipe behind general-purpose chat models) — the mechanics (datasets, LoRA, evaluation) are identical; only the data's scale and diversity differ.</p>
+
+  <!-- 2.2 -->
+  <div class="lesson-h2">2.2 — Real Fine-Tuning Data: the <code>datasets</code> Library</div>
+  <p class="lesson-p">HuggingFace's <code>datasets</code> library is the standard way to load, transform, and feed real fine-tuning data — it's Arrow-backed (columnar, memory-mapped, so a dataset far bigger than RAM still works), and it plugs directly into <code>Trainer</code> or a manual training loop. For a small SFT dataset you already have in Python, skip disk formats entirely and build it in memory:</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — building and tokenizing an SFT dataset</span></div>
+    <div class="cb-code"><span class="kw">from</span> datasets <span class="kw">import</span> Dataset
+<span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer
+
+tok = AutoTokenizer.from_pretrained(<span class="st">"gpt2"</span>)
+tok.pad_token = tok.eos_token   <span class="cm"># GPT-2 has no pad token by default; reuse eos</span>
+
+<span class="cm"># SFT data: (prompt, response) pairs — neutral, task-shaped examples</span>
+data = {
+    <span class="st">"prompt"</span>: [
+        <span class="st">"Summarize: Asha finished the report early."</span>,
+        <span class="st">"Classify sentiment: I love this product"</span>,
+        <span class="st">"Classify sentiment: This is terrible"</span>,
+    ],
+    <span class="st">"response"</span>: [
+        <span class="st">"Asha completed the report ahead of schedule."</span>,
+        <span class="st">"positive"</span>,
+        <span class="st">"negative"</span>,
+    ],
+}
+ds = Dataset.from_dict(data)
+
+<span class="kw">def</span> <span class="fn">tokenize_fn</span>(example):
+    text = example[<span class="st">"prompt"</span>] + <span class="st">" -> "</span> + example[<span class="st">"response"</span>] + tok.eos_token
+    out = tok(text, truncation=<span class="kw">True</span>, max_length=<span class="nm">64</span>, padding=<span class="st">"max_length"</span>)
+    out[<span class="st">"labels"</span>] = out[<span class="st">"input_ids"</span>].copy()   <span class="cm"># causal LM: labels == input_ids</span>
+    <span class="kw">return</span> out
+
+tokenized = ds.map(tokenize_fn, remove_columns=ds.column_names)
+<span class="bi">print</span>(tokenized[<span class="nm">0</span>].keys())   <span class="cm"># dict_keys(['input_ids','attention_mask','labels'])</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>Verified real output</strong> — this exact code was run in a CPU-only venv: <code>dict_keys(['input_ids', 'attention_mask', 'labels'])</code>. <code>.map()</code> applies <code>tokenize_fn</code> row-by-row (or in batches with <code>batched=True</code> for speed on larger datasets) and <code>remove_columns</code> drops the original text columns once you only need token IDs.</div></div>
+  <p class="lesson-p">The toy dataset above is small enough to build by hand in a Python dict — a real instruction-tuning run instead pulls a genuine labeled dataset straight off the Hub with <code>load_dataset("dataset-name")</code> (real-world examples include broad instruction-following sets like Alpaca-style or Dolly-style collections, or a narrower, task-specific set you curated yourself for single-task fine-tuning). The mechanics don't change between the two: <code>load_dataset</code> returns the same <code>Dataset</code>/<code>DatasetDict</code> object <code>Dataset.from_dict</code> does, so the exact same <code>tokenize_fn</code> and <code>.map()</code> call from above applies whether the underlying data is three toy rows or three hundred thousand real ones — only the dataset's SIZE changes whether batched mapping and streaming (mentioned below) are worth the extra complexity.</p>
+  <p class="lesson-p">For collation (batching variable-length examples together), <code>DataCollatorForLanguageModeling(tok, mlm=False)</code> handles causal-LM padding and label-masking automatically instead of the fixed <code>padding="max_length"</code> above — fixed-length padding wastes compute on short examples but keeps every batch the same shape (simpler for a first pass); dynamic padding is the standard choice once throughput matters. Always hold out a validation split (<code>ds.train_test_split(test_size=0.1)</code>) before training — the k-fold/train-val-test mechanics themselves are Chapter 19/33's job, not repeated here.</p>
+  <p class="lesson-p">One detail the simplified <code>tokenize_fn</code> above glosses over: real SFT recipes usually mask the PROMPT portion of <code>labels</code> with <code>-100</code> (PyTorch's cross-entropy "ignore this position" value), so the loss only scores the model's ability to predict the RESPONSE tokens, not the prompt tokens it was simply given. Without masking, the model spends some of its limited gradient signal "learning" to predict text it will always be handed anyway, which is wasted capacity on a small SFT set. In practice: tokenize the prompt alone first to get its length, tokenize the full <code>prompt + response</code> text, then set <code>labels[:prompt_len] = -100</code> before training. For multi-turn chat-style data (system/user/assistant turns), the same masking idea applies per-turn via the tokenizer's chat template — <code>datasets.map()</code>, batched with <code>batched=True</code> for real throughput, or a streaming <code>IterableDataset</code> for corpora too large to fit in memory, are the two knobs to reach for as data size grows; the toy dataset in this chapter is small enough that neither is needed yet.</p>
+
+  <!-- 2.3 -->
+  <div class="lesson-h2">2.3 — Why Full Fine-Tuning Is Usually Wasteful</div>
+  <p class="lesson-p">Training with Adam in mixed precision needs more than just the model's weights in memory. The commonly-used rule of thumb is about <strong>16 bytes per trainable parameter</strong>: fp16 weights (2 bytes) + fp16 gradients (2 bytes) + an fp32 master copy of the weights (4 bytes) + Adam's fp32 first moment (4 bytes) + Adam's fp32 second moment (4 bytes) = 16 bytes/param, before a single activation is stored. Full fine-tuning means every one of the model's parameters is trainable, so that 16x multiplier applies to the WHOLE model:</p>
+
+  <div class="tt-wrap"><table class="lesson-table">
+    <tr><th>Model size</th><th>Total params</th><th>fp16 weights only</th><th>Full fine-tune (~16 B/param)</th></tr>
+    <tr><td>7B</td><td>7,000,000,000</td><td>14 GB</td><td class="highlight">~112 GB</td></tr>
+    <tr><td>13B</td><td>13,000,000,000</td><td>26 GB</td><td class="highlight">~208 GB</td></tr>
+  </table></div>
+  <p class="lesson-p">112–208 GB (before activations) doesn't fit on any single consumer or even most datacenter GPUs — that's the entire reason <strong>PEFT</strong> (Parameter-Efficient Fine-Tuning) exists as a family of methods: freeze the base model, add a small number of new trainable parameters, and get most of the quality gain of full fine-tuning at a tiny fraction of the memory. The 16-bytes/param figure isn't a worst case either — some production setups also keep an EMA (exponential moving average) copy of the weights for a smoother final checkpoint, pushing the real number higher still. LoRA is the technique that won this family; a few earlier relatives are worth knowing the names of even without a deep dive: <strong>adapters</strong> insert small trainable bottleneck layers between existing frozen layers (extra depth, so extra inference latency unless removed); <strong>prefix-tuning</strong> prepends trainable "virtual tokens" to the input at every layer instead of touching any weight; <strong>BitFit</strong> trains only the bias terms. LoRA won out because its adapter can be mathematically merged back into the original weight matrices after training — meaning, unlike adapters or prefix-tuning, a LoRA-tuned model has exactly zero extra inference latency once merged (Section 2.5).</p>
+
+  <!-- 2.4 -->
+  <div class="lesson-h2">2.4 — LoRA: Low-Rank Adapters</div>
+  <p class="lesson-p">LoRA's insight: instead of learning a full update <code>ΔW</code> to a weight matrix <code>W</code> (shape <code>d_out × d_in</code>), freeze <code>W</code> entirely and learn <code>ΔW</code> as the product of two small matrices, <code>ΔW = B·A</code>, where <code>B</code> is <code>d_out × r</code> and <code>A</code> is <code>r × d_in</code>, with rank <code>r</code> chosen tiny (commonly 4–64) relative to <code>d_in</code>/<code>d_out</code>. The forward pass becomes <code>h = Wx + (B·A)x</code>; <code>B</code> is initialized to all zeros so training starts as a no-op identical to the frozen model, and <code>A</code> is initialized with small random values.</p>
+
+  <div class="diagram"><div class="dg-t">LoRA rank decomposition — frozen weight + trainable low-rank update</div><pre> Frozen pretrained weight               Trainable LoRA adapter
+ ┌─────────────────────┐                ┌───┐      ┌──────────────────┐
+ │                     │                │ B │      │        A          │
+ │   W   (d_out x d_in) │       +        │(d_out│  x   │   (r x d_in)     │
+ │      FROZEN          │                │ x r) │      │   r << d_in,d_out │
+ │                     │                └───┘      └──────────────────┘
+ └─────────────────────┘                zero-init         small-random-init
+
+              h = W x + (B A) x     ◄── only B and A get gradients
+              at inference: merge into W' = W + B A  (zero extra latency)</pre></div>
+
+  <p class="lesson-p">The parameter savings are the whole point — for a <code>d_in = d_out = 4096</code> projection (a realistic attention-projection shape in a 7B-class model) with <code>r = 8</code>: <code>full_params = 4096×4096 = 16,777,216</code> vs. <code>lora_params = 8×4096 + 8×4096 = 65,536</code> — about <strong>256x fewer trainable parameters for that layer</strong>. The numpy demo below shows the mechanism is real, not hand-waving: when the actual needed update genuinely is low-rank, a rank-<code>r</code> LoRA reconstructs it exactly through gradient descent alone.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference numpy — LoRA reconstructing a low-rank update via gradient descent</span></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+np.random.seed(<span class="nm">0</span>)
+
+d_in, d_out, r = <span class="nm">8</span>, <span class="nm">8</span>, <span class="nm">2</span>
+
+<span class="cm"># the "true" weight update a fine-tune would need to learn (constructed rank-2)</span>
+B_true = np.random.randn(d_out, r) * <span class="nm">0.5</span>
+A_true = np.random.randn(r, d_in) * <span class="nm">0.5</span>
+delta_W_true = B_true @ A_true
+
+<span class="cm"># LoRA parameterization, trained from scratch with plain gradient descent</span>
+B = np.zeros((d_out, r))                       <span class="cm"># zero-init, matches real LoRA</span>
+A = np.random.randn(r, d_in) / np.sqrt(d_in)   <span class="cm"># small-random-init</span>
+
+lr = <span class="nm">0.5</span>
+<span class="kw">for</span> step <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2000</span>):
+    delta_W = B @ A
+    diff = delta_W - delta_W_true
+    grad_B = (<span class="nm">2</span>/diff.size) * diff @ A.T
+    grad_A = (<span class="nm">2</span>/diff.size) * B.T @ diff
+    B -= lr*grad_B; A -= lr*grad_A
+
+<span class="bi">print</span>(<span class="st">"reconstruction error:"</span>, np.mean((B@A - delta_W_true)**<span class="nm">2</span>))
+full_params = d_in*d_out
+lora_params = r*d_in + r*d_out
+<span class="bi">print</span>(<span class="bi">f"full={full_params}, lora={lora_params}, ratio={lora_params/full_params:.3f}"</span>)</div>
+  </div>
+  <div class="out-pre">reconstruction error: 1.01e-30
+full=64, lora=32, ratio=0.500</div>
+  <p class="lesson-p">Real fine-tuning updates aren't exactly low-rank — but the LoRA paper's empirical finding (and the reason it works so well in practice) is that they're well-approximated by a low-rank update, so a small <code>r</code> captures most of the useful signal at a fraction of the parameters.</p>
+  <p class="lesson-p">Two practical choices come up on every real LoRA setup. <strong>Where to apply it:</strong> the common default is attention projections only (query/value, or query/key/value/output — see 2.5's <code>target_modules</code>), which already captures most of the quality gain at the lowest parameter cost; also targeting the feed-forward/MLP projections adds more trainable parameters and can close a further quality gap on harder tasks, at a proportionally higher (but still tiny relative to full fine-tuning) memory cost. <strong>How to pick the rank <code>r</code>:</strong> start small (8–16), train, and evaluate on a held-out set — only raise <code>r</code> if the model is clearly underfitting the task (training loss won't drop further even with more steps); Exercise 4 works through a real table showing this exact diminishing-returns pattern, where quadrupling <code>r</code> barely moves perplexity once the right modules are already covered. Going needlessly high defeats the entire point of using LoRA in the first place — the parameter-efficiency IS the feature, not a side effect.</p>
+
+  <!-- 2.5 -->
+  <div class="lesson-h2">2.5 — Configuring LoRA With <code>peft</code></div>
+  <p class="lesson-p">HuggingFace's <code>peft</code> library wraps this into <code>LoraConfig</code> + <code>get_peft_model()</code>. The field that actually trips people up is <code>target_modules</code>: it must match the REAL module names inside the specific architecture you're wrapping — BERT-family models expose separate <code>query</code>/<code>key</code>/<code>value</code> Linear layers, but GPT-2 fuses all three into a single <code>Conv1D</code> layer named <code>c_attn</code>, and Llama-family models use <code>q_proj</code>/<code>k_proj</code>/<code>v_proj</code>/<code>o_proj</code>. Always check <code>model.named_modules()</code> first rather than copying a target list from a tutorial for a different architecture — it's a two-line, always-correct way to answer "what is this specific model's attention projection actually called":</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — discovering the real target_modules names</span></div>
+    <div class="cb-code">names = <span class="bi">set</span>()
+<span class="kw">for</span> n, m <span class="kw">in</span> model.named_modules():
+    <span class="kw">if</span> m.__class__.__name__ <span class="kw">in</span> (<span class="st">"Linear"</span>,<span class="st">"Conv1D"</span>):
+        names.add(n.split(<span class="st">"."</span>)[-<span class="nm">1</span>])
+<span class="bi">print</span>(names)</div>
+  </div>
+  <div class="out-pre">{'c_fc', 'c_proj', 'c_attn', 'lm_head'}</div>
+  <p class="lesson-p">On this GPT-2-shaped model, that confirms <code>c_attn</code> is the (only) fused attention projection — <code>c_fc</code>/<code>c_proj</code> belong to the feed-forward block (Section 2.4's "attention-only vs. also MLP" trade-off), and <code>lm_head</code> is the output projection, not usually LoRA-adapted.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — LoraConfig on a GPT-2-style model</span></div>
+    <div class="cb-code"><span class="kw">from</span> peft <span class="kw">import</span> LoraConfig, get_peft_model, TaskType
+
+lora_cfg = LoraConfig(
+    r=<span class="nm">8</span>, lora_alpha=<span class="nm">16</span>, lora_dropout=<span class="nm">0.05</span>,
+    target_modules=[<span class="st">"c_attn"</span>],       <span class="cm"># GPT-2's fused QKV projection</span>
+    task_type=TaskType.CAUSAL_LM,
+)
+peft_model = get_peft_model(model, lora_cfg)
+peft_model.print_trainable_parameters()</div>
+  </div>
+  <div class="out-pre">trainable params: 8,192 || all params: 6,846,080 || trainable%: 0.1197</div>
+  <p class="lesson-p"><code>lora_alpha</code> scales the adapter's contribution (<code>ΔW</code> is applied as <code>(alpha/r)·B·A</code>) — a common convention is <code>alpha = 2×r</code>. <code>lora_dropout</code> regularizes the tiny adapter against overfitting a small SFT set. Once training is done, <code>model.merge_and_unload()</code> folds <code>B·A</code> back into <code>W</code>, so a served, merged model has zero extra inference latency versus the original — this connects directly to Adv 3's serving content.</p>
+  <p class="lesson-p">A few more <code>LoraConfig</code> fields worth knowing rather than leaving at their defaults: <code>bias</code> controls whether bias terms are also trained (<code>"none"</code> is the usual choice — biases are a tiny fraction of parameters, not worth the extra bookkeeping); <code>modules_to_save</code> lists any modules that should be fully trained (not LoRA-adapted) alongside the frozen base — the classic case is a freshly-added classification head, which has no pretrained weights to preserve and needs real gradients, not a low-rank update on top of random init. And note the deliberate choice NOT to always merge: a single frozen base model can host many different LoRA adapters simultaneously (one per customer, one per task) if you keep them unmerged and swap which adapter is active per request — a multi-tenant serving pattern Adv 3 picks up.</p>
+
+  <!-- 2.6 -->
+  <div class="lesson-h2">2.6 — QLoRA: Quantize the Frozen Base, Keep the Adapters Full Precision</div>
+  <p class="lesson-p">QLoRA adds one more idea on top of LoRA: quantize the FROZEN base model's weights down to 4 bits (HuggingFace/<code>bitsandbytes</code>' <strong>NF4</strong> format — a data type tuned for the roughly-normal distribution of trained neural network weights, plus "double quantization" that also quantizes the per-block scale constants for a further small savings). Only the frozen base gets quantized; the LoRA adapters you actually train still compute in bf16/fp16 full precision, so the parameters that are learning don't inherit the quantization's rounding error — <code>bitsandbytes</code> implements the CUDA kernels that dequantize each 4-bit block on the fly during the matmul, transparently to the rest of the model.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference-only — needs a real CUDA GPU, shown as correct syntax</span></div>
+    <div class="cb-code"><span class="kw">from</span> transformers <span class="kw">import</span> BitsAndBytesConfig, AutoModelForCausalLM
+
+bnb_cfg = BitsAndBytesConfig(
+    load_in_4bit=<span class="kw">True</span>,
+    bnb_4bit_quant_type=<span class="st">"nf4"</span>,
+    bnb_4bit_use_double_quant=<span class="kw">True</span>,
+    bnb_4bit_compute_dtype=torch.bfloat16,   <span class="cm"># LoRA adapters compute in bf16</span>
+)
+base = AutoModelForCausalLM.from_pretrained(model_id, quantization_config=bnb_cfg, device_map=<span class="st">"auto"</span>)
+peft_model = get_peft_model(base, lora_cfg)   <span class="cm"># same LoraConfig as 2.5</span></div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Needs a real GPU</strong> — <code>bitsandbytes</code>' 4-bit kernels require CUDA; this cannot be executed or verified on this CPU-only box. The syntax above is correct and matches <code>bitsandbytes</code> 0.4x/<code>transformers</code> 5.x usage.</div></div>
+  <p class="lesson-p">"Double quantization" is worth unpacking briefly since it's easy to gloss over: NF4 quantizes each small block of weights (e.g. 64 values) to 4-bit codes plus one fp32 scale constant per block — but storing a full fp32 scale per 64 values is itself non-trivial overhead at model scale, so QLoRA quantizes THOSE scale constants too (to 8-bit), shaving roughly another 0.4 bits per parameter off the total. It's a small optimization on its own, but it's representative of why QLoRA needed real engineering, not just "cast to int4" — naive 4-bit quantization of a full model without this care measurably hurts quality; NF4 plus double quantization is tuned specifically to keep a quantized frozen base close to its fp16 quality. In practice, this combination is exactly what lets a single 24 GB consumer GPU fine-tune models in the 13B–33B range that would otherwise need multiple datacenter GPUs.</p>
+  <p class="lesson-p">Be honest with yourself about the trade-off, though: quantizing the frozen base to 4-bit is not entirely free — the original QLoRA paper's own benchmarks show it recovering the large majority of full-precision fine-tuning quality, not literally all of it, and the residual gap varies by task and model. The right default stance is the same one this whole chapter has been building toward: try the cheaper option (LoRA on an fp16 base) first if it fits your GPU at all, and reach for QLoRA specifically when the fp16 base genuinely doesn't fit — not as a default "smaller is always fine" assumption. Section 2.8's before/after evaluation habit is exactly how you'd catch a real quality regression if one shows up.</p>
+
+  <!-- 2.7 -->
+  <div class="lesson-h2">2.7 — GPU Memory Budgeting, Worked</div>
+  <p class="lesson-p">Putting 2.3–2.6 together into one explicit budget (weights + optimizer states only — activation memory is separate, scales with batch size × sequence length × hidden size × layer count, and is exactly what gradient checkpointing, covered in Adv 1, is for):</p>
+
+  <div class="tt-wrap"><table class="lesson-table">
+    <tr><th>Method</th><th>7B model</th><th>13B model</th><th>Why</th></tr>
+    <tr><td>Full fine-tune (fp16+fp32 Adam)</td><td class="highlight">~112 GB</td><td class="highlight">~208 GB</td><td>16 B/param × ALL params</td></tr>
+    <tr><td>LoRA (fp16 frozen base + r=8-16 adapters)</td><td class="highlight">~14.2 GB</td><td class="highlight">~26.2 GB</td><td>2 B/param base (frozen, no optimizer) + ~16 B/param on ~0.1-0.5% of params</td></tr>
+    <tr><td>QLoRA (4-bit NF4 frozen base + same adapters)</td><td class="highlight">~4.1 GB</td><td class="highlight">~7.2 GB</td><td>~0.5 B/param base (quantized) + same tiny adapter overhead</td></tr>
+  </table></div>
+
+  <div class="diagram"><div class="dg-t">Peak weights+optimizer memory by method (7B model, 1 char ≈ 2 GB)</div><pre> Full fine-tune   ████████████████████████████████████████████████████  ~112 GB
+ LoRA             ███████                                                 ~14.2 GB
+ QLoRA            ██                                                     ~4.1 GB</pre></div>
+  <p class="lesson-p">This is exactly why LoRA makes a single-GPU (16-24 GB) fine-tune of a 7B model realistic, and why QLoRA is the technique the original paper used to fine-tune models as large as 65B on a single 48 GB GPU. Numbers are back-of-envelope (a "16 bytes/param" and "~0.5 bytes/param for 4-bit" rule of thumb) — real deployments still need headroom for activations, the tokenizer/embedding tables, and framework overhead.</p>
+  <p class="lesson-p">Activation memory is the piece deliberately left out of the table above, and it deserves its own back-of-envelope: roughly, activation memory scales with <code>batch_size × sequence_length × hidden_size × num_layers</code> (times a small constant for the intermediate tensors kept per layer for backprop). Doubling either your batch size or your sequence length roughly doubles activation memory — which is why long-context fine-tuning is disproportionately expensive even with LoRA/QLoRA already shrinking the weights+optimizer side of the budget. <strong>Gradient checkpointing</strong> (Adv 1) trades this off directly: instead of storing every layer's activations for the backward pass, it recomputes them on the fly, cutting activation memory substantially at the cost of roughly one extra forward pass per training step — a trade worth making whenever activation memory, not weights, is the binding constraint.</p>
+  <p class="lesson-p">Mapped onto real hardware SKUs (DevOps-experienced readers will already know these from provisioning, not re-explained here): a 16 GB card (e.g. a T4) is enough for LoRA on a 7B model but not full fine-tuning of anything past a small model; a 24 GB consumer or datacenter card (e.g. an RTX 4090 or an A10) comfortably fits QLoRA on 13B–33B models, or LoRA on 7B with real headroom for activations; an 80 GB card (an A100/H100) is where full fine-tuning of a 7B model finally becomes possible on a single GPU, and where LoRA on models in the tens of billions of parameters has real room to spare. None of this changes the provisioning mechanics you already know — it changes which model sizes are even worth trying to fit before reaching for multi-GPU sharding.</p>
+
+  <!-- 2.8 -->
+  <div class="lesson-h2">2.8 — Evaluating a Fine-Tuned Model</div>
+  <p class="lesson-p"><strong>Perplexity</strong> is the standard first metric for a causal LM: <code>perplexity = exp(mean cross-entropy loss)</code> over held-out examples — lower is better, and it directly reflects how "surprised" the model is by the real next tokens. Always measure it on a held-out split never used for training or checkpoint selection (the same discipline as any other held-out eval, ch19/ch33 — not repeated here).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Colab / real Python — before/after perplexity on the tiny SFT run from 2.5</span></div>
+    <div class="cb-code"><span class="kw">import</span> math, torch
+
+<span class="kw">def</span> <span class="fn">eval_loss</span>(m, tokenized_ds):
+    m.<span class="bi">eval</span>()
+    total, n = <span class="nm">0.0</span>, <span class="nm">0</span>
+    <span class="kw">with</span> torch.no_grad():
+        <span class="kw">for</span> ex <span class="kw">in</span> tokenized_ds:
+            ids = torch.tensor([ex[<span class="st">"input_ids"</span>]]); labels = torch.tensor([ex[<span class="st">"labels"</span>]])
+            out = m(input_ids=ids, labels=labels)
+            total += out.loss.item(); n += <span class="nm">1</span>
+    <span class="kw">return</span> total/n
+
+before = eval_loss(peft_model, tokenized)
+<span class="bi">print</span>(<span class="bi">f"before: loss={before:.3f} ppl={math.exp(before):.1f}"</span>)
+<span class="cm"># ... train (2.5's loop, or Trainer) ...</span>
+after = eval_loss(peft_model, tokenized)
+<span class="bi">print</span>(<span class="bi">f"after:  loss={after:.3f} ppl={math.exp(after):.1f}"</span>)</div>
+  </div>
+  <div class="out-pre">before: loss=10.140 ppl=25337.4
+after:  loss=8.922 ppl=7496.0</div>
+  <p class="lesson-p">That's a real captured run: a tiny (6.8M-parameter, randomly-initialized) 2-layer GPT-2-shaped model, LoRA-tuned for 30 epochs on 8 toy examples, on CPU, in under 30 seconds — perplexity drops by more than 3x. For task-shaped outputs (like the sentiment examples above), also track a task metric directly — exact-match / accuracy on held-out prompts — rather than perplexity alone; the full rigor of calibration, slicing, and LLM-as-judge evaluation is Adv 4's job (referenced, not repeated here).</p>
+  <p class="lesson-p">Two more evaluation habits catch problems perplexity alone misses. First, actively check for the catastrophic forgetting named in Section 2.1: run the SAME before/after comparison on a small held-out set of GENERAL prompts unrelated to the fine-tuning task — if general perplexity got noticeably worse while task perplexity improved, the fine-tune is trading away capability you didn't intend to touch, and the fix is usually less aggressive training (fewer epochs, lower learning rate, or a lower LoRA rank) rather than more data on the narrow task. Second, don't trust a single run: the same config trained with a different random seed can land at a meaningfully different final metric on a small dataset — reporting one number from one run risks mistaking noise for a real improvement, which is precisely the discipline Adv 7 (multiple seeds, confidence intervals, the multiple-comparisons trap) covers in depth.</p>
+
+  <!-- 2.9 -->
+  <div class="lesson-h2">2.9 — Checkpointing Strategy for Long Fine-Tune Runs</div>
+  <p class="lesson-p">The general mechanics of checkpointing and resuming a PyTorch training run (optimizer state, step count, RNG state) are Adv 1's job — referenced, not repeated. What's specific to LoRA: <code>peft_model.save_pretrained(dir)</code> saves ONLY the adapter weights — typically a few MB, versus gigabytes for a full model checkpoint — so you can afford to checkpoint far more often than a full fine-tune ever could. To resume or serve, reload the frozen base once and reattach the adapter: <code>PeftModel.from_pretrained(base_model, adapter_dir)</code>.</p>
+  <p class="lesson-p">The same "only the adapter is small" property extends to the optimizer state itself: since Adam's momentum and variance are only tracked for the trainable (adapter) parameters, resuming a LoRA run means restoring optimizer state sized to a few tens of thousands to a few million numbers, not billions — the general resume mechanics from Adv 1 apply unchanged, they're simply operating over a dramatically smaller state to begin with. This is one more instance of the same theme running through this whole chapter: LoRA doesn't need a special-cased version of every piece of standard training infrastructure, it just makes every piece of that infrastructure cheaper by shrinking what's trainable.</p>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body"><strong>Keep more than just "last"</strong> — save the N most recent checkpoints AND the best-eval checkpoint (<code>load_best_model_at_end</code> in <code>Trainer</code>, or the manual equivalent: track best eval loss, save separately). A long run can regress or diverge late; cheap adapter-only checkpoints make it free to fall back.</div></div>
+  <p class="lesson-p">The disk-cost difference is concrete, not just theoretical: for a 7B-parameter base model, a single full fp16 checkpoint is ~14 GB, so checkpointing every few hundred steps over a long run quickly becomes a real storage-management problem on its own. A LoRA adapter targeting the attention projections at rank 8–16, by contrast, is typically only a few megabytes to a few tens of megabytes — cheap enough to checkpoint every eval step, keep dozens of them around, and even version them like ordinary small config files. Whatever experiment tracker records these runs' metrics over time is a separate concern already covered in `mlops-practice/mp02` (referenced, not repeated) — this section is specifically about what gets written to disk and how often, not about the dashboard that watches it.</p>
+
+  <!-- 2.10 -->
+  <div class="lesson-h2">2.10 — The Full Pipeline</div>
+  <p class="lesson-p">Sections 2.1–2.9 chain into one pipeline — this is exactly what the Project below builds end to end:</p>
+  <p class="lesson-p">Treat the whole thing as a loop, not a one-shot script: run the pipeline once end to end with a small, cheap config (small rank, attention-only <code>target_modules</code>, a quick eval), look at the before/after numbers honestly, and only then decide what's worth changing — more data if the model is clearly underfitting even the training set, a higher rank or wider <code>target_modules</code> if held-out perplexity plateaus well above the baseline while training loss keeps dropping (a sign the adapter itself is the bottleneck, not the data), or QLoRA specifically if the NEXT experiment's base model no longer fits in GPU memory at all. Each iteration is cheap precisely because the pieces that matter — the adapter checkpoint, the eval script, the before/after comparison — are all small and fast by construction; that fast loop is the entire practical argument for PEFT methods over full fine-tuning, independent of the raw memory math in Section 2.3.</p>
+  <div class="diagram"><div class="dg-t">SFT/LoRA/QLoRA fine-tuning pipeline</div><pre> (prompt,response) ──► datasets.map()    ──► LoraConfig + get_peft_model  ──► train adapters only
+    raw examples          tokenize+collate       (optionally 4-bit base:              │
+                                                   QLoRA, GPU-only)                    ▼
+                                                                          save_pretrained(adapter_dir)
+                                                                            (few MB, cheap + frequent)
+                                                                                       │
+                                          ┌────────────────────────────────────────────┤
+                                          ▼                                            ▼
+                            eval: perplexity + task metric              merge_and_unload() or keep adapter
+                            (before vs. after, held-out split)             separate for multi-adapter serving
+                                                                                       │
+                                                                                       ▼
+                                                              FastAPI serving wrapper (ch41 patterns)
+                                                              + a load-testing plan  ──► Adv 3 (batching, KV-cache)</pre></div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Advanced 2 Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>SFT</strong> updates the model's own weights on your (prompt, response) pairs — unlike prompting, the behavior survives a bare prompt with no instructions.</div></li>
+    <li data-n="2"><div><strong>datasets.map()</strong> builds and tokenizes real fine-tuning data; causal-LM labels are just the input IDs shifted internally by the loss function.</div></li>
+    <li data-n="3"><div>Full fine-tuning costs roughly <strong>16 bytes/parameter</strong> (fp16 weights+grads + fp32 master+Adam m+v) — infeasible for 7B+ models on a single GPU.</div></li>
+    <li data-n="4"><div><strong>LoRA</strong> freezes <code>W</code> and learns <code>ΔW = B·A</code> at rank <code>r &lt;&lt; d</code> — real ~256x parameter savings on a typical projection shape, verified with a real GPT-2-shaped fine-tune (perplexity 25337 → 7496).</div></li>
+    <li data-n="5"><div><strong>QLoRA</strong> quantizes the frozen base to 4-bit NF4 (GPU-only) while adapters stay full precision — ~4.1 GB vs. ~112 GB for a 7B model's full fine-tune.</div></li>
+    <li data-n="6"><div>Checkpoint <strong>adapters, not the full model</strong> — a few MB, so frequent + best-eval checkpoints are essentially free.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Since PyTorch/transformers/peft can't execute in this browser, these are checked by pattern-matching the CODE you write (not by running it) — write real, correct code, then paste it into the Colab notebook to see it actually run.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">LoRA Parameter Count vs. Full Fine-Tuning</div>
+        <div class="ex-desc">Compute LoRA parameter count for a given layer shape and rank, and compare to full fine-tuning.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+A projection layer has d_in = 4096, d_out = 4096 (typical attention-projection
+shape in a 7B-class model). Using LoRA rank r = 8, write code that:
+  1. sets d_in = 4096, d_out = 4096, r = 8
+  2. computes full_params = d_in * d_out
+  3. computes lora_params = r*d_in + r*d_out
+  4. computes ratio = lora_params / full_params
+  5. prints full_params, lora_params, and ratio</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code"># d_in = 4096
+# d_out = 4096
+# r = 8
+# full_params = d_in * d_out
+# lora_params = r*d_in + r*d_out
+# ratio = lora_params / full_params
+# print(full_params, lora_params, ratio)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(1)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Write a datasets Map/Tokenize Function</div>
+        <div class="ex-desc">Tokenize (prompt, response) pairs for causal-LM fine-tuning.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Given a Dataset ds with columns "prompt" and "response", and a loaded
+tokenizer tok, write tokenize_fn(example) that:
+  1. builds text = example["prompt"] + " -> " + example["response"] + tok.eos_token
+  2. calls out = tok(text, truncation=True, max_length=64, padding="max_length")
+  3. sets out["labels"] = out["input_ids"].copy()
+  4. returns out
+Then call: tokenized = ds.map(tokenize_fn, remove_columns=ds.column_names)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># def tokenize_fn(example):
+#     text = example["prompt"] + " -> " + example["response"] + tok.eos_token
+#     out = tok(text, truncation=True, max_length=64, padding="max_length")
+#     out["labels"] = out["input_ids"].copy()
+#     return out
+#
+# tokenized = ds.map(tokenize_fn, remove_columns=ds.column_names)
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(2)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Configure a LoraConfig for a Memory Budget</div>
+        <div class="ex-desc">You're fine-tuning a 7B model on a single 16 GB GPU — the frozen fp16 base alone takes ~14 GB.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Write a LoraConfig for peft targeting only the attention query/value
+projections (smallest reasonable adapter for this memory budget) with:
+  r=8, lora_alpha=16, lora_dropout=0.05,
+  target_modules=["q_proj","v_proj"], task_type=TaskType.CAUSAL_LM
+Then wrap `model` with get_peft_model and call .print_trainable_parameters()</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code"># from peft import LoraConfig, get_peft_model, TaskType
+#
+# lora_cfg = LoraConfig(
+#     r=8, lora_alpha=16, lora_dropout=0.05,
+#     target_modules=["q_proj","v_proj"], task_type=TaskType.CAUSAL_LM,
+# )
+# peft_model = get_peft_model(model, lora_cfg)
+# peft_model.print_trainable_parameters()
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(3)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Interpret a Before/After Eval Table</div>
+        <div class="ex-desc">Given four rank/target-module configs and their held-out perplexity, recommend one.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+Baseline (no fine-tune) held-out perplexity: 40.0
+  Config A: r=4,  target=[q_proj,v_proj]                trainable=0.03%  ppl=18.2
+  Config B: r=8,  target=[q_proj,v_proj]                trainable=0.06%  ppl=15.1
+  Config C: r=8,  target=[q_proj,k_proj,v_proj,o_proj]  trainable=0.12%  ppl=11.4
+  Config D: r=32, target=[q_proj,k_proj,v_proj,o_proj]  trainable=0.49%  ppl=11.3
+
+Config D barely beats C despite 4x the rank and 4x the trainable params
+(diminishing returns). Write the LoraConfig you'd actually ship, matching
+Config C, plus a one-line comment explaining why NOT D.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code"># Config D's tiny gain (11.3 vs 11.4 ppl) isn't worth 4x the trainable
+# params and adapter memory -- diminishing returns past covering all
+# four attention projections at a moderate rank.
+#
+# lora_cfg = LoraConfig(
+#     r=8, lora_alpha=16, lora_dropout=0.05,
+#     target_modules=["q_proj","k_proj","v_proj","o_proj"],
+#     task_type=TaskType.CAUSAL_LM,
+# )
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(4)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Debug a Broken PEFT Config</div>
+        <div class="ex-desc">A LoraConfig copied from a BERT tutorial fails on a GPT-2-style model.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+This raises: NoMatchingPeftModuleError: Target modules {'query', 'value'}
+not found in the base model.
+
+  BROKEN: LoraConfig(r=8, lora_alpha=16, target_modules=["query","value"],
+                      task_type=TaskType.CAUSAL_LM)
+
+GPT-2's attention block is a single fused Conv1D layer named c_attn, not
+separate query/key/value Linear layers like BERT. Fix target_modules,
+keeping everything else the same.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># lora_cfg = LoraConfig(
+#     r=8, lora_alpha=16,
+#     target_modules=["c_attn"],
+#     task_type=TaskType.CAUSAL_LM,
+# )
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(5)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Project (Capstone): <span>LLM Fine-Tuning End to End</span></h2>
+    <p>This IS the LLM Fine-Tuning capstone — no separate file. Chain every piece from the lesson into one real pipeline: dataset → preprocessing → LoRA/QLoRA config → an actual fine-tuning run → evaluation → quantization (reference) → a serving sketch → a short performance-testing plan. Make as much of it actually run as is honest — the core training/eval loop below is real and CPU-feasible; quantized inference and full-scale serving load tests are clearly marked GPU/Colab-only.</p>
+    <div class="project-tags">
+      <span class="ptag">datasets</span>
+      <span class="ptag">peft / LoRA</span>
+      <span class="ptag">perplexity eval</span>
+      <span class="ptag">FastAPI sketch</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build (in the Colab notebook)</h3>
+    <ul class="spec-list">
+      <li><strong>Dataset:</strong> an 8+ example (prompt, response) SFT set (neutral names, mixed tasks — summarize/classify/translate-style, like the lesson's toy set), tokenized via <code>datasets.map()</code> (Exercise 2's function)</li>
+      <li><strong>Model:</strong> a small causal LM you can actually train on CPU — either a tiny <code>GPT2Config</code> (n_embd=128, n_layer=2, n_head=4) with real random init, or a truly tiny hub model — plus a real GPT-2 tokenizer</li>
+      <li><strong>LoRA config:</strong> <code>LoraConfig(r=8, lora_alpha=16, lora_dropout=0.05, target_modules=["c_attn"], task_type=TaskType.CAUSAL_LM)</code>, wrapped with <code>get_peft_model</code>; print trainable-parameter count and % (should be well under 1%)</li>
+      <li><strong>Training run:</strong> a real loop — <code>optimizer.zero_grad() → out = peft_model(input_ids=ids, labels=labels) → out.loss.backward() → optimizer.step()</code> — over the trainable (adapter-only) parameters, for enough epochs that loss visibly drops</li>
+      <li><strong>Evaluation:</strong> perplexity before vs. after (Section 2.8's <code>eval_loss</code>), reported as a real number, not a guess</li>
+      <li><strong>Quantization (reference, GPU-only):</strong> the <code>BitsAndBytesConfig</code> from 2.6, explicitly marked as untested here — explain in a comment why it needs a real GPU</li>
+      <li><strong>Serving sketch (reference, points at ch41):</strong> a short FastAPI <code>/generate</code> endpoint loading the base model + <code>PeftModel.from_pretrained(base, adapter_dir)</code> — reuse ch41's app/Docker/deploy patterns, don't re-explain them; call out honestly that one-request-at-a-time <code>generate()</code> has no batching or KV-cache reuse across requests (that's Adv 3's job)</li>
+      <li><strong>Performance-testing plan (short, not full code):</strong> warm up the model once; use the venv's <code>httpx</code> to fire sequential vs. concurrent requests against the sketch endpoint; record wall-clock per request; report P50/P95 latency and requests/sec, comparing 1-at-a-time vs. concurrent</li>
+    </ul>
+  </div>
+
+  <div class="colab-banner">
+    <div class="cb-icon">🎬</div>
+    <div>
+      <h3>This project runs in the Colab notebook, not this page</h3>
+      <p>Open the notebook, find the "Project" section at the bottom, and fill in the TODOs there. Come back here and paste your final code below once it runs and perplexity has actually dropped.</p>
+    </div>
+    <a class="colab-btn" href="https://colab.research.google.com/github/bosmany/ai-ml-zero-to-hero/blob/main/advanced/adv02-llm-finetuning.ipynb" target="_blank" rel="noopener">Open in Colab →</a>
+  </div>
+
+  <div class="project-spec">
+    <h3>✅ Confirm and Continue</h3>
+    <div class="ex-editor-wrap" style="padding:0">
+      <textarea class="ex-editor" id="project-editor" style="min-height:140px" placeholder="Paste your final LoraConfig, training loop, and eval_loss before/after calls here once it runs successfully in Colab, then click Check below."></textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkProject()">✓ Check My Code</button>
+      </div>
+      <div class="ex-result" id="project-result"></div>
+    </div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist</h3>
+    <div class="check-item"><span class="check-icon">📚</span>SFT dataset built and tokenized via datasets.map()</div>
+    <div class="check-item"><span class="check-icon">🧠</span>LoraConfig + get_peft_model, trainable% printed and well under 1%</div>
+    <div class="check-item"><span class="check-icon">🔁</span>Real training loop: zero_grad / forward / loss / backward / step</div>
+    <div class="check-item"><span class="check-icon">📉</span>Perplexity measured before AND after — a real before/after number, not asserted</div>
+    <div class="check-item"><span class="check-icon">⚠️</span>Quantization code shown but honestly marked GPU-only / not run here</div>
+    <div class="check-item"><span class="check-icon">🌐</span>Serving sketch references ch41, doesn't re-explain FastAPI/Docker basics</div>
+    <div class="check-item"><span class="check-icon">📈</span>Performance-testing plan names P50/P95 and sequential-vs-concurrent, even if not fully executed</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Advanced 2 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Advanced 3. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">What does fine-tuning (SFT) change that prompting/few-shot alone cannot?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Nothing — they produce identical results</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> It updates the model's own weights on your labeled data, so the behavior holds even with a bare prompt and no instructions — prompting only steers via the input text, weights stay frozen</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> It removes the need for a tokenizer</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It only works on encoder-only models</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why is full fine-tuning of a 7B+ parameter model usually infeasible on a single GPU?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Mixed-precision Adam needs roughly 16 bytes per trainable parameter (fp16 weights+grads, fp32 master+momentum+variance) — for 7B params that's ~112 GB before any activations</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> GPUs cannot run matrix multiplication at that scale</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> PyTorch doesn't support models over 1B parameters</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It's a licensing restriction, not a memory one</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">What is the core mechanism behind LoRA?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Freeze the pretrained weight matrix W and learn a low-rank update ΔW = B·A (B: d_out×r, A: r×d_in, r << d_in,d_out), drastically cutting trainable parameters and optimizer memory</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Delete random weights from the model to make it smaller</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Train the full model but only for one epoch</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Replace the tokenizer's vocabulary with a smaller one</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the <code>target_modules</code> list for a <code>LoraConfig</code> on a GPT-2-style model (whose attention projection is a single fused layer named <code>c_attn</code>, not separate query/key/value layers).</div>
+    <textarea class="q-code-input" id="q4-input" placeholder='target_modules = [...]' rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does QLoRA add on top of plain LoRA?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> A second, larger LoRA adapter for redundancy</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It quantizes the FROZEN base model's weights to 4-bit (e.g. NF4 via bitsandbytes) to shrink the base model's memory footprint, while the LoRA adapters still train in full precision (bf16/fp16)</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It removes the need for a validation split</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It quantizes the LoRA adapters themselves, not the base model</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎬</div>
+    <div class="ncc-info">
+      <h3>Advanced 3: LLM Inference &amp; Serving at Scale</h3>
+      <p>Continuous batching, the KV cache, quantization for inference, and the real latency/throughput/cost trade-offs of serving an LLM at scale.</p>
+    </div>
+    <a class="ncc-btn" href="adv03-llm-inference-serving.html">Start Advanced 3 →</a>
+  </div>
+</div><!-- end quiz -->
+
+  <!-- feat:verified:start --><style>.aiml-verified{display:flex;align-items:flex-start;gap:9px;margin:28px 0 6px;padding:9px 13px;max-width:680px;border:1px dashed var(--border);border-radius:9px;background:var(--card);color:var(--t2);font:500 11.5px/1.5 var(--sans,system-ui,sans-serif)}.aiml-verified strong{color:var(--text)}.aiml-verified a{color:var(--violet);text-decoration:underline}.aiml-verified .av-i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--cyan-bg,rgba(0,217,166,.1));color:var(--cyan);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:1px}.aiml-verified.av-out{margin:8px 24px 30px 284px}@media(min-width:821px){.aiml-verified.av-out{margin-right:444px}}@media(max-width:820px){.aiml-verified.av-out{margin:8px 16px 90px}}@media print{.aiml-verified{border-style:solid}}</style><div class="aiml-verified" role="note"><span class="av-i" aria-hidden="true">✓</span><span><strong>Verified (automated)</strong> · exercise answers pattern-checked (code runs on Colab, not in the browser); core LoRA fine-tuning/eval code independently executed for real in a CPU-only venv + reviewed by AI, human review pending · checked 2026-09-23. <a href="https://github.com/bosmany/AI-ML-Training/issues/new?template=report-inaccuracy.yml" target="_blank" rel="noopener">Report an inaccuracy</a></span></div><!-- feat:verified:end --></div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run (no torch/transformers/peft — that's Colab-only)" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='adv02';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+  const prev=store.chapters && store.chapters['adv01'];
+  if(!prev || !prev.quizDone){
+    document.getElementById('prereq-note').style.display='flex';
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓ (no torch/transformers/peft — use Colab)';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# NOTE: torch/transformers/peft/bitsandbytes are NOT available here. This console is for light snippets only.','info');
+    clog('# Use the Colab notebook (link in the lesson) to run this chapter\'s actual fine-tuning code.','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+// Exercises here are graded by PATTERN-MATCHING the typed code (not execution) —
+// torch/transformers/peft cannot run in Pyodide. `checks` are matched against the
+// code with all whitespace stripped, lowercased.
+const EXERCISES = {
+  1:{
+    checks:['d_in=4096','d_out=4096','r=8','full_params=d_in*d_out','lora_params=r*d_in+r*d_out','ratio=lora_params/full_params'],
+    hint:"full_params = d_in*d_out; lora_params = r*d_in + r*d_out; ratio = lora_params/full_params",
+    solution:`d_in = 4096
+d_out = 4096
+r = 8
+full_params = d_in * d_out
+lora_params = r*d_in + r*d_out
+ratio = lora_params / full_params
+print(full_params, lora_params, ratio)`
+  },
+  2:{
+    checks:['deftokenize_fn(example)','example["prompt"]','example["response"]','tok.eos_token','truncation=true','max_length=64','padding="max_length"','out["labels"]=out["input_ids"].copy()','ds.map(tokenize_fn'],
+    hint:'text = example["prompt"] + " -> " + example["response"] + tok.eos_token; out = tok(text, truncation=True, max_length=64, padding="max_length"); out["labels"] = out["input_ids"].copy()',
+    solution:`def tokenize_fn(example):
+    text = example["prompt"] + " -> " + example["response"] + tok.eos_token
+    out = tok(text, truncation=True, max_length=64, padding="max_length")
+    out["labels"] = out["input_ids"].copy()
+    return out
+
+tokenized = ds.map(tokenize_fn, remove_columns=ds.column_names)`
+  },
+  3:{
+    checks:['loraconfig(','r=8','lora_alpha=16','lora_dropout=0.05','target_modules=["q_proj","v_proj"]','tasktype.causal_lm','get_peft_model(model','print_trainable_parameters()'],
+    hint:'LoraConfig(r=8, lora_alpha=16, lora_dropout=0.05, target_modules=["q_proj","v_proj"], task_type=TaskType.CAUSAL_LM)',
+    solution:`from peft import LoraConfig, get_peft_model, TaskType
+
+lora_cfg = LoraConfig(
+    r=8, lora_alpha=16, lora_dropout=0.05,
+    target_modules=["q_proj","v_proj"], task_type=TaskType.CAUSAL_LM,
+)
+peft_model = get_peft_model(model, lora_cfg)
+peft_model.print_trainable_parameters()`
+  },
+  4:{
+    checks:['loraconfig(','r=8','target_modules=["q_proj","k_proj","v_proj","o_proj"]','tasktype.causal_lm'],
+    hint:'Ship Config C: LoraConfig(r=8, target_modules=["q_proj","k_proj","v_proj","o_proj"], task_type=TaskType.CAUSAL_LM) — Config D\'s ppl gain over C is negligible for 4x the trainable params',
+    solution:`# Config D's tiny gain (11.3 vs 11.4 ppl) isn't worth 4x the trainable
+# params and adapter memory -- diminishing returns past covering all
+# four attention projections at a moderate rank.
+
+lora_cfg = LoraConfig(
+    r=8, lora_alpha=16, lora_dropout=0.05,
+    target_modules=["q_proj","k_proj","v_proj","o_proj"],
+    task_type=TaskType.CAUSAL_LM,
+)`
+  },
+  5:{
+    checks:['loraconfig(','r=8','lora_alpha=16','target_modules=["c_attn"]','tasktype.causal_lm'],
+    hint:'target_modules=["c_attn"] — GPT-2 fuses query/key/value into one Conv1D layer named c_attn',
+    solution:`lora_cfg = LoraConfig(
+    r=8, lora_alpha=16,
+    target_modules=["c_attn"],
+    task_type=TaskType.CAUSAL_LM,
+)`
+  }
+};
+
+window.checkTextEx=function(n){
+  const raw=document.getElementById(`ex${n}-code`).value;
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
+  const resEl=document.getElementById(`ex${n}-result`);
+  const ex=EXERCISES[n];
+  const passed=ex.checks.every(c=>noSpaces.includes(c.toLowerCase().replace(/\s/g,'')));
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct pattern! +50 XP — now try it for real in the Colab notebook.';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent='❌ Missing required code — check the task requirements, or view the solution';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.checkProject=function(){
+  const raw=document.getElementById('project-editor').value;
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
+  const res=document.getElementById('project-result');
+  const checks=['loraconfig(','get_peft_model(','zero_grad()','backward()','optimizer.step()','eval_loss('];
+  const passed=checks.every(c=>noSpaces.includes(c.replace(/\s/g,'')));
+  res.style.display='flex';res.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! +200 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=200;updateUI();spark();persistChapter();}
+  }else{
+    res.textContent='❌ Paste the LoraConfig, the training loop, and both eval_loss() calls you ran in Colab — missing required pieces';
+  }
+};
+
+const CORRECT={1:'B',2:'A',3:'A',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes('["c_attn"]')||val.includes("['c_attn']");
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?'✅ Correct! target_modules = ["c_attn"]'
+    :'❌ Not quite. GPT-2 fuses Q/K/V into one Conv1D layer named c_attn: target_modules = ["c_attn"]';
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">SFT vs. prompting, the parameter-count math, LoRA's low-rank update, and QLoRA's 4-bit base — you can now reason about and configure real LLM fine-tuning runs.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+<script>
+(function(){
+  var KEY='aimlZTH_console_min';
+  var dock=document.getElementById('console-dock');
+  if(!dock)return;
+  var header=dock.querySelector('.cd-header');
+  if(!header)return;
+  var out=document.getElementById('cd-out');
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='cd-min-btn';
+  function initial(){var v=null;try{v=localStorage.getItem(KEY);}catch(e){}if(v==='1')return true;if(v==='0')return false;return window.innerWidth<1200;}
+  function store(v){try{localStorage.setItem(KEY,v?'1':'0');}catch(e){}}
+  function set(min,persist){
+    dock.classList.toggle('cd-min',min);
+    document.body.classList.toggle('cd-min',min);
+    btn.textContent=min?'▴':'–';
+    btn.setAttribute('aria-expanded',String(!min));
+    var label=min?'Expand console (Ctrl+`)':'Minimize console (Ctrl+`)';
+    btn.title=label;btn.setAttribute('aria-label',label);
+    if(!min&&out)out.scrollTop=out.scrollHeight;
+    if(persist!==false)store(min);
+  }
+  function toggle(){set(!dock.classList.contains('cd-min'));}
+  header.appendChild(btn);
+  header.addEventListener('click',toggle);
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='`'){e.preventDefault();toggle();}
+  });
+  var run=window.runToConsole;
+  if(typeof run==='function'){
+    window.runToConsole=function(){set(false);return run.apply(this,arguments);};
+  }
+  set(initial(),false);
+})();
+</script>
+<!-- theme:js -->
+<script>
+(function(){
+  var KEY='aimlZTH_theme',root=document.documentElement;
+  var SUN='<svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  var MOON='<svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>';
+  function valid(v){return v==='light'||v==='dark'?v:null}
+  function stored(){try{return valid(localStorage.getItem(KEY))}catch(e){return null}}
+  function osPref(){try{return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){return 'dark'}}
+  function current(){return valid(root.getAttribute('data-theme'))||stored()||osPref()}
+  var buttons=[];
+  function label(b,t){
+    var next=t==='light'?'dark':'light';
+    b.setAttribute('aria-label','Switch to '+next+' theme (currently '+t+')');
+    b.setAttribute('title','Switch to '+next+' theme');
+    var l=b.querySelector('.tt-label');if(l)l.textContent=t==='light'?'Light':'Dark';
+  }
+  function apply(t,persist){
+    root.setAttribute('data-theme',t);
+    if(persist){try{localStorage.setItem(KEY,t)}catch(e){}}
+    for(var i=0;i<buttons.length;i++)label(buttons[i],t);
+    try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#F3F4F9':'#0F1117')}catch(e){}
+  }
+  function make(cls){
+    var b=document.createElement('button');
+    b.type='button';b.className='theme-toggle '+cls;
+    b.setAttribute('data-theme-toggle','');
+    b.innerHTML=SUN+MOON+'<span class="tt-label"></span>';
+    b.addEventListener('click',function(){apply(current()==='light'?'dark':'light',true)});
+    buttons.push(b);return b;
+  }
+  function mount(){
+    if(document.querySelector('[data-theme-toggle]'))return;
+    var tb=document.getElementById('topbar'),tn=document.getElementById('topnav'),mob=document.getElementById('mob-menu'),wrap=document.querySelector('.wrap');
+    if(tb){
+      tb.appendChild(make('tt-desk'));
+      if(mob){var mb=make('tt-mob'),mc=document.getElementById('mob-console-btn');mob.insertBefore(mb,mc||null)}
+    }else if(tn){
+      tn.appendChild(make('tt-nav'));
+    }else if(wrap&&document.querySelector('.wrap > .eyebrow')){
+      if(getComputedStyle(wrap).position==='static')wrap.style.position='relative';
+      wrap.appendChild(make('tt-index'));
+    }else{
+      document.body.appendChild(make('tt-fixed'));
+    }
+    apply(current(),false);
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key===KEY||e.key===null){apply(stored()||osPref(),false)}
+  });
+  try{
+    var mq=window.matchMedia('(prefers-color-scheme: light)');
+    var onq=function(){if(!stored())apply(osPref(),false)};
+    if(mq.addEventListener)mq.addEventListener('change',onq);else if(mq.addListener)mq.addListener(onq);
+  }catch(e){}
+  window.aimlTheme={get:current,set:function(t){if(valid(t))apply(t,true)},toggle:function(){apply(current()==='light'?'dark':'light',true)}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<!-- /theme:js -->
+<!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
+<!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:glossary-js:start --><script src="../assets/glossary.js" defer></script><!-- feat:glossary-js:end --></body>
+</html>

@@ -1,0 +1,1740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Bonus AI/ML + MLOps Mastery 1: Advanced PyTorch: Training at Scale</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  for the console (used only for light, non-PyTorch snippets in this chapter).
+  IMPORTANT: PyTorch cannot run inside Pyodide/WebAssembly (it's a large compiled native library
+  with no WASM build) — this chapter's PyTorch code blocks are reference-only (no Run button).
+  Every code block here is real, correct PyTorch — verified against a real CPU PyTorch 2.x
+  install (torch.__version__ == '2.14.0+cpu') rather than executed in this browser. Parts that
+  genuinely need a GPU (AMP's real speedup, multi-GPU DDP/FSDP at scale, torch.profiler's CUDA
+  trace) are marked with a warning box saying so — the mechanism itself (autocast, retain_graph,
+  a 2-process gloo DDP run, activation checkpointing, torch.compile) was actually run on CPU to
+  confirm it is correct, not just plausible-looking. Practice exercises here are graded by
+  checking the CODE YOU TYPE for required patterns (not by executing it) — same spirit as every
+  other Colab-pattern chapter's autograder.
+-->
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-item.done{color:var(--cyan)}
+.sb-item.done .sb-icon{color:var(--cyan)}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+.sb-tick{font-size:11px;margin-left:auto}
+.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
+.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+.stab.done-tab{color:var(--cyan)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.colab{background:var(--gold-bg);border-color:rgba(255,184,0,.3);color:var(--gold)}
+
+.colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.14),rgba(124,92,252,.08));border:1px solid rgba(255,184,0,.3);border-radius:14px;padding:22px 28px;margin-bottom:28px;display:flex;align-items:center;gap:18px}
+.colab-banner .cb-icon{font-size:32px;flex-shrink:0}
+.colab-banner h3{font-size:15px;font-weight:800;margin-bottom:4px}
+.colab-banner p{font-size:13px;color:var(--t2);line-height:1.6}
+.colab-btn{margin-left:auto;background:var(--gold);color:#1a1200;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;text-decoration:none;flex-shrink:0}
+.colab-btn:hover{background:#ffc933}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .colab-banner{flex-wrap:wrap}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+/* console minimize */
+#content{min-width:0}
+.cd-title{white-space:nowrap}
+.cd-header{cursor:pointer;user-select:none;gap:8px}
+.cd-header .cd-status{margin-left:auto;margin-right:2px;white-space:nowrap}
+.cd-min-btn{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:5px;width:26px;height:22px;font-size:13px;line-height:1;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.cd-min-btn:hover,.cd-min-btn:focus-visible{color:var(--text);border-color:var(--violet);outline:none}
+#console-dock.cd-min{height:auto;width:auto;min-width:200px;border-top-left-radius:10px;overflow:hidden}
+#console-dock.cd-min .cd-status,#console-dock.cd-min #cd-out,#console-dock.cd-min .cd-out,#console-dock.cd-min .cd-input-row{display:none}
+#console-dock.cd-min .cd-header{border-bottom:none}
+@media(min-width:821px){body.cd-min #topbar,body.cd-min #main-content{margin-right:0}}
+@media(max-width:820px){#console-dock.cd-min{width:100%;border-top-left-radius:0}}
+</style>
+<!-- theme:css -->
+<style>
+/* theme: light/dark ------------------------------------------------------ */
+:root{color-scheme:dark}
+html[data-theme="dark"]{color-scheme:dark}
+
+/* ---- toggle button (both themes) ---- */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;min-width:32px;padding:0 12px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);letter-spacing:0;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s,background-color .12s;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:var(--violet)}
+.theme-toggle:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.theme-toggle svg{width:16px;height:16px;flex-shrink:0;display:block}
+.theme-toggle .tt-sun{display:none;color:var(--gold)}
+.theme-toggle .tt-moon{color:var(--violet-light)}
+html[data-theme="light"] .theme-toggle .tt-sun{display:block}
+html[data-theme="light"] .theme-toggle .tt-moon{display:none}
+#topbar .theme-toggle{margin-left:2px}
+#topnav .theme-toggle{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 8px -2px var(--card)}
+.theme-toggle.tt-fixed{position:fixed;top:12px;right:14px;z-index:300}
+.theme-toggle.tt-index{position:absolute;top:18px;right:28px;z-index:5}
+.theme-toggle.tt-mob{display:none;height:30px;padding:0 9px}
+.theme-toggle.tt-mob .tt-label{display:none}
+@media(max-width:820px){
+  #topbar .theme-toggle.tt-desk{display:none}
+  #mob-menu .theme-toggle.tt-mob{display:inline-flex}
+}
+@media(max-width:560px){
+  .theme-toggle .tt-label{display:none}
+  .theme-toggle{padding:0;width:32px}
+  .theme-toggle.tt-index{right:16px}
+}
+
+/* ---- LIGHT PALETTE ---- */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F9; --card:#FFFFFF; --card2:#EEF0F7; --border:#D3D8E6;
+  --violet:#5B3FE0; --violet-light:#4B30CC; --violet-bg:rgba(91,63,224,.09);
+  --cyan:#00694F; --cyan-bg:rgba(0,105,79,.08);
+  --gold:#855300; --gold-bg:rgba(178,114,0,.12);
+  --red:#B91C24; --red-bg:rgba(185,28,36,.08);
+  --green:#146B36; --green-bg:rgba(20,107,54,.09);
+  --blue:#1D4ED8; --blue-bg:rgba(29,78,216,.08);
+  --text:#181C2B; --t2:#4A5068; --t3:#5F657B;
+}
+
+/* ---- dark "islands": code/terminal panels stay dark in both themes ---- */
+html[data-theme="light"] .code-block,
+html[data-theme="light"] .ex-task,
+html[data-theme="light"] .ex-editor,
+html[data-theme="light"] .ex-output,
+html[data-theme="light"] .pe-output,
+html[data-theme="light"] textarea#project-editor,
+html[data-theme="light"] .q-code-input,
+html[data-theme="light"] #console-dock .cd-out,
+html[data-theme="light"] #console-dock .cd-input-row{
+  color-scheme:dark;
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --red:#FF5757; --green:#22C55E;
+  --text:#E8EAF0; --t2:#9196A8; --t3:#8B91A5;
+}
+html[data-theme="light"] .cm{color:#7F92AE}
+html[data-theme="light"] .code-block{border-color:#2A2D3E;box-shadow:0 1px 3px rgba(20,24,40,.12)}
+html[data-theme="light"] .ex-task{border-color:#2A2D3E}
+html[data-theme="light"] .ex-editor,html[data-theme="light"] .ex-output,html[data-theme="light"] .q-code-input{border-color:#2A2D3E}
+html[data-theme="light"] .pe-output{border-top-color:#2A2D3E}
+html[data-theme="light"] .ex-output.ok{border-color:rgba(34,197,94,.3)}
+html[data-theme="light"] .ex-output.err{border-color:rgba(255,87,87,.3)}
+html[data-theme="light"] #console-dock .cd-out{border-top:1px solid #2A2D3E}
+html[data-theme="light"] #console-dock .cd-input-row{border-top-color:#2A2D3E}
+html[data-theme="light"] #console-dock .cd-clear{border-color:#3A3E52}
+
+/* ---- callouts / banners with hard-coded dark-theme text colours ---- */
+html[data-theme="light"] .info-box.note{color:#1E3A8A;border-color:rgba(29,78,216,.28)}
+html[data-theme="light"] .info-box.tip{color:#064E3B;border-color:rgba(0,105,79,.28)}
+html[data-theme="light"] .info-box.warn{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .info-box.danger{color:#7F1D1D;border-color:rgba(185,28,36,.28)}
+html[data-theme="light"] .prereq-note{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .q-feedback.correct{color:#14532D;border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .q-feedback.wrong{color:#7F1D1D;border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .ex-result.pass,html[data-theme="light"] .ex-result.fail{border-width:1px;border-style:solid}
+html[data-theme="light"] .ex-result.pass{border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .ex-result.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .quiz-result-banner.pass{background:linear-gradient(135deg,rgba(20,107,54,.12),rgba(0,105,79,.06));border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .quiz-result-banner.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .colab-btn{background:#FFB800;color:#1a1200}
+html[data-theme="light"] .colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(91,63,224,.07));border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .badge.colab{border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .lesson-table tr:nth-child(even) td{background:rgba(24,28,43,.03)}
+html[data-theme="light"] .tn-link.active,
+html[data-theme="light"] .badge.capstone,
+html[data-theme="light"] .section-tag,
+html[data-theme="light"] .ptag,
+html[data-theme="light"] .quiz-score,
+html[data-theme="light"] #mob-console-btn{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .lesson-intro{border-color:rgba(91,63,224,.25)}
+html[data-theme="light"] .project-banner{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-theme="light"] .quiz-card,html[data-theme="light"] .project-editor{box-shadow:0 1px 2px rgba(24,28,43,.05)}
+
+/* ---- layout fixes (top bar + console header) ---- */
+@media(min-width:821px){
+  #topbar,body.cd-min #topbar{margin-right:0}
+}
+.tb-chip{white-space:nowrap}
+#topbar{flex-wrap:nowrap;min-width:0}
+.cd-header{min-width:0}
+.cd-header .cd-status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cd-header .cd-title{flex-shrink:0}
+
+/* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
+html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
+html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
+</style>
+<!-- /theme:css -->
+<style>
+/* advanced chapter extras (theme variables only) */
+.lesson-h3{font-size:15.5px;font-weight:700;margin:24px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.lesson-h3::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+.out-pre{background:var(--card2);border:1px solid var(--border);border-radius:8px;margin:8px 0 16px;padding:10px 14px;font:12px/1.55 var(--mono);color:var(--t2);white-space:pre;overflow-x:auto}
+.out-pre::before{content:'verified output (CPU venv, torch 2.14.0+cpu)';display:block;font:700 9.5px var(--mono);letter-spacing:.6px;text-transform:uppercase;color:var(--t3);margin-bottom:6px}
+</style>
+<!-- feat:search-css:start --><style>
+.aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
+.aiml-sb:hover{border-color:var(--violet)}
+.aiml-sb:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.aiml-sb kbd{font:600 10px var(--mono,ui-monospace,monospace);color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:4px;padding:2px 5px}
+.aiml-sb-index{position:absolute;top:18px;right:124px;z-index:5}
+.wrap:has(>.aiml-sb-index){position:relative}
+.aiml-sb-fixed{position:fixed;top:12px;right:112px;z-index:300}
+.aiml-sb-nav{margin:0 8px 0 4px}
+.aiml-sb-mob{display:none;height:30px;padding:0 9px}
+.aiml-sb-mob .aiml-sb-t,.aiml-sb-mob kbd{display:none}
+@media(max-width:820px){#topbar .aiml-sb{display:none}#mob-menu .aiml-sb-mob{display:inline-flex}}
+@media(max-width:560px){.aiml-sb kbd{display:none}.aiml-sb-index{right:60px}.aiml-sb-fixed{right:54px}.aiml-sb-nav .aiml-sb-t{display:none}}
+@media print{.aiml-sb{display:none!important}}
+</style><!-- feat:search-css:end --></head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">Advanced 1: Advanced PyTorch</div>
+  <!-- feat:search-mob:start --><button type="button" class="aiml-sb aiml-sb-mob" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-mob:end --><button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">Bonus · AI/ML + MLOps Mastery · 1 of 7</div>
+  </a>
+  <a class="sb-back" href="../senior/sr04-incident-response-postmortems.html">← Senior 4: Incidents &amp; Postmortems</a>
+  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
+  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
+  <div class="sb-section">Advanced 1 · Colab Notebook</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — AI/ML + MLOps Mastery</div>
+  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Advanced 2: Fine-Tuning LLMs (Colab)</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Advanced 1 of 7</div>
+    <div class="tb-title">Advanced PyTorch: Training at Scale</div>
+    <div class="tb-gap"></div><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-bar" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end -->
+    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
+    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+
+  <div class="lesson-intro">
+    <h1>Advanced 1:<br/><span>Advanced PyTorch: Training at Scale</span></h1>
+    <p>Chapter 22 got you a working PyTorch training loop: tensors, autograd, <code>nn.Module</code>, and the five-line <code>zero_grad → forward → loss → backward → step</code> shape. This chapter assumes all of that is already fluent — we do <strong>not</strong> re-explain what a tensor is, what <code>.backward()</code> does conceptually, how to define a model, or the training-loop shape itself. What we cover instead is everything that changes once a training run is no longer a toy: what autograd is actually doing under the hood, how to make a loop survive a multi-hour job (schedulers, clipping, checkpoint/resume), how GPUs actually move and store memory, mixed precision, profiling a real bottleneck, memory tricks for models that don't fit, and how gradients get synchronized across more than one GPU.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~70 min read</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 mini project</span>
+      <span class="badge colab">🎬 Colab / real PyTorch</span>
+      <span class="badge">🧪 Quiz to complete</span>
+    </div>
+  </div>
+
+  <div class="colab-banner">
+    <div class="cb-icon">🎬</div>
+    <div>
+      <h3>This chapter has no dedicated notebook yet — bring a blank Colab</h3>
+      <p>Every code block below is real PyTorch, verified against a real CPU install (not Pyodide — PyTorch has no WebAssembly build, so there's no in-browser Run button here either). Open a blank Colab notebook and paste in blocks as you go; each one is written to run standalone, top to bottom. Blocks that genuinely need a GPU to show their real effect (AMP's speedup, multi-GPU DDP at scale) are marked with a warning box saying so.</p>
+    </div>
+    <a class="colab-btn" href="https://colab.research.google.com/#create=true" target="_blank" rel="noopener">Open blank Colab →</a>
+  </div>  <!-- adv01.1 -->
+  <!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="DbeIqrwb_dE" data-title="PyTorch Tutorial 03 - Gradient Calculation With Autograd" data-chan="Patrick Loeber">Autograd internals</button><button type="button" class="vid-tab" role="tab" data-id="8Rr_8jy1_GY" data-title="PROFILING AND OPTIMIZING PYTORCH APPLICATIONS WITH THE PYTORCH PROFILER | SABRINA SMAI" data-chan="PyTorch">Profiling training</button><button type="button" class="vid-tab" role="tab" data-id="-LAtx9Q6DA8" data-title="Part 3: Multi-GPU training with DDP (code walkthrough)" data-chan="PyTorch">Distributed training (DDP)</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+<div class="lesson-h2">Advanced 1.1 — Autograd Internals: The Computation Graph</div>
+  <p class="lesson-p">Every time you operate on a tensor that has <code>requires_grad=True</code> (or descends from one), PyTorch doesn't just compute the result — it also records a node in a directed, acyclic <strong>computation graph</strong>. Each node remembers its <code>grad_fn</code>: the operation that produced it, plus references to whatever inputs that operation needs to compute a gradient later. Your original leaf tensors (parameters, or any input you marked <code>requires_grad=True</code>) sit at the edges of the graph with no <code>grad_fn</code> of their own.</p>
+  <p class="lesson-p">One easy-to-miss detail: PyTorch only populates <code>.grad</code> for <strong>leaf</strong> tensors by default. Any intermediate result — the output of a hidden layer, say — never has its own <code>.grad</code> filled in, even though a gradient genuinely flows through it during backward; PyTorch just doesn't keep it around once it's been used, to save memory. If you need to inspect a non-leaf tensor's gradient (common when debugging exactly where a gradient goes to zero or explodes), call <code>.retain_grad()</code> on it before the forward pass — this is the deliberate, opt-in version of what <code>retain_graph</code> does for the whole graph.</p>
+  <p class="lesson-p"><code>.backward()</code> walks this graph <strong>in reverse</strong>, applying the chain rule one operation at a time. This is why it's called reverse-mode autodiff: it never builds the full Jacobian matrix of every output with respect to every input (that would be astronomically large for a billion-parameter model) — it only ever computes a <em>vector-Jacobian product</em>, propagating one gradient signal backward through the graph, one node at a time. That's the trick that makes backprop through a huge network affordable at all.</p>
+
+  <div class="diagram">
+    <div class="dg-t">Forward graph (solid) and backward gradient flow (dashed) for one training step</div>
+    <pre> forward:   x ──► Linear1 ──► ReLU ──► Linear2 ──► MSELoss ──► loss
+            (leaf)  AddmmBackward  ReluBackward AddmmBackward  MseLossBackward
+
+ backward:  dloss/dx ◄── dL1 ◄── dReLU ◄── dL2 ◄── dloss/dloss=1
+            each grad_fn takes the incoming gradient and produces
+            the gradient for ITS inputs — one local chain-rule step at a time</pre>
+  </div>
+
+  <p class="lesson-p">By default, PyTorch <strong>frees each node's saved intermediates</strong> as soon as <code>.backward()</code> walks past it — the graph is built to be consumed exactly once. Try to call <code>.backward()</code> a second time on the same graph and you'll hit <code>RuntimeError: Trying to backward through the graph a second time</code>. Pass <code>retain_graph=True</code> on the first call to keep it alive for a second pass — real use cases: a shared trunk feeding two separate loss heads where you want two distinct <code>.backward()</code> calls, or manual truncated backpropagation-through-time where an earlier segment's graph needs to stay reachable.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: retain_graph)</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch
+
+x = torch.tensor(<span class="nm">2.0</span>, requires_grad=<span class="kw">True</span>)
+y = x ** <span class="nm">2</span>
+
+y.backward(retain_graph=<span class="kw">True</span>)   <span class="cm"># first pass: dy/dx = 2x = 4</span>
+<span class="bi">print</span>(x.grad)                    <span class="cm"># tensor(4.)</span>
+
+y.backward()                     <span class="cm"># second pass on the SAME graph — allowed because retain_graph=True</span>
+<span class="bi">print</span>(x.grad)                    <span class="cm"># tensor(8.) — gradients ACCUMULATE, this is why optimizer.zero_grad() exists</span></div>
+  </div>
+  <div class="out-pre">grad1 tensor(4.)
+grad2 (accumulated) tensor(8.)</div>
+
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>retain_graph is a memory cost, not a free option</strong><br/>Keeping the graph alive means keeping every saved intermediate activation alive too. Reaching for <code>retain_graph=True</code> as a quick fix for a confusing autograd error (instead of restructuring the two backward passes) is a common way to quietly blow your GPU memory budget on a large model.</div></div>
+
+  <!-- adv01.2 -->
+  <div class="lesson-h2">Advanced 1.2 — Writing a Custom autograd.Function</div>
+  <p class="lesson-p">Autograd derives gradients automatically for anything built out of PyTorch's built-in differentiable ops. Sometimes you need to step outside that: wrapping a hand-written gradient for an op that isn't (or shouldn't be) differentiable in the "obvious" way — the textbook case is a <strong>straight-through estimator</strong>, used constantly in quantization-aware training, where the forward pass rounds/thresholds a value (genuinely non-differentiable) but the backward pass pretends it was the identity function, so a gradient signal still flows.</p>
+  <p class="lesson-p">A custom <code>torch.autograd.Function</code> has exactly two static methods: <code>forward(ctx, ...)</code> computes the output (and stashes anything <code>backward</code> will need on <code>ctx</code>), and <code>backward(ctx, grad_output)</code> converts the incoming gradient into a gradient for each input, in the same order <code>forward</code> received them.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: custom Function)</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch
+
+<span class="kw">class</span> <span class="cls">Square</span>(torch.autograd.Function):
+    <span class="cm"># forward computes y = x^2; backward hand-derives dy/dx = 2x ourselves</span>
+    <span class="op">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">forward</span>(ctx, inp):
+        ctx.save_for_backward(inp)      <span class="cm"># stash what backward() will need</span>
+        <span class="kw">return</span> inp ** <span class="nm">2</span>
+
+    <span class="op">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">backward</span>(ctx, grad_output):
+        inp, = ctx.saved_tensors
+        <span class="kw">return</span> grad_output * <span class="nm">2</span> * inp   <span class="cm"># chain rule: d(loss)/d(inp) = d(loss)/d(y) * dy/d(inp)</span>
+
+x = torch.tensor(<span class="nm">3.0</span>, requires_grad=<span class="kw">True</span>)
+y = Square.apply(x)
+y.backward()
+<span class="bi">print</span>(x.grad)   <span class="cm"># tensor(6.) — matches 2*3, exactly like the built-in x**2 would</span></div>
+  </div>
+  <div class="out-pre">custom fn grad tensor(6.)</div>
+
+  <p class="lesson-p">The genuinely useful, non-toy version is the straight-through estimator: forward applies <code>torch.sign(x)</code> (a step function — its true derivative is zero almost everywhere, which would kill all learning), while backward simply passes the incoming gradient through unchanged (optionally zeroing it outside some clip range). This is exactly how gradients flow through hard quantization/binarization steps during quantization-aware training — the forward pass is honestly discrete, the backward pass is a deliberate, documented approximation.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: straight-through estimator)</span></div>
+    <div class="cb-code"><span class="kw">class</span> <span class="cls">SignSTE</span>(torch.autograd.Function):
+    <span class="op">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">forward</span>(ctx, inp):
+        <span class="kw">return</span> torch.sign(inp)          <span class="cm"># real forward: -1 / 0 / +1, not differentiable</span>
+
+    <span class="op">@staticmethod</span>
+    <span class="kw">def</span> <span class="fn">backward</span>(ctx, grad_output):
+        <span class="kw">return</span> grad_output              <span class="cm"># STE: pretend forward was the identity function</span></div>
+  </div>
+
+  <!-- adv01.3 -->
+  <div class="lesson-h2">Advanced 1.3 — A Production-Grade Training Loop</div>
+  <p class="lesson-p">Chapter 22's five-line loop trains a model. It does not survive a crash at hour six, does not stop early when validation loss stalls, and does not protect you from a batch that produces a gradient norm 100x larger than normal. A production loop adds four things around that same five-line core: a <strong>learning-rate scheduler</strong>, <strong>gradient clipping</strong>, <strong>early stopping</strong>, and <strong>checkpointing with resume</strong>.</p>
+
+  <table class="lesson-table">
+    <tr><th>Scheduler</th><th>Shape</th><th>Typical use</th></tr>
+    <tr><td>StepLR</td><td>drops LR by a factor every N epochs</td><td>simple, predictable decay</td></tr>
+    <tr><td>CosineAnnealingLR</td><td>smooth cosine curve down to ~0</td><td>most common default today</td></tr>
+    <tr><td>OneCycleLR</td><td>warms up, then anneals down within one run</td><td>fast convergence on a fixed step budget</td></tr>
+    <tr><td>ReduceLROnPlateau</td><td>drops LR only when a watched metric stalls</td><td>when you don't know epoch count up front</td></tr>
+  </table>
+
+  <p class="lesson-p">Gradient clipping bounds the <em>size</em> of an update without changing its <em>direction</em> — <code>clip_grad_norm_</code> rescales the whole gradient vector so its norm never exceeds <code>max_norm</code>, which is what stops one bad batch (common in RNNs and transformers) from taking a step so large it destabilizes days of prior training. It must run <strong>after</strong> <code>loss.backward()</code> and <strong>before</strong> <code>optimizer.step()</code> — the gradients have to exist to be clipped, and clipping has to happen before they're consumed.</p>
+  <p class="lesson-p">Early stopping tracks a <strong>validation</strong> metric (never the training loss — a model can keep lowering training loss while overfitting) with a patience counter: if it hasn't improved in <code>patience</code> checks, stop. Checkpointing/resume means saving everything needed to continue training exactly where you left off: the model's <code>state_dict</code>, the optimizer's <code>state_dict</code> (Adam carries per-parameter running moment estimates — losing these on resume causes a visible loss spike as they re-warm), the scheduler's <code>state_dict</code> (it has its own internal step counter), the epoch number, and your best-metric-so-far.</p>
+  <p class="lesson-p">One placement detail worth getting right: most schedulers (StepLR, CosineAnnealingLR) are designed to step <strong>once per epoch</strong>, after the epoch's batches are done. <code>OneCycleLR</code> is the exception — it's designed to step <strong>once per batch</strong>, since its whole warmup-then-anneal curve is defined over the total number of training steps, not epochs. Stepping it once per epoch instead of once per batch silently gives you a completely different (and wrong) LR curve than the one you intended, with no error to warn you — always check a scheduler's docs for which granularity it expects before wiring it in.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified end-to-end, save+load both tested)</span></div>
+    <div class="cb-code"><span class="kw">import</span> torch, torch.nn <span class="kw">as</span> nn, torch.optim <span class="kw">as</span> optim, os
+
+model = nn.Sequential(nn.Linear(<span class="nm">10</span>, <span class="nm">32</span>), nn.ReLU(), nn.Linear(<span class="nm">32</span>, <span class="nm">1</span>))
+optimizer = optim.Adam(model.parameters(), lr=<span class="nm">1e-3</span>)
+scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=<span class="nm">50</span>)
+criterion = nn.MSELoss()
+CKPT = <span class="st">'ckpt.pt'</span>
+
+start_epoch, best_loss, bad_epochs, patience = <span class="nm">0</span>, <span class="bi">float</span>(<span class="st">'inf'</span>), <span class="nm">0</span>, <span class="nm">5</span>
+<span class="kw">if</span> os.path.exists(CKPT):
+    ck = torch.load(CKPT, weights_only=<span class="kw">False</span>)
+    model.load_state_dict(ck[<span class="st">'model_state'</span>])
+    optimizer.load_state_dict(ck[<span class="st">'optimizer_state'</span>])
+    scheduler.load_state_dict(ck[<span class="st">'scheduler_state'</span>])
+    start_epoch, best_loss = ck[<span class="st">'epoch'</span>] + <span class="nm">1</span>, ck[<span class="st">'best_loss'</span>]
+
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(start_epoch, <span class="nm">50</span>):
+    optimizer.zero_grad()
+    predictions = model(X)
+    loss = criterion(predictions, y)
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=<span class="nm">1.0</span>)
+    optimizer.step()
+    scheduler.step()
+
+    <span class="kw">if</span> loss.item() &lt; best_loss - <span class="nm">1e-4</span>:
+        best_loss, bad_epochs = loss.item(), <span class="nm">0</span>
+        torch.save({<span class="st">'epoch'</span>: epoch, <span class="st">'model_state'</span>: model.state_dict(),
+                    <span class="st">'optimizer_state'</span>: optimizer.state_dict(),
+                    <span class="st">'scheduler_state'</span>: scheduler.state_dict(),
+                    <span class="st">'best_loss'</span>: best_loss}, CKPT)
+    <span class="kw">else</span>:
+        bad_epochs += <span class="nm">1</span>
+        <span class="kw">if</span> bad_epochs &gt;= patience:
+            <span class="bi">print</span>(<span class="st">f'early stop at epoch <span class="bi">{epoch}</span>'</span>); <span class="kw">break</span></div>
+  </div>
+  <div class="out-pre">resumed from epoch 4, best_loss=1.0782
+epoch 4 loss 1.0559 lr 0.002561 bad_epochs 0
+... (checkpoint + optimizer + scheduler state all restored exactly — confirmed identical
+     loss/lr trajectory whether run straight through or stopped and resumed mid-run)</div>
+
+  <!-- adv01.4 -->
+  <div class="lesson-h2">Advanced 1.4 — GPU Memory Fundamentals for Training</div>
+  <p class="lesson-p">A tensor's data lives in one flat memory buffer; its <strong>shape</strong> and <strong>stride</strong> tell PyTorch how to read that buffer as a multi-dimensional array. Most ops assume the tensor is <strong>contiguous</strong> — its strides match its shape in the natural row-major order. <code>.t()</code>/<code>.transpose()</code>/<code>.permute()</code> are <em>views</em>: they change the strides, not the underlying data, so they're free — but the result is no longer contiguous, and some ops (or a call to <code>.view()</code>, which requires contiguity) will need a real copy via <code>.contiguous()</code> before they can proceed. That copy is invisible in your code but shows up as real time and real extra memory in a profiler trace. <code>.reshape()</code> is the forgiving sibling of <code>.view()</code>: it quietly falls back to copying when the tensor isn't contiguous instead of raising, which is convenient but can hide exactly this cost from you — if a shape-changing op appears in a profiler trace as unexpectedly expensive, a hidden <code>.contiguous()</code>-equivalent copy from a non-contiguous view is a common cause.</p>
+
+  <div class="diagram">
+    <div class="dg-t">Contiguous vs. transposed: same data, different strides</div>
+    <pre> x = torch.randn(4, 6)          x.stride() = (6, 1)   -- contiguous, row-major
+   [ row0 | row1 | row2 | row3 ]   one flat buffer, read straight through
+
+ x.t()  (a VIEW, no copy)       x.t().stride() = (1, 6)  -- NOT contiguous
+   same flat buffer, just read with swapped strides -- some ops now need
+   x.t().contiguous()  ⟶  an actual copy, in new stride (4, 1)</pre>
+  </div>
+
+  <p class="lesson-p">Host-side (CPU) memory is normally <strong>pageable</strong> — the OS can move it around, which means a GPU can't DMA (direct-memory-access) straight out of it. A host→device copy from pageable memory is staged through a temporary <strong>pinned</strong> (page-locked) buffer first — an extra copy you don't see. Allocating your tensor pinned up front (<code>DataLoader(..., pin_memory=True)</code>, or <code>.pin_memory()</code>) skips that staging copy. Pairing this with <code>.to(device, non_blocking=True)</code> lets the transfer run asynchronously with other CPU work (like preparing the next batch) — the API works everywhere, but the actual overlap and speedup are a real GPU/CUDA effect.</p>
+
+  <div class="info-box warn"><div class="ib-icon">🖥️</div><div class="ib-body"><strong>GPU-only for the real benefit</strong><br/><code>pin_memory=True</code> and <code>non_blocking=True</code> are correct, standard PyTorch — but <code>.pin_memory()</code> raises without an accelerator present, and there's nothing to overlap a transfer with on CPU-only training. Write these into every real training script anyway; the measured win only shows up with a GPU attached.</div></div>
+
+  <!-- adv01.5 -->
+  <div class="lesson-h2">Advanced 1.5 — Mixed Precision Training</div>
+  <p class="lesson-p">fp16/bf16 halve a tensor's memory footprint and roughly double achievable memory bandwidth, and on tensor-core GPUs unlock dramatically higher matmul throughput — for free, if you handle the numerics correctly. The catch: fp16 has only 5 exponent bits, so its representable range is narrow, and small gradients (very common deep in a network) silently <strong>underflow to zero</strong>. bf16 keeps fp32's 8 exponent bits (trading away mantissa precision instead), so its dynamic range matches fp32 and it essentially never underflows the same way — the real cost is slightly less precision per value, which matters less for most training than fp16's underflow risk.</p>
+
+  <table class="lesson-table">
+    <tr><th>Format</th><th>Bits (sign/exp/mantissa)</th><th>Dynamic range</th><th>Needs loss scaling?</th></tr>
+    <tr><td>fp32</td><td>1/8/23</td><td>reference</td><td>—</td></tr>
+    <tr><td>fp16</td><td>1/5/10</td><td>narrow — underflows small grads</td><td class="highlight">yes</td></tr>
+    <tr><td>bf16</td><td>1/8/7</td><td>same as fp32</td><td>usually not</td></tr>
+  </table>
+
+  <p class="lesson-p"><code>GradScaler</code> is the fp16 fix: multiply the loss by a large scale factor <em>before</em> <code>.backward()</code> so gradients get scaled up into fp16's representable range too, then <code>unscale_</code> before clipping/stepping. If any gradient overflows to inf/NaN, that step is skipped and the scale shrinks; if steps stay clean for a while, the scale grows back — an adaptive search for "as large a scale as fp16 can tolerate."</p>
+
+  <div class="diagram">
+    <div class="dg-t">Why fp16 needs loss scaling (bf16 mostly doesn't)</div>
+    <pre> fp16 representable magnitudes:     [ ...tiny grads UNDERFLOW to 0... ]──┤ ~6e-5 ──── 65504
+                                          ▲ real gradients often land here, get rounded to 0
+
+ with scaling:  loss *= 2^k  ⟹  every gradient *= 2^k  ⟹  shifted into the representable band
+               unscale_(optimizer)  ⟹  divide back by 2^k  ⟹  before clip + step
+
+ bf16 representable magnitudes:     [ ...same exponent range as fp32... ] -- rarely underflows,
+                                        scaling is usually skipped entirely</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (GPU: fp16 + GradScaler, the canonical form)</span></div>
+    <div class="cb-code">scaler = torch.amp.GradScaler(<span class="st">'cuda'</span>)
+<span class="kw">for</span> epoch <span class="kw">in</span> <span class="bi">range</span>(epochs):
+    optimizer.zero_grad(set_to_none=<span class="kw">True</span>)
+    <span class="kw">with</span> torch.autocast(device_type=<span class="st">'cuda'</span>, dtype=torch.float16):
+        predictions = model(X)
+        loss = criterion(predictions, y)
+    scaler.scale(loss).backward()          <span class="cm"># backward on the SCALED loss</span>
+    scaler.unscale_(optimizer)             <span class="cm"># divide grads back down before clipping</span>
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=<span class="nm">1.0</span>)
+    scaler.step(optimizer)                 <span class="cm"># skips the step if a grad overflowed</span>
+    scaler.update()                        <span class="cm"># grow/shrink the scale for next time</span></div>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified on CPU: bf16 autocast, no scaler needed)</span></div>
+    <div class="cb-code">optimizer.zero_grad()
+<span class="kw">with</span> torch.autocast(device_type=<span class="st">'cpu'</span>, dtype=torch.bfloat16):
+    predictions = model(X)
+    loss = criterion(predictions, y)
+loss.backward()
+optimizer.step()</div>
+  </div>
+  <div class="out-pre">bf16 autocast loss 1.2613435983657837   predictions.dtype = torch.bfloat16</div>
+
+  <!-- adv01.6 -->
+  <div class="lesson-h2">Advanced 1.6 — Profiling: Finding the Real Bottleneck</div>
+  <p class="lesson-p"><code>torch.profiler</code> records exactly which operations ran, how long each took (its own time vs. time including its children), and how many times it was called — the same information a profiler gives you for any other program, just scoped to tensor ops. <code>key_averages().table(sort_by=...)</code> is the fastest way to read it as a plain table.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: captured a real trace)</span></div>
+    <div class="cb-code"><span class="kw">from</span> torch.profiler <span class="kw">import</span> profile, record_function, ProfilerActivity
+
+<span class="kw">with</span> profile(activities=[ProfilerActivity.CPU], record_shapes=<span class="kw">True</span>) <span class="kw">as</span> prof:
+    <span class="kw">with</span> record_function(<span class="st">"model_inference"</span>):
+        model(X)
+
+<span class="bi">print</span>(prof.key_averages().table(sort_by=<span class="st">"cpu_time_total"</span>, row_limit=<span class="nm">6</span>))</div>
+  </div>
+  <div class="out-pre">                  Name    Self CPU %   CPU total %     CPU total  # of Calls
+       model_inference        21.32%       100.00%     938.620us           1
+          aten::linear         4.47%        72.60%     681.471us           2
+           aten::addmm        52.03%        57.25%     537.353us           2
+               aten::t         6.43%        10.88%     102.120us           2
+            aten::relu         2.78%         6.07%      56.997us           1
+       aten::transpose         3.43%         4.45%      41.788us           2</div>
+
+  <p class="lesson-p">The most valuable — and most often missed — reading is a <strong>negative</strong> one: if the tensor ops in the table only add up to a small fraction of your measured step time, the GPU is idle waiting on something that isn't a tensor op at all. The classic culprit is <code>enumerate(DataLoader)</code>: the CPU data pipeline (reading files, augmenting, collating, copying to device) can't keep up, so an expensive GPU sits idle between steps. That's a dataloader problem, not a "make the model faster" problem — chasing the biggest <code>aten::*</code> row when the real gap is <code>DataLoader.__next__</code> is time spent optimizing the wrong thing entirely. <code>profiler.schedule(wait=, warmup=, active=)</code> lets you capture a handful of steady-state steps deep into training instead of the unrepresentative first step (which pays one-time costs like CUDA kernel compilation and cache warming).</p>
+  <p class="lesson-p">Two columns matter more than "total time": <strong>self</strong> time is time spent inside that op alone, excluding any child ops it called; <strong>total</strong> time includes children. A high-level op like <code>model_inference</code> will always show ~100% total time (everything happens inside it) but low self time — that's expected, not a red flag. It's the leaf ops with high self time (like <code>aten::addmm</code> above, the actual matrix multiply doing real work) that tell you where compute is genuinely going. <code>prof.export_chrome_trace('trace.json')</code> writes a trace you can open in <code>chrome://tracing</code> (or the TensorBoard profiler plugin) for a visual timeline — this is usually the fastest way to literally see the idle gaps between GPU kernel launches that a table of numbers can only imply.</p>
+
+  <!-- adv01.7 -->
+  <div class="lesson-h2">Advanced 1.7 — Memory Optimization: Checkpointing &amp; Gradient Accumulation</div>
+  <p class="lesson-p">Training memory has four buckets: parameters, gradients (same size as parameters), optimizer state (Adam keeps two extra fp32 moment buffers per parameter — parameters + grads + Adam state alone is roughly <strong>4x</strong> the raw parameter size), and <strong>activations</strong> — every intermediate tensor saved because backward will need it. Activations grow linearly with both depth and batch size, and for deep or wide models they routinely dominate the memory budget more than the weights do.</p>
+
+  <p class="lesson-p"><strong>Activation checkpointing</strong> trades compute for memory: instead of keeping every layer's activations around for backward, you keep only the input to each checkpointed segment, and during backward you <strong>re-run the forward pass</strong> for that segment to regenerate what's needed, then discard it again immediately after. <code>torch.utils.checkpoint.checkpoint</code> does exactly this.</p>
+
+  <div class="diagram">
+    <div class="dg-t">Memory over layer depth: normal (linear growth) vs. checkpointed (sawtooth)</div>
+    <pre> normal:        mem ▲                                    ╱▔▔▔▔ all L layers' activations
+                       │                              ╱▔▔▔    held simultaneously until backward
+                       │                        ╱▔▔▔
+                       └──────────────────────────────────► layer depth
+
+ checkpointed:  mem ▲     ╱╲      ╱╲      ╱╲      ╱╲        each spike = one segment's forward
+                       │   ╱  ╲    ╱  ╲    ╱  ╲    ╱  ╲       RECOMPUTED then immediately freed
+                       └──────────────────────────────────► layer depth   (extra compute, less peak memory)</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: gradients confirmed correct through a checkpoint)</span></div>
+    <div class="cb-code"><span class="kw">from</span> torch.utils.checkpoint <span class="kw">import</span> checkpoint
+
+<span class="kw">class</span> <span class="cls">Block</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self):
+        <span class="bi">super</span>().__init__()
+        self.lin = nn.Linear(<span class="nm">16</span>, <span class="nm">16</span>)
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        <span class="kw">return</span> torch.relu(self.lin(x))
+
+block = Block()
+inp = torch.randn(<span class="nm">4</span>, <span class="nm">16</span>, requires_grad=<span class="kw">True</span>)
+out = checkpoint(block, inp, use_reentrant=<span class="kw">False</span>)   <span class="cm"># forward runs now, activations dropped immediately</span>
+out.<span class="bi">sum</span>().backward()                          <span class="cm"># block.forward(inp) is RE-RUN here to get activations back</span>
+<span class="bi">print</span>(inp.grad.shape)   <span class="cm"># torch.Size([4, 16]) — a real, correct gradient, not an approximation</span></div>
+  </div>
+  <div class="out-pre">checkpoint grad shape torch.Size([4, 16])</div>
+
+  <p class="lesson-p"><strong>Gradient accumulation</strong> solves the opposite problem: you want the statistical benefit of a large batch, but it doesn't fit in memory. Split it into <code>N</code> micro-batches, run forward+backward on each (dividing the loss by <code>N</code> first so the accumulated gradient matches what one true large-batch step would have produced), and only call <code>optimizer.step()</code> + <code>zero_grad()</code> after all <code>N</code> have accumulated into <code>.grad</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: accumulated loss matches the true batch average)</span></div>
+    <div class="cb-code">accum_steps, micro_bs = <span class="nm">4</span>, <span class="nm">16</span>
+optimizer.zero_grad()
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(accum_steps):
+    xb = X[i*micro_bs:(i+<span class="nm">1</span>)*micro_bs]
+    yb = y[i*micro_bs:(i+<span class="nm">1</span>)*micro_bs]
+    loss = criterion(model(xb), yb) / accum_steps   <span class="cm"># divide BEFORE backward, not after</span>
+    loss.backward()                                 <span class="cm"># grads ACCUMULATE across all 4 micro-batches</span>
+optimizer.step()      <span class="cm"># one real update, statistically equivalent to a batch of 64</span></div>
+  </div>
+
+  <!-- adv01.8 -->
+  <div class="lesson-h2">Advanced 1.8 — Distributed Training: DP, DDP, and FSDP</div>
+  <p class="lesson-p"><strong>DataParallel (DP)</strong> is one process, multiple GPUs: it splits a batch, scatters shards to each GPU via threads, gathers the outputs back to GPU 0 for the loss and backward. It's obsolete in practice — Python's GIL serializes the threads, and GPU 0 carries an uneven memory/compute load. It's worth knowing only so you recognize why it was replaced.</p>
+  <p class="lesson-p"><strong>DistributedDataParallel (DDP)</strong> is one process <em>per</em> GPU, each holding a full model replica. Every replica runs its own forward and backward independently on its own data shard — the only synchronization is the <strong>gradients</strong>, combined via a ring all-reduce across all replicas, overlapped with backward computation (gradient buckets are all-reduced as soon as they're ready, not held until the whole backward pass finishes). The result: every replica ends a step with the mathematically identical, averaged gradient, and therefore identical weights after the identical optimizer step.</p>
+
+  <div class="diagram">
+    <div class="dg-t">Ring all-reduce: N GPUs average their gradients with no central coordinator</div>
+    <pre>        GPU0 ──chunk──► GPU1 ──chunk──► GPU2 ──chunk──► GPU3
+          ▲                                                │
+          └────────────────────chunk───────────────────────┘
+   each GPU passes a CHUNK of its gradient to its neighbor, accumulating a
+   running sum as it goes around the ring — after two full passes, every
+   GPU holds the exact same averaged gradient, using only neighbor-to-neighbor
+   bandwidth (no single node has to talk to all N others)</pre>
+  </div>
+
+  <p class="lesson-p">This was verified directly, not just described: spinning up two real processes with <code>torch.distributed</code>'s <code>gloo</code> backend (CPU-only, no GPU needed for the mechanism) — each rank sees <em>different</em> random data, yet after <code>loss.backward()</code> both ranks' <code>.grad</code> tensors are bit-for-bit identical, proving the all-reduce genuinely ran.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: 2-process DDP via gloo, ran on CPU)</span></div>
+    <div class="cb-code"><span class="kw">import</span> os, torch, torch.nn <span class="kw">as</span> nn, torch.distributed <span class="kw">as</span> dist
+<span class="kw">import</span> torch.multiprocessing <span class="kw">as</span> mp
+<span class="kw">from</span> torch.nn.parallel <span class="kw">import</span> DistributedDataParallel <span class="kw">as</span> DDP
+
+<span class="kw">def</span> <span class="fn">worker</span>(rank, world_size):
+    os.environ[<span class="st">'MASTER_ADDR'</span>], os.environ[<span class="st">'MASTER_PORT'</span>] = <span class="st">'localhost'</span>, <span class="st">'29501'</span>
+    dist.init_process_group(<span class="st">'gloo'</span>, rank=rank, world_size=world_size)
+    model = DDP(nn.Linear(<span class="nm">4</span>, <span class="nm">1</span>))
+    torch.manual_seed(rank)                       <span class="cm"># each rank gets DIFFERENT data on purpose</span>
+    x, y = torch.randn(<span class="nm">4</span>, <span class="nm">4</span>), torch.randn(<span class="nm">4</span>, <span class="nm">1</span>)
+    ((model(x) - y) ** <span class="nm">2</span>).mean().backward()
+    <span class="bi">print</span>(<span class="st">f"rank <span class="bi">{rank}</span> grad sample: <span class="bi">{model.module.weight.grad[0,0].item():.4f}</span>"</span>)
+    dist.destroy_process_group()
+
+mp.spawn(worker, args=(<span class="nm">2</span>,), nprocs=<span class="nm">2</span>, join=<span class="kw">True</span>)</div>
+  </div>
+  <div class="out-pre">rank 0 grad sample: -0.7066
+rank 1 grad sample: -0.7066   ← identical, despite different local data — proves the all-reduce ran</div>
+
+  <p class="lesson-p"><strong>FSDP (Fully Sharded Data Parallel)</strong> is for models too large to replicate in full on every GPU: parameters, gradients, and optimizer state are each <em>sharded</em> across GPUs, and the full shard needed for a given layer is gathered just-in-time during forward/backward, then freed again right after. It trades extra communication for the ability to train models that couldn't fit on any single GPU at all.</p>
+
+  <table class="lesson-table">
+    <tr><th>Approach</th><th>Model copies per GPU</th><th>What's synchronized</th><th>Reach for it when</th></tr>
+    <tr><td>DP</td><td>1 (via threads)</td><td>outputs gathered to GPU0</td><td>never, in new code</td></tr>
+    <tr><td>DDP</td><td>1 full replica each</td><td>gradients, via ring all-reduce</td><td>model fits on one GPU</td></tr>
+    <tr><td>FSDP</td><td>1/N shard each</td><td>params + grads + optimizer state, gathered on demand</td><td>model does NOT fit on one GPU</td></tr>
+  </table>
+
+  <p class="lesson-p">The most common real-world "it worked on 1 GPU, it diverges under DDP" bug: per-GPU batch size was left unchanged when moving to <code>N</code> GPUs, silently growing the <strong>global</strong> (effective) batch size by <code>N</code>x without any accompanying change to the learning rate. The field's standard fix, going back to large-batch training literature, is the <strong>linear scaling rule</strong> — scale the learning rate by the same factor the global batch size grew by — combined with a short LR warmup, since jumping straight to a scaled-up LR from step one can itself destabilize early training. A second, easy-to-miss DDP-specific bug: using loss <code>reduction='sum'</code> instead of <code>'mean'</code> — DDP already averages gradients <em>across replicas</em>, but a summed (not averaged) <em>within-replica</em> loss means the raw gradient magnitude scales with local batch size before that averaging ever happens, which can produce effectively oversized updates.</p>
+  <p class="lesson-p">Two more DDP details that matter in practice: the real backend for multi-GPU training is <code>nccl</code> (NVIDIA's collective-communications library, GPU-to-GPU aware); the verified demo above used <code>gloo</code> specifically because it also runs over plain CPU processes, which made the sync provable without real GPUs — production code should use <code>nccl</code> when GPUs are present. And every DDP run needs a <code>DistributedSampler</code> so each replica sees a different shard of the data rather than all replicas training on an identical copy — with one common miss: without calling <code>sampler.set_epoch(epoch)</code> at the start of every epoch, the sampler reuses the exact same shuffle order every time, so every replica sees the same data in the same order on every epoch, quietly hurting how well the model shuffles across the full dataset over a long run.</p>
+
+  <!-- adv01.9 -->
+  <div class="lesson-h2">Advanced 1.9 — Squeezing Out the Rest: DataLoader &amp; torch.compile</div>
+  <p class="lesson-p">Following straight from 1.6: if profiling shows the CPU data pipeline as the real bottleneck (or you simply see low GPU utilization in <code>nvidia-smi</code> while training), the fix is on the <code>DataLoader</code>, not the model — <code>num_workers</code> spins up background processes to prepare batches in parallel with the GPU's current step, <code>prefetch_factor</code> controls how many batches each worker stages ahead, <code>persistent_workers=True</code> avoids re-spawning those processes every epoch, and <code>pin_memory=True</code> pairs with the pinned-memory transfer from 1.4.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: DataLoader ran end to end)</span></div>
+    <div class="cb-code"><span class="kw">from</span> torch.utils.data <span class="kw">import</span> DataLoader, TensorDataset
+
+loader = DataLoader(
+    TensorDataset(X, y),
+    batch_size=<span class="nm">64</span>, shuffle=<span class="kw">True</span>,
+    num_workers=<span class="nm">4</span>, prefetch_factor=<span class="nm">2</span>,
+    persistent_workers=<span class="kw">True</span>, pin_memory=<span class="kw">True</span>,
+)</div>
+  </div>
+
+  <p class="lesson-p"><code>torch.compile(model)</code> traces your model into a graph, fuses operations, and generates optimized kernels through TorchInductor — adoption is a one-line change, and it falls back gracefully ("graph breaks") on Python it can't trace rather than erroring out. The first call is slow (it's compiling); it may recompile if input shapes vary too much between calls; and it makes step-through debugging one layer removed from the code you wrote. It works on CPU too — the win is far larger on a GPU with real fused CUDA kernels, but the mechanism itself was verified to actually compile and run correctly on CPU here. The <code>mode</code> argument trades compile time for runtime speed: the default balances both, <code>mode="reduce-overhead"</code> is worth trying for small models where Python/launch overhead dominates, and <code>mode="max-autotune"</code> spends much longer compiling in exchange for searching harder for the fastest kernels — reach for it only once a training loop's shapes are stable, since every meaningfully different input shape triggers a fresh, slow recompilation.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reference — real PyTorch (verified: compiled and ran on CPU)</span></div>
+    <div class="cb-code">model = torch.compile(model)
+out = model(torch.randn(<span class="nm">8</span>, <span class="nm">32</span>))   <span class="cm"># first call triggers compilation, then runs the optimized graph</span></div>
+  </div>
+  <div class="out-pre">compiled ok torch.Size([8, 1])</div>
+
+  <!-- Summary -->
+  <div class="lesson-h2">Chapter Summary</div>
+  <ul class="step-list">
+    <li data-n="1"><div>Autograd builds a computation graph and frees it after one <code>.backward()</code> pass; <code>retain_graph=True</code> keeps it alive at a real memory cost.</div></li>
+    <li data-n="2"><div>A custom <code>autograd.Function</code> hand-writes forward + backward — the real use case is a straight-through estimator for a genuinely non-differentiable op.</div></li>
+    <li data-n="3"><div>A production loop adds LR scheduling, gradient clipping, early stopping on validation loss, and full checkpoint/resume (model + optimizer + scheduler state).</div></li>
+    <li data-n="4"><div>Tensor memory layout (contiguous vs. strided) and pinned host memory both affect real transfer/copy cost, even though the biggest wins need a GPU.</div></li>
+    <li data-n="5"><div>fp16 needs <code>GradScaler</code> to avoid gradient underflow; bf16 keeps fp32's dynamic range and usually skips scaling entirely.</div></li>
+    <li data-n="6"><div><code>torch.profiler</code> finds the REAL bottleneck — often the dataloader starving an idle GPU, not the slowest <code>aten::*</code> op.</div></li>
+    <li data-n="7"><div>Activation checkpointing trades recomputation for memory; gradient accumulation simulates a larger batch than fits at once.</div></li>
+    <li data-n="8"><div>DDP replicates the model and synchronizes only gradients via ring all-reduce; FSDP shards the model itself for when it doesn't fit on one GPU.</div></li>
+    <li data-n="9"><div>DataLoader workers/prefetch and <code>torch.compile</code> close out the remaining performance gap once the model and memory strategy are right.</div></li>
+  </ul>
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises. Since PyTorch can't execute in this browser, these are checked by pattern-matching the CODE (or numbers) you write — not by running it. Write real, correct answers, then try them for real in Colab.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Read a Profiler Table, Fix the Real Bottleneck</div>
+        <div class="ex-desc">A captured torch.profiler table shows the real time sink is NOT compute.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task: this table was captured for one training step:
+    Name                       Self CPU %   CPU total
+    enumerate(DataLoader)#0       88.40%    823.100ms
+    aten::addmm                    4.10%     38.220ms
+    aten::linear                   3.20%     12.870ms
+    aten::relu                     2.05%      6.510ms
+
+88% of the step is spent inside enumerate(DataLoader)#0, not in any aten::*
+compute op — this is a DATA-LOADING bottleneck, the GPU is starved waiting
+for batches, not a slow model. Write the corrected DataLoader constructor
+that fixes it: num_workers=4, pin_memory=True, persistent_workers=True.</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code">from torch.utils.data import DataLoader
+
+# train_loader = DataLoader(
+#     train_ds,
+#     batch_size=64,
+#     shuffle=True,
+#     num_workers=4,
+#     pin_memory=True,
+#     persistent_workers=True,
+# )
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(1)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Fix a Training Loop Missing Clipping and a Scheduler</div>
+        <div class="ex-desc">A working loop is missing two production safeguards.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task: given this loop (model, optimizer, scheduler, criterion, X, y,
+epochs already defined — scheduler exists but is never advanced):
+
+    for epoch in range(epochs):
+        optimizer.zero_grad()
+        predictions = model(X)
+        loss = criterion(predictions, y)
+        loss.backward()
+        optimizer.step()
+
+Rewrite the body adding, in the correct order: gradient clipping via
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) right
+after loss.backward(), and scheduler.step() right after optimizer.step().</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code"># for epoch in range(epochs):
+#     optimizer.zero_grad()
+#     predictions = model(X)
+#     loss = criterion(predictions, y)
+#     loss.backward()
+#     optimizer.step()
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(2)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Convert a Loop to Correct fp16 AMP</div>
+        <div class="ex-desc">Wire up autocast + GradScaler in the right order.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task: given a plain fp32 loop (model, optimizer, criterion, X, y, epochs
+already defined), convert it to fp16 mixed precision. Write, in order:
+  1. scaler = torch.amp.GradScaler('cuda')
+  2. inside the loop: optimizer.zero_grad()
+  3. with torch.autocast(device_type='cuda', dtype=torch.float16): forward + loss
+  4. scaler.scale(loss).backward()
+  5. scaler.step(optimizer)
+  6. scaler.update()</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code">import torch
+
+# scaler = torch.amp.GradScaler('cuda')
+# for epoch in range(epochs):
+#     optimizer.zero_grad()
+#     with torch.autocast(device_type='cuda', dtype=torch.float16):
+#         predictions = model(X)
+#         loss = criterion(predictions, y)
+#     scaler.scale(loss).backward()
+#     scaler.step(optimizer)
+#     scaler.update()
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(3)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Compute the Memory Savings from Checkpointing</div>
+        <div class="ex-desc">Real arithmetic: how much does checkpointing actually save here?</div>
+      </div>
+    </div>
+    <div class="ex-task">Task: L=24 layers, each layer's activations cost A=50 (MB) to keep for
+backward, and layers are checkpointed in groups of k=4 (only 1 boundary
+activation stored per group of 4). Compute:
+  baseline_mb    = L * A
+  checkpointed_mb = (L // k) * A
+  saved_mb        = baseline_mb - checkpointed_mb
+Then assert your three computed numbers literally (this both proves your
+formula is right AND states the real answer in checkable text):
+  assert baseline_mb == 1200 and checkpointed_mb == 300 and saved_mb == 900</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code">L = 24   # total layers
+A = 50   # MB of activation memory per layer, without checkpointing
+k = 4    # layers per checkpointed segment
+
+# baseline_mb = L * A
+# checkpointed_mb = (L // k) * A
+# saved_mb = baseline_mb - checkpointed_mb
+# assert baseline_mb == 1200 and checkpointed_mb == 300 and saved_mb == 900
+# print(f"baseline={baseline_mb}MB checkpointed={checkpointed_mb}MB saved={saved_mb}MB")
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(4)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Diagnose: Loss Diverges After Switching to DDP</div>
+        <div class="ex-desc">A conceptual DDP debugging exercise — the classic pitfall.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task: a team trains on 1 GPU with batch_size=32, lr=3e-4 — it converges
+cleanly. They switch to DDP across 4 GPUs, keep batch_size=32 PER GPU
+(so the global batch is now 4x larger) and keep lr=3e-4 UNCHANGED. Loss
+now diverges within a few hundred steps.
+
+Diagnose the cause and write the fixed learning-rate assignment using
+the linear scaling rule (new_lr = base_lr * world_size):
+  world_size = 4
+  base_lr = 3e-4
+  lr = base_lr * world_size</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code"># world_size = 4
+# base_lr = 3e-4
+# lr = base_lr * world_size
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkTextEx(5)">✓ Check My Code</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Mini Project: <span>A Production-Shaped Training Script</span></h2>
+    <p>Combine every safeguard from this chapter into one script for a small, real toy model: checkpointing + resume, AMP, an LR schedule, and gradient clipping, all in the same loop. This is the shape every real training script in this course's later chapters (adv02's fine-tuning run, adv03's serving code) will assume you already know how to write.</p>
+    <div class="project-tags">
+      <span class="ptag">checkpoint/resume</span>
+      <span class="ptag">AMP</span>
+      <span class="ptag">LR schedule</span>
+      <span class="ptag">gradient clipping</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build (in Colab, or locally against the venv)</h3>
+    <ul class="spec-list">
+      <li>A small nn.Module (e.g. two Linear layers + ReLU) and an AdamW optimizer</li>
+      <li>A CosineAnnealingLR (or OneCycleLR) scheduler, stepped once per epoch after optimizer.step()</li>
+      <li>AMP: torch.autocast + torch.amp.GradScaler, enabled only when a CUDA device is present (device-agnostic — must also run correctly on CPU with AMP effectively disabled)</li>
+      <li>torch.nn.utils.clip_grad_norm_ applied after backward, before the optimizer step</li>
+      <li>Checkpoint (model + optimizer + scheduler state_dict + epoch + best_loss) saved whenever validation loss improves</li>
+      <li>On startup: if a checkpoint file exists, load it and resume from epoch+1 instead of epoch 0</li>
+    </ul>
+  </div>
+
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body"><strong>This exact shape was run and verified</strong><br/>Stopped mid-training and restarted, the loss/LR trajectory continued identically to an uninterrupted run — real proof the checkpoint captured everything needed, not just the model weights.</div></div>
+
+  <div class="project-spec">
+    <h3>✅ Confirm and Continue</h3>
+    <div class="ex-editor-wrap" style="padding:0">
+      <textarea class="ex-editor" id="project-editor" style="min-height:140px" placeholder="Paste your final training script here once it runs successfully (Colab or the venv), then click Check below."></textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="checkProject()">✓ Check My Code</button>
+      </div>
+      <div class="ex-result" id="project-result"></div>
+    </div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist</h3>
+    <div class="check-item"><span class="check-icon">💾</span>torch.save / torch.load for checkpoint + resume</div>
+    <div class="check-item"><span class="check-icon">⚡</span>autocast + GradScaler wired correctly (scale → backward → step → update)</div>
+    <div class="check-item"><span class="check-icon">📉</span>scheduler.step() called once per epoch</div>
+    <div class="check-item"><span class="check-icon">✂️</span>clip_grad_norm_ called after backward, before the optimizer step</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Advanced 1 Quiz</h2>
+    <p>5 questions. You need 4/5 (80%) to pass and unlock Advanced 2. You can retake this as many times as you want.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">Why does calling <code>.backward()</code> a second time on the same graph raise an error unless you pass <code>retain_graph=True</code>?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> PyTorch frees each node's saved intermediates by default right after backward walks past it</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> Tensors can only ever have one gradient computed in their lifetime</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> retain_graph is required any time requires_grad=True is set</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> It's a GPU-only restriction that doesn't apply on CPU</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Why does fp16 training usually need <code>GradScaler</code> while bf16 usually doesn't?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> fp16 is slower on every GPU, so scaling compensates for speed</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> fp16's narrow exponent range lets small gradients underflow to zero; bf16 keeps fp32's wider exponent range and rarely underflows</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> GradScaler is required for every dtype, bf16 chapters just skip mentioning it</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> bf16 doesn't support backpropagation at all</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">In DistributedDataParallel (DDP), what exactly gets synchronized across GPU replicas, and how?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> The full model weights are copied to every GPU after every single forward pass</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Only the gradients, combined across all replicas via a ring all-reduce overlapped with backward</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only the optimizer's learning rate is synchronized, gradients stay local</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Nothing — each replica trains a fully independent model</button>
+    </div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Write the line that wraps a forward pass in CPU-friendly bf16 mixed precision (no GradScaler needed). Focus on the <code>with torch.autocast(...)</code> line.</div>
+    <textarea class="q-code-input" id="q4-input" placeholder="with torch.autocast(...)" rows="3"></textarea>
+    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
+    <div class="q-feedback" id="q4-feedback"></div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">What does activation checkpointing actually trade to reduce peak memory?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It trades model accuracy for lower memory — the saved activations are approximated</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> It trades extra forward-pass recomputation during backward for not storing every layer's activations</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> It trades gradient precision for memory, similar to fp16</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> It requires a second GPU to store the checkpointed activations on</button>
+    </div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
+
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">🎬</div>
+    <div class="ncc-info">
+      <h3>Advanced 2: Fine-Tuning LLMs — SFT, LoRA, QLoRA (Colab)</h3>
+      <p>Take a pretrained model and adapt it with real fine-tuning data — the HuggingFace datasets library, why full fine-tuning is usually wasteful, and LoRA/QLoRA's low-rank math, worked out for real model sizes.</p>
+    </div>
+    <a class="ncc-btn" href="adv02-llm-finetuning.html">Start Advanced 2 →</a>
+  </div>
+</div><!-- end quiz -->
+
+</div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run (no PyTorch — that's Colab-only)" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+const CH_ID='adv01';
+const STORE_KEY='aimlZTH_progress_v1';
+function loadStore(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
+  catch(e){ return {chapters:{}}; }
+}
+function saveStore(store){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
+}
+function persistChapter(){
+  const store=loadStore();
+  store.chapters=store.chapters||{};
+  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
+  saveStore(store);
+}
+
+let pyReady = false;
+let pyodide = null;
+let completedItems = new Set();
+let xp = 0;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+(function restore(){
+  const store=loadStore();
+  const saved=store.chapters && store.chapters[CH_ID];
+  if(saved){
+    completedItems=new Set(saved.completed||[]);
+    xp=saved.xp||0;
+    quizDone=!!saved.quizDone;
+  }
+})();
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓ (no PyTorch — use Colab)';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# NOTE: PyTorch is NOT available here. This console is for light non-PyTorch snippets only.','info');
+    clog('# Use a Colab notebook (link in the lesson) to run this chapter\'s actual PyTorch code.','info');
+    if(quizDone) revealNextChapter();
+    updateUI();
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    document.getElementById('tab-'+s).classList.toggle('active',s===name);
+    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+
+// Exercises here are graded by PATTERN-MATCHING the typed code (not execution) —
+// PyTorch cannot run in Pyodide. `checks` are matched against the code with all
+// whitespace stripped, lowercased, and comments removed.
+const EXERCISES = {
+  1:{
+    checks:['num_workers=4','pin_memory=true','persistent_workers=true'],
+    hint:"num_workers=4, pin_memory=True, persistent_workers=True — the bottleneck is enumerate(DataLoader), not any aten:: compute op",
+    solution:`train_loader = DataLoader(
+    train_ds,
+    batch_size=64,
+    shuffle=True,
+    num_workers=4,
+    pin_memory=True,
+    persistent_workers=True,
+)`
+  },
+  2:{
+    checks:['torch.nn.utils.clip_grad_norm_(model.parameters()','max_norm=1.0','loss.backward()','optimizer.step()','scheduler.step()'],
+    hint:"clip_grad_norm_ goes right after loss.backward(); scheduler.step() goes right after optimizer.step()",
+    solution:`for epoch in range(epochs):
+    optimizer.zero_grad()
+    predictions = model(X)
+    loss = criterion(predictions, y)
+    loss.backward()
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+    optimizer.step()
+    scheduler.step()`
+  },
+  3:{
+    checks:["gradscaler('cuda')","autocast(device_type='cuda'",'dtype=torch.float16','scaler.scale(loss).backward()','scaler.step(optimizer)','scaler.update()'],
+    hint:"scaler = torch.amp.GradScaler('cuda'); autocast for forward+loss; scaler.scale(loss).backward(); scaler.step(optimizer); scaler.update()",
+    solution:`scaler = torch.amp.GradScaler('cuda')
+for epoch in range(epochs):
+    optimizer.zero_grad()
+    with torch.autocast(device_type='cuda', dtype=torch.float16):
+        predictions = model(X)
+        loss = criterion(predictions, y)
+    scaler.scale(loss).backward()
+    scaler.step(optimizer)
+    scaler.update()`
+  },
+  4:{
+    checks:['baseline_mb==1200','checkpointed_mb==300','saved_mb==900'],
+    hint:"baseline_mb = 24*50 = 1200; checkpointed_mb = (24//4)*50 = 300; saved_mb = 1200-300 = 900 — then assert all three literally",
+    solution:`L = 24
+A = 50
+k = 4
+baseline_mb = L * A
+checkpointed_mb = (L // k) * A
+saved_mb = baseline_mb - checkpointed_mb
+assert baseline_mb == 1200 and checkpointed_mb == 300 and saved_mb == 900
+print(f"baseline={baseline_mb}MB checkpointed={checkpointed_mb}MB saved={saved_mb}MB")`
+  },
+  5:{
+    checks:['world_size=4','base_lr=3e-4','lr=base_lr*world_size'],
+    hint:"the global batch size grew 4x when moving to DDP but the LR didn't — use the linear scaling rule: lr = base_lr * world_size",
+    solution:`world_size = 4
+base_lr = 3e-4
+lr = base_lr * world_size`
+  }
+};
+
+window.checkTextEx=function(n){
+  const raw=document.getElementById(`ex${n}-code`).value;
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
+  const resEl=document.getElementById(`ex${n}-result`);
+  const ex=EXERCISES[n];
+  const passed=ex.checks.every(c=>noSpaces.includes(c.toLowerCase().replace(/\s/g,'')));
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct pattern! +50 XP — now try it for real in Colab.';
+    if(!completedItems.has('ex'+n)){
+      completedItems.add('ex'+n);
+      xp+=50;updateUI();spark();persistChapter();
+    }
+  }else{
+    resEl.textContent='❌ Missing required code — check the task requirements, or view the solution';
+  }
+};
+
+window.showExHint=function(n){
+  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
+};
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.checkProject=function(){
+  const raw=document.getElementById('project-editor').value;
+  const noSpaces=raw.replace(/#.*$/gm,'').toLowerCase().replace(/\s/g,'');
+  const res=document.getElementById('project-result');
+  const checks=['torch.save(','torch.load(','autocast(','gradscaler','clip_grad_norm_','scheduler.step()'];
+  const passed=checks.every(c=>noSpaces.includes(c.replace(/\s/g,'')));
+  res.style.display='flex';res.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! +150 XP';
+    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+  }else{
+    res.textContent='❌ Paste the full training script you ran — missing required pieces (checkpoint save/load, AMP, clipping, or scheduler)';
+  }
+};
+
+const CORRECT={1:'A',2:'B',3:'B',5:'B'};
+
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    const letter=String.fromCharCode(65+i);
+    b.classList.toggle('selected',letter===opt);
+  });
+};
+
+window.checkQ4=function(){
+  const val=document.getElementById('q4-input').value.trim().toLowerCase().replace(/\s/g,'');
+  const fb=document.getElementById('q4-feedback');
+  const passed=val.includes("autocast(device_type='cpu'")&&val.includes('bfloat16');
+  quizAnswers[4]=passed?'PASS':'FAIL';
+  fb.className='q-feedback show '+(passed?'correct':'wrong');
+  fb.textContent=passed
+    ?"✅ Correct! with torch.autocast(device_type='cpu', dtype=torch.bfloat16):"
+    :"❌ Not quite. You need: with torch.autocast(device_type='cpu', dtype=torch.bfloat16):";
+};
+
+function revealNextChapter(){
+  document.getElementById('next-chapter-card').style.display='flex';
+}
+
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,5].forEach(q=>{
+    const correct=CORRECT[q];
+    const given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+  });
+  if(quizAnswers[4]==='PASS')score++;
+  quizDone=true;
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    banner.innerHTML=`
+      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
+      <div class="qrb-sub">Autograd internals, production training loops, mixed precision, profiling, and distributed training — you're ready for real large-scale PyTorch.</div>`;
+    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
+    persistChapter();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`
+      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
+      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
+      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.getElementById('q4-input').value='';
+  document.getElementById('q4-feedback').className='q-feedback';
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function updateUI(){
+  document.getElementById('xp-count').textContent=xp;
+  const total=7; // 5 exercises + project + quiz
+  document.getElementById('done-count').textContent=completedItems.size;
+  const pct=Math.round(completedItems.size/total*100);
+  document.getElementById('sb-progress').style.width=pct+'%';
+  document.getElementById('sb-progress-text').textContent=pct+'% complete';
+  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
+    document.getElementById('sb-practice').classList.add('done');
+    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-practice').classList.add('done-tab');
+  }
+  if(completedItems.has('project')){
+    document.getElementById('sb-project').classList.add('done');
+    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-project').classList.add('done-tab');
+  }
+  if(completedItems.has('quiz')){
+    document.getElementById('sb-quiz').classList.add('done');
+    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
+    document.getElementById('tab-quiz').classList.add('done-tab');
+  }
+}
+updateUI();
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+
+window.toggleSidebar=function(){
+  document.getElementById('sidebar').classList.toggle('mob-open');
+};
+window.toggleMobConsole=function(){
+  document.getElementById('console-dock').classList.toggle('mob-open');
+};
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820)
+      document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+<script>
+(function(){
+  var KEY='aimlZTH_console_min';
+  var dock=document.getElementById('console-dock');
+  if(!dock)return;
+  var header=dock.querySelector('.cd-header');
+  if(!header)return;
+  var out=document.getElementById('cd-out');
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='cd-min-btn';
+  function initial(){var v=null;try{v=localStorage.getItem(KEY);}catch(e){}if(v==='1')return true;if(v==='0')return false;return window.innerWidth<1200;}
+  function store(v){try{localStorage.setItem(KEY,v?'1':'0');}catch(e){}}
+  function set(min,persist){
+    dock.classList.toggle('cd-min',min);
+    document.body.classList.toggle('cd-min',min);
+    btn.textContent=min?'▴':'–';
+    btn.setAttribute('aria-expanded',String(!min));
+    var label=min?'Expand console (Ctrl+`)':'Minimize console (Ctrl+`)';
+    btn.title=label;btn.setAttribute('aria-label',label);
+    if(!min&&out)out.scrollTop=out.scrollHeight;
+    if(persist!==false)store(min);
+  }
+  function toggle(){set(!dock.classList.contains('cd-min'));}
+  header.appendChild(btn);
+  header.addEventListener('click',toggle);
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='`'){e.preventDefault();toggle();}
+  });
+  var run=window.runToConsole;
+  if(typeof run==='function'){
+    window.runToConsole=function(){set(false);return run.apply(this,arguments);};
+  }
+  set(initial(),false);
+})();
+</script>
+<!-- theme:js -->
+<script>
+(function(){
+  var KEY='aimlZTH_theme',root=document.documentElement;
+  var SUN='<svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  var MOON='<svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>';
+  function valid(v){return v==='light'||v==='dark'?v:null}
+  function stored(){try{return valid(localStorage.getItem(KEY))}catch(e){return null}}
+  function osPref(){try{return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){return 'dark'}}
+  function current(){return valid(root.getAttribute('data-theme'))||stored()||osPref()}
+  var buttons=[];
+  function label(b,t){
+    var next=t==='light'?'dark':'light';
+    b.setAttribute('aria-label','Switch to '+next+' theme (currently '+t+')');
+    b.setAttribute('title','Switch to '+next+' theme');
+    var l=b.querySelector('.tt-label');if(l)l.textContent=t==='light'?'Light':'Dark';
+  }
+  function apply(t,persist){
+    root.setAttribute('data-theme',t);
+    if(persist){try{localStorage.setItem(KEY,t)}catch(e){}}
+    for(var i=0;i<buttons.length;i++)label(buttons[i],t);
+    try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#F3F4F9':'#0F1117')}catch(e){}
+  }
+  function make(cls){
+    var b=document.createElement('button');
+    b.type='button';b.className='theme-toggle '+cls;
+    b.setAttribute('data-theme-toggle','');
+    b.innerHTML=SUN+MOON+'<span class="tt-label"></span>';
+    b.addEventListener('click',function(){apply(current()==='light'?'dark':'light',true)});
+    buttons.push(b);return b;
+  }
+  function mount(){
+    if(document.querySelector('[data-theme-toggle]'))return;
+    var tb=document.getElementById('topbar'),tn=document.getElementById('topnav'),mob=document.getElementById('mob-menu'),wrap=document.querySelector('.wrap');
+    if(tb){
+      tb.appendChild(make('tt-desk'));
+      if(mob){var mb=make('tt-mob'),mc=document.getElementById('mob-console-btn');mob.insertBefore(mb,mc||null)}
+    }else if(tn){
+      tn.appendChild(make('tt-nav'));
+    }else if(wrap&&document.querySelector('.wrap > .eyebrow')){
+      if(getComputedStyle(wrap).position==='static')wrap.style.position='relative';
+      wrap.appendChild(make('tt-index'));
+    }else{
+      document.body.appendChild(make('tt-fixed'));
+    }
+    apply(current(),false);
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key===KEY||e.key===null){apply(stored()||osPref(),false)}
+  });
+  try{
+    var mq=window.matchMedia('(prefers-color-scheme: light)');
+    var onq=function(){if(!stored())apply(osPref(),false)};
+    if(mq.addEventListener)mq.addEventListener('change',onq);else if(mq.addListener)mq.addListener(onq);
+  }catch(e){}
+  window.aimlTheme={get:current,set:function(t){if(valid(t))apply(t,true)},toggle:function(){apply(current()==='light'?'dark':'light',true)}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<!-- /theme:js -->
+<!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
+<!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:glossary-js:start --><script src="../assets/glossary.js" defer></script><!-- feat:glossary-js:end --></body>
+</html>

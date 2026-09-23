@@ -1,0 +1,1784 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — From-Scratch 2: Attention &amp; Language Models From Scratch</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy compiled to WebAssembly). This is the second and FINAL chapter of the
+  FROM-SCRATCH track: a PRACTICE module, not a re-teaching module. Every exercise, the project,
+  and every runnable lesson snippet execute for real in the browser. Nothing here needs a GPU.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.course-complete-card{background:linear-gradient(135deg,rgba(124,92,252,.18),rgba(0,217,166,.1));border:1px solid rgba(124,92,252,.35);border-radius:14px;padding:32px 36px;margin-top:32px;text-align:center}
+.ccc-icon{font-size:48px;margin-bottom:12px}
+.course-complete-card h3{font-size:24px;font-weight:800;margin-bottom:10px}
+.course-complete-card h3 span{color:var(--violet)}
+.course-complete-card p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px;margin:0 auto 18px}
+.ccc-stats{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.ccc-stat{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:12.5px;color:var(--t2)}
+.ccc-stat strong{display:block;font-size:18px;color:var(--violet);font-weight:800}
+.ccc-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 26px;font-size:14px;font-weight:700;text-decoration:none;transition:background .12s}
+.ccc-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+/* console minimize */
+#content{min-width:0}
+.cd-title{white-space:nowrap}
+.cd-header{cursor:pointer;user-select:none;gap:8px}
+.cd-header .cd-status{margin-left:auto;margin-right:2px;white-space:nowrap}
+.cd-min-btn{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:5px;width:26px;height:22px;font-size:13px;line-height:1;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.cd-min-btn:hover,.cd-min-btn:focus-visible{color:var(--text);border-color:var(--violet);outline:none}
+#console-dock.cd-min{height:auto;width:auto;min-width:200px;border-top-left-radius:10px;overflow:hidden}
+#console-dock.cd-min .cd-status,#console-dock.cd-min #cd-out,#console-dock.cd-min .cd-out,#console-dock.cd-min .cd-input-row{display:none}
+#console-dock.cd-min .cd-header{border-bottom:none}
+@media(min-width:821px){body.cd-min #topbar,body.cd-min #main-content{margin-right:0}}
+@media(max-width:820px){#console-dock.cd-min{width:100%;border-top-left-radius:0}}
+</style>
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
+<!-- theme:css -->
+<style>
+/* theme: light/dark ------------------------------------------------------ */
+:root{color-scheme:dark}
+html[data-theme="dark"]{color-scheme:dark}
+
+/* ---- toggle button (both themes) ---- */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;min-width:32px;padding:0 12px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);letter-spacing:0;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s,background-color .12s;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:var(--violet)}
+.theme-toggle:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.theme-toggle svg{width:16px;height:16px;flex-shrink:0;display:block}
+.theme-toggle .tt-sun{display:none;color:var(--gold)}
+.theme-toggle .tt-moon{color:var(--violet-light)}
+html[data-theme="light"] .theme-toggle .tt-sun{display:block}
+html[data-theme="light"] .theme-toggle .tt-moon{display:none}
+#topbar .theme-toggle{margin-left:2px}
+#topnav .theme-toggle{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 8px -2px var(--card)}
+.theme-toggle.tt-fixed{position:fixed;top:12px;right:14px;z-index:300}
+.theme-toggle.tt-index{position:absolute;top:18px;right:28px;z-index:5}
+.theme-toggle.tt-mob{display:none;height:30px;padding:0 9px}
+.theme-toggle.tt-mob .tt-label{display:none}
+@media(max-width:820px){
+  #topbar .theme-toggle.tt-desk{display:none}
+  #mob-menu .theme-toggle.tt-mob{display:inline-flex}
+}
+@media(max-width:560px){
+  .theme-toggle .tt-label{display:none}
+  .theme-toggle{padding:0;width:32px}
+  .theme-toggle.tt-index{right:16px}
+}
+
+/* ---- LIGHT PALETTE ---- */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F9; --card:#FFFFFF; --card2:#EEF0F7; --border:#D3D8E6;
+  --violet:#5B3FE0; --violet-light:#4B30CC; --violet-bg:rgba(91,63,224,.09);
+  --cyan:#00694F; --cyan-bg:rgba(0,105,79,.08);
+  --gold:#855300; --gold-bg:rgba(178,114,0,.12);
+  --red:#B91C24; --red-bg:rgba(185,28,36,.08);
+  --green:#146B36; --green-bg:rgba(20,107,54,.09);
+  --blue:#1D4ED8; --blue-bg:rgba(29,78,216,.08);
+  --text:#181C2B; --t2:#4A5068; --t3:#5F657B;
+}
+
+/* ---- dark "islands": code/terminal panels stay dark in both themes ---- */
+html[data-theme="light"] .code-block,
+html[data-theme="light"] .ex-task,
+html[data-theme="light"] .ex-editor,
+html[data-theme="light"] .ex-output,
+html[data-theme="light"] .pe-output,
+html[data-theme="light"] textarea#project-editor,
+html[data-theme="light"] .q-code-input,
+html[data-theme="light"] #console-dock .cd-out,
+html[data-theme="light"] #console-dock .cd-input-row{
+  color-scheme:dark;
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --red:#FF5757; --green:#22C55E;
+  --text:#E8EAF0; --t2:#9196A8; --t3:#8B91A5;
+}
+html[data-theme="light"] .cm{color:#7F92AE}
+html[data-theme="light"] .code-block{border-color:#2A2D3E;box-shadow:0 1px 3px rgba(20,24,40,.12)}
+html[data-theme="light"] .ex-task{border-color:#2A2D3E}
+html[data-theme="light"] .ex-editor,html[data-theme="light"] .ex-output,html[data-theme="light"] .q-code-input{border-color:#2A2D3E}
+html[data-theme="light"] .pe-output{border-top-color:#2A2D3E}
+html[data-theme="light"] .ex-output.ok{border-color:rgba(34,197,94,.3)}
+html[data-theme="light"] .ex-output.err{border-color:rgba(255,87,87,.3)}
+html[data-theme="light"] #console-dock .cd-out{border-top:1px solid #2A2D3E}
+html[data-theme="light"] #console-dock .cd-input-row{border-top-color:#2A2D3E}
+html[data-theme="light"] #console-dock .cd-clear{border-color:#3A3E52}
+
+/* ---- callouts / banners with hard-coded dark-theme text colours ---- */
+html[data-theme="light"] .info-box.note{color:#1E3A8A;border-color:rgba(29,78,216,.28)}
+html[data-theme="light"] .info-box.tip{color:#064E3B;border-color:rgba(0,105,79,.28)}
+html[data-theme="light"] .info-box.warn{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .info-box.danger{color:#7F1D1D;border-color:rgba(185,28,36,.28)}
+html[data-theme="light"] .prereq-note{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box{color:#6B4200;background:linear-gradient(135deg,rgba(178,114,0,.12),rgba(185,28,36,.05));border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box strong{color:#4A2E00}
+html[data-theme="light"] .q-feedback.correct{color:#14532D;border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .q-feedback.wrong{color:#7F1D1D;border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .ex-result.pass,html[data-theme="light"] .ex-result.fail{border-width:1px;border-style:solid}
+html[data-theme="light"] .ex-result.pass{border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .ex-result.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .quiz-result-banner.pass{background:linear-gradient(135deg,rgba(20,107,54,.12),rgba(0,105,79,.06));border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .quiz-result-banner.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .colab-btn{background:#FFB800;color:#1a1200}
+html[data-theme="light"] .colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(91,63,224,.07));border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .badge.colab{border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .star-body code,
+html[data-theme="light"] .case-body code,
+html[data-theme="light"] .bullet-item code{background:var(--card2)}
+html[data-theme="light"] .lesson-table tr:nth-child(even) td{background:rgba(24,28,43,.03)}
+html[data-theme="light"] .back-top{box-shadow:0 4px 16px rgba(24,28,43,.15)}
+html[data-theme="light"] .tn-link.active,
+html[data-theme="light"] .badge.capstone,
+html[data-theme="light"] .section-tag,
+html[data-theme="light"] .ptag,
+html[data-theme="light"] .quiz-score,
+html[data-theme="light"] #mob-console-btn{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .lesson-intro{border-color:rgba(91,63,224,.25)}
+html[data-theme="light"] .project-banner{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .course-complete-card{border-color:rgba(91,63,224,.35)}
+html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-theme="light"] .quiz-card,html[data-theme="light"] .project-editor{box-shadow:0 1px 2px rgba(24,28,43,.05)}
+
+/* ---- layout fixes (top bar + console header) ---- */
+@media(min-width:821px){
+  #topbar,body.cd-min #topbar{margin-right:0}
+}
+.tb-chip{white-space:nowrap}
+#topbar{flex-wrap:nowrap;min-width:0}
+.cd-header{min-width:0}
+.cd-header .cd-status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cd-header .cd-title{flex-shrink:0}
+
+/* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
+html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
+html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
+</style>
+<!-- /theme:css -->
+<style>
+/* from-scratch chapter extras (variables only) */
+.lesson-h3{font-size:15.5px;font-weight:700;margin:24px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.lesson-h3::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+.tt-wrap{overflow-x:auto;margin:16px 0}
+.tt-wrap .lesson-table{margin:0;min-width:480px}
+.lesson-table.tt td{font-family:var(--sans);font-size:13px;color:var(--t2);vertical-align:top;line-height:1.55}
+.lesson-table.tt td:first-child{color:var(--text);font-weight:600}
+.lesson-table.tt code,.lesson-p code,.chk code,.recap code{font-family:var(--mono);font-size:12px}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:10px;padding:12px 18px;margin:18px 0}
+.recap strong.rc-t{display:block;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:4px}
+.recap ul{margin:0 0 0 18px;font-size:13.5px;color:var(--t2);line-height:1.7}
+</style>
+<!-- feat:search-css:start --><style>
+.aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
+.aiml-sb:hover{border-color:var(--violet)}
+.aiml-sb:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.aiml-sb kbd{font:600 10px var(--mono,ui-monospace,monospace);color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:4px;padding:2px 5px}
+.aiml-sb-index{position:absolute;top:18px;right:124px;z-index:5}
+.wrap:has(>.aiml-sb-index){position:relative}
+.aiml-sb-fixed{position:fixed;top:12px;right:112px;z-index:300}
+.aiml-sb-nav{margin:0 8px 0 4px}
+.aiml-sb-mob{display:none;height:30px;padding:0 9px}
+.aiml-sb-mob .aiml-sb-t,.aiml-sb-mob kbd{display:none}
+@media(max-width:820px){#topbar .aiml-sb{display:none}#mob-menu .aiml-sb-mob{display:inline-flex}}
+@media(max-width:560px){.aiml-sb kbd{display:none}.aiml-sb-index{right:60px}.aiml-sb-fixed{right:54px}.aiml-sb-nav .aiml-sb-t{display:none}}
+@media print{.aiml-sb{display:none!important}}
+</style><!-- feat:search-css:end --></head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">FS 2: Attention &amp; LMs From Scratch</div>
+  <!-- feat:search-mob:start --><button type="button" class="aiml-sb aiml-sb-mob" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-mob:end --><button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">From-Scratch Track · Part 2 of 2</div>
+  </a>
+  <a class="sb-back" href="fs01-classical-foundations-from-scratch.html">← FS 1: Classical Foundations From Scratch</a>
+  <div class="sb-section">FS 2 · Attention &amp; Language Models</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson (recap)</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Project</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-section" style="margin-top:12px">🏁 Track Complete</div>
+  <div class="sb-item" style="opacity:.6;cursor:default"><span class="sb-icon">🎉</span><span class="sb-step">Pass the quiz to complete the From-Scratch track</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">From-Scratch 2 of 2</div>
+    <div class="tb-title">Attention &amp; Language Models From Scratch</div>
+    <div class="tb-gap"></div><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-bar" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end -->
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>From-Scratch 2:<br/><span>Attention &amp; Language Models From Scratch</span></h1>
+    <p>This is the second and final chapter of the PRACTICE track — not a re-teaching chapter. You already met attention, Query/Key/Value, multi-head attention, positional encoding, residual connections, LayerNorm, a full Transformer block, causal masking, and a mini end-to-end forward pass in <code>dl/ch25-transformers-explained.html</code>. Here you rebuild the core pieces yourself — blank page, then wire a block from its parts (with a wiring bug to catch), then a mini end-to-end forward pass, then a guided embeddings exercise, then a framework-free RAG pipeline from a blank page — and chain all of it into one tiny "retrieval-augmented mini-LM" for the Project.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~40 min read + hands-on</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge">🏗️ 1 project</span>
+      <span class="badge">🧪 5-question quiz</span>
+    </div>
+  </div>
+
+<!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="bCz4OMemCcA" data-title="Attention is all you need (Transformer) - Model explanation (including math), Inference and Training" data-chan="Umar Jamil">Attention &amp; Transformer, derived</button><button type="button" class="vid-tab" role="tab" data-id="MykcjWPJ6T4" data-title="2-Build RAG Pipeline From Scratch-Data Ingestion to Vector DB Pipeline-Part 1" data-chan="Krish Naik">RAG from scratch</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+<!-- SEC:01:start -->
+<div class="lesson-h2">2.1 — What "From Scratch" Means Here</div>
+<p class="lesson-p"><code>dl/ch25-transformers-explained.html</code> already built, from raw NumPy: word embeddings as a lookup table, Query/Key/Value projections, the scaled dot-product attention formula, multi-head attention, sinusoidal positional encoding, residual connections and why they keep gradients from vanishing across depth, Layer Normalization (and why Pre-LN placement won out over the original Post-LN), a complete Transformer block, the encoder-only/decoder-only/encoder-decoder split as purely a choice of attention mask, and a genuine mini end-to-end forward pass on a toy vocabulary. <code>projects/ch35-rag-chatbot-deployed.html</code> already built a framework-free RAG pipeline: TF-IDF retrieval, prompt construction, a simulated generation step, and health monitoring. None of that is re-taught here. This chapter assumes you can read that material fluently and moves straight to rebuilding it with the scaffolding removed.</p>
+<p class="lesson-p">What's different this time versus FS 1: the reference implementation you're rebuilding against is no longer a chapter's worked example — it's ch25's own final, given, working <code>TransformerBlock</code> class, copied below verbatim in 2.3. Exercises 2 and 3 and the Project reuse that exact class (or your fixed version of it). That is deliberate: real engineering work is rarely "implement an algorithm from a blank page and never see it again" — it's far more often "here is a working component someone else wrote; extend it, wire it into something bigger, or find out why it's silently wrong." This chapter practices both halves.</p>
+<p class="lesson-p">Concretely: exercise 1 is a genuine blank page, same as FS 1's logistic regression exercise — you get data and expected output only. Exercise 2 hands you a working component with one deliberately broken seam, matching FS 1's debug-a-broken-backprop exercise but at the block-wiring level instead of the gradient-math level. Exercise 3 is the "wire several correct pieces into a bigger pass" arc FS 1 didn't have room for, at mini-project scale. Exercise 4 is guided, same intent as FS 1's exercise 1: build confidence with a small, mostly-scaffolded win before the next blank page. Exercise 5 closes the chapter the same way FS 1 opened its hardest ground — nothing given but the data, this time on a topic (chunked retrieval) that genuinely wasn't covered in full anywhere else in the course.</p>
+<!-- SEC:01:end -->
+
+<!-- SEC:02:start -->
+<div class="lesson-h2">2.2 — Recap: Scaled Dot-Product Attention</div>
+<p class="lesson-p">Ch25 §25.3–25.4 built this in full: three learned projections of each token's embedding — <code>Q = X @ W_Q</code>, <code>K = X @ W_K</code>, <code>V = X @ W_V</code> — then <code>Attention(Q,K,V) = softmax(Q @ K.T / sqrt(d_model)) @ V</code>. The division by <code>sqrt(d_model)</code> keeps the dot-product scores from growing too large as dimensionality increases, which would otherwise push softmax into an overly peaked, badly-behaved regime. That single formula, plus a numerically-stable softmax, is the entire mechanism. Exercise 1 gives you nothing but a numpy array of token embeddings, three weight matrices, and the exact printed output your implementation must reproduce — no formula written out in the task itself, no partial code. If you find yourself unsure of an ordering or a shape, that is the signal to re-read §25.4 rather than guess.</p>
+<!-- SEC:02:end -->
+
+<!-- SEC:03:start -->
+<div class="lesson-h2">2.3 — Recap: The Full Transformer Block — Given, Working, Reused</div>
+<p class="lesson-p">Ch25 §25.7–25.9 built residual connections (<code>x + Sublayer(x)</code>, giving gradients an unobstructed path through depth), Layer Normalization (per-token re-centering/re-scaling, <code>gamma</code>/<code>beta</code> learned), and assembled both into one reusable <code>TransformerBlock</code>: multi-head attention wrapped in a residual + LayerNorm, then a position-wise feed-forward network wrapped in its own residual + LayerNorm. That class's FINAL form — the one ch25 ends on — is reproduced below exactly, and it is the reference every remaining exercise in this chapter reuses. Read it once, run it, and treat it as a black box you can call, the same way you'd treat a well-tested library function on the job.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">the given, working Transformer block (from ch25 §25.9, reused verbatim)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        return layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
+
+np.random.seed(0)
+X_demo = np.random.randn(3, 8) * 0.1
+block_demo = TransformerBlock(d_model=8, num_heads=2, d_ff=16, seed=1)
+out_demo = block_demo.forward(X_demo)
+print(f'Input shape:  {X_demo.shape}')
+print(f'Output shape: {out_demo.shape}')
+print(f'Row means (LayerNorm always renormalizes to ~0): {[round(float(v),4) for v in out_demo.mean(axis=1)]}')</div>
+</div>
+<p class="lesson-p">Notice the last printed line: every row's mean comes out ~0 regardless of what went in, because LayerNorm renormalizes ANY input to zero mean / unit variance per row. Keep that in mind for exercise 2 — a summary statistic like "row mean is ~0" being correct tells you almost nothing about whether the code that produced it was wired correctly, since LayerNorm would produce that same clean statistic even from a broken input.</p>
+<!-- SEC:03:end -->
+
+<!-- SEC:04:start -->
+<div class="lesson-h2">2.4 — Recap: Causal Masking, and Token Embeddings as a Lookup Table</div>
+<p class="lesson-p">Ch25 §25.10 showed that encoder-only (bidirectional), decoder-only (causal), and encoder-decoder architectures are all the SAME Transformer block — the only difference is which mask, if any, gets passed into <code>multi_head_attention</code>. A causal mask (<code>np.tril</code> of ones) blocks every position from attending to anything after it, which is exactly the constraint "predict the next token from everything before it" requires; that single mechanical trick is why one architecture (decoder-only) can both train and generate. Exercise 3 reuses <code>causal_mask</code> and <code>positional_encoding</code> exactly as given in ch25 — nothing new to build there, only to wire correctly.</p>
+<p class="lesson-p">Ch25 §25.2 (and <code>nlp/ch27-nlp-fundamentals.html</code>) covered embeddings: a token is an integer index, and looking it up is nothing more than <code>embedding_table[index]</code> — fancy indexing into a matrix where row <em>i</em> is that token's learned vector. Exercise 4 makes the alternative concrete: a <strong>one-hot</strong> vector (all zeros except a single 1) is also a valid way to represent a token, but its width equals the vocabulary size and every one-hot vector is exactly the same distance from every other — no learned structure at all. A <strong>dense</strong> embedding is small, fixed-width, and — once trained — encodes real similarity between tokens. The lookup mechanics are identical between the two; what differs is only which table you're indexing into.</p>
+<!-- SEC:04:end -->
+
+<!-- SEC:05:start -->
+<div class="lesson-h2">2.5 — Recap: Framework-Free RAG, and the Gap Ch35 Left Open</div>
+<p class="lesson-p">Ch35's <code>RagChatbot</code> built a complete, real, framework-free RAG pipeline: <code>tokenize</code>/<code>remove_stop</code>/<code>tf</code>/<code>idf</code>/<code>cosine_sim</code> to build TF-IDF vectors over a knowledge base, <code>embed_query</code> to vectorize an incoming question the same way, <code>build_prompt</code> to insert the retrieved text into a template string, a mock generation step, and a similarity-threshold health check. That machinery is not repeated here. But look closely at ch35's knowledge base: every "document" is already a single short sentence. Nothing in that pipeline ever splits a LONG document into smaller pieces before retrieving over it — ch35's own interview-prep material even flags this explicitly as a real production concern it deliberately didn't implement.</p>
+<div class="diagram">
+<div class="dg-t">why a long document needs chunking before retrieval</div>
+<pre>one long document, embedded whole:
+  [topic A ... topic B ... topic C ... topic D]  -->  ONE vague vector
+  a query about topic B matches this vector only a little -- diluted by A, C, D
+
+the same document, chunked into overlapping windows:
+  [A A A][A A B B B][B B B C C][C C C D D D]        (each bracket = one chunk)
+  a query about topic B now matches ONE sharp, focused chunk vector</pre>
+</div>
+<p class="lesson-p">Exercise 5 fills exactly that gap: given raw multi-sentence documents and a query, you implement chunking (splitting each document into fixed-size, overlapping windows of words), a simple bag-of-words retrieval step (score every chunk against the query by dot product, keep the highest), and prompt assembly — with nothing scaffolded but the documents, the query, and the exact expected output. It deliberately varies from ch35 rather than repeating it: different corpus, a genuinely new chunking step, and a simpler dot-product score instead of full TF-IDF, so you are writing real retrieval logic yourself rather than recalling ch35's exact lines.</p>
+<p class="lesson-p">Two design knobs matter here, and they're the same two ch35's own interview-prep material calls out as real production tradeoffs. <strong>Chunk size</strong>: too small and a chunk loses the surrounding context needed to make sense of a matched sentence; too large and you're back to the dilution problem the diagram above shows. <strong>Overlap</strong>: a chunk boundary that lands in the middle of the one sentence that actually answers the query silently splits the evidence across two weaker chunks; a few words of overlap between consecutive windows makes that far less likely at the cost of storing (and scoring) somewhat more chunks. Exercise 5 fixes both knobs (chunk_size=5, overlap=2) so the output is exactly reproducible, but the underlying tradeoff is real and the same one a production system has to tune empirically.</p>
+<!-- SEC:05:end -->
+
+<!-- SEC:06:start -->
+<div class="lesson-h2">2.6 — How This Chapter's Five Exercises Chain Together</div>
+<div class="recap"><strong class="rc-t">The arc</strong><ul>
+<li><strong>Exercise 1 (blank page):</strong> scaled dot-product attention, nothing given but the data and the expected output.</li>
+<li><strong>Exercise 2 (modify / debug):</strong> the given attention/LayerNorm/feed-forward pieces are correct — the block's wiring that combines them is not; find and fix the missing residual connections.</li>
+<li><strong>Exercise 3 (mini-project scale):</strong> a full end-to-end forward pass — embeddings, positional encoding, your now-fixed block stacked twice with a causal mask, output projection — on a fresh toy vocabulary.</li>
+<li><strong>Exercise 4 (guided):</strong> token embeddings as a lookup table, one-hot vs. dense, side by side.</li>
+<li><strong>Exercise 5 (blank page):</strong> framework-free RAG — chunking, bag-of-words retrieval, prompt assembly — varying ch35's pipeline rather than repeating it.</li>
+</ul></div>
+<p class="lesson-p">The Project then chains (4) + (1) + (2) + (5) together for real: chunk a toy corpus, retrieve the best chunk for a query, assemble a prompt, tokenize and embed that prompt, and run it through your fixed Transformer block stack to "generate" — a toy but genuinely real, deterministic, end-to-end retrieval-augmented mini language model. The quiz afterward is entirely predict-the-output and why-does-this-work — by now you've built every piece with your own hands, so it asks you to reason about them, not just re-run them.</p>
+<!-- SEC:06:end -->
+
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>✏️ Practice Exercises</h2>
+    <p>5 exercises: blank page → modify/debug → mini end-to-end pass → guided → blank page. All deterministic NumPy — the printed output is checked exactly.</p>
+  </div>
+
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard · Blank Page</span>
+        <div class="ex-title">Scaled Dot-Product Attention From a Blank Page</div>
+        <div class="ex-desc">Only the token embeddings and the three weight matrices are given — implement softmax, Q/K/V, scores, weights and output yourself.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+X1 (3 tokens, d=4), WQ1, WK1, WV1 are given below (fixed, seeded). Implement, from nothing:
+  1) a numerically-stable softmax(x, axis=-1)
+  2) Q1 = X1 @ WQ1, K1 = X1 @ WK1, V1 = X1 @ WV1
+  3) scores1 = Q1 @ K1.T / sqrt(d), where d = X1.shape[1]
+  4) weights1 = softmax(scores1, axis=-1)
+  5) output1 = weights1 @ V1
+Print exactly:
+  f'Scores shape: {scores1.shape}'
+  f'Weights row sums: {[round(float(v),4) for v in weights1.sum(axis=1)]}'
+  f'Output shape: {output1.shape}'
+  f'Output: {[[round(float(v),4) for v in row] for row in output1]}'</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code" rows="20" spellcheck="false">import numpy as np
+np.random.seed(5)
+X1 = np.random.randn(3, 4).round(2)
+WQ1 = np.random.randn(4, 4).round(2)
+WK1 = np.random.randn(4, 4).round(2)
+WV1 = np.random.randn(4, 4).round(2)
+
+# Nothing else is given. Implement:
+#   softmax(x, axis=-1)
+#   Q1, K1, V1 = X1 @ WQ1, X1 @ WK1, X1 @ WV1
+#   scores1 = Q1 @ K1.T / sqrt(X1.shape[1])
+#   weights1 = softmax(scores1, axis=-1)
+#   output1 = weights1 @ V1
+# then print exactly the four lines described in the task.
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard · Modify / Debug</span>
+        <div class="ex-title">Fix the Transformer Block's Broken Wiring</div>
+        <div class="ex-desc">softmax, layer_norm, multi_head_attention and feed_forward are correct and untouched — the block's forward() silently drops both residual connections.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+softmax, layer_norm, multi_head_attention and feed_forward below are correct -- do not change them.
+TransformerBlock.forward() is WRONG: it normalizes each sublayer's raw output instead of normalizing
+(X + sublayer output), so BOTH residual connections from ch25 SS25.7-25.9 are missing. Using the
+Post-LN formula `LayerNorm(x + Sublayer(x))`, fix both lines of forward(). Then run:
+  np.random.seed(9); X2 = np.random.randn(3, 8) * 0.1
+  block2 = TransformerBlock(d_model=8, num_heads=2, d_ff=16, seed=3)
+  out2 = block2.forward(X2)
+Print exactly:
+  f"Block output shape: {out2.shape}"
+  f"Output[0]: {[round(float(v),4) for v in out2[0]]}"</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code" rows="30" spellcheck="false">import numpy as np
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        attn_out = multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask)
+        X = layer_norm(attn_out, self.g1, self.bt1)          # BUG: residual add is missing
+        ff_out = feed_forward(X, self.W1, self.b1, self.W2, self.b2)
+        return layer_norm(ff_out, self.g2, self.bt2)          # BUG: residual add is missing
+
+np.random.seed(9)
+X2 = np.random.randn(3, 8) * 0.1
+block2 = TransformerBlock(d_model=8, num_heads=2, d_ff=16, seed=3)
+out2 = block2.forward(X2)
+print(f"Block output shape: {out2.shape}")
+print(f"Output[0]: {[round(float(v),4) for v in out2[0]]}")
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard · Mini End-to-End Pass</span>
+        <div class="ex-title">A Mini Causal Transformer Forward Pass</div>
+        <div class="ex-desc">Embeddings, positional encoding, your fixed block stacked twice with a causal mask, output projection -- on a fresh toy vocabulary.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+positional_encoding, causal_mask and your now-FIXED TransformerBlock (reuse exercise 2's corrected
+forward()) are given below. vocab3, the sentence, and the embedding/output-projection tables are
+fixed and seeded. Implement:
+  1) idx3 = [vocab3.index(w) for w in seq3]; X3 = embed3[idx3] + positional_encoding(len(seq3), d3)
+  2) mask3 = causal_mask(len(seq3))
+  3) run X3 through both blocks in blocks3 (in order), each with mask=mask3
+  4) logits3 = X3 @ Wout3; probs3 = softmax(logits3, axis=-1)
+  5) predicted3 = [vocab3[i] for i in argmax(probs3, axis=-1)]
+Print exactly:
+  f'Final hidden state shape: {X3.shape}'
+  f'Logits shape: {logits3.shape}'
+  f'Probs row sums: {[round(float(v),4) for v in probs3.sum(axis=1)]}'
+  f'Predicted tokens: {predicted3}'</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code" rows="34" spellcheck="false">import numpy as np
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def positional_encoding(seq_len, d_model):
+    pos = np.arange(seq_len)[:, None]; i = np.arange(d_model)[None, :]
+    angle_rates = 1 / np.power(10000, (2 * (i // 2)) / d_model)
+    angles = pos * angle_rates
+    pe = np.zeros((seq_len, d_model))
+    pe[:, 0::2] = np.sin(angles[:, 0::2]); pe[:, 1::2] = np.cos(angles[:, 1::2])
+    return pe
+
+def causal_mask(seq_len):
+    return np.tril(np.ones((seq_len, seq_len), dtype=bool))
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:   # your FIXED version from exercise 2 -- reuse it, don't rewrite it
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        return layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
+
+np.random.seed(21)
+vocab3 = ['she', 'reads', 'books', 'at', 'night']
+d3, heads3, dff3, nblocks3 = 8, 2, 16, 2
+seq3 = ['she', 'reads', 'books', 'at', 'night']
+embed3 = np.random.randn(len(vocab3), d3) * 0.1
+blocks3 = [TransformerBlock(d3, heads3, dff3, seed=300 + i) for i in range(nblocks3)]
+np.random.seed(55)
+Wout3 = np.random.randn(d3, len(vocab3)) * 0.1
+
+# TODO 1: idx3, X3 = embed lookup + positional_encoding
+# TODO 2: mask3 = causal_mask(len(seq3))
+# TODO 3: run X3 through each block in blocks3, in order, with mask=mask3
+# TODO 4: logits3 = X3 @ Wout3; probs3 = softmax(logits3, axis=-1)
+# TODO 5: predicted3 = [vocab3[i] for i in np.argmax(probs3, axis=-1)]
+# then print exactly the four lines described in the task.
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy · Guided</span>
+        <div class="ex-title">Token Embeddings: One-Hot vs. Dense Lookup</div>
+        <div class="ex-desc">The one-hot and dense tables are already built -- do the fancy-indexing lookup into each, side by side.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+onehot_table4 (identity matrix) and dense_table4 (small learned-looking table) are already built below,
+along with idx4 = [vocab4.index(w) for w in sentence4]. Fill in the two lookups (fancy indexing, same
+trick as ch25 SS25.2):
+  onehot_X4 = onehot_table4[idx4]
+  dense_X4 = dense_table4[idx4]
+Print exactly:
+  f'Indices: {idx4}'
+  f'One-hot shape: {onehot_X4.shape}'
+  f'Dense shape: {dense_X4.shape}'
+  f'One-hot row 0: {[int(v) for v in onehot_X4[0]]}'
+  f'Dense row 0: {[round(float(v),2) for v in dense_X4[0]]}'</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code" rows="18" spellcheck="false">import numpy as np
+np.random.seed(3)
+vocab4 = ['open', 'the', 'door', 'quietly']
+sentence4 = ['open', 'the', 'door']
+d4 = 3
+
+onehot_table4 = np.eye(len(vocab4))                              # one-hot: width = vocab size
+dense_table4 = np.random.randn(len(vocab4), d4).round(2)          # dense: width = d4, much smaller
+
+idx4 = [vocab4.index(w) for w in sentence4]
+
+# TODO: onehot_X4 = onehot_table4[idx4]
+# TODO: dense_X4 = dense_table4[idx4]
+
+print(f'Indices: {idx4}')
+# TODO: print the remaining four lines described in the task, using onehot_X4 and dense_X4.
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard · Blank Page</span>
+        <div class="ex-title">Framework-Free RAG: Chunking + Retrieval + Prompt</div>
+        <div class="ex-desc">Only the raw documents and the query are given -- implement chunking, a bag-of-words retrieval score, and prompt assembly yourself.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+docs5 (3 short "documents") and query5 are given below. Implement, from nothing:
+  1) chunk_documents(docs, chunk_size, overlap): for each document, split its lowercased words into
+     chunks of chunk_size words, moving forward by (chunk_size - overlap) words each step, keeping
+     ONLY full-size chunks (stop once fewer than chunk_size words remain). Return the flat list of
+     all chunks (as space-joined strings) across all documents, in order. Use chunk_size=5, overlap=2.
+  2) retrieve(query, chunks): build a shared vocabulary (sorted set of every word across all chunks
+     and the query), a bag-of-words count vector per chunk and for the query, score every chunk as
+     the dot product of its vector with the query's vector, and return the index of the highest-
+     scoring chunk (first one, on a tie).
+  3) build_prompt(query, best_chunk): return f"Context: {best_chunk}\\nQuestion: {query}\\nAnswer:"
+Print exactly:
+  f'Num chunks: {len(chunks5)}'
+  f'Best chunk index: {best_i5}'
+  f'Best chunk: {chunks5[best_i5]}'
+  'Prompt:'
+  prompt5   (printed as-is, on its own -- this is a 3-line string)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code" rows="18" spellcheck="false">docs5 = [
+    "the sun rises over quiet hills every single morning without fail",
+    "the moon glows above silent seas every calm night without pause",
+    "robots assemble tiny circuits inside busy factories all day long",
+]
+query5 = "what rises every morning"
+
+# Nothing else is given. Implement chunk_documents(), retrieve(), and build_prompt() yourself
+# (see the task for the exact contract each must satisfy), then:
+#   chunks5 = chunk_documents(docs5, chunk_size=5, overlap=2)
+#   best_i5, scores5 = retrieve(query5, chunks5)
+#   prompt5 = build_prompt(query5, chunks5[best_i5])
+# and print exactly the lines described in the task.
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">💡 Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">↺ Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">👁 Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Project →</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>🏗️ Project: <span>A Tiny Retrieval-Augmented Mini-LM</span></h2>
+    <p>Chain exercises (4) + (1) + (2) + (5) into one small, real, deterministic pipeline: chunk a toy corpus, retrieve the best chunk for a query, assemble a prompt, tokenize and embed that prompt (exercise 4's technique), then run it through your fixed Transformer block stack (exercise 2's wiring, exercise 1's attention, exercise 3's causal forward pass) to "generate" a next-token prediction at every position. Toy-scale, untrained, but every operation is the real math.</p>
+    <div class="project-tags">
+      <span class="ptag">chunking</span>
+      <span class="ptag">retrieval</span>
+      <span class="ptag">prompt assembly</span>
+      <span class="ptag">embeddings</span>
+      <span class="ptag">causal Transformer stack</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>📋 What to Build</h3>
+    <ul class="spec-list">
+      <li>Reuse exercise 5's <code>chunk_documents</code>/<code>retrieve</code>/<code>build_prompt</code> on the NEW corpus and query given below</li>
+      <li>Turn the assembled prompt into a token list, build a vocabulary from it, and embed it (exercise 4's lookup technique)</li>
+      <li>Add positional encoding, build a causal mask, and run the embedded prompt through the given <code>blocks_p</code> stack (your fixed <code>TransformerBlock</code> from exercise 2)</li>
+      <li>Project to vocabulary-size logits with the given <code>Wout_p</code>, softmax, and read off the predicted token at every position</li>
+      <li>Print every required shape/value from the checklist below</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">🏗️ Tiny Retrieval-Augmented Mini-LM — Your Solution</div>
+      <button class="pe-run" onclick="runProject()">▶ Run Project</button>
+    </div>
+    <textarea id="project-editor"># ══════════════════════════════════════════
+# Project: A Tiny Retrieval-Augmented Mini-LM
+# Chain exercises 4, 1, 2 and 5 -- nothing new conceptually, only wiring
+# a bigger pipeline out of pieces you already built and fixed.
+# ══════════════════════════════════════════
+import numpy as np
+
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def positional_encoding(seq_len, d_model):
+    pos = np.arange(seq_len)[:, None]; i = np.arange(d_model)[None, :]
+    angle_rates = 1 / np.power(10000, (2 * (i // 2)) / d_model)
+    angles = pos * angle_rates
+    pe = np.zeros((seq_len, d_model))
+    pe[:, 0::2] = np.sin(angles[:, 0::2]); pe[:, 1::2] = np.cos(angles[:, 1::2])
+    return pe
+
+def causal_mask(seq_len):
+    return np.tril(np.ones((seq_len, seq_len), dtype=bool))
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:   # given, working (your exercise-2 fix, already applied) -- reuse, don't rewrite
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        return layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
+
+docs_p = [
+    "cats sleep quietly during long sunny afternoons every day",
+    "birds sing loudly during cold winter mornings every year",
+    "engineers debug tricky systems during busy release weeks always",
+]
+query_p = "what do cats do during afternoons"
+
+d_lm, heads_lm, dff_lm, nblocks_lm = 8, 2, 16, 2
+blocks_p = [TransformerBlock(d_lm, heads_lm, dff_lm, seed=400 + i) for i in range(nblocks_lm)]
+
+# === TODO 1 (reuse exercise 5): chunk_documents, retrieve, build_prompt ===
+# chunks_p = chunk_documents(docs_p, chunk_size=5, overlap=2)
+# best_i_p, scores_p = retrieve(query_p, chunks_p)
+# best_chunk_p = chunks_p[best_i_p]
+# prompt_p = build_prompt(query_p, best_chunk_p)
+
+# === TODO 2: turn the prompt into a token list and a vocabulary ===
+# prompt_tokens = ['context'] + best_chunk_p.split() + ['question'] + query_p.split() + ['answer']
+# vocab_lm = sorted(set(prompt_tokens))
+# np.random.seed(500)
+# embed_lm = np.random.randn(len(vocab_lm), d_lm) * 0.1
+
+# === TODO 3 (reuse exercise 4's lookup technique): embed + positional encoding ===
+# idx_lm = [vocab_lm.index(t) for t in prompt_tokens]
+# X_lm = embed_lm[idx_lm] + positional_encoding(len(prompt_tokens), d_lm)
+
+# === TODO 4 (reuse exercise 3's technique): causal mask, run through blocks_p ===
+# mask_lm = causal_mask(len(prompt_tokens))
+# for block in blocks_p:
+#     X_lm = block.forward(X_lm, mask=mask_lm)
+
+# === TODO 5: project to logits, softmax, predict ===
+# np.random.seed(70)
+# Wout_lm = np.random.randn(d_lm, len(vocab_lm)) * 0.1
+# logits_lm = X_lm @ Wout_lm
+# probs_lm = softmax(logits_lm, axis=-1)
+# predicted_lm = [vocab_lm[i] for i in np.argmax(probs_lm, axis=-1)]
+
+# print(f'Num chunks: {len(chunks_p)}')
+# print(f'Best chunk: {best_chunk_p}')
+# print(f'Num tokens: {len(prompt_tokens)}')
+# print(f'Vocab size: {len(vocab_lm)}')
+# print(f'Final hidden shape: {X_lm.shape}')
+# print(f'Logits shape: {logits_lm.shape}')
+# print(f'Predicted tokens: {predicted_lm}')
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>✅ Project Checklist — did your output include?</h3>
+    <div class="check-item"><span class="check-icon">📦</span>Num chunks: 6</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Best chunk: cats sleep quietly during long</div>
+    <div class="check-item"><span class="check-icon">🔤</span>Num tokens: 14</div>
+    <div class="check-item"><span class="check-icon">📖</span>Vocab size: 11</div>
+    <div class="check-item"><span class="check-icon">📐</span>Final hidden shape: (14, 8)</div>
+    <div class="check-item"><span class="check-icon">📐</span>Logits shape: (14, 11)</div>
+    <div class="check-item"><span class="check-icon">✅</span>Predicted tokens: ['quietly', 'answer', 'answer', 'sleep', 'sleep', 'long', 'quietly', 'answer', 'answer', 'sleep', 'sleep', 'long', 'long', 'afternoons']</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">🧪 Go to Quiz →</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>🧪 Attention &amp; Language Models Quiz</h2>
+    <p>5 predict-the-output / why-does-this-work questions. You need 4/5 (80%) to pass. Retake as often as you like.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">In exercise 2, the BUGGY block (missing both residual adds) still ran without crashing, and its output rows still had mean ~0 and std ~1, identical to the correct version. <strong>Why does that NOT prove the wiring was correct?</strong></div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> It actually does prove correctness — matching summary statistics is a sufficient check</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> LayerNorm renormalizes ANY input vector to ~zero mean / unit variance per row, by construction — that property survives whether or not the residual was added, so it can't distinguish a correctly-wired block from a broken one; only the actual output VALUES (which differ from the residual-added quantity) can</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The bug only affects the feed-forward sublayer, not the attention sublayer, so half the statistics were never at risk</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> NumPy silently repairs missing residual connections during matrix multiplication</button>
+    </div>
+    <div class="q-why" id="q1-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> LayerNorm's whole job is producing that exact per-row mean/std regardless of its input, so it is structurally incapable of exposing this particular bug. The bug is silent precisely because nothing crashes and no summary statistic changes — only the actual numbers do, which is why exercise 2 checks exact rounded values, not shape or mean/std.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">Exercise 2's block was tested with <code>mask=None</code> (bidirectional attention), while exercise 3's mini forward pass uses a real causal mask. <strong>Why is that difference correct, not an inconsistency?</strong></div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Exercise 2's block class is broken for causal use and would need entirely different code to support a mask</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> The TransformerBlock class doesn't care whether attention is bidirectional or causal — that's controlled entirely by whatever mask (or None) is passed into it. Exercise 2 is only testing that the residual/LayerNorm WIRING is correct, so which mask is used is irrelevant to what's being checked; exercise 3 needs a causal mask because it is specifically building a decoder-style next-token forward pass</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Masks can only be applied to the feed-forward sublayer, not to attention</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> mask=None and a causal mask always produce identical output, so the difference has no effect</button>
+    </div>
+    <div class="q-why" id="q2-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This is ch25 SS25.10's whole point restated: encoder-only, decoder-only and encoder-decoder are the SAME block, distinguished only by the mask argument. mask=None and a causal mask produce very different outputs (bidirectional vs. restricted attention) — they are not interchangeable, they are just both valid depending on what the code is testing.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">A colleague suggests skipping dense embeddings entirely and just using one-hot vectors for a vocabulary of 50,000 words, reasoning "the lookup code is identical either way." <strong>What's wrong with that reasoning?</strong></div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> One-hot vectors would be 50,000-dimensional and every one is exactly equidistant from every other — no learned similarity structure at all — while a dense table stays small and fixed-width and can encode real relationships between tokens once trained; the lookup MECHANICS are identical, but what gets looked up is not equivalent</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> One-hot vectors cannot be indexed with fancy indexing, only dense tables can</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> There's actually nothing wrong with the reasoning -- dense and one-hot embeddings are functionally interchangeable at any vocabulary size</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> One-hot embeddings require a GPU while dense embeddings do not</button>
+    </div>
+    <div class="q-why" id="q3-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> The colleague is right that the lookup mechanics (fancy indexing into a table) are identical -- that part of exercise 4 is deliberately the same code for both. What differs is entirely which table: a 50,000-wide sparse, structureless one vs. a small dense, learnable one.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Ch35's RAG knowledge base never needed chunking. <strong>What specific retrieval failure does exercise 5's chunking step fix that ch35 never encountered?</strong></div>
+    <div class="q-options" id="q4-opts">
+      <button class="q-opt" onclick="selectOpt(4,'A')"><span class="q-opt-letter">A</span> Ch35's TF-IDF math is fundamentally broken and chunking is required to fix a bug in cosine similarity</button>
+      <button class="q-opt" onclick="selectOpt(4,'B')"><span class="q-opt-letter">B</span> A single long document covering several topics, embedded as one whole unit, produces one vague vector that matches many queries a little and none precisely; splitting it into smaller overlapping windows lets a query match the one chunk that's actually about its topic. Ch35 never hit this because every "document" in its knowledge base was already a single short sentence with one topic</button>
+      <button class="q-opt" onclick="selectOpt(4,'C')"><span class="q-opt-letter">C</span> Chunking is only needed to make prompts shorter for the LLM's context window, and has nothing to do with retrieval quality</button>
+      <button class="q-opt" onclick="selectOpt(4,'D')"><span class="q-opt-letter">D</span> Chunking exists purely to enable overlap, which has no retrieval benefit on its own</button>
+    </div>
+    <div class="q-why" id="q4-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This mirrors ch35's own interview-prep answer on chunking tradeoffs almost exactly: dilution is the failure mode, and it only shows up once a "document" can span multiple topics -- which ch35's short, single-topic knowledge base never did.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">The Project's every shape check and row-sum check passes, and it prints a confident "Predicted tokens" list. <strong>Why is that predicted list meaningless as an actual answer to the query</strong>, even though nothing is broken?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Every weight in the pipeline -- the embedding table, both blocks' attention/feed-forward weights, the output projection -- is a random, untrained initialization. The forward-pass MATH is exactly correct (the same computation a real trained model performs), but nothing has been trained via backprop on real language data, so the predictions reflect the random initialization, not learned language ability</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The predicted list is meaningful and should be trusted as a real answer once retrieval succeeds</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> The chunking and retrieval steps are broken, which is why the output is meaningless</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Softmax always produces meaningless output when applied to logits</button>
+    </div>
+    <div class="q-why" id="q5-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This is exactly ch25's own closing warning restated: a forward pass is not a trained model. Retrieval and chunking are correct and the math is exactly what a real GPT-family model runs -- what's missing is the billions of gradient steps that would make the weights (and therefore the predictions) actually reflect language.</div>
+  </div>
+
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz</button>
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="course-complete-card" id="course-complete-card" style="display:none">
+    <div class="ccc-icon">🎉</div>
+    <h3>From-Scratch Track <span>Complete</span></h3>
+    <p>Linear/logistic regression, momentum, backprop and a tiny neural network from FS 1 — then attention, a full Transformer block, causal masking, embeddings, and a framework-free RAG pipeline here in FS 2, chained into one tiny retrieval-augmented mini-LM. Every core mechanism behind a modern LLM, built with your own hands at least once.</p>
+    <div class="ccc-stats">
+      <div class="ccc-stat"><strong>2</strong>chapters</div>
+      <div class="ccc-stat"><strong>10</strong>exercises</div>
+      <div class="ccc-stat"><strong>2</strong>projects</div>
+    </div>
+    <a class="ccc-btn" href="../index.html">🏠 Back to Course Home</a>
+  </div>
+</div><!-- end quiz -->
+
+</div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Everything here is real NumPy, fully deterministic (fixed seeds, no wall-clock)','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+window.showSection=showSection;
+
+const EXERCISES = {
+  1:{
+    checks:["scores shape: (3, 3)", "weights row sums: [1.0, 1.0, 1.0]", "output shape: (3, 4)", "output: [[1.4918, 0.2997, 0.8634, -1.2054], [-2.9248, -1.6411, -1.5381, 2.9075], [-1.7428, -1.1917, -0.6907, 1.7865]]"],
+    hint:"softmax(x)=exp(x-max(x))/sum(exp(x-max(x)), axis) with keepdims=True. Q1=X1@WQ1, K1=X1@WK1, V1=X1@WV1. scores1=Q1@K1.T/np.sqrt(X1.shape[1]). weights1=softmax(scores1,axis=-1). output1=weights1@V1.",
+    solution:`import numpy as np
+np.random.seed(5)
+X1 = np.random.randn(3, 4).round(2)
+WQ1 = np.random.randn(4, 4).round(2)
+WK1 = np.random.randn(4, 4).round(2)
+WV1 = np.random.randn(4, 4).round(2)
+
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+Q1 = X1 @ WQ1
+K1 = X1 @ WK1
+V1 = X1 @ WV1
+d1 = X1.shape[1]
+scores1 = Q1 @ K1.T / np.sqrt(d1)
+weights1 = softmax(scores1, axis=-1)
+output1 = weights1 @ V1
+
+print(f'Scores shape: {scores1.shape}')
+print(f'Weights row sums: {[round(float(v),4) for v in weights1.sum(axis=1)]}')
+print(f'Output shape: {output1.shape}')
+print(f'Output: {[[round(float(v),4) for v in row] for row in output1]}')`
+  },
+  2:{
+    checks:["block output shape: (3, 8)", "output[0]: [1.0462, 0.4199, -1.2484, 1.1078, 0.267, 0.0084, -1.9385, 0.3375]"],
+    hint:"Post-LN formula from ch25: LayerNorm(x + Sublayer(x)). Both lines need the residual added BEFORE layer_norm is called: layer_norm(X + attn_out, ...) and layer_norm(X + ff_out, ...).",
+    solution:`import numpy as np
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        attn_out = multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask)
+        X = layer_norm(X + attn_out, self.g1, self.bt1)
+        ff_out = feed_forward(X, self.W1, self.b1, self.W2, self.b2)
+        return layer_norm(X + ff_out, self.g2, self.bt2)
+
+np.random.seed(9)
+X2 = np.random.randn(3, 8) * 0.1
+block2 = TransformerBlock(d_model=8, num_heads=2, d_ff=16, seed=3)
+out2 = block2.forward(X2)
+print(f"Block output shape: {out2.shape}")
+print(f"Output[0]: {[round(float(v),4) for v in out2[0]]}")`
+  },
+  3:{
+    checks:["final hidden state shape: (5, 8)", "logits shape: (5, 5)", "probs row sums: [1.0, 1.0, 1.0, 1.0, 1.0]", "predicted tokens: ['books', 'reads', 'she', 'she', 'books']"],
+    hint:"idx3 = [vocab3.index(w) for w in seq3]; X3 = embed3[idx3] + positional_encoding(len(seq3), d3). mask3 = causal_mask(len(seq3)). for block in blocks3: X3 = block.forward(X3, mask=mask3). logits3 = X3 @ Wout3.",
+    solution:`import numpy as np
+def softmax(x, axis=-1):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=True))
+    return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def positional_encoding(seq_len, d_model):
+    pos = np.arange(seq_len)[:, None]; i = np.arange(d_model)[None, :]
+    angle_rates = 1 / np.power(10000, (2 * (i // 2)) / d_model)
+    angles = pos * angle_rates
+    pe = np.zeros((seq_len, d_model))
+    pe[:, 0::2] = np.sin(angles[:, 0::2]); pe[:, 1::2] = np.cos(angles[:, 1::2])
+    return pe
+
+def causal_mask(seq_len):
+    return np.tril(np.ones((seq_len, seq_len), dtype=bool))
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        return layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
+
+np.random.seed(21)
+vocab3 = ['she', 'reads', 'books', 'at', 'night']
+d3, heads3, dff3, nblocks3 = 8, 2, 16, 2
+seq3 = ['she', 'reads', 'books', 'at', 'night']
+embed3 = np.random.randn(len(vocab3), d3) * 0.1
+blocks3 = [TransformerBlock(d3, heads3, dff3, seed=300 + i) for i in range(nblocks3)]
+np.random.seed(55)
+Wout3 = np.random.randn(d3, len(vocab3)) * 0.1
+
+idx3 = [vocab3.index(w) for w in seq3]
+X3 = embed3[idx3] + positional_encoding(len(seq3), d3)
+mask3 = causal_mask(len(seq3))
+for block in blocks3:
+    X3 = block.forward(X3, mask=mask3)
+logits3 = X3 @ Wout3
+probs3 = softmax(logits3, axis=-1)
+predicted3 = [vocab3[i] for i in np.argmax(probs3, axis=-1)]
+
+print(f'Final hidden state shape: {X3.shape}')
+print(f'Logits shape: {logits3.shape}')
+print(f'Probs row sums: {[round(float(v),4) for v in probs3.sum(axis=1)]}')
+print(f'Predicted tokens: {predicted3}')`
+  },
+  4:{
+    checks:["indices: [0, 1, 2]", "one-hot shape: (3, 4)", "dense shape: (3, 3)", "one-hot row 0: [1, 0, 0, 0]", "dense row 0: [1.79, 0.44, 0.1]"],
+    hint:"onehot_X4 = onehot_table4[idx4]; dense_X4 = dense_table4[idx4] -- exactly the same fancy-indexing trick as ch25's embedding lookup, applied to two different tables.",
+    solution:`import numpy as np
+np.random.seed(3)
+vocab4 = ['open', 'the', 'door', 'quietly']
+sentence4 = ['open', 'the', 'door']
+d4 = 3
+
+onehot_table4 = np.eye(len(vocab4))
+dense_table4 = np.random.randn(len(vocab4), d4).round(2)
+
+idx4 = [vocab4.index(w) for w in sentence4]
+onehot_X4 = onehot_table4[idx4]
+dense_X4 = dense_table4[idx4]
+
+print(f'Indices: {idx4}')
+print(f'One-hot shape: {onehot_X4.shape}')
+print(f'Dense shape: {dense_X4.shape}')
+print(f'One-hot row 0: {[int(v) for v in onehot_X4[0]]}')
+print(f'Dense row 0: {[round(float(v),2) for v in dense_X4[0]]}')`
+  },
+  5:{
+    checks:["num chunks: 8", "best chunk index: 2", "best chunk: every single morning without fail", "context: every single morning without fail", "question: what rises every morning"],
+    hint:"chunk_text: words=text.lower().split(); stride=chunk_size-overlap; slide start by stride, keep words[start:start+chunk_size] while start+chunk_size<=len(words). retrieve: build vocab=sorted(set of all words in chunks+query), bag-of-words count vector per text, score=dot product, best_i=argmax (first max on ties).",
+    solution:`docs5 = [
+    "the sun rises over quiet hills every single morning without fail",
+    "the moon glows above silent seas every calm night without pause",
+    "robots assemble tiny circuits inside busy factories all day long",
+]
+query5 = "what rises every morning"
+
+def chunk_documents(docs, chunk_size, overlap):
+    stride = chunk_size - overlap
+    all_chunks = []
+    for doc in docs:
+        words = doc.lower().split()
+        start = 0
+        while start + chunk_size <= len(words):
+            all_chunks.append(' '.join(words[start:start + chunk_size]))
+            start += stride
+    return all_chunks
+
+def bow_vector(text, vocab):
+    words = text.lower().split()
+    return [words.count(w) for w in vocab]
+
+def retrieve(query, chunks):
+    vocab = sorted(set(w for c in chunks + [query] for w in c.lower().split()))
+    qv = bow_vector(query, vocab)
+    scores = [sum(a * b for a, b in zip(qv, bow_vector(c, vocab))) for c in chunks]
+    best_i = max(range(len(scores)), key=lambda i: scores[i])
+    return best_i, scores
+
+def build_prompt(query, best_chunk):
+    return f"Context: {best_chunk}\\nQuestion: {query}\\nAnswer:"
+
+chunks5 = chunk_documents(docs5, chunk_size=5, overlap=2)
+best_i5, scores5 = retrieve(query5, chunks5)
+prompt5 = build_prompt(query5, chunks5[best_i5])
+
+print(f'Num chunks: {len(chunks5)}')
+print(f'Best chunk index: {best_i5}')
+print(f'Best chunk: {chunks5[best_i5]}')
+print('Prompt:')
+print(prompt5)`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — read it carefully, it usually tells you exactly what\'s wrong';
+  }
+};
+window.showExHint=function(n){ alert('💡 Hint:\n\n'+EXERCISES[n].hint); };
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['num chunks: 6','best chunk: cats sleep quietly during long','num tokens: 14','vocab size: 11','final hidden shape: (14, 8)','logits shape: (14, 11)',"predicted tokens: ['quietly', 'answer', 'answer', 'sleep', 'sleep', 'long', 'quietly', 'answer', 'answer', 'sleep', 'sleep', 'long', 'long', 'afternoons']"];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required elements present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+/* ---------- quiz ---------- */
+const CORRECT={1:'B',2:'B',3:'A',4:'B',5:'A'};
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    b.classList.toggle('selected',String.fromCharCode(65+i)===opt);
+  });
+};
+function revealTrackComplete(){ document.getElementById('course-complete-card').style.display='block'; }
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,4,5].forEach(q=>{
+    const correct=CORRECT[q], given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+    const ex=document.getElementById(`q${q}-why`); if(ex) ex.style.display='block';
+  });
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    quizDone=true;
+    banner.innerHTML=`<div class="qrb-title">🎉 Passed! ${score}/5 correct</div><div class="qrb-sub">You've now rebuilt attention, a full Transformer block, causal masking, embeddings, and framework-free RAG with your own hands, and chained them into one tiny end-to-end pipeline. That's the From-Scratch track, complete.</div>`;
+    spark();
+    revealTrackComplete();
+  }else{
+    banner.innerHTML=`<div class="qrb-title">📚 ${score}/5 — need 4 to pass</div><div class="qrb-sub">Read the explanations under the questions you missed, revisit those lesson sections or exercises, then retake.</div><button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.querySelectorAll('.q-why').forEach(e=>{e.style.display='none';});
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+window.toggleSidebar=function(){ document.getElementById('sidebar').classList.toggle('mob-open'); };
+window.toggleMobConsole=function(){ document.getElementById('console-dock').classList.toggle('mob-open'); };
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820) document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+<script>
+(function(){
+  var KEY='aimlZTH_console_min';
+  var dock=document.getElementById('console-dock');
+  if(!dock)return;
+  var header=dock.querySelector('.cd-header');
+  if(!header)return;
+  var out=document.getElementById('cd-out');
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='cd-min-btn';
+  function initial(){var v=null;try{v=localStorage.getItem(KEY);}catch(e){}if(v==='1')return true;if(v==='0')return false;return window.innerWidth<1200;}
+  function store(v){try{localStorage.setItem(KEY,v?'1':'0');}catch(e){}}
+  function set(min,persist){
+    dock.classList.toggle('cd-min',min);
+    document.body.classList.toggle('cd-min',min);
+    btn.textContent=min?'▴':'–';
+    btn.setAttribute('aria-expanded',String(!min));
+    var label=min?'Expand console (Ctrl+`)':'Minimize console (Ctrl+`)';
+    btn.title=label;btn.setAttribute('aria-label',label);
+    if(!min&&out)out.scrollTop=out.scrollHeight;
+    if(persist!==false)store(min);
+  }
+  function toggle(){set(!dock.classList.contains('cd-min'));}
+  header.appendChild(btn);
+  header.addEventListener('click',toggle);
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='`'){e.preventDefault();toggle();}
+  });
+  var run=window.runToConsole;
+  if(typeof run==='function'){
+    window.runToConsole=function(){set(false);return run.apply(this,arguments);};
+  }
+  set(initial(),false);
+})();
+</script>
+<!-- theme:js -->
+<script>
+(function(){
+  var KEY='aimlZTH_theme',root=document.documentElement;
+  var SUN='<svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  var MOON='<svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>';
+  function valid(v){return v==='light'||v==='dark'?v:null}
+  function stored(){try{return valid(localStorage.getItem(KEY))}catch(e){return null}}
+  function osPref(){try{return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){return 'dark'}}
+  function current(){return valid(root.getAttribute('data-theme'))||stored()||osPref()}
+  var buttons=[];
+  function label(b,t){
+    var next=t==='light'?'dark':'light';
+    b.setAttribute('aria-label','Switch to '+next+' theme (currently '+t+')');
+    b.setAttribute('title','Switch to '+next+' theme');
+    var l=b.querySelector('.tt-label');if(l)l.textContent=t==='light'?'Light':'Dark';
+  }
+  function apply(t,persist){
+    root.setAttribute('data-theme',t);
+    if(persist){try{localStorage.setItem(KEY,t)}catch(e){}}
+    for(var i=0;i<buttons.length;i++)label(buttons[i],t);
+    try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#F3F4F9':'#0F1117')}catch(e){}
+  }
+  function make(cls){
+    var b=document.createElement('button');
+    b.type='button';b.className='theme-toggle '+cls;
+    b.setAttribute('data-theme-toggle','');
+    b.innerHTML=SUN+MOON+'<span class="tt-label"></span>';
+    b.addEventListener('click',function(){apply(current()==='light'?'dark':'light',true)});
+    buttons.push(b);return b;
+  }
+  function mount(){
+    if(document.querySelector('[data-theme-toggle]'))return;
+    var tb=document.getElementById('topbar'),tn=document.getElementById('topnav'),mob=document.getElementById('mob-menu'),wrap=document.querySelector('.wrap');
+    if(tb){
+      tb.appendChild(make('tt-desk'));
+      if(mob){var mb=make('tt-mob'),mc=document.getElementById('mob-console-btn');mob.insertBefore(mb,mc||null)}
+    }else if(tn){
+      tn.appendChild(make('tt-nav'));
+    }else if(wrap&&document.querySelector('.wrap > .eyebrow')){
+      if(getComputedStyle(wrap).position==='static')wrap.style.position='relative';
+      wrap.appendChild(make('tt-index'));
+    }else{
+      document.body.appendChild(make('tt-fixed'));
+    }
+    apply(current(),false);
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key===KEY||e.key===null){apply(stored()||osPref(),false)}
+  });
+  try{
+    var mq=window.matchMedia('(prefers-color-scheme: light)');
+    var onq=function(){if(!stored())apply(osPref(),false)};
+    if(mq.addEventListener)mq.addEventListener('change',onq);else if(mq.addListener)mq.addListener(onq);
+  }catch(e){}
+  window.aimlTheme={get:current,set:function(t){if(valid(t))apply(t,true)},toggle:function(){apply(current()==='light'?'dark':'light',true)}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<!-- /theme:js -->
+<!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
+<!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:glossary-js:start --><script src="../assets/glossary.js" defer></script><!-- feat:glossary-js:end --></body>
+</html>

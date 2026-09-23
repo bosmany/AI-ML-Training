@@ -1,0 +1,2062 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI/ML: Zero to Hero — Advanced 4: Evaluation Beyond Accuracy</title>
+<!-- USAGE:
+  Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
+  (real CPython + NumPy + scikit-learn compiled to WebAssembly). This is the fourth chapter of
+  the AI/ML + MLOps MASTERY track (advanced/). Every runnable block and exercise uses fixed,
+  deterministic data (numpy arrays, small synthetic datasets built with a fixed random_state),
+  so the numbers you see match the numbers in the lesson. Exercises and the quiz grade live in
+  the browser; the Project tab is a real coding project graded the same way.
+-->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --gold-bg:rgba(255,184,0,.1);
+  --red:#FF5757; --red-bg:rgba(255,87,87,.08);
+  --green:#22C55E; --green-bg:rgba(34,197,94,.08);
+  --blue:#3B82F6; --blue-bg:rgba(59,130,246,.08);
+  --text:#E8EAF0; --t2:#9196A8; --t3:#5A5F72;
+  --sans:'Inter',sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+a{color:var(--violet);text-decoration:none}
+button{cursor:pointer;font-family:var(--sans);border:none;outline:none}
+textarea,input{font-family:var(--mono);outline:none;border:none}
+
+.shell{display:flex;min-height:100vh}
+#sidebar{width:260px;background:var(--card);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;overflow-y:auto;z-index:100;transition:transform .25s}
+#content{margin-left:260px;flex:1;min-height:100vh}
+#console-dock{position:fixed;bottom:0;right:0;width:420px;background:var(--card);border-left:1px solid var(--border);border-top:1px solid var(--border);height:320px;display:flex;flex-direction:column;z-index:50;transition:transform .25s}
+
+.sb-logo{padding:20px;border-bottom:1px solid var(--border);display:block}
+.sb-logo-title{font-size:16px;font-weight:800;color:var(--violet)}
+.sb-logo-sub{font-size:11px;color:var(--t3);margin-top:2px}
+.sb-back{display:flex;align-items:center;gap:6px;padding:10px 20px;font-size:11.5px;color:var(--t3);border-bottom:1px solid var(--border)}
+.sb-back:hover{color:var(--violet)}
+.sb-section{padding:12px 16px 4px;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--t3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
+.sb-item:hover{background:var(--card2);color:var(--text)}
+.sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
+.sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
+.sb-step{flex:1}
+
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
+.tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
+.tb-title{font-size:15px;font-weight:700}
+.tb-gap{flex:1}
+.tb-chip{display:flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:11.5px;font-weight:600;color:var(--t2)}
+.tb-chip .val{color:var(--text)}
+
+#main-content{padding:0 40px 120px;max-width:820px;margin-right:420px}
+
+.section-tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:32px;padding:24px 0 0}
+.stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
+.stab:hover{color:var(--text)}
+.stab.active{color:var(--violet);border-bottom-color:var(--violet)}
+
+.lesson-section{display:none}.lesson-section.show{display:block}
+
+.lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
+.lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
+.lesson-intro h1 span{color:var(--violet)}
+.lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
+.lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
+
+.lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
+.lesson-p{font-size:14px;color:var(--t2);line-height:1.8;margin-bottom:14px}
+.lesson-p strong{color:var(--text);font-weight:600}
+.lesson-p code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
+.info-box{border-radius:10px;padding:14px 18px;margin:16px 0;font-size:13.5px;line-height:1.7;display:flex;gap:12px}
+.info-box .ib-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.info-box .ib-body strong{display:block;font-weight:700;margin-bottom:3px}
+.info-box.note{background:var(--blue-bg);border:1px solid rgba(59,130,246,.2);color:#93B4FF}
+.info-box.tip{background:var(--cyan-bg);border:1px solid rgba(0,217,166,.2);color:#6EE7B7}
+.info-box.warn{background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D}
+.info-box.danger{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.code-block{background:#0A0C12;border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow:hidden}
+.cb-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#111320;border-bottom:1px solid var(--border)}
+.cb-label{font-family:var(--mono);font-size:10.5px;color:var(--t3);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
+.cb-run:hover{background:var(--violet-light)}
+.cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
+
+.lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
+.lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
+.lesson-table td{padding:10px 14px;border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12.5px}
+.lesson-table tr:nth-child(even) td{background:rgba(255,255,255,.02)}
+.lesson-table td.highlight{color:var(--violet);font-weight:600}
+
+.step-list{list-style:none;margin:12px 0}
+.step-list li{display:flex;gap:12px;padding:8px 0;font-size:13.5px;color:var(--t2);line-height:1.6}
+.step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
+.step-list li strong{color:var(--text)}
+
+.practice-section{display:none}.practice-section.show{display:block}
+.practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.practice-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+
+.exercise{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:20px;overflow:hidden}
+.ex-header{padding:16px 20px;border-bottom:1px solid var(--border);background:var(--card2);display:flex;align-items:flex-start;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:8px;background:var(--violet);color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ex-meta{flex:1}
+.ex-title{font-size:15px;font-weight:700;margin-bottom:3px}
+.ex-diff{font-size:10.5px;font-weight:700;letter-spacing:.7px;text-transform:uppercase;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:6px}
+.diff-easy{background:var(--cyan-bg);color:var(--cyan)}
+.diff-medium{background:var(--gold-bg);color:var(--gold)}
+.diff-hard{background:var(--red-bg);color:var(--red)}
+.ex-desc{font-size:13.5px;color:var(--t2);line-height:1.65}
+.ex-task{background:#0A0C12;border-top:1px solid var(--border);padding:14px 20px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-line;font-family:var(--mono);border-bottom:1px solid var(--border)}
+.ex-editor-wrap{padding:14px 20px;display:flex;flex-direction:column;gap:10px}
+.ex-editor{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:120px;line-height:1.7;tab-size:4}
+.ex-editor:focus{border-color:var(--violet)}
+.ex-btn-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ex-run{background:var(--violet);color:#fff;border-radius:7px;padding:8px 18px;font-size:12.5px;font-weight:700;transition:background .12s}
+.ex-run:hover{background:var(--violet-light)}
+.ex-hint{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:8px 14px;font-size:12.5px;transition:all .12s}
+.ex-hint:hover{border-color:var(--violet);color:var(--violet)}
+.ex-reset{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:7px;padding:8px 12px;font-size:12px;margin-left:auto}
+.ex-solution{background:transparent;border:1px solid var(--cyan);color:var(--cyan);border-radius:7px;padding:8px 14px;font-size:12px}
+.ex-output{margin:0 20px 14px;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px 14px;font-family:var(--mono);font-size:12px;line-height:1.6;min-height:40px;white-space:pre-wrap;display:none}
+.ex-output.show{display:block}
+.ex-output.ok{border-color:rgba(34,197,94,.3);color:#86EFAC}
+.ex-output.err{border-color:rgba(255,87,87,.3);color:#FCA5A5}
+.ex-result{margin:0 20px 16px;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.ex-result.show{display:flex}
+.ex-result.pass{background:var(--green-bg);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.ex-result.fail{background:var(--red-bg);color:var(--red);border:1px solid rgba(255,87,87,.2)}
+
+.project-section{display:none}.project-section.show{display:block}
+.project-banner{background:linear-gradient(135deg,rgba(124,92,252,.15),rgba(0,217,166,.08));border:1px solid rgba(124,92,252,.3);border-radius:14px;padding:28px 32px;margin-bottom:28px}
+.project-banner h2{font-size:22px;font-weight:800;margin-bottom:6px}
+.project-banner h2 span{color:var(--violet)}
+.project-banner p{font-size:13.5px;color:var(--t2);line-height:1.7;margin-bottom:16px}
+.project-tags{display:flex;gap:8px;flex-wrap:wrap}
+.ptag{font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.2)}
+
+.project-spec{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.project-spec h3{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.spec-list{list-style:none}
+.spec-list li{padding:8px 0;font-size:13.5px;color:var(--t2);border-bottom:1px solid var(--border);display:flex;gap:10px}
+.spec-list li:last-child{border-bottom:none}
+.spec-list li::before{content:'→';color:var(--violet);font-weight:700;flex-shrink:0}
+
+.project-editor{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.pe-header{background:var(--card2);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;justify-content:space-between}
+.pe-title{font-size:13px;font-weight:700}
+.pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pe-run:hover{background:var(--violet-light)}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor:focus{outline:none}
+.pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
+.pe-output.has-output{color:var(--text)}
+.pe-result{padding:12px 20px;border-top:1px solid var(--border);font-size:13px;font-weight:700;display:none;align-items:center;gap:8px}
+.pe-result.show{display:flex}
+.pe-result.pass{background:var(--green-bg);color:var(--green)}
+.pe-result.fail{background:var(--red-bg);color:var(--red)}
+
+.checklist{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:20px}
+.checklist h3{font-size:14px;font-weight:700;margin-bottom:14px}
+.check-item{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13.5px;color:var(--t2)}
+.check-item:last-child{border-bottom:none}
+.check-icon{font-size:15px;flex-shrink:0}
+
+.quiz-section{display:none}.quiz-section.show{display:block}
+.quiz-banner{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:24px}
+.quiz-banner h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.quiz-banner p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.quiz-score{display:inline-flex;align-items:center;gap:8px;background:var(--violet-bg);border:1px solid rgba(124,92,252,.2);border-radius:8px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--violet);margin-top:12px}
+
+.quiz-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-bottom:16px}
+.q-num{font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.q-text{font-size:15px;font-weight:600;line-height:1.5;margin-bottom:18px}
+.q-text code{font-family:var(--mono);background:var(--card2);padding:2px 7px;border-radius:4px;color:var(--violet);font-size:13px}
+.q-options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.q-opt{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:8px;cursor:pointer;transition:all .15s;font-size:13.5px;text-align:left}
+.q-opt:hover{border-color:var(--violet);color:var(--violet)}
+.q-opt.selected{border-color:var(--violet);background:var(--violet-bg);color:var(--violet)}
+.q-opt.correct{border-color:var(--green);background:var(--green-bg);color:var(--green)}
+.q-opt.wrong{border-color:var(--red);background:var(--red-bg);color:var(--red)}
+.q-opt-letter{width:26px;height:26px;border-radius:6px;background:var(--border);color:var(--t2);font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--mono)}
+.q-opt.selected .q-opt-letter,.q-opt.correct .q-opt-letter{background:var(--violet);color:#fff}
+.q-opt.wrong .q-opt-letter{background:var(--red);color:#fff}
+.q-code-input{width:100%;background:#0A0C12;border:1px solid var(--border);border-radius:8px;padding:12px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:80px;line-height:1.7;margin-bottom:12px}
+.q-code-input:focus{border-color:var(--violet);outline:none}
+.q-submit{background:var(--violet);color:#fff;border-radius:7px;padding:8px 20px;font-size:13px;font-weight:700;transition:background .12s}
+.q-submit:hover{background:var(--violet-light)}
+.q-feedback{margin-top:12px;padding:10px 14px;border-radius:8px;font-size:13px;display:none}
+.q-feedback.show{display:block}
+.q-feedback.correct{background:var(--green-bg);border:1px solid rgba(34,197,94,.2);color:#86EFAC}
+.q-feedback.wrong{background:var(--red-bg);border:1px solid rgba(255,87,87,.2);color:#FCA5A5}
+
+.quiz-submit-all{background:var(--violet);color:#fff;border-radius:10px;padding:14px 32px;font-size:15px;font-weight:700;width:100%;margin-top:8px;transition:background .12s}
+.quiz-submit-all:hover{background:var(--violet-light)}
+.quiz-result-banner{border-radius:12px;padding:24px 28px;margin-top:20px;display:none}
+.quiz-result-banner.show{display:block}
+.quiz-result-banner.pass{background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,217,166,.08));border:1px solid rgba(34,197,94,.25)}
+.quiz-result-banner.fail{background:var(--red-bg);border:1px solid rgba(255,87,87,.2)}
+.qrb-title{font-size:22px;font-weight:800;margin-bottom:8px}
+.qrb-sub{font-size:13.5px;color:var(--t2);line-height:1.65}
+.next-btn{display:inline-flex;align-items:center;gap:8px;background:var(--violet);color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:700;margin-top:16px;cursor:pointer;border:none;transition:background .12s}
+.next-btn:hover{background:var(--violet-light)}
+
+.cd-header{background:var(--card2);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cd-title{font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.cd-dot{width:7px;height:7px;border-radius:50%;background:var(--cyan)}
+.cd-loading .cd-dot{background:var(--gold);animation:blink .8s infinite}
+.cd-err .cd-dot{background:var(--red)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+.cd-status{font-size:10px;color:var(--t3);font-weight:600;font-family:var(--mono)}
+.cd-out{flex:1;overflow-y:auto;padding:8px 12px;background:#050608;font-family:var(--mono);font-size:11.5px;line-height:1.65;min-height:0}
+.cl{word-break:break-all;white-space:pre-wrap}.cl.out{color:#C9D5E5}.cl.err{color:#FCA5A5}.cl.info{color:var(--t3);font-style:italic}.cl.ok{color:var(--cyan)}
+.cd-input-row{display:flex;align-items:flex-end;gap:6px;padding:8px;border-top:1px solid var(--border);background:var(--card2);flex-shrink:0}
+.cd-prompt{font-family:var(--mono);font-size:13px;color:var(--violet);font-weight:700;padding-bottom:5px;flex-shrink:0}
+#cd-input{flex:1;background:transparent;resize:none;font-size:11.5px;line-height:1.6;min-height:32px;max-height:100px;padding:5px 0;color:var(--text);font-family:var(--mono)}
+.cd-run{background:var(--violet);color:#fff;border-radius:5px;padding:5px 11px;font-size:11.5px;font-weight:700;flex-shrink:0;align-self:flex-end;transition:background .12s}
+.cd-run:hover{background:var(--violet-light)}
+.cd-clear{background:transparent;border:1px solid var(--border);color:var(--t3);border-radius:5px;padding:5px 9px;font-size:11px;flex-shrink:0;align-self:flex-end}
+.cd-clear:hover{border-color:var(--border);color:var(--t2)}
+
+#mob-menu{display:none;position:fixed;top:0;left:0;right:0;background:var(--card);border-bottom:1px solid var(--border);padding:12px 16px;z-index:200;align-items:center;gap:12px}
+#mob-menu-btn{font-size:18px;background:transparent;border:none;color:var(--text);cursor:pointer}
+#mob-title{font-size:14px;font-weight:700;flex:1}
+#mob-console-btn{font-size:11px;font-weight:700;background:var(--violet-bg);color:var(--violet);border:1px solid rgba(124,92,252,.3);border-radius:6px;padding:5px 10px}
+
+@media(max-width:1100px){
+  #console-dock{width:360px}
+  #topbar{margin-right:360px}
+  #main-content{margin-right:360px;padding:0 24px 120px}
+}
+@media(max-width:820px){
+  #sidebar{transform:translateX(-100%)}
+  #sidebar.mob-open{transform:translateX(0)}
+  #content{margin-left:0}
+  #topbar{margin-right:0;padding:0 16px}
+  #main-content{margin-right:0;padding:0 16px 140px}
+  #console-dock{width:100%;border-left:none;border-right:none;height:260px;transform:translateY(100%);transition:transform .25s}
+  #console-dock.mob-open{transform:translateY(0)}
+  #mob-menu{display:flex}
+  #content{padding-top:52px}
+  .section-tabs{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+
+.next-chapter-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px 28px;margin-top:32px;display:flex;align-items:center;gap:20px}
+.ncc-icon{font-size:36px;flex-shrink:0}
+.ncc-info h3{font-size:16px;font-weight:800;margin-bottom:4px}
+.ncc-info p{font-size:13px;color:var(--t2);line-height:1.6}
+.ncc-btn{margin-left:auto;background:var(--violet);color:#fff;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;white-space:nowrap;border:none;cursor:pointer;flex-shrink:0;text-decoration:none;display:inline-flex;align-items:center}
+.ncc-btn:hover{background:var(--violet-light)}
+
+.spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
+@keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
+.interview-section{display:none}.interview-section.show{display:block}
+.interview-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
+.interview-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
+.interview-intro p{font-size:13.5px;color:var(--t2);line-height:1.65}
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:700px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+/* console minimize */
+#content{min-width:0}
+.cd-title{white-space:nowrap}
+.cd-header{cursor:pointer;user-select:none;gap:8px}
+.cd-header .cd-status{margin-left:auto;margin-right:2px;white-space:nowrap}
+.cd-min-btn{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:5px;width:26px;height:22px;font-size:13px;line-height:1;cursor:pointer;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.cd-min-btn:hover,.cd-min-btn:focus-visible{color:var(--text);border-color:var(--violet);outline:none}
+#console-dock.cd-min{height:auto;width:auto;min-width:200px;border-top-left-radius:10px;overflow:hidden}
+#console-dock.cd-min .cd-status,#console-dock.cd-min #cd-out,#console-dock.cd-min .cd-out,#console-dock.cd-min .cd-input-row{display:none}
+#console-dock.cd-min .cd-header{border-bottom:none}
+@media(min-width:821px){body.cd-min #topbar,body.cd-min #main-content{margin-right:0}}
+@media(max-width:820px){#console-dock.cd-min{width:100%;border-top-left-radius:0}}
+</style>
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
+<!-- theme:css -->
+<style>
+/* theme: light/dark ------------------------------------------------------ */
+:root{color-scheme:dark}
+html[data-theme="dark"]{color-scheme:dark}
+
+/* ---- toggle button (both themes) ---- */
+.theme-toggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:32px;min-width:32px;padding:0 12px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);letter-spacing:0;cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s,background-color .12s;-webkit-tap-highlight-color:transparent}
+.theme-toggle:hover{border-color:var(--violet)}
+.theme-toggle:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.theme-toggle svg{width:16px;height:16px;flex-shrink:0;display:block}
+.theme-toggle .tt-sun{display:none;color:var(--gold)}
+.theme-toggle .tt-moon{color:var(--violet-light)}
+html[data-theme="light"] .theme-toggle .tt-sun{display:block}
+html[data-theme="light"] .theme-toggle .tt-moon{display:none}
+#topbar .theme-toggle{margin-left:2px}
+#topnav .theme-toggle{position:sticky;right:0;margin-left:auto;box-shadow:-10px 0 8px -2px var(--card)}
+.theme-toggle.tt-fixed{position:fixed;top:12px;right:14px;z-index:300}
+.theme-toggle.tt-index{position:absolute;top:18px;right:28px;z-index:5}
+.theme-toggle.tt-mob{display:none;height:30px;padding:0 9px}
+.theme-toggle.tt-mob .tt-label{display:none}
+@media(max-width:820px){
+  #topbar .theme-toggle.tt-desk{display:none}
+  #mob-menu .theme-toggle.tt-mob{display:inline-flex}
+}
+@media(max-width:560px){
+  .theme-toggle .tt-label{display:none}
+  .theme-toggle{padding:0;width:32px}
+  .theme-toggle.tt-index{right:16px}
+}
+
+/* ---- LIGHT PALETTE ---- */
+html[data-theme="light"]{
+  color-scheme:light;
+  --bg:#F3F4F9; --card:#FFFFFF; --card2:#EEF0F7; --border:#D3D8E6;
+  --violet:#5B3FE0; --violet-light:#4B30CC; --violet-bg:rgba(91,63,224,.09);
+  --cyan:#00694F; --cyan-bg:rgba(0,105,79,.08);
+  --gold:#855300; --gold-bg:rgba(178,114,0,.12);
+  --red:#B91C24; --red-bg:rgba(185,28,36,.08);
+  --green:#146B36; --green-bg:rgba(20,107,54,.09);
+  --blue:#1D4ED8; --blue-bg:rgba(29,78,216,.08);
+  --text:#181C2B; --t2:#4A5068; --t3:#5F657B;
+}
+
+/* ---- dark "islands": code/terminal panels stay dark in both themes ---- */
+html[data-theme="light"] .code-block,
+html[data-theme="light"] .ex-task,
+html[data-theme="light"] .ex-editor,
+html[data-theme="light"] .ex-output,
+html[data-theme="light"] .pe-output,
+html[data-theme="light"] textarea#project-editor,
+html[data-theme="light"] .q-code-input,
+html[data-theme="light"] #console-dock .cd-out,
+html[data-theme="light"] #console-dock .cd-input-row{
+  color-scheme:dark;
+  --bg:#0F1117; --card:#1A1D27; --card2:#21253A; --border:#2A2D3E;
+  --violet:#7C5CFC; --violet-light:#9B7FFF; --violet-bg:rgba(124,92,252,.1);
+  --cyan:#00D9A6; --cyan-bg:rgba(0,217,166,.08);
+  --gold:#FFB800; --red:#FF5757; --green:#22C55E;
+  --text:#E8EAF0; --t2:#9196A8; --t3:#8B91A5;
+}
+html[data-theme="light"] .cm{color:#7F92AE}
+html[data-theme="light"] .code-block{border-color:#2A2D3E;box-shadow:0 1px 3px rgba(20,24,40,.12)}
+html[data-theme="light"] .ex-task{border-color:#2A2D3E}
+html[data-theme="light"] .ex-editor,html[data-theme="light"] .ex-output,html[data-theme="light"] .q-code-input{border-color:#2A2D3E}
+html[data-theme="light"] .pe-output{border-top-color:#2A2D3E}
+html[data-theme="light"] .ex-output.ok{border-color:rgba(34,197,94,.3)}
+html[data-theme="light"] .ex-output.err{border-color:rgba(255,87,87,.3)}
+html[data-theme="light"] #console-dock .cd-out{border-top:1px solid #2A2D3E}
+html[data-theme="light"] #console-dock .cd-input-row{border-top-color:#2A2D3E}
+html[data-theme="light"] #console-dock .cd-clear{border-color:#3A3E52}
+
+/* ---- callouts / banners with hard-coded dark-theme text colours ---- */
+html[data-theme="light"] .info-box.note{color:#1E3A8A;border-color:rgba(29,78,216,.28)}
+html[data-theme="light"] .info-box.tip{color:#064E3B;border-color:rgba(0,105,79,.28)}
+html[data-theme="light"] .info-box.warn{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .info-box.danger{color:#7F1D1D;border-color:rgba(185,28,36,.28)}
+html[data-theme="light"] .prereq-note{color:#6B4200;border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box{color:#6B4200;background:linear-gradient(135deg,rgba(178,114,0,.12),rgba(185,28,36,.05));border-color:rgba(178,114,0,.35)}
+html[data-theme="light"] .tradeoff-box strong{color:#4A2E00}
+html[data-theme="light"] .q-feedback.correct{color:#14532D;border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .q-feedback.wrong{color:#7F1D1D;border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .ex-result.pass,html[data-theme="light"] .ex-result.fail{border-width:1px;border-style:solid}
+html[data-theme="light"] .ex-result.pass{border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .ex-result.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .quiz-result-banner.pass{background:linear-gradient(135deg,rgba(20,107,54,.12),rgba(0,105,79,.06));border-color:rgba(20,107,54,.3)}
+html[data-theme="light"] .quiz-result-banner.fail{border-color:rgba(185,28,36,.3)}
+html[data-theme="light"] .colab-btn{background:#FFB800;color:#1a1200}
+html[data-theme="light"] .colab-banner{background:linear-gradient(135deg,rgba(255,184,0,.2),rgba(91,63,224,.07));border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .badge.colab{border-color:rgba(178,114,0,.4)}
+html[data-theme="light"] .star-body code,
+html[data-theme="light"] .case-body code,
+html[data-theme="light"] .bullet-item code{background:var(--card2)}
+html[data-theme="light"] .lesson-table tr:nth-child(even) td{background:rgba(24,28,43,.03)}
+html[data-theme="light"] .back-top{box-shadow:0 4px 16px rgba(24,28,43,.15)}
+html[data-theme="light"] .tn-link.active,
+html[data-theme="light"] .badge.capstone,
+html[data-theme="light"] .section-tag,
+html[data-theme="light"] .ptag,
+html[data-theme="light"] .quiz-score,
+html[data-theme="light"] #mob-console-btn{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .lesson-intro{border-color:rgba(91,63,224,.25)}
+html[data-theme="light"] .project-banner{border-color:rgba(91,63,224,.3)}
+html[data-theme="light"] .course-complete-card{border-color:rgba(91,63,224,.35)}
+html[data-theme="light"] .card,html[data-theme="light"] .exercise,html[data-theme="light"] .quiz-card,html[data-theme="light"] .project-editor{box-shadow:0 1px 2px rgba(24,28,43,.05)}
+
+/* ---- layout fixes (top bar + console header) ---- */
+@media(min-width:821px){
+  #topbar,body.cd-min #topbar{margin-right:0}
+}
+.tb-chip{white-space:nowrap}
+#topbar{flex-wrap:nowrap;min-width:0}
+.cd-header{min-width:0}
+.cd-header .cd-status{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.cd-header .cd-title{flex-shrink:0}
+
+/* ---- primary buttons: white text needs >=4.5:1 on the violet ---- */
+html[data-theme="light"] .cb-run,html[data-theme="light"] .cd-run,html[data-theme="light"] .ex-run{background:#6a49ee}
+html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,html[data-theme="light"] .ex-run:hover{background:#5b3add}
+
+/* ---- phones: the status chips pushed the page wider than the screen ---- */
+@media(max-width:600px){
+  #topbar{gap:8px;overflow:hidden}
+  #topbar .tb-chip{display:none}
+}
+</style>
+<!-- /theme:css -->
+<style>
+/* senior chapter extras (variables only) */
+.lesson-h3{font-size:15.5px;font-weight:700;margin:24px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.lesson-h3::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+.tt-wrap{overflow-x:auto;margin:16px 0}
+.tt-wrap .lesson-table{margin:0;min-width:480px}
+.lesson-table.tt td{font-family:var(--sans);font-size:13px;color:var(--t2);vertical-align:top;line-height:1.55}
+.lesson-table.tt td:first-child{color:var(--text);font-weight:600}
+.lesson-table.tt code,.lesson-p code,.chk code,.recap code{font-family:var(--mono);font-size:12px}
+.out-pre{background:var(--card2);border:1px solid var(--border);border-top:none;border-radius:0 0 10px 10px;margin:-16px 0 16px;padding:8px 14px 10px;font:12px/1.55 var(--mono);color:var(--t2);white-space:pre;overflow-x:auto}
+.out-pre::before{content:'output';display:block;font:700 9.5px var(--mono);letter-spacing:.8px;text-transform:uppercase;color:var(--t3);margin-bottom:4px}
+.chk{border:1px solid var(--border);border-radius:10px;background:var(--card);margin:14px 0;padding:10px 16px}
+.chk summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--violet)}
+.chk .chk-a{margin-top:8px;font-size:13.5px;color:var(--t2);line-height:1.7}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:10px;padding:12px 18px;margin:18px 0}
+.recap strong.rc-t{display:block;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:4px}
+.recap ul{margin:0 0 0 18px;font-size:13.5px;color:var(--t2);line-height:1.7}
+.case-tag{display:inline-block;font:700 10.5px var(--mono);letter-spacing:.6px;text-transform:uppercase;padding:2px 9px;border-radius:6px;background:var(--gold-bg);color:var(--gold);margin-left:8px}
+.rubric-row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
+.rubric-row:last-child{border-bottom:none}
+.rubric-row .rb-t{flex:1 1 260px;min-width:0}
+.rubric-row .rb-t b{display:block;font-size:13.5px;color:var(--text)}
+.rubric-row .rb-t span{font-size:12.5px;color:var(--t2);line-height:1.5}
+.rb-btns{display:flex;gap:6px;flex-shrink:0}
+.rb-btn{width:34px;height:34px;border-radius:8px;background:var(--card2);border:1px solid var(--border);color:var(--t2);font-weight:700;font-size:13px}
+.rb-btn:hover{border-color:var(--violet);color:var(--violet)}
+.rb-btn.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.rb-total{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;padding:12px 16px;background:var(--card2);border:1px solid var(--border);border-radius:10px;font-size:13.5px;color:var(--t2)}
+.rb-total b{color:var(--text);font-size:18px}
+.art-doc{width:100%;min-height:360px;background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:14px;font-family:var(--mono);font-size:12.5px;line-height:1.6;color:var(--text);resize:vertical;display:block}
+.art-doc:focus{border-color:var(--violet)}
+.art-note{font-size:12.5px;color:var(--t3);margin-top:8px}
+.ghost-btn{background:transparent;border:1px solid var(--border);color:var(--t2);border-radius:7px;padding:7px 14px;font-size:12.5px}
+.ghost-btn:hover{border-color:var(--violet);color:var(--violet)}
+</style>
+<!-- feat:search-css:start --><style>
+.aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
+.aiml-sb:hover{border-color:var(--violet)}
+.aiml-sb:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+.aiml-sb kbd{font:600 10px var(--mono,ui-monospace,monospace);color:var(--t2);border:1px solid var(--border);background:var(--card);border-radius:4px;padding:2px 5px}
+.aiml-sb-index{position:absolute;top:18px;right:124px;z-index:5}
+.wrap:has(>.aiml-sb-index){position:relative}
+.aiml-sb-fixed{position:fixed;top:12px;right:112px;z-index:300}
+.aiml-sb-nav{margin:0 8px 0 4px}
+.aiml-sb-mob{display:none;height:30px;padding:0 9px}
+.aiml-sb-mob .aiml-sb-t,.aiml-sb-mob kbd{display:none}
+@media(max-width:820px){#topbar .aiml-sb{display:none}#mob-menu .aiml-sb-mob{display:inline-flex}}
+@media(max-width:560px){.aiml-sb kbd{display:none}.aiml-sb-index{right:60px}.aiml-sb-fixed{right:54px}.aiml-sb-nav .aiml-sb-t{display:none}}
+@media print{.aiml-sb{display:none!important}}
+</style><!-- feat:search-css:end --></head>
+<body>
+
+<div id="mob-menu">
+  <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
+  <div id="mob-title">ADV 4: Evaluation Beyond Accuracy</div>
+  <!-- feat:search-mob:start --><button type="button" class="aiml-sb aiml-sb-mob" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-mob:end --><button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
+</div>
+
+<div class="shell">
+
+<div id="sidebar">
+  <a class="sb-logo" href="../index.html">
+    <div class="sb-logo-title">AI/ML: Zero to Hero</div>
+    <div class="sb-logo-sub">AI/ML + MLOps Mastery · Part 4 of 7</div>
+  </a>
+  <a class="sb-back" href="adv03-llm-inference-serving.html">← ADV 3: LLM Inference &amp; Serving at Scale</a>
+  <div class="sb-section">ADV 4 · Evaluation Beyond Accuracy</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Project</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — Module 10</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='adv05-data-engineering-for-ml.html'"><span class="sb-icon">🗄️</span><span class="sb-step">ADV 5: Data Engineering for ML Engineers</span></div>
+</div>
+
+<div id="content">
+  <div id="topbar">
+    <div class="tb-chapter">Advanced 4 of 7</div>
+    <div class="tb-title">Evaluation Beyond Accuracy</div>
+    <div class="tb-gap"></div><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-bar" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end -->
+    <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
+  </div>
+
+  <div id="main-content">
+    <div class="section-tabs">
+      <div class="stab active" id="tab-lesson"   onclick="showSection('lesson')">📖 Lesson</div>
+      <div class="stab" id="tab-practice" onclick="showSection('practice')">✏️ Practice</div>
+      <div class="stab" id="tab-project"  onclick="showSection('project')">🏗️ Project</div>
+      <div class="stab" id="tab-quiz"     onclick="showSection('quiz')">🧪 Quiz</div>
+    </div>
+
+<div class="lesson-section show" id="sec-lesson">
+  <div class="lesson-intro">
+    <h1>Advanced 4:<br/><span>Evaluation Beyond Accuracy</span></h1>
+    <p>You already know how to hold a model to a fair test: split the data, run k-fold cross-validation, compare candidates on a held-out set (<code>ml/ch19</code>, <code>projects/ch33</code> §33.3–33.4). This chapter assumes all of that is solid and asks a harder question: even with a perfectly honest split, is the <em>metric itself</em> telling you the truth? A model can pass cross-validation and still be miscalibrated, still be silently wrong for one subgroup, still look better only because of an uncontrolled comparison — and once the system under test is an LLM or a RAG pipeline, "accuracy" barely applies at all. We cover calibration, class imbalance, error analysis and experiment design for classical models, then retrieval metrics, faithfulness, hallucination evaluation and the real, documented limits of using an LLM as a judge.</p>
+    <div class="badge-row">
+      <span class="badge">🕐 ~150 min read</span>
+      <span class="badge">▶ 20+ runnable blocks</span>
+      <span class="badge">💻 5 exercises</span>
+      <span class="badge capstone">🏗️ Project: Evaluation Report Generator</span>
+      <span class="badge">🧪 5-question quiz</span>
+    </div>
+  </div><!-- SEC:01:start --><!-- videos:start -->
+<style>
+.vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
+.vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.vid-head strong{font-size:15px;color:var(--text)}
+.vid-sub{font-size:12.5px;color:var(--t3)}
+.vid-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.vid-tab{background:var(--card2);border:1px solid var(--border);color:var(--t2);border-radius:20px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer}
+.vid-tab:hover{border-color:var(--violet)}
+.vid-tab.active{background:var(--violet);border-color:var(--violet);color:#fff}
+.vid-stage{position:relative;aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.vid-stage iframe,.vid-stage .vid-poster{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vid-poster{padding:0;margin:0;cursor:pointer;background:#000 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.vid-play{width:68px;height:48px;border-radius:12px;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;transition:background .15s}
+.vid-poster:hover .vid-play,.vid-poster:focus-visible .vid-play{background:#f00}
+.vid-play::after{content:"";border-style:solid;border-width:9px 0 9px 16px;border-color:transparent transparent transparent #fff;margin-left:4px}
+.vid-meta{margin-top:10px;font-size:12.5px;color:var(--t2)}
+.vid-meta b{color:var(--text)}
+</style>
+<div class="vid-panel" id="vid-panel">
+  <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="JnlM4yLFNuo" data-title="Handling imbalanced dataset in machine learning | Deep Learning Tutorial 21 (Tensorflow2.0 &amp; Python)" data-chan="codebasics">Class imbalance &amp; accuracy pitfalls</button><button type="button" class="vid-tab" role="tab" data-id="NebOSOTp-zA" data-title="Mastering LLM Chatbots And RAG Evaluation Crash Course" data-chan="Krish Naik">RAG evaluation crash course</button><button type="button" class="vid-tab" role="tab" data-id="trfUBIDeI1Y" data-title="LLM as a Judge: Scaling AI Evaluation Strategies" data-chan="IBM Technology">LLM-as-judge</button></div>
+  <div class="vid-stage"></div>
+  <div class="vid-meta"></div>
+</div>
+<script>
+(function(){
+  var p=document.getElementById('vid-panel');if(!p)return;
+  var stage=p.querySelector('.vid-stage'),meta=p.querySelector('.vid-meta'),tabs=p.querySelectorAll('.vid-tab');
+  function show(t){
+    tabs.forEach(function(x){x.classList.toggle('active',x===t);x.setAttribute('aria-selected',x===t);});
+    var id=t.getAttribute('data-id'),title=t.getAttribute('data-title');
+    stage.innerHTML='';
+    var b=document.createElement('button');b.type='button';b.className='vid-poster';
+    b.style.backgroundImage="url('https://i.ytimg.com/vi/"+id+"/hqdefault.jpg')";
+    b.setAttribute('aria-label','Play video: '+title);
+    b.innerHTML='<span class="vid-play"></span>';
+    b.onclick=function(){
+      var f=document.createElement('iframe');
+      f.src='https://www.youtube-nocookie.com/embed/'+id+'?autoplay=1&rel=0&modestbranding=1&playsinline=1';
+      f.title=title;f.allow='accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.setAttribute('allowfullscreen','');f.referrerPolicy='strict-origin-when-cross-origin';
+      stage.innerHTML='';stage.appendChild(f);
+    };
+    stage.appendChild(b);
+    meta.innerHTML='';var s=document.createElement('b');s.textContent=title;meta.appendChild(s);
+    meta.appendChild(document.createTextNode(' \u00b7 '+t.getAttribute('data-chan')));
+  }
+  tabs.forEach(function(t){t.addEventListener('click',function(){show(t);});});
+  if(tabs.length)show(tabs[0]);
+})();
+</script>
+<!-- videos:end -->
+
+<div class="lesson-h2">4.1 &mdash; Recap and the Real Question: "Good According to What?"</div>
+<p class="lesson-p">Chapter 19 gave you <code>Pipeline</code>, <code>KFold</code>, <code>cross_val_score</code> and <code>GridSearchCV</code> so a model's reported score is not a lucky accident of one split. Chapter 33 (&sect;33.3&ndash;33.4) chained that into a full pipeline: clean data, split, compare candidates honestly with cross-validation, then evaluate the winner once on a held-out set. We are not re-deriving any of that here &mdash; if you are shaky on why you fit a scaler on training data only, or what <code>cv=5</code> actually runs, go back to those chapters first.</p>
+<p class="lesson-p">This chapter asks a different question. Suppose the split is perfect and the cross-validation is honest. The number you get back &mdash; 0.94 accuracy, 0.89 F1, whatever it is &mdash; is still just <em>one number</em>, and every single-number summary throws information away. It can hide a model that is confidently wrong, a model that only works for the majority subgroup, a "finding" that was never really tested against a control, or &mdash; once the system you are grading is an LLM instead of a classifier &mdash; a whole different set of questions that accuracy cannot even ask. Evaluation beyond accuracy means treating the metric itself as something that needs to be interrogated, not just computed.</p>
+<div class="diagram"><div class="dg-t">Where this chapter sits relative to ch19 / ch33</div><pre>ALREADY TAUGHT (ch19, ch33 &sect;33.3-33.4)         THIS CHAPTER
+train/val/test split                    -->  is the probability itself trustworthy?   (4.2 calibration)
+k-fold cross_val_score, GridSearchCV     -->  does one score hide unequal subgroups?   (4.3-4.4 imbalance, slicing)
+"pick the model with the best CV score"  -->  was the comparison even a fair test?     (4.5 experiment design)
+                                         -->  what does "accuracy" even MEAN for a
+                                              retrieval or generation system?          (4.6-4.10 RAG / LLM eval)</pre></div>
+
+<div class="recap"><strong class="rc-t">Carried forward, not re-taught</strong><ul>
+<li>Train/validation/test splits and why the test set is touched exactly once (ch19, ch33 &sect;33.3).</li>
+<li>k-fold cross-validation and hyperparameter search via <code>GridSearchCV</code> (ch19).</li>
+<li>The general shape of an ML pipeline: clean &rarr; split &rarr; compare &rarr; tune &rarr; evaluate &rarr; ship (ch33).</li>
+</ul></div>
+<!-- SEC:01:end -->
+
+<!-- SEC:02:start -->
+<div class="lesson-h2">4.2 &mdash; Calibration: Do Your Probabilities Mean Anything?</div>
+<p class="lesson-p">A classifier's <code>.predict_proba()</code> output looks like a probability, but nothing forces it to behave like one. A model is <strong>calibrated</strong> if, among all the times it says "70% confident", the outcome actually happens about 70% of the time. This matters anywhere a downstream decision uses the number itself, not just the yes/no call: risk scores that feed a threshold set by a business team, probabilities averaged across an ensemble, or a probability that gets multiplied by a dollar amount to estimate expected loss. A model that is 95% "confident" but right only 70% of the time is not a detail &mdash; it is a model that will get trusted more than it has earned.</p>
+<h3 class="lesson-h3">Reliability diagrams and the Brier score</h3>
+<p class="lesson-p">A <strong>reliability diagram</strong> buckets predictions into probability bins (0.0&ndash;0.1, 0.1&ndash;0.2, &hellip;) and, within each bin, compares the <em>average predicted probability</em> to the <em>actual observed frequency</em> of the positive class. A perfectly calibrated model has those two numbers equal in every bin. The <strong>Brier score</strong> is the single-number summary of the same idea: the mean squared error between each predicted probability and the actual 0/1 outcome, <code>mean((p - y) ** 2)</code>. Lower is better; 0 is a perfect, fully confident and always-correct model, and 0.25 is what you get from a coin-flip model that always predicts 0.5. Critically, the Brier score rewards BOTH being right and being appropriately confident &mdash; a model can have decent accuracy and still have a bad Brier score if its confident predictions are the ones that are wrong.</p>
+<div class="diagram"><div class="dg-t">Reading a reliability diagram</div><pre>actual freq
+   1.0 |                                   . <- perfectly calibrated
+       |                              .  '   (avg predicted == actual freq)
+       |                         .  '
+       |                    . '
+       |               . '        x  x    <- OVERCONFIDENT model:
+       |          . '         x                predicted prob is HIGHER
+       |     . '        x                      than the true frequency
+   0.0 |_'________________________________
+        0.0                              1.0
+                   avg predicted probability (per bin)</pre></div>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">Brier score, a reliability table, and fixing it with temperature scaling</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import numpy as np
+
+rng = np.random.default_rng(7)
+n = 2000
+true_score = rng.normal(0, 1.5, n)
+true_p = 1 / (1 + np.exp(-true_score))
+y = (rng.random(n) &lt; true_p).astype(int)
+
+raw_logit = true_score * 2.2
+model_p = 1 / (1 + np.exp(-raw_logit))
+
+def brier_score(p, y):
+    return np.mean((p - y) ** 2)
+
+def reliability_table(p, y, n_bins=10):
+    bins = np.linspace(0, 1, n_bins + 1)
+    rows = []
+    for lo, hi in zip(bins[:-1], bins[1:]):
+        mask = (p &gt;= lo) &amp; (p &lt; hi) if hi &lt; 1 else (p &gt;= lo) &amp; (p &lt;= hi)
+        if mask.sum() == 0:
+            continue
+        rows.append((f"{lo:.1f}-{hi:.1f}", int(mask.sum()), float(p[mask].mean()), float(y[mask].mean())))
+    return rows
+
+print(f"Brier score (overconfident model): {brier_score(model_p, y):.4f}")
+for label, count, avg_p, avg_y in reliability_table(model_p, y):
+    print(f"  bin {label}: n={count:4d}  avg predicted={avg_p:.3f}  actual freq={avg_y:.3f}")
+
+def apply_temperature(logit, T):
+    return 1 / (1 + np.exp(-logit / T))
+
+Ts = np.linspace(0.5, 4.0, 36)
+best_T, best_brier = None, 1e9
+for T in Ts:
+    p_t = apply_temperature(raw_logit, T)
+    b = brier_score(p_t, y)
+    if b &lt; best_brier:
+        best_brier, best_T = b, T
+
+calibrated_p = apply_temperature(raw_logit, best_T)
+print(f"\nBest temperature found by grid search: {best_T:.2f}")
+print(f"Brier before calibration: {brier_score(model_p, y):.4f}")
+print(f"Brier after calibration:  {brier_score(calibrated_p, y):.4f}")
+for label, count, avg_p, avg_y in reliability_table(calibrated_p, y):
+    print(f"  bin {label}: n={count:4d}  avg predicted={avg_p:.3f}  actual freq={avg_y:.3f}")</div>
+</div>
+<div class="out-pre">Brier score (overconfident model): 0.1904
+  bin 0.0-0.1: n= 537  avg predicted=0.032  actual freq=0.142
+  bin 0.1-0.2: n= 160  avg predicted=0.147  actual freq=0.319
+  ...
+  bin 0.9-1.0: n= 478  avg predicted=0.968  actual freq=0.851
+
+Best temperature found by grid search: 2.20
+Brier before calibration: 0.1904
+Brier after calibration:  0.1754
+  bin 0.0-0.1: n= 140  avg predicted=0.061  actual freq=0.057
+  ...
+  bin 0.9-1.0: n= 140  avg predicted=0.939  actual freq=0.943</div>
+<p class="lesson-p">Notice the pattern before calibration: in the lowest bin the model says "3% likely" but the true rate is 14%, and in the top bin it says "97% likely" against a true rate of 85% &mdash; classic <strong>overconfidence</strong>, common in models with high-magnitude logits (deep nets are especially prone to this). <strong>Temperature scaling</strong> is the standard production fix: keep the model's raw logit output, but divide it by a single learned scalar <code>T</code> before the sigmoid, then pick <code>T</code> to minimize a calibration loss on a held-out calibration set (here, a small grid search over Brier score stands in for that fit). One number, fit on held-out data, completely reshapes the reliability table without touching which class gets predicted &mdash; the ranking of examples, and therefore accuracy and AUC, is unchanged, because scaling every logit by the same constant never reorders them.</p>
+<div class="info-box note"><span class="ib-icon">&#8505;&#65039;</span><div class="ib-body"><strong>In production</strong>scikit-learn's <code>CalibratedClassifierCV</code> automates exactly this (Platt scaling or isotonic regression instead of a hand-rolled grid search), fit on a held-out calibration fold so you are not calibrating against the same data the model was scored on.</div></div>
+<!-- SEC:02:end -->
+
+<!-- SEC:03:start -->
+<div class="lesson-h2">4.3 &mdash; Class Imbalance: Why Accuracy Lies</div>
+<p class="lesson-p">Fraud is rare. Churn is rare. The disease you are screening for is rare. In every one of these, a model that never fires at all &mdash; that predicts the majority class 100% of the time &mdash; can post an accuracy that looks like a success and is actually a model that does nothing. Accuracy treats a false negative on the 5% minority class exactly the same as a false positive on the 95% majority class, which is precisely backwards for most of these problems: missing the rare fraud case is usually the expensive mistake.</p>
+<h3 class="lesson-h3">The metrics that don't lie the same way</h3>
+<table class="lesson-table tt"><tr><th>Metric</th><th>What it actually measures</th><th>Blind spot</th></tr>
+<tr><td>Accuracy</td><td>Fraction of all predictions correct</td><td>Dominated by the majority class; can look great while missing every positive</td></tr>
+<tr><td>Precision</td><td>Of the positives you flagged, how many were real</td><td>Says nothing about positives you missed entirely</td></tr>
+<tr><td>Recall</td><td>Of the real positives, how many you caught</td><td>Says nothing about how noisy your alerts are</td></tr>
+<tr><td>F1</td><td>Harmonic mean of precision and recall</td><td>One number again &mdash; hides which of the two is actually the problem</td></tr>
+<tr><td>ROC-AUC</td><td>Ranking quality across all thresholds, x-axis is false-positive <em>rate</em></td><td>FPR stays small on imbalanced data even when precision collapses &mdash; ROC-AUC can look great on a nearly-useless model</td></tr>
+<tr><td>PR-AUC</td><td>Ranking quality across all thresholds, x-axis is precision itself</td><td>More honest here, but has no fixed floor to compare against (unlike ROC-AUC's 0.5)</td></tr>
+</table>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">A 6.8%-positive dataset: majority baseline vs plain LR vs class-weighting vs threshold-moving</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score,
+                              roc_auc_score, average_precision_score)
+
+X, y = make_classification(n_samples=2000, n_features=6, n_informative=4,
+                            weights=[0.95, 0.05], random_state=13, flip_y=0.01)
+split = 1500
+X_train, X_test = X[:split], X[split:]
+y_train, y_test = y[:split], y[split:]
+print(f"Test set positives: {y_test.sum()} / {len(y_test)}  ({y_test.mean():.1%})")
+
+majority_pred = np.zeros_like(y_test)
+print(f"\nAlways-predict-majority accuracy: {accuracy_score(y_test, majority_pred):.4f}")
+print(f"Always-predict-majority recall on the minority class: {recall_score(y_test, majority_pred, zero_division=0):.4f}")
+
+plain = LogisticRegression(max_iter=1000).fit(X_train, y_train)
+plain_pred = plain.predict(X_test)
+plain_proba = plain.predict_proba(X_test)[:, 1]
+print(f"\nPlain LogisticRegression accuracy: {accuracy_score(y_test, plain_pred):.4f}")
+print(f"  precision={precision_score(y_test, plain_pred):.3f}  recall={recall_score(y_test, plain_pred):.3f}  f1={f1_score(y_test, plain_pred):.3f}")
+print(f"  ROC-AUC={roc_auc_score(y_test, plain_proba):.3f}  PR-AUC={average_precision_score(y_test, plain_proba):.3f}")
+
+balanced = LogisticRegression(max_iter=1000, class_weight="balanced").fit(X_train, y_train)
+bal_pred = balanced.predict(X_test)
+bal_proba = balanced.predict_proba(X_test)[:, 1]
+print(f"\nclass_weight='balanced' accuracy: {accuracy_score(y_test, bal_pred):.4f}")
+print(f"  precision={precision_score(y_test, bal_pred):.3f}  recall={recall_score(y_test, bal_pred):.3f}  f1={f1_score(y_test, bal_pred):.3f}")
+print(f"  ROC-AUC={roc_auc_score(y_test, bal_proba):.3f}  PR-AUC={average_precision_score(y_test, bal_proba):.3f}")
+
+# threshold moving on the PLAIN model to hit a target recall
+target_recall = 0.80
+thresholds = np.linspace(0.01, 0.99, 99)
+best_t = None
+for t in thresholds:
+    pred_t = (plain_proba &gt;= t).astype(int)
+    r = recall_score(y_test, pred_t, zero_division=0)
+    if r &gt;= target_recall:
+        best_t = t  # keep raising threshold while recall target still met -&gt; highest precision at that recall
+print(f"\nThreshold-moving on the SAME plain model, target recall &gt;= {target_recall:.0%}:")
+pred_final = (plain_proba &gt;= best_t).astype(int)
+print(f"  chosen threshold={best_t:.2f}  precision={precision_score(y_test, pred_final):.3f}  recall={recall_score(y_test, pred_final):.3f}  f1={f1_score(y_test, pred_final):.3f}")</div>
+</div>
+<div class="out-pre">Test set positives: 34 / 500  (6.8%)
+
+Always-predict-majority accuracy: 0.9320
+Always-predict-majority recall on the minority class: 0.0000
+
+Plain LogisticRegression accuracy: 0.9620
+  precision=0.895  recall=0.500  f1=0.642
+  ROC-AUC=0.954  PR-AUC=0.783
+
+class_weight='balanced' accuracy: 0.8640
+  precision=0.323  recall=0.912  f1=0.477
+  ROC-AUC=0.967  PR-AUC=0.777
+
+Threshold-moving on the SAME plain model, target recall &gt;= 80%:
+  chosen threshold=0.09  precision=0.406  recall=0.824  f1=0.544</div>
+<p class="lesson-p">Read this output slowly. The do-nothing baseline gets 93.2% accuracy and 0% recall &mdash; if a stakeholder only ever sees "accuracy: 93%" for either the baseline or the real model, they cannot tell those two models apart, which is the whole problem with accuracy on imbalanced data. The plain model looks strong (96.2% accuracy) but only catches half the real positives. ROC-AUC barely moves between the plain and balanced models (0.954 vs 0.967) because false-positive <em>rate</em> stays tiny either way with this much majority-class data &mdash; PR-AUC (0.783 vs 0.777) is the more honest, harder-to-fool lens here because its x-axis is precision, which the imbalance directly punishes.</p>
+<h3 class="lesson-h3">Three different levers, not three different metrics</h3>
+<p class="lesson-p"><strong>Resampling</strong> (oversample the minority class, undersample the majority, or synthesize new minority examples with SMOTE) changes what the model trains on. <strong>Class-weighting</strong> (<code>class_weight="balanced"</code> above) changes the loss function so mistakes on the minority class cost more, without touching the data at all &mdash; usually the cheapest lever to try first. <strong>Threshold-moving</strong> changes neither the data nor the training objective: it trains one plain model, keeps its probability output, and picks a decision threshold to hit a target recall or precision after the fact, as the last block above does. These three are not competing "which metric to use" answers &mdash; they are different places in the pipeline to spend the same underlying trade-off, and the right choice depends on whether you can afford to retrain, whether you know your target operating point in advance, and whether you need one threshold or a whole ranked list.</p>
+<!-- SEC:03:end -->
+
+<!-- SEC:04:start -->
+<div class="lesson-h2">4.4 &mdash; Rigorous Error Analysis: Finding the Failure Mode Hiding in the Average</div>
+<p class="lesson-p">An overall metric is an average, and an average can hide a model that is excellent for most of the population and quietly broken for a slice of it. <strong>Error analysis</strong> means deliberately slicing your metrics by subgroup &mdash; region, device type, a demographic attribute, the data source a record came from, time period, input length &mdash; and asking whether performance is uniform, not just whether it is good on average. This is the same discipline as the "what changed" debugging method elsewhere in this course: you don't ask "is the system healthy", you ask "is it EQUALLY healthy everywhere", because the gap between those two questions is where systematic failures live.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">One model, sliced by subgroup: the overall number hides a real gap</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, recall_score, confusion_matrix
+
+rng = np.random.default_rng(4)
+X, y = make_classification(n_samples=1600, n_features=8, n_informative=5,
+                            random_state=21, class_sep=1.3)
+
+# a subgroup feature the model never sees directly during training,
+# but which happens to correlate with a noisy, low-signal region of feature space
+group = np.where(X[:, 0] &gt; 0.6, "B", "A")
+
+split = 1200
+X_train, X_test, y_train, y_test = X[:split], X[split:], y[:split], y[split:]
+group_test = group[split:]
+
+# corrupt group-B TRAINING examples with label noise, simulating a systematic
+# data-quality gap (e.g. group B came from a different, messier data source)
+noisy_train_group = group[:split]
+y_train_noisy = y_train.copy()
+b_mask = noisy_train_group == "B"
+flip = rng.random(b_mask.sum()) &lt; 0.35
+idx = np.where(b_mask)[0][flip]
+y_train_noisy[idx] = 1 - y_train_noisy[idx]
+
+clf = LogisticRegression(max_iter=1000).fit(X_train, y_train_noisy)
+pred = clf.predict(X_test)
+
+print(f"Overall accuracy: {accuracy_score(y_test, pred):.4f}")
+print(f"Overall recall:   {recall_score(y_test, pred):.4f}")
+
+print("\nSliced by subgroup:")
+for g in ["A", "B"]:
+    mask = group_test == g
+    acc = accuracy_score(y_test[mask], pred[mask])
+    rec = recall_score(y_test[mask], pred[mask], zero_division=0)
+    n = mask.sum()
+    print(f"  group {g}: n={n:3d}  accuracy={acc:.4f}  recall={rec:.4f}")
+
+cm_b = confusion_matrix(y_test[group_test == "B"], pred[group_test == "B"])
+print(f"\nGroup B confusion matrix [[TN FP] [FN TP]]:\n{cm_b}")</div>
+</div>
+<div class="out-pre">Overall accuracy: 0.7675
+Overall recall:   0.7644
+
+Sliced by subgroup:
+  group A: n=229  accuracy=0.8952  recall=0.8814
+  group B: n=171  accuracy=0.5965  recall=0.6111
+
+Group B confusion matrix [[TN FP] [FN TP]]:
+[[47 34]
+ [35 55]]</div>
+<p class="lesson-p">76.75% overall accuracy sounds like a model that is basically working. Sliced by subgroup, group A is at 89.5% and group B is at 59.6% &mdash; a 30-point gap that the headline number completely erases. In this toy example the cause is deliberately visible in the code: group B's training labels were corrupted more often, simulating the extremely common real-world case where one subgroup's data came from a messier pipeline, a different collection process, or a smaller sample. The fix is never "make the model better" in the abstract &mdash; it is "find out WHY group B is worse" (data quality? underrepresentation? a genuinely harder subpopulation?) and address that specific cause. Error analysis does not end at finding the gap; a full pass also reads a sample of the group's actual mispredictions to look for a pattern (a keyword, a format, a length) rather than stopping at the number.</p>
+<div class="info-box warn"><span class="ib-icon">&#9888;&#65039;</span><div class="ib-body"><strong>A subgroup slice needs enough data to trust</strong>Group B here has n=171, plenty for a stable estimate; a slice with n=12 producing a scary-looking accuracy number is usually noise, not a finding &mdash; check the sample size before you act on a slice.</div></div>
+<!-- SEC:04:end -->
+
+<!-- SEC:05:start -->
+<div class="lesson-h2">4.5 &mdash; Experiment Design: Ablations, Confounding, and "Just Try It and See"</div>
+<p class="lesson-p">"I changed the regularization strength and accuracy went up three points" is not evidence of anything unless you can also answer: compared to what, on the same data, with everything else held fixed? A <strong>confound</strong> is a second thing that changed alongside the thing you meant to test, so you cannot tell which one caused the effect you observed. The single most common confound in ML experimentation is comparing two runs on <em>different</em> random data splits or random seeds &mdash; the "improvement" you see may be entirely explained by which examples happened to land in the test set that time, not by your change at all.</p>
+<h3 class="lesson-h3">What a clean ablation looks like</h3>
+<p class="lesson-p">A good <strong>ablation</strong> changes exactly one variable, holds every other variable fixed (same data split, same seed, same preprocessing), and repeats the comparison across enough independent trials (different seeds, in the SAME paired way) to see whether the effect survives the noise. The output is a table with a mean AND a spread, not a single "before" and "after" number.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">An uncontrolled comparison vs a controlled ablation, on the same underlying change</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import numpy as np
+from sklearn.datasets import make_classification
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+def make_split(seed):
+    X, y = make_classification(n_samples=800, n_features=10, n_informative=6,
+                                random_state=seed, class_sep=0.9)
+    return X[:600], X[600:], y[:600], y[600:]
+
+def score(X_train, X_test, y_train, y_test, C):
+    clf = LogisticRegression(max_iter=1000, C=C).fit(X_train, y_train)
+    return accuracy_score(y_test, clf.predict(X_test))
+
+# UNCONTROLLED "just try it and see": baseline run on seed 0, "improved" run on seed 1
+Xtr0, Xte0, ytr0, yte0 = make_split(0)
+Xtr1, Xte1, ytr1, yte1 = make_split(1)
+baseline_uncontrolled = score(Xtr0, Xte0, ytr0, yte0, C=1.0)
+improved_uncontrolled = score(Xtr1, Xte1, ytr1, yte1, C=0.1)
+print("Uncontrolled comparison (different data draws AND different C):")
+print(f"  baseline (seed 0, C=1.0): {baseline_uncontrolled:.4f}")
+print(f"  'improved' (seed 1, C=0.1): {improved_uncontrolled:.4f}")
+print(f"  apparent gain: {improved_uncontrolled - baseline_uncontrolled:+.4f}\n")
+
+# CONTROLLED ablation: same data draw (same seed), change ONLY C, repeat over several seeds
+print("Controlled ablation: same seed for both arms, vary ONLY C, across 8 seeds:")
+gains = []
+for seed in range(8):
+    Xtr, Xte, ytr, yte = make_split(seed)
+    base = score(Xtr, Xte, ytr, yte, C=1.0)
+    variant = score(Xtr, Xte, ytr, yte, C=0.1)
+    gains.append(variant - base)
+    print(f"  seed {seed}: baseline={base:.4f}  variant={variant:.4f}  gain={variant-base:+.4f}")
+
+gains = np.array(gains)
+print(f"\nMean gain across matched seeds: {gains.mean():+.4f}  (std {gains.std(ddof=1):.4f})")
+print(f"Seeds where the variant was actually worse: {(gains &lt; 0).sum()} / {len(gains)}")</div>
+</div>
+<div class="out-pre">Uncontrolled comparison (different data draws AND different C):
+  baseline (seed 0, C=1.0): 0.9100
+  'improved' (seed 1, C=0.1): 0.8600
+  apparent gain: -0.0500
+
+Controlled ablation: same seed for both arms, vary ONLY C, across 8 seeds:
+  seed 0: baseline=0.9100  variant=0.9050  gain=-0.0050
+  seed 1: baseline=0.8600  variant=0.8600  gain=+0.0000
+  ...
+  seed 7: baseline=0.5750  variant=0.5800  gain=+0.0050
+
+Mean gain across matched seeds: +0.0013  (std 0.0035)
+Seeds where the variant was actually worse: 1 / 8</div>
+<p class="lesson-p">The uncontrolled comparison reports a 5-point DROP from lowering <code>C</code> &mdash; but it changed the data split and the hyperparameter at the same time, so that number could just as easily be "seed 1 was a harder split" as "C=0.1 is worse." The controlled version holds the split fixed within each trial and only varies <code>C</code>, then repeats across 8 independently drawn splits: the true mean effect is roughly zero (+0.0013, std 0.0035), an order of magnitude smaller than the misleading -0.05 the sloppy comparison produced, and its sign even flips on 1 of the 8 seeds. This is the difference between "I tried something and the number went up" and an actual experiment.</p>
+<div class="diagram"><div class="dg-t">An ablation table is a table, not a headline number</div><pre>Variant             seed0   seed1   seed2   ...  seed7    mean     std
+baseline (C=1.0)     0.910   0.860   0.785        0.575    0.775   0.108
++ lower C (C=0.1)     0.905   0.860   0.785        0.580    0.776   0.106
+------------------------------------------------------------------------
+paired gain          -0.005  +0.000  +0.000       +0.005   +0.001  0.004
+   ^ report THIS row, with its own spread -- not just the two mean columns</pre></div>
+<p class="lesson-p">"Just try it and see" fails for the same reason a single train/test split can get lucky: one comparison is one sample. A control (the SAME conditions, minus the one change) plus repetition (enough independent trials to see the spread) is what turns "I tried something" into an experiment whose result you can trust, and it is exactly as necessary for a one-line hyperparameter tweak as for a full research ablation study.</p>
+<!-- SEC:05:end -->
+
+<!-- SEC:06:start -->
+<div class="lesson-h2">4.6 &mdash; Evaluating RAG and LLM Systems: A New Set of Failure Modes</div>
+<p class="lesson-p">Everything above &mdash; calibration, imbalance-aware metrics, slicing, controlled comparisons &mdash; still applies once the "model" is an LLM or a retrieval-augmented pipeline. But "accuracy" stops being well-defined the moment the output is free text instead of a class label, and a RAG system fails in ways a classifier structurally cannot: it can retrieve the wrong documents, or the right documents and then ignore them, or write a fluent answer that is simply false. Grading it well means grading each stage separately.</p>
+<div class="diagram"><div class="dg-t">A RAG pipeline and where each evaluation type below applies</div><pre>query --> [ RETRIEVAL ] --> top-k chunks --> [ GENERATION ] --> answer --> [ EVALUATE ]
+              |                                    |                          |
+       recall@k, MRR,                     did the answer ONLY use      LLM-as-judge,
+       nDCG   (4.7)                        the retrieved chunks?        proxy metrics,
+                                            (faithfulness, 4.8)          all with real
+                                                    |                    documented limits
+                                            is it hallucinating          (4.9, 4.10)
+                                            facts not IN the chunks
+                                            or not verifiable at all?
+                                            (hallucination, 4.9)</pre></div>
+<p class="lesson-p">Note the ordering of failures: a perfect generator fed the wrong documents will confidently answer the wrong question, so retrieval quality is graded first and separately &mdash; a bad final answer with good retrieval metrics is a generation/faithfulness bug, while a bad final answer with bad retrieval metrics is a retrieval bug, and conflating the two wastes debugging time on the wrong stage.</p>
+<!-- SEC:06:end -->
+
+<!-- SEC:07:start -->
+<div class="lesson-h2">4.7 &mdash; Retrieval Metrics: recall@k, MRR, nDCG</div>
+<p class="lesson-p"><strong>recall@k</strong> asks: of all the documents that are actually relevant to this query, what fraction appear anywhere in the top <code>k</code> retrieved? It rewards getting relevant material into the context window at all, and does not care about order within the top <code>k</code>. <strong>MRR</strong> (mean reciprocal rank) looks at only the FIRST relevant result and scores <code>1/rank</code> &mdash; a relevant document at rank 1 scores 1.0, at rank 3 scores 0.33, so MRR rewards getting something good to the top fast, which matters when a generator pays more attention to earlier chunks. <strong>nDCG</strong> (normalized discounted cumulative gain) generalizes both: every relevant document in the list contributes, but earlier ranks are worth exponentially more, normalized against the best possible ordering of the same relevant set &mdash; the one metric here that rewards BOTH "found everything relevant" and "ranked it well".</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">recall@k, MRR and nDCG on the same four queries</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import numpy as np
+
+# Each query has a ranked list of retrieved doc ids and a set of doc ids that are
+# actually relevant (judged by a human or a gold label), exactly the shape a real
+# retrieval eval harness works with.
+queries = [
+    {"q": "capital of Australia", "ranked": ["doc_9", "doc_2", "doc_5", "doc_1", "doc_7"], "relevant": {"doc_5"}},
+    {"q": "founder of Python",    "ranked": ["doc_3", "doc_8", "doc_2", "doc_6", "doc_4"], "relevant": {"doc_3", "doc_6"}},
+    {"q": "boiling point of water at altitude", "ranked": ["doc_1", "doc_4", "doc_9", "doc_2", "doc_5"], "relevant": {"doc_9"}},
+    {"q": "who wrote Pride and Prejudice", "ranked": ["doc_7", "doc_2", "doc_1", "doc_3", "doc_5"], "relevant": {"doc_1", "doc_5"}},
+]
+
+def recall_at_k(ranked, relevant, k):
+    hit = set(ranked[:k]) &amp; relevant
+    return len(hit) / len(relevant)
+
+def reciprocal_rank(ranked, relevant):
+    for i, d in enumerate(ranked, start=1):
+        if d in relevant:
+            return 1.0 / i
+    return 0.0
+
+def dcg_at_k(ranked, relevant, k):
+    return sum(1.0 / np.log2(i + 1) for i, d in enumerate(ranked[:k], start=1) if d in relevant)
+
+def ndcg_at_k(ranked, relevant, k):
+    ideal = sum(1.0 / np.log2(i + 1) for i in range(1, min(len(relevant), k) + 1))
+    if ideal == 0:
+        return 0.0
+    return dcg_at_k(ranked, relevant, k) / ideal
+
+K = 3
+recalls, rrs, ndcgs = [], [], []
+for item in queries:
+    r = recall_at_k(item["ranked"], item["relevant"], K)
+    rr = reciprocal_rank(item["ranked"], item["relevant"])
+    nd = ndcg_at_k(item["ranked"], item["relevant"], K)
+    recalls.append(r); rrs.append(rr); ndcgs.append(nd)
+    print(f"{item['q'][:32]:32s}  recall@{K}={r:.2f}  RR={rr:.2f}  nDCG@{K}={nd:.3f}")
+
+print(f"\nMean recall@{K}: {np.mean(recalls):.3f}")
+print(f"MRR: {np.mean(rrs):.3f}")
+print(f"Mean nDCG@{K}: {np.mean(ndcgs):.3f}")</div>
+</div>
+<div class="out-pre">capital of Australia              recall@3=1.00  RR=0.33  nDCG@3=0.500
+founder of Python                 recall@3=0.50  RR=1.00  nDCG@3=0.613
+boiling point of water at altitu  recall@3=1.00  RR=0.33  nDCG@3=0.500
+who wrote Pride and Prejudice     recall@3=0.50  RR=0.33  nDCG@3=0.307
+
+Mean recall@3: 0.750
+MRR: 0.500
+Mean nDCG@3: 0.480</div>
+<p class="lesson-p">Compare the first two rows: query 1 has recall@3=1.00 (the one relevant document made it into the top 3) but a low RR of 0.33 because it landed at rank 3, not rank 1. Query 2 has a lower recall@3=0.50 (missed one of its two relevant documents entirely) but a perfect RR=1.00 because the one it DID find was ranked first. Neither metric alone tells the full story &mdash; which is exactly why a real evaluation harness reports several of these side by side rather than picking one and calling retrieval "solved."</p>
+<!-- SEC:07:end -->
+
+<!-- SEC:08:start -->
+<div class="lesson-h2">4.8 &mdash; Faithfulness and Groundedness: Does the Answer Only Use What Was Retrieved?</div>
+<p class="lesson-p">A <strong>faithful</strong> (or <strong>grounded</strong>) answer only makes claims supported by the retrieved context &mdash; it does not matter whether a claim is true in the real world, only whether the system's OWN evidence supports it, because a RAG system that answers correctly from outside knowledge it was never given credit for is not something you can trust to behave the same way next time it lacks that outside knowledge. A cheap, illustrative heuristic: split the answer into sentences and, for each one, measure what fraction of its (non-trivial) words also appear somewhere in the retrieved chunks.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">A word-overlap groundedness heuristic, sentence by sentence</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import re
+
+def tokenize(s):
+    return set(re.findall(r"[a-z0-9]+", s.lower()))
+
+def sentence_split(text):
+    return [s.strip() for s in re.split(r"(?&lt;=[.!?])\s+", text.strip()) if s.strip()]
+
+def groundedness_score(sentence, context_chunks, stop=frozenset(
+        "the a an is are was were of in on to and or for with as by at from that this it its be".split())):
+    """Heuristic only: fraction of a sentence's non-trivial words that also appear
+    somewhere in the retrieved context. This is NOT a real faithfulness metric —
+    see the discussion after this block for what it misses."""
+    words = tokenize(sentence) - stop
+    if not words:
+        return 1.0
+    context_words = set()
+    for c in context_chunks:
+        context_words |= tokenize(c)
+    covered = words &amp; context_words
+    return len(covered) / len(words)
+
+retrieved_context = [
+    "The Eiffel Tower was completed in 1889 for the World's Fair in Paris.",
+    "It stands 330 metres tall and was designed by engineer Gustave Eiffel's company.",
+]
+
+answer = (
+    "The Eiffel Tower was completed in 1889 for the World's Fair. "
+    "It is 330 metres tall. "
+    "It was originally intended to be dismantled after 20 years but was kept for radio transmissions."
+)
+
+THRESHOLD = 0.55
+print(f"{'sentence':70s} score  flag")
+for sent in sentence_split(answer):
+    s = groundedness_score(sent, retrieved_context)
+    flag = "UNGROUNDED?" if s &lt; THRESHOLD else "ok"
+    print(f"{sent[:68]:70s} {s:.2f}  {flag}")</div>
+</div>
+<div class="out-pre">sentence                                                               score  flag
+The Eiffel Tower was completed in 1889 for the World's Fair.           1.00  ok
+It is 330 metres tall.                                                 1.00  ok
+It was originally intended to be dismantled after 20 years but was k   0.00  UNGROUNDED?</div>
+<p class="lesson-p">The first two sentences restate the retrieved chunks and score 1.00. The third sentence introduces a fact (dismantling, radio transmissions) that never appears in the retrieved context at all &mdash; correctly flagged, regardless of whether it happens to be historically true, because faithfulness is about what the system's OWN evidence supports, not about the real world.</p>
+<div class="info-box note"><span class="ib-icon">&#8505;&#65039;</span><div class="ib-body"><strong>What a real system uses instead</strong>Production faithfulness checks use a natural-language-inference (NLI) or entailment model to test whether the retrieved context <em>entails</em> each claim, or an LLM-as-judge prompt asking specifically "is this claim supported by this context, yes/no" per sentence &mdash; both catch paraphrase and catch confident-sounding recombination that word overlap misses entirely, at the cost of needing a second model call per claim.</div></div>
+<!-- SEC:08:end -->
+
+<!-- SEC:09:start -->
+<div class="lesson-h2">4.9 &mdash; Hallucination Evaluation: Why It's Hard</div>
+<p class="lesson-p"><strong>Hallucination</strong> is usually defined as a generated claim that is unsupported by, or contradicts, the available evidence (the retrieved context, or the training data for a non-RAG model). It is hard to measure for reasons that stack on top of each other: there is often no single ground-truth document to check every claim against; a claim can be TRUE in the world but unsupported by what was retrieved (still a failure, per 4.8); a model can restate a real fact with one wrong number and sound exactly as confident as when it is fully correct; and cheap proxy metrics built on lexical overlap are fooled by fluent, plausible-sounding recombinations of real words into false claims.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">The word-overlap heuristic's blind spot: fooled by vocabulary, not by truth</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">import re
+
+def tokenize(s):
+    return set(re.findall(r"[a-z0-9]+", s.lower()))
+
+def groundedness_score(sentence, context_chunks, stop=frozenset(
+        "the a an is are was were of in on to and or for with as by at from that this it its be".split())):
+    words = tokenize(sentence) - stop
+    if not words:
+        return 1.0
+    context_words = set()
+    for c in context_chunks:
+        context_words |= tokenize(c)
+    covered = words &amp; context_words
+    return len(covered) / len(words)
+
+retrieved_context = [
+    "The Eiffel Tower was completed in 1889 for the World's Fair in Paris.",
+    "It stands 330 metres tall and was designed by engineer Gustave Eiffel's company.",
+]
+
+# a hallucinated sentence built almost entirely from words that DO appear in the
+# context, but that recombines them into a claim the context never makes
+hallucinated = "The Eiffel Tower was completed in Paris by Gustave in 330 days for the World's Fair."
+true_but_rephrased = "Paris hosted the World's Fair the same year the tower was finished, in 1889."
+
+for label, sent in [("hallucinated but high word-overlap", hallucinated),
+                     ("true but paraphrased, lower overlap", true_but_rephrased)]:
+    s = groundedness_score(sent, retrieved_context)
+    print(f"{label:38s} score={s:.2f}  -&gt; {sent}")</div>
+</div>
+<div class="out-pre">hallucinated but high word-overlap     score=0.90  -&gt; The Eiffel Tower was completed in Paris by Gustave in 330 days for the World's Fair.
+true but paraphrased, lower overlap    score=0.60  -&gt; Paris hosted the World's Fair the same year the tower was finished, in 1889.</div>
+<p class="lesson-p">The hallucinated sentence reuses almost every word from the retrieved context ("Eiffel Tower", "Paris", "Gustave", "330", "World's Fair") but recombines them into a false claim (built "in 330 days", not "330 metres tall") and scores 0.90 &mdash; it LOOKS grounded to a lexical-overlap check. The true, faithful sentence below it uses different words to say something the context actually supports, and scores lower for it. This is the general shape of every cheap hallucination proxy: word/n-gram overlap, embedding similarity to the context, and even naive NLI models can all be fooled by surface-level resemblance in one direction and unfairly penalize honest paraphrase in the other. The more reliable (and more expensive) approaches decompose the answer into atomic claims and check each one against evidence individually, or run the same query multiple times and treat claims that are NOT consistent across samples as suspect (self-consistency checking) &mdash; both catch more than lexical overlap, and both cost real inference-time compute, so no hallucination metric is free.</p>
+<!-- SEC:09:end -->
+
+<!-- SEC:10:start -->
+<div class="lesson-h2">4.10 &mdash; LLM-as-Judge: How It Works, and Its Real, Documented Failure Modes</div>
+<p class="lesson-p"><strong>LLM-as-judge</strong> means using a strong LLM to score or compare outputs instead of (or alongside) human raters: pointwise scoring ("rate this answer 1-10 against this rubric"), or pairwise comparison ("which of these two answers is better, A or B"). It scales far past what humans can rate and correlates reasonably well with human judgment on average &mdash; which is exactly why it is worth being precise about where it is known to fail, instead of either trusting it blindly or dismissing it entirely.</p>
+<h3 class="lesson-h3">Three well-documented biases</h3>
+<table class="lesson-table tt"><tr><th>Bias</th><th>What happens</th><th>Common mitigation</th></tr>
+<tr><td>Position bias</td><td>In pairwise comparison, the judge favors whichever answer is shown in a particular slot (often first), independent of content</td><td>Score BOTH orderings and require agreement, or average the two</td></tr>
+<tr><td>Verbosity bias</td><td>Longer answers score higher even when they are not more correct or more helpful</td><td>Explicitly instruct the judge to ignore length, or length-normalize / penalize in the rubric</td></tr>
+<tr><td>Self-preference bias</td><td>A model judge rates outputs from the same model family higher, independent of quality</td><td>Use a judge model from a different family/vendor than the systems being compared</td></tr>
+</table>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">Simulating verbosity bias and position bias with a deterministic toy judge</span><button class="cb-run" onclick="runToConsole(this)">&#9654; Run</button></div>
+<div class="cb-code">def toy_judge_score(text, position_bonus, self_pref_bonus=0.0):
+    """Deterministic stand-in for the surface cues studies show under-specified
+    LLM judges latch onto: raw length, which slot ('first') the answer was shown
+    in, and a small bonus if the answer 'sounds like' the judge model's own
+    style. A real judge is not scripted like this -- this is a simulation of the
+    documented FAILURE MODE, not a model of how judging should work."""
+    length_score = min(len(text.split()) / 40, 1.0)
+    return 0.6 * length_score + position_bonus + self_pref_bonus
+
+# ---- 1. verbosity bias: same position, compare a short-correct vs long-wrong answer
+concise_correct = "Paris. It became the capital after the Capetian kings centralised power there."
+verbose_wrong = ("Well, this is actually a fairly interesting question with a long history "
+                  "worth walking through carefully before answering, because many people assume "
+                  "it is Lyon due to its size, but the historically accurate answer is Marseille.")
+sc = toy_judge_score(concise_correct, position_bonus=0.0)
+sw = toy_judge_score(verbose_wrong, position_bonus=0.0)
+print("Verbosity bias (both answers shown in the same slot):")
+print(f"  concise + correct: score={sc:.3f}  ({len(concise_correct.split())} words)")
+print(f"  verbose + wrong:   score={sw:.3f}  ({len(verbose_wrong.split())} words)")
+print(f"  judge prefers: {'verbose+wrong' if sw &gt; sc else 'concise+correct'}\n")
+
+# ---- 2. position bias: two answers of EQUAL length and quality, only slot order changes
+answer_x = "Canberra is the capital of Australia, chosen in 1908 as a compromise."
+answer_y = "The capital of Australia is Canberra, picked in 1908 to settle a rivalry."
+x_first = toy_judge_score(answer_x, position_bonus=0.05)
+y_second = toy_judge_score(answer_y, position_bonus=0.0)
+print("Position bias, X shown first, Y shown second (nearly identical content/length):")
+print(f"  X (slot 1): {x_first:.3f}   Y (slot 2): {y_second:.3f}   winner: {'X' if x_first&gt;y_second else 'Y'}")
+y_first = toy_judge_score(answer_y, position_bonus=0.05)
+x_second = toy_judge_score(answer_x, position_bonus=0.0)
+print("Same two answers, order SWAPPED (Y first, X second):")
+print(f"  Y (slot 1): {y_first:.3f}   X (slot 2): {x_second:.3f}   winner: {'Y' if y_first&gt;x_second else 'X'}")
+print("\nThe winner flips purely from which slot the answer landed in.")</div>
+</div>
+<div class="out-pre">Verbosity bias (both answers shown in the same slot):
+  concise + correct: score=0.180  (12 words)
+  verbose + wrong:   score=0.540  (36 words)
+  judge prefers: verbose+wrong
+
+Position bias, X shown first, Y shown second (nearly identical content/length):
+  X (slot 1): 0.230   Y (slot 2): 0.195   winner: X
+Same two answers, order SWAPPED (Y first, X second):
+  Y (slot 1): 0.245   X (slot 2): 0.180   winner: Y
+
+The winner flips purely from which slot the answer landed in.</div>
+<p class="lesson-p"><code>toy_judge_score</code> is a deliberately scripted stand-in, not a model of a real judge &mdash; but the two failure shapes it reproduces (a longer, wrong answer beating a short, correct one; a verdict that flips purely from slot order on two near-identical answers) are exactly the failure shapes reported for real LLM judges when the judge prompt does not explicitly control for length and position. Be honest about what this buys you: swapping order and averaging, or instructing against verbosity, REDUCE these biases, they do not eliminate them, and self-preference bias in particular has no clean automatic fix beyond judge diversity. LLM-as-judge is a useful, scalable SIGNAL &mdash; treat a judge score the way you would treat any other single metric in this chapter: informative, cross-checked against a second signal (a held-out human-rated sample, a second judge family, or a task-specific automatic metric), and never the only number that decides whether a system ships.</p>
+<!-- SEC:10:end -->
+
+<!-- SEC:99:start -->
+<div class="lesson-h2">4.11 &mdash; Chapter Summary and What You Can Now Do</div>
+<p class="lesson-p">A cross-validated score answers "is this a fair test." Everything in this chapter answers the next question: "is the metric itself telling the truth." Calibration checks whether the model's confidence means anything. Imbalance-aware metrics and threshold-moving stop accuracy from hiding a model that does nothing useful. Slicing by subgroup finds the systematic failure an average erases. Controlled ablations separate a real effect from a lucky (or unlucky) data split. And once the system is an LLM or a RAG pipeline, the same discipline applies to a new set of axes: retrieval quality, faithfulness to retrieved evidence, hallucination, and the real, well-documented limits of using an LLM itself as the judge.</p>
+<div class="recap"><strong class="rc-t">What you can now do</strong><ul>
+<li>Compute a Brier score and a reliability table, and fix simple overconfidence with temperature scaling.</li>
+<li>Explain why accuracy misleads on imbalanced data, and choose PR-AUC vs ROC-AUC, resampling vs class-weighting vs threshold-moving for a given scenario.</li>
+<li>Slice any confusion matrix or metric by subgroup and recognize a systematic failure mode versus noise.</li>
+<li>Tell a controlled ablation from an uncontrolled "just try it and see," and know why repetition across seeds matters.</li>
+<li>Compute recall@k, MRR and nDCG for a retrieval result set, and know what each one does and doesn't reward.</li>
+<li>Build a faithfulness heuristic, and explain concretely where lexical-overlap proxies for hallucination succeed and fail.</li>
+<li>Name the three documented LLM-as-judge biases (position, verbosity, self-preference) and their mitigations, honestly stated as reductions, not fixes.</li>
+</ul></div>
+<p class="lesson-p">Now go to <strong>Practice</strong> for five graded exercises covering calibration, imbalance-metric choice, subgroup slicing, retrieval metrics and spotting LLM-judge bias, then build the <strong>Project</strong>: an evaluation report generator that runs calibration, slice analysis and retrieval metrics together over fixed inputs, the way a real pre-ship evaluation report would.</p>
+<!-- SEC:99:end -->
+
+  <div style="display:flex;gap:12px;margin-top:28px">
+    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
+  </div>
+</div><!-- end lesson -->
+
+<div class="practice-section" id="sec-practice">
+  <div class="practice-intro">
+    <h2>&#9999;&#65039; Practice Exercises</h2>
+    <p>5 exercises, all deterministic: calibration, imbalance-metric choice, subgroup slicing, retrieval metrics, and spotting an LLM-judge bias. Each runs on fixed data and its printed output is checked exactly. numpy/pandas/scikit-learn are available.</p>
+  </div>
+<!-- EX:start -->
+  <div class="exercise" id="ex1">
+    <div class="ex-header">
+      <div class="ex-num">1</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-easy">Easy</span>
+        <div class="ex-title">Calibrate It: Brier Score and a Reliability Split</div>
+        <div class="ex-desc">Given fixed predictions and outcomes, compute the Brier score and check whether the high-confidence bin is over- or under-confident, exactly like section 4.2.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+y_true = [1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,0,0,1,1,0]
+y_prob = [0.9,0.8,0.85,0.6,0.7,0.75,0.55,0.4,0.95,0.3,0.65,0.9,0.2,0.35,0.6,0.15,0.45,0.8,0.7,0.25]
+(already given, one probability and outcome per index)
+
+Compute:
+  brier = mean((p - y) ** 2) over all 20 points
+  high = the (p, y) pairs where p &gt;= 0.7
+  low  = the (p, y) pairs where p &lt; 0.7
+  for each bin: n = count, avg predicted = mean(p), actual freq = mean(y)
+  verdict = "overconfident" if the high bin's avg predicted &gt; its actual freq,
+            "underconfident" if less, else "well-calibrated"
+
+Print exactly:
+  f"Brier score: {brier:.4f}"
+  f"High-confidence bin (p&gt;=0.7): n={n}  avg predicted={avg_p:.3f}  actual freq={avg_y:.3f}"
+  f"Lower-confidence bin (p&lt;0.7): n={n}  avg predicted={avg_p:.3f}  actual freq={avg_y:.3f}"
+  f"High-confidence bin is {verdict}"
+(The correct answer is Brier 0.1606; high bin n=9, avg predicted=0.817, actual freq=0.667, overconfident)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex1-code" rows="16" spellcheck="false">y_true = [1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,0,0,1,1,0]
+y_prob = [0.9,0.8,0.85,0.6,0.7,0.75,0.55,0.4,0.95,0.3,0.65,0.9,0.2,0.35,0.6,0.15,0.45,0.8,0.7,0.25]
+
+# TODO: brier = sum((p - y) ** 2 for p, y in zip(y_prob, y_true)) / len(y_true)
+# TODO: high = [(p, y) for p, y in zip(y_prob, y_true) if p &gt;= 0.7]
+# TODO: low  = [(p, y) for p, y in zip(y_prob, y_true) if p &lt; 0.7]
+# TODO: for each bin compute n, avg predicted (mean p), actual freq (mean y), print the bin line
+# TODO: print the Brier score line and the high-confidence verdict line
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(1)">&#9654; Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(1)">&#128161; Hint</button>
+        <button class="ex-reset" onclick="resetEx(1)">&#8630; Reset</button>
+        <button class="ex-solution" onclick="showSolution(1)">&#128065; Solution</button>
+      </div>
+      <div class="ex-output" id="ex1-out"></div>
+      <div class="ex-result" id="ex1-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex2">
+    <div class="ex-header">
+      <div class="ex-num">2</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Pick the Right Metric for an Imbalanced Fraud Set</div>
+        <div class="ex-desc">Given a 10%-positive score set, compute ROC-AUC, PR-AUC, precision and recall, and have your code choose which metric to trust, exactly like section 4.3.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+y_true and y_score are 40 fixed labels/scores, 10% positive (already given).
+
+Compute:
+  positive_rate = sum(y_true) / len(y_true)
+  y_pred = [1 if s &gt;= 0.5 else 0 for s in y_score]
+  roc = roc_auc_score(y_true, y_score)
+  pr_auc = average_precision_score(y_true, y_score)
+  prec, rec = precision_score(...), recall_score(...)   (at threshold 0.5)
+
+Print exactly:
+  f"Positive rate: {positive_rate:.1%}"
+  f"ROC-AUC: {roc:.3f}"
+  f"PR-AUC: {pr_auc:.3f}"
+  f"Precision at 0.5: {prec:.3f}  Recall at 0.5: {rec:.3f}"
+Then: if positive_rate &lt; 0.2, print
+  "Recommendation: trust PR-AUC over ROC-AUC here -- with this few positives, "
+  "ROC-AUC's false-positive-rate axis stays small even when precision collapses, "
+  "so PR-AUC (and recall at your working threshold) is the honest signal"
+else print "Recommendation: classes are close enough to balanced that ROC-AUC is fine here"
+(The correct answer is positive rate 10.0%, ROC-AUC 0.931, PR-AUC 0.469, precision 0.571, recall 1.000, and the PR-AUC recommendation)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex2-code" rows="20" spellcheck="false">from sklearn.metrics import roc_auc_score, average_precision_score, precision_score, recall_score
+
+y_true = [0,0,0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0,1,0,
+          0,0,0,0,0,0,0,1,0,0, 0,0,0,0,0,0,1,0,0,0]
+y_score = [0.05,0.1,0.2,0.05,0.3,0.15,0.1,0.05,0.55,0.6,
+           0.1,0.05,0.15,0.2,0.1,0.05,0.1,0.65,0.55,0.4,
+           0.05,0.1,0.15,0.05,0.2,0.1,0.05,0.5,0.15,0.1,
+           0.05,0.1,0.6,0.05,0.15,0.1,0.5,0.2,0.05,0.1]
+
+# TODO: positive_rate, y_pred, roc, pr_auc, prec, rec
+# TODO: print the four required lines
+# TODO: print the correct recommendation line based on positive_rate
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(2)">&#9654; Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(2)">&#128161; Hint</button>
+        <button class="ex-reset" onclick="resetEx(2)">&#8630; Reset</button>
+        <button class="ex-solution" onclick="showSolution(2)">&#128065; Solution</button>
+      </div>
+      <div class="ex-output" id="ex2-out"></div>
+      <div class="ex-result" id="ex2-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex3">
+    <div class="ex-header">
+      <div class="ex-num">3</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Slice It: Find the Subgroup Failure</div>
+        <div class="ex-desc">Given fixed predictions and a subgroup label, compute overall and per-group accuracy and name the systematic failure, exactly like section 4.4.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+y_true = [1,0,1,1,0,1,0,0,1,0, 1,0,1,1,0,1,0,1,0,1]
+y_pred = [1,0,1,1,0,1,0,0,1,0, 0,0,0,1,1,0,0,1,1,0]
+group  = ["A","A","A","A","A","A","A","A","A","A",
+          "B","B","B","B","B","B","B","B","B","B"]
+(already given)
+
+Compute overall accuracy, then per-group accuracy for "A" and "B" (n=10 each).
+Find worse = the group with the LOWER accuracy, better = the other one,
+gap = better's accuracy - worse's accuracy.
+
+Print exactly:
+  f"Overall accuracy: {overall_acc:.2f}"
+  f"Group A: n={n}  accuracy={acc:.2f}"
+  f"Group B: n={n}  accuracy={acc:.2f}"
+  f"Systematic failure mode: group {worse} is {gap:.2f} worse than group {better}"
+(The correct answer is overall 0.70, group A 1.00, group B 0.40, "group B is 0.60 worse than group A")</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex3-code" rows="18" spellcheck="false">y_true = [1,0,1,1,0,1,0,0,1,0, 1,0,1,1,0,1,0,1,0,1]
+y_pred = [1,0,1,1,0,1,0,0,1,0, 0,0,0,1,1,0,0,1,1,0]
+group  = ["A","A","A","A","A","A","A","A","A","A",
+          "B","B","B","B","B","B","B","B","B","B"]
+
+def accuracy(true, pred):
+    # TODO: fraction of positions where true == pred
+    pass
+
+# TODO: overall_acc = accuracy(y_true, y_pred); print it
+# TODO: for g in ["A", "B"]: slice by group, compute accuracy, print the group line
+# TODO: find worse/better group and print the systematic-failure-mode line
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(3)">&#9654; Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(3)">&#128161; Hint</button>
+        <button class="ex-reset" onclick="resetEx(3)">&#8630; Reset</button>
+        <button class="ex-solution" onclick="showSolution(3)">&#128065; Solution</button>
+      </div>
+      <div class="ex-output" id="ex3-out"></div>
+      <div class="ex-result" id="ex3-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex4">
+    <div class="ex-header">
+      <div class="ex-num">4</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-medium">Medium</span>
+        <div class="ex-title">Retrieval Scorecard: recall@k and MRR</div>
+        <div class="ex-desc">Given three fixed ranked result sets with relevance judgments, compute recall@k and MRR per query and their means, exactly like section 4.7.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+queries = [
+    {"ranked": ["d4", "d1", "d2", "d5"], "relevant": {"d2", "d5"}},
+    {"ranked": ["d3", "d6", "d1", "d4"], "relevant": {"d3"}},
+    {"ranked": ["d7", "d8", "d1", "d2"], "relevant": {"d1", "d9"}},
+]
+K = 2
+(already given)
+
+Write recall_at_k(ranked, relevant, k) = |top-k &cap; relevant| / |relevant|,
+and reciprocal_rank(ranked, relevant) = 1/rank of the FIRST relevant doc (0.0 if none).
+
+Print exactly, for i, q in enumerate(queries):
+  f"query {i}: recall@{K}={r:.2f}  RR={rr:.2f}"
+Then:
+  f"Mean recall@{K}: {mean_recall:.3f}"
+  f"MRR: {mean_rr:.3f}"
+(The correct answer is query 0: recall@2=0.00 RR=0.33, query 1: recall@2=1.00 RR=1.00,
+query 2: recall@2=0.00 RR=0.33, mean recall@2=0.333, MRR=0.556)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex4-code" rows="20" spellcheck="false">queries = [
+    {"ranked": ["d4", "d1", "d2", "d5"], "relevant": {"d2", "d5"}},
+    {"ranked": ["d3", "d6", "d1", "d4"], "relevant": {"d3"}},
+    {"ranked": ["d7", "d8", "d1", "d2"], "relevant": {"d1", "d9"}},
+]
+K = 2
+
+def recall_at_k(ranked, relevant, k):
+    # TODO
+    pass
+
+def reciprocal_rank(ranked, relevant):
+    # TODO
+    pass
+
+# TODO: loop over queries with enumerate, print the per-query line, collect recalls/rrs
+# TODO: print the mean recall@K line and the MRR line
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(4)">&#9654; Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(4)">&#128161; Hint</button>
+        <button class="ex-reset" onclick="resetEx(4)">&#8630; Reset</button>
+        <button class="ex-solution" onclick="showSolution(4)">&#128065; Solution</button>
+      </div>
+      <div class="ex-output" id="ex4-out"></div>
+      <div class="ex-result" id="ex4-result"></div>
+    </div>
+  </div>
+
+  <div class="exercise" id="ex5">
+    <div class="ex-header">
+      <div class="ex-num">5</div>
+      <div class="ex-meta">
+        <span class="ex-diff diff-hard">Hard</span>
+        <div class="ex-title">Spot the Bias: Same Two Answers, Order Swapped</div>
+        <div class="ex-desc">Given two judge runs on the same pair of answers with only the slot order swapped, detect the bias and print a diagnosis, exactly like section 4.10.</div>
+      </div>
+    </div>
+    <div class="ex-task">Task:
+run1 = {"first": {"name": "X", "words": 12, "score": 0.230},
+        "second": {"name": "Y", "words": 13, "score": 0.195}}
+run2 = {"first": {"name": "Y", "words": 13, "score": 0.245},
+        "second": {"name": "X", "words": 12, "score": 0.180}}
+(already given -- same two answers, only which slot they were shown in changed)
+
+winner(run) = the name in whichever of "first"/"second" has the higher score.
+order_flips_winner = winner(run1) != winner(run2)
+first_slot_always_wins = winner(run1) == run1["first"]["name"] AND winner(run2) == run2["first"]["name"]
+
+Print exactly:
+  f"Run 1 winner: {w1}"
+  f"Run 2 winner: {w2}"
+  f"Winner changes when order is swapped: {order_flips_winner}"
+  f"Whichever answer is in the FIRST slot wins both times: {first_slot_always_wins}"
+Then, if order_flips_winner and first_slot_always_wins:
+  print("Diagnosis: position bias -- the judge is rewarding the first slot, not the better answer")
+else:
+  print("Diagnosis: no clear position bias detected in this run")
+(The correct answer is Run 1 winner X, Run 2 winner Y, both flags True, and the position-bias diagnosis)</div>
+    <div class="ex-editor-wrap">
+      <textarea class="ex-editor" id="ex5-code" rows="20" spellcheck="false">run1 = {"first": {"name": "X", "words": 12, "score": 0.230},
+        "second": {"name": "Y", "words": 13, "score": 0.195}}
+run2 = {"first": {"name": "Y", "words": 13, "score": 0.245},
+        "second": {"name": "X", "words": 12, "score": 0.180}}
+
+def winner(run):
+    # TODO: return the name of whichever of "first"/"second" has the higher score
+    pass
+
+# TODO: w1, w2 = winner(run1), winner(run2); print the two winner lines
+# TODO: order_flips_winner, first_slot_always_wins; print the two flag lines
+# TODO: print the diagnosis line based on both flags
+</textarea>
+      <div class="ex-btn-row">
+        <button class="ex-run" onclick="runExercise(5)">&#9654; Run &amp; Check</button>
+        <button class="ex-hint" onclick="showExHint(5)">&#128161; Hint</button>
+        <button class="ex-reset" onclick="resetEx(5)">&#8630; Reset</button>
+        <button class="ex-solution" onclick="showSolution(5)">&#128065; Solution</button>
+      </div>
+      <div class="ex-output" id="ex5-out"></div>
+      <div class="ex-result" id="ex5-result"></div>
+    </div>
+  </div>
+<!-- EX:end -->
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('project')">&#127959;&#65039; Go to Project &#8594;</button>
+  </div>
+</div><!-- end practice -->
+
+<div class="project-section" id="sec-project">
+  <div class="project-banner">
+    <h2>&#127959;&#65039; Project: <span>Evaluation Report Generator</span></h2>
+    <p>Build one function that runs three of this chapter's checks together over fixed inputs and prints them as a single report -- calibration (Brier score), a subgroup slice analysis, and retrieval metrics (recall@k, MRR) -- the way a real pre-ship evaluation report bundles several checks instead of reporting one lonely accuracy number.</p>
+    <div class="project-tags">
+      <span class="ptag">Brier score</span>
+      <span class="ptag">subgroup slicing</span>
+      <span class="ptag">recall@k / MRR</span>
+    </div>
+  </div>
+
+  <div class="project-spec">
+    <h3>&#128203; What to Build</h3>
+    <ul class="spec-list">
+      <li>A <code>brier_score(probs, trues)</code> function and a printed "=== CALIBRATION ===" section with the Brier score</li>
+      <li>A <code>slice_report(trues, preds, groups)</code> function and a printed "=== SLICE ANALYSIS ===" section with overall accuracy, each group's accuracy, and the worst-performing group</li>
+      <li><code>recall_at_k</code> and <code>reciprocal_rank</code> functions and a printed "=== RETRIEVAL ===" section with mean recall@K and MRR</li>
+      <li>One <code>evaluation_report()</code> function that calls all three sections in order</li>
+    </ul>
+  </div>
+
+  <div class="project-editor">
+    <div class="pe-header">
+      <div class="pe-title">&#127959;&#65039; Evaluation Report Generator &mdash; Your Solution</div>
+      <button class="pe-run" onclick="runProject()">&#9654; Run Project</button>
+    </div>
+    <textarea id="project-editor"># ==============================================
+# Project: Evaluation Report Generator
+# Use ONLY chapter 4 concepts (calibration, slicing, retrieval metrics)
+# ==============================================
+y_true = [1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,0,0,1,1,0]
+y_prob = [0.9,0.8,0.85,0.6,0.7,0.75,0.55,0.4,0.95,0.3,0.65,0.9,0.2,0.35,0.6,0.15,0.45,0.8,0.7,0.25]
+
+slice_true  = [1,0,1,1,0,1,0,0,1,0, 1,0,1,1,0,1,0,1,0,1]
+slice_pred  = [1,0,1,1,0,1,0,0,1,0, 0,0,0,1,1,0,0,1,1,0]
+slice_group = ["A","A","A","A","A","A","A","A","A","A",
+               "B","B","B","B","B","B","B","B","B","B"]
+
+retrieval_queries = [
+    {"ranked": ["d4", "d1", "d2", "d5"], "relevant": {"d2", "d5"}},
+    {"ranked": ["d3", "d6", "d1", "d4"], "relevant": {"d3"}},
+    {"ranked": ["d7", "d8", "d1", "d2"], "relevant": {"d1", "d9"}},
+]
+K = 2
+
+# === TODO 1: def brier_score(probs, trues): mean((p - y) ** 2) ===
+
+# === TODO 2: def slice_report(trues, preds, groups): return {group: accuracy} ===
+
+# === TODO 3: def recall_at_k(ranked, relevant, k) and def reciprocal_rank(ranked, relevant) ===
+
+# === TODO 4: def evaluation_report(): print all three sections, then call it ===
+#   "=== CALIBRATION ===" then "Brier score: {b:.4f}"
+#   "=== SLICE ANALYSIS ===" then overall accuracy, each group's accuracy, worst slice
+#   "=== RETRIEVAL ===" then mean recall@K and MRR
+</textarea>
+    <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
+    <div class="pe-result" id="project-result"></div>
+  </div>
+
+  <div class="checklist">
+    <h3>&#9989; Project Checklist &mdash; did your output include?</h3>
+    <div class="check-item"><span class="check-icon">&#128202;</span>Brier score: 0.1606</div>
+    <div class="check-item"><span class="check-icon">&#129517;</span>Overall accuracy: 0.70, Group A accuracy: 1.00, Group B accuracy: 0.40</div>
+    <div class="check-item"><span class="check-icon">&#128269;</span>Worst-performing slice: group B</div>
+    <div class="check-item"><span class="check-icon">&#127919;</span>Mean recall@2: 0.333 and MRR: 0.556</div>
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:8px">
+    <button class="next-btn" onclick="showSection('quiz')">&#129514; Go to Quiz &#8594;</button>
+  </div>
+</div><!-- end project -->
+
+<div class="quiz-section" id="sec-quiz">
+  <div class="quiz-banner">
+    <h2>&#129514; Evaluation Beyond Accuracy Quiz</h2>
+    <p>5 judgement questions. You need 4/5 (80%) to pass. Retake as often as you like.</p>
+    <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
+  </div>
+<!-- QZ:start -->
+  <div class="quiz-card">
+    <div class="q-num">Question 1 of 5</div>
+    <div class="q-text">A weather model says "90% chance of rain" on 100 different days, and it actually rained on 60 of them. What does this tell you, and what fixes it without retraining the model from scratch?</div>
+    <div class="q-options" id="q1-opts">
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> The model is fine because 90% is just a description of uncertainty, not a prediction to be checked</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The model is overconfident on high-probability days; temperature scaling (dividing the logit by a fitted constant before the sigmoid) can often fix this without changing which day is ranked "more likely to rain" than another</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> The model must be retrained on more data before anything else can be done</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> Compute accuracy instead of tracking this, since accuracy is the only metric that matters</button>
+    </div>
+    <div class="q-why" id="q1-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> 90% predicted against a 60% actual rate is exactly the overconfidence pattern from 4.2's reliability table. Temperature scaling rescales the logits by one fitted constant, which reshapes the probabilities without reordering examples -- accuracy and ranking-based metrics are untouched.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 2 of 5</div>
+    <div class="q-text">A churn model on a 3%-churn customer base gets 97% accuracy by predicting "stays" for every customer. A colleague says "ship it, 97% is great." What is the correct response, citing this chapter?</div>
+    <div class="q-options" id="q2-opts">
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Agree -- 97% accuracy on any dataset is a strong result</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Point out this is the majority-class trap from 4.3: recall on the minority (churn) class is 0%, and PR-AUC -- not accuracy, and not ROC-AUC alone -- is the metric to check next</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Suggest they switch to R2 score instead</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Suggest they collect a bigger test set until the accuracy improves</button>
+    </div>
+    <div class="q-why" id="q2-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> A model that predicts the majority class every time gets exactly this shape of "good" accuracy and exactly 0% minority recall, the same as the always-predict-majority baseline in 4.3. PR-AUC is the metric least fooled by this imbalance because its axis is precision, which the imbalance directly punishes.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 3 of 5</div>
+    <div class="q-text">Model X gets 88% overall accuracy. Sliced by device type, mobile is at 90% and desktop is at 55%, with n=800 on both slices. What should happen next, per 4.4?</div>
+    <div class="q-options" id="q3-opts">
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Ignore the split since the overall number already passed review</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Investigate desktop specifically -- the sample size is large enough to trust the gap, and this is exactly the kind of failure an overall average hides</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Report only the mobile number in the model card, since it is the stronger one</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Conclude the model is broken and cannot be shipped in any form</button>
+    </div>
+    <div class="q-why" id="q3-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> n=800 per slice is plenty to trust the gap (contrast with the n=12 warning in 4.4). An 88% overall number erasing a 35-point subgroup gap is the textbook case for error analysis: find the specific cause for desktop before deciding whether or how to ship.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 4 of 5</div>
+    <div class="q-text">Team A reports "we changed the learning rate and validation accuracy went up 4 points" -- but they also switched to a new random seed at the same time. What is the issue, per 4.5?</div>
+    <div class="q-options" id="q4-opts">
+      <button class="q-opt" onclick="selectOpt(4,'A')"><span class="q-opt-letter">A</span> None -- a 4-point gain is a 4-point gain regardless of what else changed</button>
+      <button class="q-opt" onclick="selectOpt(4,'B')"><span class="q-opt-letter">B</span> This is confounded: the seed change and the learning-rate change happened together, so the 4-point gain cannot be attributed to the learning rate alone without a matched, controlled comparison across several seeds</button>
+      <button class="q-opt" onclick="selectOpt(4,'C')"><span class="q-opt-letter">C</span> The issue is that they did not use a bigger validation set</button>
+      <button class="q-opt" onclick="selectOpt(4,'D')"><span class="q-opt-letter">D</span> The issue is that learning rate should never be tuned at all</button>
+    </div>
+    <div class="q-why" id="q4-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This is precisely the uncontrolled comparison in 4.5's runnable example, where changing the split AND the hyperparameter together produced a misleading -5-point "effect" that vanished (to +0.001 mean, std 0.0035) once the seed was held fixed and the comparison repeated across 8 matched trials.</div>
+  </div>
+
+  <div class="quiz-card">
+    <div class="q-num">Question 5 of 5</div>
+    <div class="q-text">In a pairwise LLM-judge eval, Answer A wins whenever it is placed first, and Answer B wins whenever B is placed first -- same two answers, tested twice, across most query pairs. Per 4.10, what should you conclude and do?</div>
+    <div class="q-options" id="q5-opts">
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> The judge is fine -- pairwise comparisons are supposed to change with context</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> This is position bias; score both orderings and require agreement (or average the two), and treat any single-ordering pairwise verdict on its own as unreliable</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Nothing can be done about this, so LLM-as-judge should never be used for anything</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Switch to a pointwise 1-10 rubric, which is immune to this problem by construction</button>
+    </div>
+    <div class="q-why" id="q5-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This is exactly the position-bias simulation in 4.10, where the winner flipped purely from slot order. Scoring both orderings and requiring agreement is the standard mitigation; pointwise rubrics reduce this specific bias but are not immune to it, and verbosity/self-preference bias remain separate, real risks either way.</div>
+  </div>
+<!-- QZ:end -->
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz</button>
+  <div class="quiz-result-banner" id="quiz-result"></div>
+
+  <div class="next-chapter-card" id="next-chapter-card" style="display:none">
+    <div class="ncc-icon">&#128202;</div>
+    <div class="ncc-info">
+      <h3>Next: ADV 5 &mdash; Data Engineering for ML Engineers</h3>
+      <p>You can now grade a model past accuracy and grade a RAG/LLM system on retrieval, faithfulness and judge reliability. Next: the SQL, Parquet and pipeline patterns that feed clean, point-in-time-correct features to everything you just learned to evaluate.</p>
+    </div>
+    <a class="ncc-btn" href="adv05-data-engineering-for-ml.html">ADV 5: Data Engineering &#8594;</a>
+  </div>
+</div><!-- end quiz -->
+
+</div><!-- main-content -->
+</div><!-- content -->
+
+<div id="console-dock">
+  <div class="cd-header">
+    <div class="cd-title cd-loading" id="cd-title"><div class="cd-dot"></div>Python Console</div>
+    <div class="cd-status" id="cd-status">Loading Python (Pyodide)...</div>
+  </div>
+  <div class="cd-out" id="cd-out"></div>
+  <div class="cd-input-row">
+    <div class="cd-prompt">>>></div>
+    <textarea id="cd-input" placeholder="Type Python here, Ctrl+Enter to run" rows="2"
+      onkeydown="if(event.ctrlKey&&event.key==='Enter'){event.preventDefault();runConsole()}"></textarea>
+    <button class="cd-clear" onclick="clearConsole()">Clear</button>
+    <button class="cd-run" onclick="runConsole()">Run ▶</button>
+  </div>
+</div>
+
+</div><!-- shell -->
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+
+<script>
+let pyReady = false;
+let pyodide = null;
+let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
+let quizDone = false;
+
+function pyodideFailed(){
+  document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
+  document.getElementById('cd-title').className='cd-title cd-err';
+  document.getElementById('py-chip').innerHTML='🔴 <span>Python offline</span>';
+}
+async function initPyodide(){
+  try{
+    if(typeof loadPyodide==='undefined'){pyodideFailed();return;}
+    pyodide = await loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/' });
+    pyReady = true;
+    document.getElementById('cd-status').textContent='Python 3.11 ready ✓';
+    document.getElementById('cd-title').className='cd-title';
+    document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
+    clog('# Python ready — Ctrl+Enter to run code','info');
+    clog('# Everything here is pure Python (stdlib only) and fully deterministic','info');
+  }catch(e){
+    console.error(e);
+    pyodideFailed();
+  }
+}
+initPyodide();
+
+function cleanPyError(msg){
+  const lines=msg.trim().split('\n').filter(l=>l.trim());
+  for(let i=lines.length-1;i>=0;i--){
+    if(/[A-Za-z]+Error:|Exception:/.test(lines[i])) return lines[i].trim();
+  }
+  return lines[lines.length-1]||'Error';
+}
+async function runPy(code){
+  if(!pyReady)return{ok:false,out:'',err:'Python not loaded — check your internet connection'};
+  let out='';
+  pyodide.setStdout({ batched:(s)=>{ out+=s+'\n'; } });
+  pyodide.setStderr({ batched:(s)=>{ out+=s+'\n'; } });
+  try{
+    await pyodide.loadPackagesFromImports(code);
+    await pyodide.runPythonAsync(code);
+    return{ok:true,out};
+  }catch(e){
+    return{ok:false,out,err:cleanPyError(e.message||e.toString())};
+  }finally{
+    pyodide.setStdout({});
+    pyodide.setStderr({});
+  }
+}
+
+function clog(text,type='out'){
+  const el=document.getElementById('cd-out');
+  const d=document.createElement('div');
+  d.className='cl '+type;
+  d.textContent=text;
+  el.appendChild(d);
+  el.scrollTop=el.scrollHeight;
+}
+window.clearConsole=()=>{
+  document.getElementById('cd-out').innerHTML='';
+  clog('# Cleared','info');
+};
+window.runConsole=async()=>{
+  const code=document.getElementById('cd-input').value.trim();
+  if(!code)return;
+  if(!pyReady){clog('Python not loaded yet','info');return;}
+  clog('>>> '+code.split('\n')[0]+(code.includes('\n')?' [...]':''),'info');
+  const{ok,out,err}=await runPy(code);
+  if(out)out.split('\n').forEach(l=>{if(l!==undefined&&l!=='')clog(l,ok?'out':'err');});
+  if(!ok&&err)err.split('\n').forEach(l=>{if(l.trim())clog(l,'err');});
+};
+window.runToConsole=function(btn){
+  const code=btn.closest('.code-block').querySelector('.cb-code').textContent;
+  document.getElementById('cd-input').value=code;
+  runConsole();
+};
+
+function showSection(name){
+  ['lesson','practice','project','quiz'].forEach(s=>{
+    document.getElementById('sec-'+s).classList.toggle('show',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
+  });
+  window.scrollTo(0,0);
+  document.getElementById('main-content').scrollTop=0;
+}
+window.showSection=showSection;
+
+const EXERCISES = {
+  1:{
+    checks:["brier score: 0.1606","n=9","avg predicted=0.817","actual freq=0.667","n=11","avg predicted=0.409","actual freq=0.364","high-confidence bin is overconfident"],
+    hint:"brier = sum((p - y) ** 2 for p, y in zip(y_prob, y_true)) / len(y_true). high/low are list comprehensions filtering on p >= 0.7. avg predicted = mean of the p's in the bin, actual freq = mean of the y's. verdict compares avg predicted to actual freq for the high bin.",
+    solution:`y_true = [1,0,1,1,0,0,1,0,1,0,1,1,0,0,1,0,0,1,1,0]
+y_prob = [0.9,0.8,0.85,0.6,0.7,0.75,0.55,0.4,0.95,0.3,0.65,0.9,0.2,0.35,0.6,0.15,0.45,0.8,0.7,0.25]
+
+brier = sum((p - y) ** 2 for p, y in zip(y_prob, y_true)) / len(y_true)
+
+high = [(p, y) for p, y in zip(y_prob, y_true) if p >= 0.7]
+low = [(p, y) for p, y in zip(y_prob, y_true) if p < 0.7]
+
+def bin_report(name, pairs):
+    n = len(pairs)
+    avg_p = sum(p for p, y in pairs) / n
+    avg_y = sum(y for p, y in pairs) / n
+    print(f"{name}: n={n}  avg predicted={avg_p:.3f}  actual freq={avg_y:.3f}")
+    return avg_p, avg_y
+
+print(f"Brier score: {brier:.4f}")
+ap_high, ay_high = bin_report("High-confidence bin (p>=0.7)", high)
+ap_low, ay_low = bin_report("Lower-confidence bin (p<0.7)", low)
+
+verdict = "overconfident" if ap_high > ay_high else "underconfident" if ap_high < ay_high else "well-calibrated"
+print(f"High-confidence bin is {verdict}")`
+  },
+  2:{
+    checks:["positive rate: 10.0%","roc-auc: 0.931","pr-auc: 0.469","precision at 0.5: 0.571","recall at 0.5: 1.000","trust pr-auc over roc-auc"],
+    hint:"positive_rate = sum(y_true) / len(y_true). y_pred = [1 if s >= 0.5 else 0 for s in y_score]. Use sklearn.metrics.roc_auc_score(y_true, y_score), average_precision_score(y_true, y_score), precision_score(y_true, y_pred), recall_score(y_true, y_pred). Then branch on positive_rate < 0.2.",
+    solution:`from sklearn.metrics import roc_auc_score, average_precision_score, precision_score, recall_score
+
+y_true = [0,0,0,0,0,0,0,0,0,1, 0,0,0,0,0,0,0,0,1,0,
+          0,0,0,0,0,0,0,1,0,0, 0,0,0,0,0,0,1,0,0,0]
+y_score = [0.05,0.1,0.2,0.05,0.3,0.15,0.1,0.05,0.55,0.6,
+           0.1,0.05,0.15,0.2,0.1,0.05,0.1,0.65,0.55,0.4,
+           0.05,0.1,0.15,0.05,0.2,0.1,0.05,0.5,0.15,0.1,
+           0.05,0.1,0.6,0.05,0.15,0.1,0.5,0.2,0.05,0.1]
+y_pred = [1 if s >= 0.5 else 0 for s in y_score]
+
+positive_rate = sum(y_true) / len(y_true)
+roc = roc_auc_score(y_true, y_score)
+pr_auc = average_precision_score(y_true, y_score)
+prec = precision_score(y_true, y_pred, zero_division=0)
+rec = recall_score(y_true, y_pred, zero_division=0)
+
+print(f"Positive rate: {positive_rate:.1%}")
+print(f"ROC-AUC: {roc:.3f}")
+print(f"PR-AUC: {pr_auc:.3f}")
+print(f"Precision at 0.5: {prec:.3f}  Recall at 0.5: {rec:.3f}")
+
+if positive_rate < 0.2:
+    print("Recommendation: trust PR-AUC over ROC-AUC here -- with this few positives, "
+          "ROC-AUC's false-positive-rate axis stays small even when precision collapses, "
+          "so PR-AUC (and recall at your working threshold) is the honest signal")
+else:
+    print("Recommendation: classes are close enough to balanced that ROC-AUC is fine here")`
+  },
+  3:{
+    checks:["overall accuracy: 0.70","group a: n=10  accuracy=1.00","group b: n=10  accuracy=0.40","systematic failure mode: group b is 0.60 worse than group a"],
+    hint:"accuracy(true, pred) = sum(t == p for t, p in zip(true, pred)) / len(true). Slice with idx = [i for i, gg in enumerate(group) if gg == g]. worse = min(results, key=results.get), better = max(results, key=results.get).",
+    solution:`y_true = [1,0,1,1,0,1,0,0,1,0, 1,0,1,1,0,1,0,1,0,1]
+y_pred = [1,0,1,1,0,1,0,0,1,0, 0,0,0,1,1,0,0,1,1,0]
+group  = ["A","A","A","A","A","A","A","A","A","A",
+          "B","B","B","B","B","B","B","B","B","B"]
+
+def accuracy(true, pred):
+    return sum(t == p for t, p in zip(true, pred)) / len(true)
+
+overall_acc = accuracy(y_true, y_pred)
+print(f"Overall accuracy: {overall_acc:.2f}")
+
+results = {}
+for g in ["A", "B"]:
+    idx = [i for i, gg in enumerate(group) if gg == g]
+    t = [y_true[i] for i in idx]
+    p = [y_pred[i] for i in idx]
+    acc = accuracy(t, p)
+    results[g] = acc
+    print(f"Group {g}: n={len(idx)}  accuracy={acc:.2f}")
+
+worse = min(results, key=results.get)
+better = max(results, key=results.get)
+gap = results[better] - results[worse]
+print(f"Systematic failure mode: group {worse} is {gap:.2f} worse than group {better}")`
+  },
+  4:{
+    checks:["query 0: recall@2=0.00  rr=0.33","query 1: recall@2=1.00  rr=1.00","query 2: recall@2=0.00  rr=0.33","mean recall@2: 0.333","mrr: 0.556"],
+    hint:"recall_at_k: hit = set(ranked[:k]) & relevant; return len(hit) / len(relevant). reciprocal_rank: loop enumerate(ranked, start=1), return 1.0/i on the first match, else 0.0.",
+    solution:`queries = [
+    {"ranked": ["d4", "d1", "d2", "d5"], "relevant": {"d2", "d5"}},
+    {"ranked": ["d3", "d6", "d1", "d4"], "relevant": {"d3"}},
+    {"ranked": ["d7", "d8", "d1", "d2"], "relevant": {"d1", "d9"}},
+]
+K = 2
+
+def recall_at_k(ranked, relevant, k):
+    hit = set(ranked[:k]) & relevant
+    return len(hit) / len(relevant)
+
+def reciprocal_rank(ranked, relevant):
+    for i, d in enumerate(ranked, start=1):
+        if d in relevant:
+            return 1.0 / i
+    return 0.0
+
+recalls, rrs = [], []
+for i, q in enumerate(queries):
+    r = recall_at_k(q["ranked"], q["relevant"], K)
+    rr = reciprocal_rank(q["ranked"], q["relevant"])
+    recalls.append(r); rrs.append(rr)
+    print(f"query {i}: recall@{K}={r:.2f}  RR={rr:.2f}")
+
+print(f"Mean recall@{K}: {sum(recalls)/len(recalls):.3f}")
+print(f"MRR: {sum(rrs)/len(rrs):.3f}")`
+  },
+  5:{
+    checks:["run 1 winner: x","run 2 winner: y","winner changes when order is swapped: true","whichever answer is in the first slot wins both times: true","diagnosis: position bias"],
+    hint:"winner(run) compares run['first']['score'] to run['second']['score'] and returns the higher one's name. order_flips_winner = w1 != w2. first_slot_always_wins checks w1 == run1['first']['name'] and w2 == run2['first']['name'].",
+    solution:`# Same two answers (X and Y), same judge, ONLY the slot order changed between the two runs.
+run1 = {"first": {"name": "X", "words": 12, "score": 0.230},
+        "second": {"name": "Y", "words": 13, "score": 0.195}}
+run2 = {"first": {"name": "Y", "words": 13, "score": 0.245},
+        "second": {"name": "X", "words": 12, "score": 0.180}}
+
+def winner(run):
+    return run["first"]["name"] if run["first"]["score"] > run["second"]["score"] else run["second"]["name"]
+
+w1 = winner(run1)
+w2 = winner(run2)
+print(f"Run 1 winner: {w1}")
+print(f"Run 2 winner: {w2}")
+
+order_flips_winner = (w1 != w2)
+first_slot_always_wins = (w1 == run1["first"]["name"]) and (w2 == run2["first"]["name"])
+words_x = run1["first"]["words"] if run1["first"]["name"] == "X" else run1["second"]["words"]
+words_y = run1["first"]["words"] if run1["first"]["name"] == "Y" else run1["second"]["words"]
+longer_always_wins = (w1 == ("X" if words_x > words_y else "Y")) and (w2 == ("X" if words_x > words_y else "Y"))
+
+print(f"Winner changes when order is swapped: {order_flips_winner}")
+print(f"Whichever answer is in the FIRST slot wins both times: {first_slot_always_wins}")
+print(f"Word counts are nearly equal (X={words_x}, Y={words_y}), so length is not the driver")
+
+if order_flips_winner and first_slot_always_wins:
+    print("Diagnosis: position bias -- the judge is rewarding the first slot, not the better answer")
+else:
+    print("Diagnosis: no clear position bias detected in this run")`
+  }
+};
+
+window.runExercise=async function(n){
+  const code=document.getElementById(`ex${n}-code`).value.trim();
+  if(!code||!pyReady)return;
+  const outEl=document.getElementById(`ex${n}-out`);
+  const resEl=document.getElementById(`ex${n}-result`);
+  outEl.textContent='Running...';outEl.className='ex-output show';
+  resEl.className='ex-result';resEl.style.display='none';
+  const{ok,out,err}=await runPy(code);
+  const full=(out||'')+((!ok&&err)?'\n'+err:'');
+  outEl.textContent=full||(ok?'(no output)':'Error');
+  outEl.className='ex-output show '+(ok?'ok':'err');
+  const ex=EXERCISES[n];
+  let passed=ok;
+  if(passed&&ex.checks){
+    passed=ex.checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
+  }
+  resEl.style.display='flex';
+  resEl.className='ex-result show '+(passed?'pass':'fail');
+  if(passed){
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
+  }else{
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+  }
+};
+window.showExHint=function(n){ alert('💡 Hint:\n\n'+EXERCISES[n].hint); };
+window.showSolution=function(n){
+  if(confirm('Show the solution? Try harder first! 😊')){
+    document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
+  }
+};
+window.resetEx=function(n){
+  document.getElementById(`ex${n}-out`).className='ex-output';
+  document.getElementById(`ex${n}-result`).className='ex-result';
+};
+
+window.runProject=async function(){
+  const code=document.getElementById('project-editor').value;
+  const out=document.getElementById('project-output');
+  const res=document.getElementById('project-result');
+  out.textContent='Running...';out.className='pe-output';
+  res.style.display='none';
+  const{ok,out:o,err}=await runPy(code);
+  const full=(o||'')+((!ok&&err)?'\n'+err:'');
+  out.textContent=full||(ok?'(no output — add print() statements)':'Error');
+  out.className='pe-output'+(full?' has-output':'');
+
+  const checks=['brier score: 0.1606','overall accuracy: 0.70','group a accuracy: 1.00','group b accuracy: 0.40','worst-performing slice: group b','mean recall@2: 0.333','mrr: 0.556'];
+  const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
+  res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
+  if(passed){
+    res.textContent='✅ Project complete! All required sections present.';
+    spark();
+  }else if(!ok){
+    res.textContent='❌ Python error — fix it and run again';
+  }else{
+    res.textContent='❌ Missing some required values — check the checklist above';
+  }
+};
+
+/* ---------- quiz ---------- */
+const CORRECT={1:'B',2:'B',3:'B',4:'B',5:'B'};
+window.selectOpt=function(q,opt){
+  if(quizDone)return;
+  quizAnswers[q]=opt;
+  document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+    b.classList.toggle('selected',String.fromCharCode(65+i)===opt);
+  });
+};
+function revealNextChapter(){ document.getElementById('next-chapter-card').style.display='flex'; }
+window.submitQuiz=function(){
+  if(quizDone)return;
+  let score=0;
+  [1,2,3,4,5].forEach(q=>{
+    const correct=CORRECT[q], given=quizAnswers[q];
+    if(given===correct)score++;
+    document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
+      const letter=String.fromCharCode(65+i);
+      if(letter===correct)b.classList.add('correct');
+      else if(letter===given&&given!==correct)b.classList.add('wrong');
+    });
+    const ex=document.getElementById(`q${q}-why`); if(ex) ex.style.display='block';
+  });
+  const passed=score>=4;
+  const banner=document.getElementById('quiz-result');
+  banner.className='quiz-result-banner show '+(passed?'pass':'fail');
+  document.getElementById('quiz-score-display').style.display='flex';
+  document.getElementById('quiz-score').textContent=score;
+  if(passed){
+    quizDone=true;
+    banner.innerHTML=`<div class="qrb-title">🎉 Passed! ${score}/5 correct</div><div class="qrb-sub">You can now check calibration, pick the right metric under imbalance, slice for systematic failures, design a controlled ablation, and grade a RAG/LLM system on retrieval, faithfulness and judge reliability. On to data engineering next.</div>`;
+    spark();
+    revealNextChapter();
+  }else{
+    banner.innerHTML=`<div class="qrb-title">📚 ${score}/5 — need 4 to pass</div><div class="qrb-sub">Read the explanations under the questions you missed, revisit those lesson sections, then retake.</div><button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    quizDone=false;
+  }
+};
+window.retakeQuiz=function(){
+  quizDone=false;
+  quizAnswers={1:null,2:null,3:null,4:null,5:null};
+  document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
+  document.querySelectorAll('.q-why').forEach(e=>{e.style.display='none';});
+  document.getElementById('quiz-result').className='quiz-result-banner';
+  document.getElementById('quiz-score-display').style.display='none';
+};
+
+function spark(){
+  const em=['🎉','⭐','✨','🔥','💫','🎯'];
+  for(let i=0;i<8;i++){
+    setTimeout(()=>{
+      const e=document.createElement('div');
+      e.className='spark';
+      e.style.left=(20+Math.random()*60)+'%';
+      e.style.top=(20+Math.random()*50)+'%';
+      e.textContent=em[Math.floor(Math.random()*em.length)];
+      document.body.appendChild(e);
+      setTimeout(()=>e.remove(),800);
+    },i*70);
+  }
+}
+window.toggleSidebar=function(){ document.getElementById('sidebar').classList.toggle('mob-open'); };
+window.toggleMobConsole=function(){ document.getElementById('console-dock').classList.toggle('mob-open'); };
+document.querySelectorAll('.sb-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    if(window.innerWidth<=820) document.getElementById('sidebar').classList.remove('mob-open');
+  });
+});
+</script>
+
+<script>
+(function(){
+  var KEY='aimlZTH_console_min';
+  var dock=document.getElementById('console-dock');
+  if(!dock)return;
+  var header=dock.querySelector('.cd-header');
+  if(!header)return;
+  var out=document.getElementById('cd-out');
+  var btn=document.createElement('button');
+  btn.type='button';btn.className='cd-min-btn';
+  function initial(){var v=null;try{v=localStorage.getItem(KEY);}catch(e){}if(v==='1')return true;if(v==='0')return false;return window.innerWidth<1200;}
+  function store(v){try{localStorage.setItem(KEY,v?'1':'0');}catch(e){}}
+  function set(min,persist){
+    dock.classList.toggle('cd-min',min);
+    document.body.classList.toggle('cd-min',min);
+    btn.textContent=min?'\u25B4':'\u2013';
+    btn.setAttribute('aria-expanded',String(!min));
+    var label=min?'Expand console (Ctrl+`)':'Minimize console (Ctrl+`)';
+    btn.title=label;btn.setAttribute('aria-label',label);
+    if(!min&&out)out.scrollTop=out.scrollHeight;
+    if(persist!==false)store(min);
+  }
+  function toggle(){set(!dock.classList.contains('cd-min'));}
+  header.appendChild(btn);
+  header.addEventListener('click',toggle);
+  document.addEventListener('keydown',function(e){
+    if((e.ctrlKey||e.metaKey)&&e.key==='`'){e.preventDefault();toggle();}
+  });
+  var run=window.runToConsole;
+  if(typeof run==='function'){
+    window.runToConsole=function(){set(false);return run.apply(this,arguments);};
+  }
+  set(initial(),false);
+})();
+</script>
+<!-- theme:js -->
+<script>
+(function(){
+  var KEY='aimlZTH_theme',root=document.documentElement;
+  var SUN='<svg class="tt-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="4.5"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>';
+  var MOON='<svg class="tt-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M20.5 14.2A8.6 8.6 0 0 1 9.8 3.5a8.6 8.6 0 1 0 10.7 10.7z"/></svg>';
+  function valid(v){return v==='light'||v==='dark'?v:null}
+  function stored(){try{return valid(localStorage.getItem(KEY))}catch(e){return null}}
+  function osPref(){try{return(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){return 'dark'}}
+  function current(){return valid(root.getAttribute('data-theme'))||stored()||osPref()}
+  var buttons=[];
+  function label(b,t){
+    var next=t==='light'?'dark':'light';
+    b.setAttribute('aria-label','Switch to '+next+' theme (currently '+t+')');
+    b.setAttribute('title','Switch to '+next+' theme');
+    var l=b.querySelector('.tt-label');if(l)l.textContent=t==='light'?'Light':'Dark';
+  }
+  function apply(t,persist){
+    root.setAttribute('data-theme',t);
+    if(persist){try{localStorage.setItem(KEY,t)}catch(e){}}
+    for(var i=0;i<buttons.length;i++)label(buttons[i],t);
+    try{var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content',t==='light'?'#F3F4F9':'#0F1117')}catch(e){}
+  }
+  function make(cls){
+    var b=document.createElement('button');
+    b.type='button';b.className='theme-toggle '+cls;
+    b.setAttribute('data-theme-toggle','');
+    b.innerHTML=SUN+MOON+'<span class="tt-label"></span>';
+    b.addEventListener('click',function(){apply(current()==='light'?'dark':'light',true)});
+    buttons.push(b);return b;
+  }
+  function mount(){
+    if(document.querySelector('[data-theme-toggle]'))return;
+    var tb=document.getElementById('topbar'),tn=document.getElementById('topnav'),mob=document.getElementById('mob-menu'),wrap=document.querySelector('.wrap');
+    if(tb){
+      tb.appendChild(make('tt-desk'));
+      if(mob){var mb=make('tt-mob'),mc=document.getElementById('mob-console-btn');mob.insertBefore(mb,mc||null)}
+    }else if(tn){
+      tn.appendChild(make('tt-nav'));
+    }else if(wrap&&document.querySelector('.wrap > .eyebrow')){
+      if(getComputedStyle(wrap).position==='static')wrap.style.position='relative';
+      wrap.appendChild(make('tt-index'));
+    }else{
+      document.body.appendChild(make('tt-fixed'));
+    }
+    apply(current(),false);
+  }
+  window.addEventListener('storage',function(e){
+    if(e.key===KEY||e.key===null){apply(stored()||osPref(),false)}
+  });
+  try{
+    var mq=window.matchMedia('(prefers-color-scheme: light)');
+    var onq=function(){if(!stored())apply(osPref(),false)};
+    if(mq.addEventListener)mq.addEventListener('change',onq);else if(mq.addListener)mq.addListener(onq);
+  }catch(e){}
+  window.aimlTheme={get:current,set:function(t){if(valid(t))apply(t,true)},toggle:function(){apply(current()==='light'?'dark':'light',true)}};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',mount);else mount();
+})();
+</script>
+<!-- /theme:js -->
+<!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
+<!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:glossary-js:start --><script src="../assets/glossary.js" defer></script><!-- feat:glossary-js:end --></body>
+</html>

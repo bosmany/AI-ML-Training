@@ -484,18 +484,13 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 25:<br/><span>Transformers Explained</span></h1>
     <p>Every modern LLM — GPT, Claude, Llama — is built from one core mechanism: <strong>attention</strong>. Chapter 24's RNNs process a sequence one step at a time, carrying a hidden state forward. Attention instead lets every position look directly at every other position, all at once, weighted by relevance — no sequential bottleneck, fully parallelizable, and (empirically) much better at long-range dependencies. This chapter builds real scaled dot-product attention with NumPy, from the ground up.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~65 min read</span>
+      <span class="badge">🕐 ~95 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
     </div>
-  </div>
-
-
-
-
-
-<!-- videos:start -->
+  </div>  <!-- 25.1 -->
+  <!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
 .vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -516,7 +511,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </style>
 <div class="vid-panel" id="vid-panel">
   <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
-  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="wjZofJX0v4M" data-title="Transformers, the tech behind LLMs | Deep Learning Chapter 5" data-chan="3Blue1Brown">Attention &amp; transformers</button><button type="button" class="vid-tab" role="tab" data-id="eMlx5fFNoYc" data-title="Attention in transformers, step-by-step | Deep Learning Chapter 6" data-chan="3Blue1Brown">Transformers</button></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="wjZofJX0v4M" data-title="Transformers, the tech behind LLMs | Deep Learning Chapter 5" data-chan="3Blue1Brown">Attention &amp; transformers</button><button type="button" class="vid-tab" role="tab" data-id="eMlx5fFNoYc" data-title="Attention in transformers, step-by-step | Deep Learning Chapter 6" data-chan="3Blue1Brown">Transformers</button><button type="button" class="vid-tab" role="tab" data-id="bQ5BoolX9Ag" data-title="Decoder-Only Transformers, ChatGPTs specific Transformer, Clearly Explained!!!" data-chan="StatQuest with Josh Starmer">Encoder-only vs decoder-only vs encoder-decoder</button></div>
   <div class="vid-stage"></div>
   <div class="vid-meta"></div>
 </div>
@@ -549,8 +544,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-  <!-- 25.1 -->
-  <div class="lesson-h2">25.1 — Why Attention? Beyond Sequential Processing</div>
+<div class="lesson-h2">25.1 — Why Attention? Beyond Sequential Processing</div>
   <p class="lesson-p">An RNN reads a sequence left to right, one token at a time — token 100 can only "see" token 1 through 99 steps of a carried hidden state, which tends to fade over long distances (Chapter 24's vanishing gradient problem, again). Attention instead computes, for every token, a direct weighted combination of EVERY OTHER token in the sequence, in one matrix operation — no distance penalty, and every position can be computed in parallel instead of waiting for the previous step.</p>
 
   <!-- 25.2 -->
@@ -646,6 +640,286 @@ pe = positional_encoding(<span class="nm">4</span>, <span class="nm">4</span>)
   </div>
   <p class="lesson-p">This positional encoding is simply ADDED to the token embeddings (<code>X = token_embeddings + positional_encoding</code>) before attention runs. Position 0 always gets the same pattern, position 1 always gets the same (different) pattern — deterministic and learned-model-independent.</p>
 
+  <style>
+  .diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+  .diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+  .diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+  </style>
+
+  <!-- 25.7 -->
+  <div class="lesson-h2">25.7 — Residual Connections: A Gradient Shortcut</div>
+  <p class="lesson-p">Stack enough layers — attention block after attention block after feed-forward — and the same vanishing-gradient problem Chapter 24 introduced for RNNs shows up again, for a related reason: every layer's output gets multiplied through that layer's weights, and if those effective multipliers are consistently below 1, the gradient flowing back from the loss shrinks geometrically with depth. A <strong>residual (skip) connection</strong> sidesteps this by adding a sublayer's output back onto its own input: <code>output = x + Sublayer(x)</code> instead of <code>output = Sublayer(x)</code>. By the chain rule, the derivative of <code>x + f(x)</code> with respect to <code>x</code> is <code>1 + f'(x)</code> — that <code>+1</code> is a direct, unobstructed path for gradient to flow through no matter how small <code>f'(x)</code> gets. Stack 96 transformer blocks, as real large models do, and every one of them contributes that same <code>+1</code> highway.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Hand-computed: gradient with vs. without a residual path</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># a toy stack of 5 layers, each multiplies its input by a small weight</span>
+<span class="cm"># (simulating what happens when every layer's local derivative is &lt; 1)</span>
+weights = [<span class="nm">0.6</span>, <span class="nm">0.5</span>, <span class="nm">0.7</span>, <span class="nm">0.4</span>, <span class="nm">0.6</span>]
+
+<span class="cm"># WITHOUT a residual: layer_i(x) = w_i * x</span>
+<span class="cm"># by the chain rule, d(output)/d(x) after all 5 layers = product of every w_i</span>
+grad_no_residual = np.prod(weights)
+
+<span class="cm"># WITH a residual: layer_i(x) = x + w_i * x = (1 + w_i) * x</span>
+<span class="cm"># the local derivative is now (1 + w_i) -- every term is &gt; 1, so it can't vanish</span>
+grad_with_residual = np.prod([<span class="nm">1</span> + w <span class="kw">for</span> w <span class="kw">in</span> weights])
+
+<span class="bi">print</span>(<span class="st">f'Gradient after 5 layers, no residual:   <span class="bi">{grad_no_residual:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Gradient after 5 layers, with residual: <span class="bi">{grad_with_residual:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>0.0504 vs. 9.1392.</strong> Without the residual, five below-1 multipliers compound into a gradient that's nearly wiped out. With the residual, every layer's local derivative is <code>1 + w_i &gt; 1</code>, so the gradient can only grow or hold steady on that path — it structurally cannot vanish. Real transformer blocks wrap BOTH the attention sublayer and the feed-forward sublayer in their own residual connection — two skip connections per block.</div></div>
+
+  <!-- 25.8 -->
+  <div class="lesson-h2">25.8 — Layer Normalization</div>
+  <p class="lesson-p">Residual connections keep gradients flowing, but the activations themselves can still drift to very different scales as they pass through dozens of stacked blocks. <strong>Layer Normalization (LayerNorm)</strong> re-centers and re-scales each token's feature vector independently: for one token's row of <code>d_model</code> numbers, subtract that row's own mean, divide by that row's own standard deviation, then apply a learned per-feature scale (<code>gamma</code>) and shift (<code>beta</code>). Crucially, this normalizes ACROSS THE FEATURES of one token, not across the batch the way BatchNorm does for CNNs — which matters for sequences of varying length, since per-token statistics don't get polluted by padding or by whatever else happens to be in the same batch.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Layer Normalization, from scratch</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">layer_norm</span>(x, gamma, beta, eps=<span class="nm">1e-5</span>):
+    mean = x.mean(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>)     <span class="cm"># per-token mean (one per row)</span>
+    var = x.var(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>)       <span class="cm"># per-token variance</span>
+    x_norm = (x - mean) / np.sqrt(var + eps)
+    <span class="kw">return</span> gamma * x_norm + beta            <span class="cm"># learned scale + shift, per feature</span>
+
+x = np.array([[<span class="nm">1.0</span>, <span class="nm">2.0</span>, <span class="nm">3.0</span>, <span class="nm">4.0</span>]])
+gamma = np.ones(<span class="nm">4</span>); beta = np.zeros(<span class="nm">4</span>)     <span class="cm"># identity scale/shift -- untrained defaults</span>
+out = layer_norm(x, gamma, beta)
+
+<span class="bi">print</span>(<span class="st">f'LayerNorm output: <span class="bi">{[round(float(v),4) for v in out[0]]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Output mean: <span class="bi">{out.mean():.4f}</span>, Output std: <span class="bi">{out.std():.4f}</span>'</span>)   <span class="cm"># always ~0 mean, ~1 std per row</span></div>
+  </div>
+
+  <table class="lesson-table">
+    <tr><th>Placement</th><th>Formula</th><th>Used by</th></tr>
+    <tr><td>Post-LN (original)</td><td class="highlight">LayerNorm(x + Sublayer(x))</td><td>The original "Attention Is All You Need" Transformer</td></tr>
+    <tr><td>Pre-LN (modern)</td><td class="highlight">x + Sublayer(LayerNorm(x))</td><td>GPT-2 onward, Llama, most large decoder-only LLMs</td></tr>
+  </table>
+  <p class="lesson-p">Placement matters more than it looks. In Post-LN, the residual stream itself gets normalized every single layer — at large depth (50+ stacked blocks) that repeated normalization can re-introduce the very gradient instability residuals were meant to fix, making very deep Post-LN models hard to train without careful warmup. Pre-LN instead feeds each sublayer a normalized COPY of the stream but lets the raw, un-normalized residual stream itself run the entire depth of the network untouched — far more stable at large depth, which is why virtually every large modern LLM uses it (at the cost of one extra final LayerNorm after the last block, since nothing else normalizes the stream on its way out).</p>
+
+  <!-- 25.9 -->
+  <div class="lesson-h2">25.9 — Assembling a Full Transformer Block</div>
+  <p class="lesson-p">Section 25.5 described multi-head attention conceptually — several attention computations run in parallel, each with its own <code>W_Q, W_K, W_V</code>, then concatenated and projected back to <code>d_model</code>. Here's the real, runnable version: split each of Q, K, and V into <code>num_heads</code> equal-width chunks, run scaled dot-product attention independently per chunk, concatenate the results, then multiply by one more learned matrix <code>W_O</code>. Combine that with a position-wise <strong>feed-forward network</strong> (two linear layers with a ReLU between them, applied identically and independently to every token position) and wrap each of the two sublayers in its own residual + LayerNorm, and you have one complete Transformer block.</p>
+
+  <div class="diagram">
+    <div class="dg-t">One Transformer block (Post-LN placement)</div>
+    <pre>        x  (seq_len, d_model)
+        │
+        ├────────────────────────────┐
+        ▼                            │  residual copy
+  Multi-Head Attention               │
+        │                            │
+        ▼                            │
+       (+) ◄─────────────────────────┘
+        │
+        ▼
+    LayerNorm  ──►  x'
+        │
+        ├────────────────────────────┐
+        ▼                            │  residual copy
+  Feed-Forward (Linear → ReLU → Linear)
+        │                            │
+        ▼                            │
+       (+) ◄─────────────────────────┘
+        │
+        ▼
+    LayerNorm  ──►  block output  (seq_len, d_model)</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A full Transformer block, one class, real NumPy</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">softmax</span>(x, axis=-<span class="nm">1</span>):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=<span class="kw">True</span>))
+    <span class="kw">return</span> e / np.sum(e, axis=axis, keepdims=<span class="kw">True</span>)
+
+<span class="kw">def</span> <span class="fn">layer_norm</span>(x, gamma, beta, eps=<span class="nm">1e-5</span>):
+    mean = x.mean(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>)
+    var = x.var(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>)
+    <span class="kw">return</span> gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+<span class="kw">def</span> <span class="fn">multi_head_attention</span>(X, WQ, WK, WV, WO, num_heads, mask=<span class="kw">None</span>):
+    seq_len, d_model = X.shape
+    head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    <span class="kw">def</span> <span class="fn">split_heads</span>(M):                <span class="cm"># (seq_len, d_model) -> (num_heads, seq_len, head_dim)</span>
+        <span class="kw">return</span> M.reshape(seq_len, num_heads, head_dim).transpose(<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">2</span>)
+    Qh, Kh, Vh = split_heads(Q), split_heads(K), split_heads(V)
+    scores = Qh @ Kh.transpose(<span class="nm">0</span>, <span class="nm">2</span>, <span class="nm">1</span>) / np.sqrt(head_dim)   <span class="cm"># (num_heads, seq_len, seq_len)</span>
+    <span class="kw">if</span> mask <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>:
+        scores = np.where(mask, scores, -<span class="nm">1e9</span>)          <span class="cm"># block future/forbidden positions</span>
+    weights = softmax(scores, axis=-<span class="nm">1</span>)
+    heads_out = weights @ Vh                          <span class="cm"># (num_heads, seq_len, head_dim)</span>
+    concat = heads_out.transpose(<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">2</span>).reshape(seq_len, d_model)
+    <span class="kw">return</span> concat @ WO                              <span class="cm"># one more learned projection back to d_model</span>
+
+<span class="kw">def</span> <span class="fn">feed_forward</span>(x, W1, b1, W2, b2):
+    hidden = np.maximum(<span class="nm">0</span>, x @ W1 + b1)                <span class="cm"># ReLU</span>
+    <span class="kw">return</span> hidden @ W2 + b2
+
+<span class="kw">class</span> <span class="fn">TransformerBlock</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, num_heads, d_ff, seed=<span class="nm">0</span>):
+        rng = np.random.RandomState(seed)
+        self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model) * <span class="nm">0.1</span>
+        self.WK = rng.randn(d_model, d_model) * <span class="nm">0.1</span>
+        self.WV = rng.randn(d_model, d_model) * <span class="nm">0.1</span>
+        self.WO = rng.randn(d_model, d_model) * <span class="nm">0.1</span>
+        self.W1 = rng.randn(d_model, d_ff) * <span class="nm">0.1</span>; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model) * <span class="nm">0.1</span>; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, X, mask=<span class="kw">None</span>, pre_ln=<span class="kw">False</span>):
+        <span class="kw">if</span> pre_ln:                                  <span class="cm"># modern placement (see 25.8) -- same weights, different wiring</span>
+            attn_out = multi_head_attention(layer_norm(X, self.g1, self.bt1), self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask)
+            X = X + attn_out
+            ff_out = feed_forward(layer_norm(X, self.g2, self.bt2), self.W1, self.b1, self.W2, self.b2)
+            <span class="kw">return</span> X + ff_out
+        attn_out = multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask)   <span class="cm"># Post-LN (original)</span>
+        X = layer_norm(X + attn_out, self.g1, self.bt1)              <span class="cm"># residual + LN #1</span>
+        ff_out = feed_forward(X, self.W1, self.b1, self.W2, self.b2)
+        X = layer_norm(X + ff_out, self.g2, self.bt2)                <span class="cm"># residual + LN #2</span>
+        <span class="kw">return</span> X
+
+np.random.seed(<span class="nm">0</span>)
+Xb = np.random.randn(<span class="nm">3</span>, <span class="nm">8</span>) * <span class="nm">0.1</span>                       <span class="cm"># 3 tokens, d_model=8</span>
+block = TransformerBlock(d_model=<span class="nm">8</span>, num_heads=<span class="nm">2</span>, d_ff=<span class="nm">16</span>, seed=<span class="nm">1</span>)
+out = block.forward(Xb)
+
+<span class="bi">print</span>(<span class="st">f'Block input shape:  <span class="bi">{Xb.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Block output shape: <span class="bi">{out.shape}</span>'</span>)   <span class="cm"># unchanged -- attention + FF never change (seq_len, d_model)</span>
+<span class="bi">print</span>(<span class="st">f'Output row means (should be ~0 after LN): <span class="bi">{[round(float(v),4) for v in out.mean(axis=1)]}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📎</div><div class="ib-body"><strong>One block, seven learned pieces.</strong> <code>WQ, WK, WV, WO</code> (attention), <code>W1, b1, W2, b2</code> (feed-forward), and two LayerNorms' <code>gamma/beta</code> — every one of these is trained by backprop, same as any other weight. A real LLM stacks dozens of these blocks, all identical in structure, each with its own independently learned weights.</div></div>
+
+  <!-- 25.10 -->
+  <div class="lesson-h2">25.10 — Encoder-Only, Decoder-Only, Encoder-Decoder</div>
+  <p class="lesson-p">The Transformer block itself doesn't care whether attention is bidirectional or restricted — that's controlled entirely by the <em>mask</em> passed into it. That one choice defines three architecture families:</p>
+
+  <table class="lesson-table">
+    <tr><th>Architecture</th><th>Attention pattern</th><th>Real models</th><th>Good for</th></tr>
+    <tr><td>Encoder-only</td><td class="highlight">bidirectional (no mask)</td><td>BERT, RoBERTa</td><td>Classification, embeddings, NER — understanding, not generating</td></tr>
+    <tr><td>Decoder-only</td><td class="highlight">causal (masked)</td><td>GPT, Llama, Claude, most modern LLMs</td><td>Open-ended generation, chat, one architecture for everything</td></tr>
+    <tr><td>Encoder-decoder</td><td class="highlight">bidirectional encoder + causal decoder + cross-attention</td><td>The original Transformer, T5</td><td>Translation, summarization — a clear input→output split</td></tr>
+  </table>
+
+  <div class="diagram">
+    <div class="dg-t">Who can attend to whom (■ = allowed, · = blocked)</div>
+    <pre> ENCODER (bidirectional)        DECODER (causal / masked)
+   every token sees ALL           token i sees only tokens 0..i
+   other tokens, both ways        -- never anything AFTER it
+      1  2  3  4                     1  2  3  4
+   1  ■  ■  ■  ■                  1  ■  ·  ·  ·
+   2  ■  ■  ■  ■                  2  ■  ■  ·  ·
+   3  ■  ■  ■  ■                  3  ■  ■  ■  ·
+   4  ■  ■  ■  ■                  4  ■  ■  ■  ■</pre>
+  </div>
+
+  <p class="lesson-p"><strong>Why decoder-only won for LLMs:</strong> a causal mask means position <em>i</em>'s output only ever depends on tokens 0..i — which is exactly the constraint you need to train on "predict the next token" for every position in a sequence simultaneously (Chapter 29 covers that training objective itself; here we're only concerned with the masking mechanics that make it possible). The SAME architecture that trains this way also generates this way, one token at a time, feeding each output back in as the next input — no separate encoder, no cross-attention, no architectural split between "understanding the prompt" and "producing the answer." That single-architecture simplicity scales far more cleanly to bigger models and bigger data pipelines than the encoder-decoder split does, which is the main reason it displaced encoder-decoder designs for general-purpose LLMs.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A causal mask, and what it does to attention scores</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">causal_mask</span>(seq_len):
+    <span class="kw">return</span> np.tril(np.ones((seq_len, seq_len), dtype=<span class="bi">bool</span>))   <span class="cm"># True = allowed to attend</span>
+
+mask = causal_mask(<span class="nm">4</span>)
+<span class="bi">print</span>(<span class="st">'Causal mask (1 = can attend, 0 = blocked):'</span>)
+<span class="bi">print</span>(mask.astype(<span class="bi">int</span>))
+
+<span class="cm"># applied to raw scores BEFORE softmax: blocked positions get -1e9,</span>
+<span class="cm"># so softmax pushes their weight to ~0 without ever computing a real "future" value</span>
+scores = np.array([[<span class="nm">1.0</span>, <span class="nm">2.0</span>, <span class="nm">3.0</span>, <span class="nm">4.0</span>]] * <span class="nm">4</span>)
+masked_scores = np.where(mask, scores, -<span class="nm">1e9</span>)
+<span class="bi">print</span>(<span class="st">f'Row 0 after masking (only position 0 is visible): <span class="bi">{masked_scores[0].tolist()}</span>'</span>)</div>
+  </div>
+
+  <!-- 25.11 -->
+  <div class="lesson-h2">25.11 — A Mini End-to-End Transformer Forward Pass</div>
+  <p class="lesson-p">Every piece is now on the table. A decoder-only Transformer's forward pass is exactly: look up token embeddings, add positional encoding, run the result through <em>N</em> stacked Transformer blocks with a causal mask, then project the final hidden states to vocabulary-size logits with one more learned matrix so every position outputs a probability distribution over "what token comes next." That's it — that's the forward pass of a (tiny, untrained) GPT-style model, real math end to end, on a toy 5-word vocabulary.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Embeddings → positional encoding → N blocks → output projection</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">softmax</span>(x, axis=-<span class="nm">1</span>):
+    e = np.exp(x - np.max(x, axis=axis, keepdims=<span class="kw">True</span>))
+    <span class="kw">return</span> e / np.sum(e, axis=axis, keepdims=<span class="kw">True</span>)
+
+<span class="kw">def</span> <span class="fn">layer_norm</span>(x, gamma, beta, eps=<span class="nm">1e-5</span>):
+    mean = x.mean(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>); var = x.var(axis=-<span class="nm">1</span>, keepdims=<span class="kw">True</span>)
+    <span class="kw">return</span> gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+<span class="kw">def</span> <span class="fn">positional_encoding</span>(seq_len, d_model):
+    pos = np.arange(seq_len)[:, <span class="kw">None</span>]; i = np.arange(d_model)[<span class="kw">None</span>, :]
+    angle_rates = <span class="nm">1</span> / np.power(<span class="nm">10000</span>, (<span class="nm">2</span> * (i // <span class="nm">2</span>)) / d_model)
+    angles = pos * angle_rates
+    pe = np.zeros((seq_len, d_model))
+    pe[:, <span class="nm">0</span>::<span class="nm">2</span>] = np.sin(angles[:, <span class="nm">0</span>::<span class="nm">2</span>]); pe[:, <span class="nm">1</span>::<span class="nm">2</span>] = np.cos(angles[:, <span class="nm">1</span>::<span class="nm">2</span>])
+    <span class="kw">return</span> pe
+
+<span class="kw">def</span> <span class="fn">causal_mask</span>(seq_len):
+    <span class="kw">return</span> np.tril(np.ones((seq_len, seq_len), dtype=<span class="bi">bool</span>))
+
+<span class="kw">def</span> <span class="fn">multi_head_attention</span>(X, WQ, WK, WV, WO, num_heads, mask=<span class="kw">None</span>):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    <span class="kw">def</span> <span class="fn">split</span>(M): <span class="kw">return</span> M.reshape(seq_len, num_heads, head_dim).transpose(<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">2</span>)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(<span class="nm">0</span>, <span class="nm">2</span>, <span class="nm">1</span>) / np.sqrt(head_dim)
+    <span class="kw">if</span> mask <span class="kw">is</span> <span class="kw">not</span> <span class="kw">None</span>: scores = np.where(mask, scores, -<span class="nm">1e9</span>)
+    out = (softmax(scores, axis=-<span class="nm">1</span>) @ Vh).transpose(<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">2</span>).reshape(seq_len, d_model)
+    <span class="kw">return</span> out @ WO
+
+<span class="kw">def</span> <span class="fn">feed_forward</span>(x, W1, b1, W2, b2):
+    <span class="kw">return</span> np.maximum(<span class="nm">0</span>, x @ W1 + b1) @ W2 + b2
+
+<span class="kw">class</span> <span class="fn">TransformerBlock</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*<span class="nm">0.1</span>; self.WK = rng.randn(d_model, d_model)*<span class="nm">0.1</span>
+        self.WV = rng.randn(d_model, d_model)*<span class="nm">0.1</span>; self.WO = rng.randn(d_model, d_model)*<span class="nm">0.1</span>
+        self.W1 = rng.randn(d_model, d_ff)*<span class="nm">0.1</span>; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*<span class="nm">0.1</span>; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    <span class="kw">def</span> <span class="fn">forward</span>(self, X, mask=<span class="kw">None</span>):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        <span class="kw">return</span> layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
+
+<span class="cm"># ---- the actual forward pass ----</span>
+np.random.seed(<span class="nm">7</span>)
+vocab = [<span class="st">'the'</span>, <span class="st">'cat'</span>, <span class="st">'sat'</span>, <span class="st">'on'</span>, <span class="st">'mat'</span>]
+d_model, num_heads, d_ff, num_blocks = <span class="nm">8</span>, <span class="nm">2</span>, <span class="nm">16</span>, <span class="nm">2</span>
+seq = [<span class="st">'the'</span>, <span class="st">'cat'</span>, <span class="st">'sat'</span>, <span class="st">'on'</span>, <span class="st">'mat'</span>]
+
+embedding_table = np.random.randn(<span class="bi">len</span>(vocab), d_model) * <span class="nm">0.1</span>
+idx = [vocab.index(w) <span class="kw">for</span> w <span class="kw">in</span> seq]
+X = embedding_table[idx] + positional_encoding(<span class="bi">len</span>(seq), d_model)   <span class="cm"># step 1: embed + position</span>
+
+mask = causal_mask(<span class="bi">len</span>(seq))
+blocks = [TransformerBlock(d_model, num_heads, d_ff, seed=<span class="nm">100</span>+i) <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(num_blocks)]
+<span class="kw">for</span> block <span class="kw">in</span> blocks:
+    X = block.forward(X, mask=mask)                                <span class="cm"># step 2: N stacked decoder blocks</span>
+
+np.random.seed(<span class="nm">42</span>)
+W_out = np.random.randn(d_model, <span class="bi">len</span>(vocab)) * <span class="nm">0.1</span>
+logits = X @ W_out                                                  <span class="cm"># step 3: project to vocab-size logits</span>
+probs = softmax(logits, axis=-<span class="nm">1</span>)
+predicted = [vocab[i] <span class="kw">for</span> i <span class="kw">in</span> np.argmax(probs, axis=-<span class="nm">1</span>)]           <span class="cm"># step 4: predicted next token per position</span>
+
+<span class="bi">print</span>(<span class="st">f'Final hidden state shape: <span class="bi">{X.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Logits shape: <span class="bi">{logits.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Predicted token at each position: <span class="bi">{predicted}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>This is a forward pass, not a trained model.</strong> Every weight above is random — the "predictions" are meaningless until real training (gradient descent on a next-token-prediction loss over huge amounts of text) shapes those weights. That training objective and process is Chapter 29's job. What's real and correct here is the MATH: this is the exact sequence of operations — embed, add position, N causal Transformer blocks, project to logits — that every GPT-family model runs on every forward pass, whether its weights are random or the product of a billion-dollar training run.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 25 Summary</div>
   <ul class="step-list">
@@ -654,6 +928,11 @@ pe = positional_encoding(<span class="nm">4</span>, <span class="nm">4</span>)
     <li data-n="3"><div><strong>Attention(Q,K,V) = softmax(Q @ K.T / sqrt(d_model)) @ V</strong> — the entire mechanism, one line.</div></li>
     <li data-n="4"><div><strong>Multi-head attention</strong> runs several attention computations in parallel for richer representations.</div></li>
     <li data-n="5"><div><strong>Positional encoding</strong> injects order information, since attention alone is order-blind.</div></li>
+    <li data-n="6"><div><strong>Residual connections</strong> (<code>x + Sublayer(x)</code>) give gradients an unobstructed <code>+1</code> path through every sublayer, preventing them from vanishing across many stacked blocks.</div></li>
+    <li data-n="7"><div><strong>Layer Normalization</strong> re-centers/re-scales each token's features independently; Pre-LN placement (modern LLMs) trains far more stably at large depth than the original Post-LN.</div></li>
+    <li data-n="8"><div><strong>A full Transformer block</strong> = multi-head attention + residual + LN + feed-forward + residual + LN — one reusable, stackable unit.</div></li>
+    <li data-n="9"><div><strong>Encoder-only vs. decoder-only vs. encoder-decoder</strong> is just a choice of attention mask; decoder-only's causal mask lets one architecture both train (next-token prediction) and generate (autoregressively), which is why it won for LLMs.</div></li>
+    <li data-n="10"><div><strong>A mini end-to-end forward pass</strong> — embeddings → positional encoding → N stacked causal blocks → output projection — is the complete, real computation behind every GPT-family model's forward pass.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -912,34 +1191,37 @@ def positional_encoding(seq_len, d_model):
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>A Mini Self-Attention Layer</span></h2>
-    <p>Run full self-attention on a real 5-word sentence and inspect what each word "attends to" most — the same computation that underlies every LLM's understanding of context, at a scale you can read line by line.</p>
+    <h2>🏗️ Mini Project: <span>A Mini Self-Attention Layer — Then a Full Causal Transformer Stack</span></h2>
+    <p>Part A: run full self-attention on a real 5-word sentence and inspect what each word "attends to" most. Part B (new): take that same sentence through positional encoding, a stack of real causal Transformer blocks (residual + LayerNorm + feed-forward, from 25.9), and an output projection — the exact forward pass of a tiny decoder-only model, the same computation that underlies every LLM's understanding of context, at a scale you can read line by line.</p>
     <div class="project-tags">
       <span class="ptag">embeddings</span>
       <span class="ptag">scaled dot-product attention</span>
-      <span class="ptag">argmax</span>
+      <span class="ptag">residuals + LayerNorm</span>
+      <span class="ptag">causal masking</span>
+      <span class="ptag">full forward pass</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Build an embedding table for vocab ['the','cat','sat','on','mat'] and embed the sentence ['the','cat','sat','on','mat']</li>
-      <li>Compute Q, K, V using random weight matrices (given, seeded)</li>
-      <li>Compute attention scores, softmax weights, and the final output</li>
-      <li>Confirm every row of the attention weights sums to ~1.0</li>
-      <li>Find which word "cat" (index 1) attends to most strongly (argmax of its weights row)</li>
-      <li>Print the input shape, output shape, the row-sum check, and what "cat" attends to most</li>
+      <li><strong>Part A —</strong> Build an embedding table for vocab ['the','cat','sat','on','mat'] and embed the sentence ['the','cat','sat','on','mat']</li>
+      <li>Compute Q, K, V using random weight matrices (given, seeded), then attention scores, softmax weights, and the final output</li>
+      <li>Confirm every row of the attention weights sums to ~1.0; find which word "cat" (index 1) attends to most strongly</li>
+      <li><strong>Part B (new) —</strong> Add positional encoding to the same embedded sentence, build a causal mask, and run it through the given, working <code>TransformerBlock</code> stack (2 blocks)</li>
+      <li>Project the block stack's final output to vocabulary-size logits (given <code>W_out</code>) and softmax them</li>
+      <li>Print all required shapes/checks from both parts, plus the predicted token at each position from Part B</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Mini Self-Attention Layer — Your Solution</div>
+      <div class="pe-title">🏗️ Mini Self-Attention + Causal Transformer Stack — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: A Mini Self-Attention Layer
+# Mini Project: A Mini Self-Attention Layer,
+# then a full causal Transformer block stack
 # Use ONLY Chapter 25 concepts
 # ══════════════════════════════════════════
 import numpy as np
@@ -947,6 +1229,47 @@ import numpy as np
 def softmax(x, axis=-1):
     e = np.exp(x - np.max(x, axis=axis, keepdims=True))
     return e / np.sum(e, axis=axis, keepdims=True)
+
+def layer_norm(x, gamma, beta, eps=1e-5):
+    mean = x.mean(axis=-1, keepdims=True); var = x.var(axis=-1, keepdims=True)
+    return gamma * (x - mean) / np.sqrt(var + eps) + beta
+
+def positional_encoding(seq_len, d_model):
+    pos = np.arange(seq_len)[:, None]; i = np.arange(d_model)[None, :]
+    angle_rates = 1 / np.power(10000, (2 * (i // 2)) / d_model)
+    angles = pos * angle_rates
+    pe = np.zeros((seq_len, d_model))
+    pe[:, 0::2] = np.sin(angles[:, 0::2]); pe[:, 1::2] = np.cos(angles[:, 1::2])
+    return pe
+
+def causal_mask(seq_len):
+    return np.tril(np.ones((seq_len, seq_len), dtype=bool))
+
+def multi_head_attention(X, WQ, WK, WV, WO, num_heads, mask=None):
+    seq_len, d_model = X.shape; head_dim = d_model // num_heads
+    Q, K, V = X @ WQ, X @ WK, X @ WV
+    def split(M): return M.reshape(seq_len, num_heads, head_dim).transpose(1, 0, 2)
+    Qh, Kh, Vh = split(Q), split(K), split(V)
+    scores = Qh @ Kh.transpose(0, 2, 1) / np.sqrt(head_dim)
+    if mask is not None: scores = np.where(mask, scores, -1e9)
+    out = (softmax(scores, axis=-1) @ Vh).transpose(1, 0, 2).reshape(seq_len, d_model)
+    return out @ WO
+
+def feed_forward(x, W1, b1, W2, b2):
+    return np.maximum(0, x @ W1 + b1) @ W2 + b2
+
+class TransformerBlock:   # given, working (from 25.9) -- your job is to USE this in Part B, not rewrite it
+    def __init__(self, d_model, num_heads, d_ff, seed):
+        rng = np.random.RandomState(seed); self.num_heads = num_heads
+        self.WQ = rng.randn(d_model, d_model)*0.1; self.WK = rng.randn(d_model, d_model)*0.1
+        self.WV = rng.randn(d_model, d_model)*0.1; self.WO = rng.randn(d_model, d_model)*0.1
+        self.W1 = rng.randn(d_model, d_ff)*0.1; self.b1 = np.zeros(d_ff)
+        self.W2 = rng.randn(d_ff, d_model)*0.1; self.b2 = np.zeros(d_model)
+        self.g1 = np.ones(d_model); self.bt1 = np.zeros(d_model)
+        self.g2 = np.ones(d_model); self.bt2 = np.zeros(d_model)
+    def forward(self, X, mask=None):
+        X = layer_norm(X + multi_head_attention(X, self.WQ, self.WK, self.WV, self.WO, self.num_heads, mask), self.g1, self.bt1)
+        return layer_norm(X + feed_forward(X, self.W1, self.b1, self.W2, self.b2), self.g2, self.bt2)
 
 np.random.seed(11)
 vocab_p = ['the', 'cat', 'sat', 'on', 'mat']
@@ -958,26 +1281,46 @@ WQ_p = np.random.randn(d_p, d_p).round(2)
 WK_p = np.random.randn(d_p, d_p).round(2)
 WV_p = np.random.randn(d_p, d_p).round(2)
 
-# === TODO 1: embed the sentence ===
+blocks_p = [TransformerBlock(d_model=d_p, num_heads=2, d_ff=8, seed=200 + i) for i in range(2)]
+np.random.seed(42)
+W_out_p = np.random.randn(d_p, len(vocab_p)) * 0.1
+
+# === TODO 1 (Part A): embed the sentence ===
 # idx_p = [vocab_p.index(w) for w in sentence_p]
 # X_p = embed_p[idx_p]
 
-# === TODO 2: compute Q, K, V ===
+# === TODO 2 (Part A): compute Q, K, V ===
 # Q_p = X_p @ WQ_p
 # K_p = X_p @ WK_p
 # V_p = X_p @ WV_p
 
-# === TODO 3: attention ===
+# === TODO 3 (Part A): attention ===
 # scores_p = Q_p @ K_p.T / np.sqrt(d_p)
 # weights_p = softmax(scores_p, axis=-1)
 # output_p = weights_p @ V_p
 
-# === TODO 4: inspect ===
+# === TODO 4 (Part A): inspect ===
 # most_attended = int(np.argmax(weights_p[1]))   # what "cat" (index 1) attends to most
 # print(f'Input shape: {X_p.shape}')
 # print(f'Output shape: {output_p.shape}')
 # print(f'Weights row sums all ~1: {all(abs(s-1.0)<1e-6 for s in weights_p.sum(axis=1))}')
 # print(f'"cat" attends most to index: {most_attended} ({sentence_p[most_attended]})')
+
+# === TODO 5 (Part B, new): add positional encoding, build a causal mask, ===
+# === run X_p through every block in blocks_p ===
+# X_pe = X_p + positional_encoding(len(sentence_p), d_p)
+# mask_p = causal_mask(len(sentence_p))
+# for block in blocks_p:
+#     X_pe = block.forward(X_pe, mask=mask_p)
+
+# === TODO 6 (Part B, new): project to vocab logits, softmax, predict ===
+# logits_p = X_pe @ W_out_p
+# probs_p = softmax(logits_p, axis=-1)
+# predicted_p = [vocab_p[i] for i in np.argmax(probs_p, axis=-1)]
+# print(f'Block stack output shape: {X_pe.shape}')
+# print(f'Logits shape: {logits_p.shape}')
+# print(f'Probs row sums all ~1: {all(abs(s-1.0)<1e-6 for s in probs_p.sum(axis=1))}')
+# print(f'Predicted tokens: {predicted_p}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -989,6 +1332,10 @@ WV_p = np.random.randn(d_p, d_p).round(2)
     <div class="check-item"><span class="check-icon">📐</span>Output shape: (5, 4)</div>
     <div class="check-item"><span class="check-icon">✅</span>Weights row sums all ~1: True</div>
     <div class="check-item"><span class="check-icon">🎯</span>"cat" attends most to index: 0 (the)</div>
+    <div class="check-item"><span class="check-icon">📐</span>Block stack output shape: (5, 4)</div>
+    <div class="check-item"><span class="check-icon">📐</span>Logits shape: (5, 5)</div>
+    <div class="check-item"><span class="check-icon">✅</span>Probs row sums all ~1: True</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Predicted tokens: ['on', 'on', 'on', 'on', 'cat']</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1344,7 +1691,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['input shape: (5, 4)','output shape: (5, 4)','weights row sums all ~1: true','"cat" attends most to index: 0 (the)'];
+  const checks=['input shape: (5, 4)','output shape: (5, 4)','weights row sums all ~1: true','"cat" attends most to index: 0 (the)','block stack output shape: (5, 4)','logits shape: (5, 5)','probs row sums all ~1: true',"predicted tokens: ['on', 'on', 'on', 'on', 'cat']"];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c.toLowerCase()));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){

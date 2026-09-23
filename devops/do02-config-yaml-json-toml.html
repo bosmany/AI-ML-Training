@@ -1407,7 +1407,22 @@ yq <span class="st">'.services | keys'</span> docker-compose.yml                
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Reference-only:</strong> these are shell tools that need a real cluster or filesystem, so there is no Run button. Writing your own small Python linter (as above) is still valuable: it is trivial to run in CI, you control the rules, and interviewers ask you to <em>write</em> exactly this kind of check.</div></div>
 
 
-  <div class="lesson-h2">2.9 — Reading Terraform Plan JSON: Summarize Changes and Gate Dangerous Ones</div>
+  <!-- iximiuz:start -->
+<style>
+.info-box.ix{background:var(--violet-bg);border:1px solid rgba(124,92,252,.28);color:var(--text)}
+html[data-theme="light"] .info-box.ix{border-color:rgba(91,63,224,.32)}
+.info-box.ix .ib-body strong{display:block;font-weight:700;margin-bottom:4px;color:var(--text)}
+.info-box.ix .ib-body p{margin:6px 0 0;color:var(--t2);font-weight:400}
+.ix-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ix-btn{display:inline-flex;align-items:center;gap:6px;background:var(--violet);color:#fff;border-radius:20px;padding:8px 16px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.ix-btn:hover{background:var(--violet-light)}
+.ix-btn.ix-btn2{background:transparent;border:1px solid var(--border);color:var(--t2)}
+.ix-btn.ix-btn2:hover{border-color:var(--violet);color:var(--violet)}
+.ix-note{font-size:11.5px;color:var(--t3);margin-top:9px}
+</style>
+<div class="info-box ix"><div class="ib-icon">&#129514;</div><div class="ib-body"><strong>Try it on iximiuz Labs: Kubernetes playground</strong><p>A real cluster to run the &quot;reference only&quot; commands from 2.8 (<code>kubectl diff</code>, <code>kubectl apply --dry-run=server</code>) for real, against an actual API server.</p><p>Try it: write a Deployment manifest with an unpinned <code>:latest</code> image (the exact anti-pattern this lesson's linter flags), then run <code>kubectl apply --dry-run=server</code> against it.</p><p>Verify: the dry-run succeeds (the API server doesn't reject unpinned tags on its own) &mdash; which is exactly why the policy-check step this lesson builds has to catch it before deploy.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/k8s-omni" target="_blank" rel="noopener">Launch Kubernetes playground &#8599;</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">2.9 — Reading Terraform Plan JSON: Summarize Changes and Gate Dangerous Ones</div>
   <p class="lesson-p"><code>terraform plan</code> can emit a machine-readable plan (<code>terraform show -json</code>). Its <code>resource_changes</code> array lists every resource with <code>change.actions</code>: <code>["create"]</code>, <code>["update"]</code>, <code>["delete"]</code>, <code>["no-op"]</code> — and a <strong>replacement</strong> appears as <code>["delete","create"]</code> (destroy then recreate). That last one is the dangerous surprise: an innocent-looking change to an immutable attribute on a database <em>replaces</em> it. A short Python gate in CI that summarizes the plan and blocks destructive changes to stateful resources is a very common, very valuable script.</p>
 
   <div class="code-block">

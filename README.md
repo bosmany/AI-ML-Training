@@ -19,6 +19,8 @@ A self-built, 46-chapter, browser-based AI/ML curriculum — Python fundamentals
 - **Console you can minimize** (button or Ctrl+`), and no more content hidden behind it.
 - **`labs/`**: eight local pytest-graded projects (boto3+moto, Kubernetes triage, FastAPI, drift monitoring, ...).
 - **CI**: every exercise solution is re-run under real Pyodide on each push, plus a browser smoke test, notebook execution and the labs.
+- **`advanced/` (AI/ML + MLOps Mastery)**: 7 chapters extending the core curriculum for someone with a DevOps background — advanced PyTorch (autograd/AMP/profiling/DDP), LLM fine-tuning (LoRA/QLoRA, doubles as the fine-tuning capstone), LLM inference & serving (batching/KV-cache/vLLM concepts), evaluation beyond accuracy (calibration, RAG/LLM-as-judge), data engineering for ML, AI/ML system design patterns, and research skills.
+- **`fromscratch/` (From-Scratch Track)**: 2 practice chapters (not re-teaching) that walk guided → blank-page → modify → debug-broken → mini-project for linear/logistic regression, gradient descent, backprop, attention, a full Transformer block, and a framework-free RAG pipeline.
 
 ## 🏗️ Featured Projects
 
@@ -33,7 +35,7 @@ Full course map, live progress tracking, and every bonus module: open [`index.ht
 
 ---
 
-## Status: all 46 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, and Python for MLOps modules.
+## Status: all 46 chapters complete and verified. Plus bonus Interview Mastery, DSA, Portfolio Packaging, Systems Fundamentals, Python for DevOps, Python for MLOps, Projects Lab, Broken-System Labs, Senior Engineering, an interview question bank, an **AI/ML + MLOps Mastery** track (7 chapters: advanced PyTorch, LLM fine-tuning, LLM inference/serving, evaluation, data engineering, AI/ML system design, research skills), and a **From-Scratch** track (2 chapters: classical ML and attention/Transformers/RAG, implemented with no framework).
 
 An interactive, self-contained, browser-based course that takes someone from zero programming knowledge to a working AI/ML skillset — Python fundamentals, math, data tools, classical ML, deep learning, NLP/LLMs, and MLOps deployment.
 

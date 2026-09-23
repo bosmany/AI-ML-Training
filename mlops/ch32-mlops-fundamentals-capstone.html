@@ -508,13 +508,8 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
       <span class="badge">🧪 Quiz to complete</span>
       <span class="badge">💼 Interview Prep included</span>
     </div>
-  </div>
-
-
-
-
-
-<!-- videos:start -->
+  </div>  <!-- 32.1 -->
+  <!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
 .vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -568,8 +563,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-  <!-- 32.1 -->
-  <div class="lesson-h2">32.1 — Experiment Tracking</div>
+<div class="lesson-h2">32.1 — Experiment Tracking</div>
   <p class="lesson-p">Training a model 20 different ways (different features, hyperparameters, random seeds) without recording what you tried is how "which run was the good one?" becomes unanswerable a week later. <strong>MLflow</strong> is the standard tool: log parameters, metrics, and the model artifact itself for every run, then compare runs in a UI.</p>
 
   <div class="code-block">
@@ -633,14 +627,69 @@ jobs:
       - run: python promote_to_registry.py</div>
   </div>
 
+  <!-- 32.5 -->
+  <!-- iximiuz:start -->
+<style>
+.info-box.ix{background:var(--violet-bg);border:1px solid rgba(124,92,252,.28);color:var(--text)}
+html[data-theme="light"] .info-box.ix{border-color:rgba(91,63,224,.32)}
+.info-box.ix .ib-body strong{display:block;font-weight:700;margin-bottom:4px;color:var(--text)}
+.info-box.ix .ib-body p{margin:6px 0 0;color:var(--t2);font-weight:400}
+.ix-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ix-btn{display:inline-flex;align-items:center;gap:6px;background:var(--violet);color:#fff;border-radius:20px;padding:8px 16px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.ix-btn:hover{background:var(--violet-light)}
+.ix-btn.ix-btn2{background:transparent;border:1px solid var(--border);color:var(--t2)}
+.ix-btn.ix-btn2:hover{border-color:var(--violet);color:var(--violet)}
+.ix-note{font-size:11.5px;color:var(--t3);margin-top:9px}
+</style>
+<div class="info-box ix"><div class="ib-icon">&#129514;</div><div class="ib-body"><strong>Try it on iximiuz Labs: GitOps Bootstrap playground</strong><p>A real, running GitOps pipeline you can push commits to and watch auto-deploy &mdash; the concrete version of the &quot;CI/CD for ML: automated retraining&quot; idea in 32.4.</p><p>Try it: change a manifest or a value, push it, and watch the pipeline pick up the change and roll it out on its own, the way an automated retrain-and-redeploy job would.</p><p>Verify: you can see the deploy actually happen from a git push, with no manual <code>kubectl apply</code> step.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/gitops-bootstrap-playground-f5b48c3a" target="_blank" rel="noopener">Launch GitOps Bootstrap playground &#8599;</a><a class="ix-btn ix-btn2" href="https://labs.iximiuz.com/playgrounds?category=ci-cd" target="_blank" rel="noopener">Browse CI/CD playgrounds</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">32.5 — Kubernetes Rollout &amp; a Rehearsed Rollback</div>
+  <p class="lesson-p">You already know a Kubernetes <code>Deployment</code>/<code>Service</code> rolling update in general — what's different for a model is that a bad rollout usually doesn't crash or 500; the pods stay healthy (Chapter 31's health check keeps passing) while the model quietly gets worse. So a model rollout is done as a <strong>canary</strong>: split a small percentage of live traffic to the new version behind the same Service, watch its real metric (not just pod liveness), and only shift the rest of the traffic over once it holds up. The gate is the same idea as 32.4's CI/CD gate, just applied continuously instead of once: if the candidate's metric regresses past a threshold, re-point traffic back at the last-good version automatically — this is what makes rollback a config change measured in minutes, not a redeploy.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Rehearsed rollback — deterministic simulation</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># traffic starts fully on v1, the last-good version</span>
+rollout = {<span class="st">'active'</span>: <span class="st">'v1'</span>, <span class="st">'last_good'</span>: <span class="st">'v1'</span>, <span class="st">'traffic'</span>: {<span class="st">'v1'</span>: <span class="nm">100</span>, <span class="st">'v2'</span>: <span class="nm">0</span>}}
+
+<span class="cm"># candidate v2's real accuracy on each simulated batch of canary traffic</span>
+candidate_scores = np.array([<span class="nm">0.81</span>, <span class="nm">0.79</span>, <span class="nm">0.62</span>, <span class="nm">0.58</span>, <span class="nm">0.60</span>])
+baseline_score = <span class="nm">0.80</span>          <span class="cm"># v1's known-good metric</span>
+REGRESSION_THRESHOLD = <span class="nm">0.10</span>   <span class="cm"># roll back if v2 drops &gt;10% relative to v1</span>
+
+rollout[<span class="st">'traffic'</span>] = {<span class="st">'v1'</span>: <span class="nm">90</span>, <span class="st">'v2'</span>: <span class="nm">10</span>}   <span class="cm"># start the canary at 10%</span>
+<span class="bi">print</span>(<span class="st">f"Canary started: <span class="bi">{rollout['traffic']}</span>"</span>)
+
+<span class="kw">for</span> i, score <span class="kw">in</span> <span class="bi">enumerate</span>(candidate_scores, start=<span class="nm">1</span>):
+    relative_drop = (baseline_score - score) / baseline_score
+    <span class="bi">print</span>(<span class="st">f'  batch <span class="bi">{i}</span>: v2 accuracy=<span class="bi">{score:.2f}</span>, relative drop=<span class="bi">{relative_drop:.2%}</span>'</span>)
+    <span class="kw">if</span> relative_drop > REGRESSION_THRESHOLD:
+        rollout[<span class="st">'traffic'</span>] = {<span class="st">'v1'</span>: <span class="nm">100</span>, <span class="st">'v2'</span>: <span class="nm">0</span>}
+        rollout[<span class="st">'active'</span>] = rollout[<span class="st">'last_good'</span>]
+        <span class="bi">print</span>(<span class="st">f"  regression &gt; <span class="bi">{REGRESSION_THRESHOLD:.0%}</span> -&gt; rolling back: traffic = <span class="bi">{rollout['traffic']}</span>"</span>)
+        <span class="kw">break</span>
+<span class="kw">else</span>:
+    rollout[<span class="st">'active'</span>] = <span class="st">'v2'</span>
+    rollout[<span class="st">'last_good'</span>] = <span class="st">'v2'</span>
+    <span class="bi">print</span>(<span class="st">f"  canary held for all batches -&gt; promoting: traffic = <span class="bi">{rollout['traffic']}</span>"</span>)
+
+<span class="bi">print</span>(<span class="st">f"Final state: <span class="bi">{rollout}</span>"</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Real tooling does this same check, automatically</strong>: Argo Rollouts and Flagger run exactly this canary-analysis loop against a live Kubernetes Service — weight traffic, query a real metric (Prometheus, a custom endpoint), and flip traffic back on regression — instead of a hand-rolled <code>for</code> loop.</div></div>
+
   <!-- Summary -->
-  <div class="lesson-h2">Chapter 32 Summary — Core Curriculum Complete</div>
+  <!-- iximiuz:start -->
+<div class="info-box ix"><div class="ib-icon">&#129514;</div><div class="ib-body"><strong>Try it on iximiuz Labs: Kubernetes playground</strong><p>A real cluster to rehearse the rollout &amp; rollback this section just described.</p><p>Try it: <code>kubectl apply</code> a Deployment, then <code>kubectl set image</code> to roll out a &quot;bad&quot; version, watch <code>kubectl rollout status</code>, and run <code>kubectl rollout undo</code> to roll back.</p><p>Verify: <code>kubectl rollout history</code> shows both revisions, and the undo actually restores the previous, working pods.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/k8s-omni" target="_blank" rel="noopener">Launch Kubernetes playground &#8599;</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">Chapter 32 Summary — Core Curriculum Complete</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>Experiment tracking</strong> (MLflow) records every training run's params/metrics/artifacts so nothing is a guess later.</div></li>
     <li data-n="2"><div><strong>Model registries</strong> make "what's in production, and how do I roll back" a solved problem.</div></li>
     <li data-n="3"><div><strong>Drift detection</strong> catches when production data has quietly diverged from training data.</div></li>
     <li data-n="4"><div><strong>CI/CD for ML</strong> automates retraining and gates deployment on the new model actually being better.</div></li>
-    <li data-n="5"><div>That's the full 32-chapter core curriculum: Python → Math → Data Tools → Classical ML → Deep Learning → NLP/LLMs → MLOps. Module 8's production projects put all of it together.</div></li>
+    <li data-n="5"><div><strong>Canary rollout on Kubernetes</strong> gates promotion on the model's real metric, not just pod health, so a regression re-points traffic to the last-good version in minutes.</div></li>
+    <li data-n="6"><div>That's the full 32-chapter core curriculum: Python → Math → Data Tools → Classical ML → Deep Learning → NLP/LLMs → MLOps. Module 8's production projects put all of it together.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">

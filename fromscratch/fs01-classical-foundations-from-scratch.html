@@ -3,19 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>AI/ML: Zero to Hero — Chapter 16: Linear &amp; Logistic Regression</title>
+<title>AI/ML: Zero to Hero — From-Scratch 1: Classical Foundations From Scratch</title>
 <!-- USAGE:
   Open this file in Chrome, Firefox or Edge. Needs internet ONCE per session to load Pyodide
-  (real CPython + NumPy + Pandas + scikit-learn compiled to WebAssembly). Your progress on this
-  chapter is saved to this browser's localStorage automatically.
+  (real CPython + NumPy compiled to WebAssembly). This is the first chapter of the FROM-SCRATCH
+  track: a PRACTICE module, not a re-teaching module. Every exercise, the project, and every
+  runnable lesson snippet execute for real in the browser. Nothing here needs a GPU.
 -->
-<!-- theme:early -->
-<script>
-(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
-if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
-document.documentElement.setAttribute('data-theme',t)})();
-</script>
-<!-- /theme:early -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,600;1,400&display=swap" rel="stylesheet"/>
 <style>
 :root{
@@ -50,14 +44,8 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .sb-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:12.5px;color:var(--t2);cursor:pointer;transition:all .12s;border-left:2px solid transparent}
 .sb-item:hover{background:var(--card2);color:var(--text)}
 .sb-item.active{background:var(--violet-bg);color:var(--violet);border-left-color:var(--violet);font-weight:600}
-.sb-item.done{color:var(--cyan)}
-.sb-item.done .sb-icon{color:var(--cyan)}
 .sb-icon{font-size:12px;width:16px;text-align:center;flex-shrink:0}
 .sb-step{flex:1}
-.sb-tick{font-size:11px;margin-left:auto}
-.progress-bar{height:3px;background:var(--border);margin:8px 16px 4px;border-radius:2px}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--cyan));border-radius:2px;transition:width .5s ease}
-.sb-progress-text{padding:4px 16px 12px;font-size:11px;color:var(--t3)}
 
 #topbar{background:var(--card);border-bottom:1px solid var(--border);padding:0 32px;height:56px;display:flex;align-items:center;gap:16px;position:sticky;top:0;z-index:40;margin-right:420px}
 .tb-chapter{font-size:13px;font-weight:700;color:var(--violet)}
@@ -72,10 +60,8 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .stab{padding:10px 22px;font-size:13px;font-weight:600;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;white-space:nowrap}
 .stab:hover{color:var(--text)}
 .stab.active{color:var(--violet);border-bottom-color:var(--violet)}
-.stab.done-tab{color:var(--cyan)}
 
 .lesson-section{display:none}.lesson-section.show{display:block}
-.prereq-note{display:flex;gap:10px;align-items:center;background:var(--gold-bg);border:1px solid rgba(255,184,0,.2);color:#FCD34D;border-radius:10px;padding:10px 16px;font-size:12.5px;margin-bottom:20px}
 
 .lesson-intro{background:linear-gradient(135deg,rgba(124,92,252,.12),rgba(0,217,166,.06));border:1px solid rgba(124,92,252,.25);border-radius:14px;padding:28px 32px;margin-bottom:32px}
 .lesson-intro h1{font-size:28px;font-weight:800;line-height:1.2;margin-bottom:10px}
@@ -83,6 +69,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .lesson-intro p{font-size:14px;color:var(--t2);line-height:1.75;max-width:600px}
 .lesson-intro .badge-row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:5px;background:var(--card);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--t2)}
+.badge.capstone{background:var(--violet-bg);border-color:rgba(124,92,252,.3);color:var(--violet)}
 
 .lesson-h2{font-size:20px;font-weight:800;margin:36px 0 12px;display:flex;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid var(--border)}
 .lesson-h2::before{content:'';display:block;width:4px;height:20px;background:var(--violet);border-radius:2px;flex-shrink:0}
@@ -104,7 +91,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .cb-run{display:flex;align-items:center;gap:5px;background:var(--violet);color:#fff;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;transition:background .12s}
 .cb-run:hover{background:var(--violet-light)}
 .cb-code{padding:16px;font-family:var(--mono);font-size:12.5px;line-height:1.85;overflow-x:auto;white-space:pre;color:#DDE8F5}
-.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}
+.kw{color:#FF7B72}.fn{color:#D2A8FF}.st{color:#A5D6FF}.cm{color:#4A5A72;font-style:italic}.nm{color:#79C0FF}.bi{color:#FFA657}.op{color:#FF7B72}.cls{color:#7EE787}
 
 .lesson-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:13px}
 .lesson-table th{background:var(--card2);padding:10px 14px;text-align:left;font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);border:1px solid var(--border)}
@@ -172,7 +159,7 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .pe-title{font-size:13px;font-weight:700}
 .pe-run{background:var(--violet);color:#fff;border-radius:7px;padding:7px 16px;font-size:12.5px;font-weight:700;display:flex;align-items:center;gap:6px}
 .pe-run:hover{background:var(--violet-light)}
-textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:340px;line-height:1.7;display:block;tab-size:4}
+textarea#project-editor{width:100%;background:#0A0C12;border:none;padding:16px;font-family:var(--mono);font-size:12.5px;color:var(--text);resize:none;min-height:420px;line-height:1.7;display:block;tab-size:4}
 textarea#project-editor:focus{outline:none}
 .pe-output{border-top:1px solid var(--border);padding:14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;background:#050608;min-height:60px;white-space:pre-wrap;color:var(--t2)}
 .pe-output.has-output{color:var(--text)}
@@ -275,6 +262,7 @@ textarea#project-editor:focus{outline:none}
 
 .spark{position:fixed;pointer-events:none;z-index:9999;animation:spark .7s ease-out forwards;font-size:20px}
 @keyframes spark{0%{transform:scale(.2) translateY(0);opacity:1}100%{transform:scale(1.4) translateY(-80px);opacity:0}}
+
 /* console minimize */
 #content{min-width:0}
 .cd-title{white-space:nowrap}
@@ -288,6 +276,13 @@ textarea#project-editor:focus{outline:none}
 @media(min-width:821px){body.cd-min #topbar,body.cd-min #main-content{margin-right:0}}
 @media(max-width:820px){#console-dock.cd-min{width:100%;border-top-left-radius:0}}
 </style>
+<!-- theme:early -->
+<script>
+(function(){var t=null;try{var v=localStorage.getItem('aimlZTH_theme');if(v==='light'||v==='dark')t=v}catch(e){}
+if(!t){try{t=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches)?'light':'dark'}catch(e){t='dark'}}
+document.documentElement.setAttribute('data-theme',t)})();
+</script>
+<!-- /theme:early -->
 <!-- theme:css -->
 <style>
 /* theme: light/dark ------------------------------------------------------ */
@@ -415,6 +410,22 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 }
 </style>
 <!-- /theme:css -->
+<style>
+/* from-scratch chapter extras (variables only) */
+.lesson-h3{font-size:15.5px;font-weight:700;margin:24px 0 8px;color:var(--text);display:flex;align-items:center;gap:8px}
+.lesson-h3::before{content:'';width:8px;height:8px;border-radius:2px;background:var(--cyan);flex-shrink:0}
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+.tt-wrap{overflow-x:auto;margin:16px 0}
+.tt-wrap .lesson-table{margin:0;min-width:480px}
+.lesson-table.tt td{font-family:var(--sans);font-size:13px;color:var(--t2);vertical-align:top;line-height:1.55}
+.lesson-table.tt td:first-child{color:var(--text);font-weight:600}
+.lesson-table.tt code,.lesson-p code,.chk code,.recap code{font-family:var(--mono);font-size:12px}
+.recap{background:var(--violet-bg);border:1px solid var(--border);border-left:3px solid var(--violet);border-radius:10px;padding:12px 18px;margin:18px 0}
+.recap strong.rc-t{display:block;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--violet);margin-bottom:4px}
+.recap ul{margin:0 0 0 18px;font-size:13.5px;color:var(--t2);line-height:1.7}
+</style>
 <!-- feat:search-css:start --><style>
 .aiml-sb{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 11px 0 10px;border-radius:20px;border:1px solid var(--border);background:var(--card2);color:var(--text);font:600 11.5px/1 var(--sans,system-ui,sans-serif);cursor:pointer;flex-shrink:0;white-space:nowrap;transition:border-color .12s;-webkit-tap-highlight-color:transparent}
 .aiml-sb:hover{border-color:var(--violet)}
@@ -434,7 +445,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
 <div id="mob-menu">
   <button id="mob-menu-btn" onclick="toggleSidebar()">☰</button>
-  <div id="mob-title">Ch 16: Linear &amp; Logistic Regression</div>
+  <div id="mob-title">FS 1: Classical Foundations From Scratch</div>
   <!-- feat:search-mob:start --><button type="button" class="aiml-sb aiml-sb-mob" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-mob:end --><button id="mob-console-btn" onclick="toggleMobConsole()">⚡ Console</button>
 </div>
 
@@ -443,29 +454,23 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 <div id="sidebar">
   <a class="sb-logo" href="../index.html">
     <div class="sb-logo-title">AI/ML: Zero to Hero</div>
-    <div class="sb-logo-sub">Module 4 · Chapter 16 of 32</div>
+    <div class="sb-logo-sub">From-Scratch Track · Part 1 of 2</div>
   </a>
-  <a class="sb-back" href="ch15-ml-foundations-workflow.html">← Ch 15: ML Foundations &amp; Workflow</a>
-  <div class="progress-bar"><div class="progress-fill" id="sb-progress" style="width:0%"></div></div>
-  <div class="sb-progress-text" id="sb-progress-text">0% complete</div>
-  <div class="sb-section">Chapter 16</div>
-  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Mini Project</span><span class="sb-tick"></span></div>
-  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (pass to unlock)</span><span class="sb-tick"></span></div>
-  <!-- feat:cheat:start --><a class="sb-item sb-cheat" href="../cheatsheets/ch16.html" title="Printable two-page summary of this chapter"><span class="sb-icon">📄</span><span class="sb-step">Cheat sheet</span></a>
-  <!-- feat:cheat:end --><div class="sb-section" style="margin-top:12px">Coming Next — Module 4</div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 17: Trees, Forests &amp; Ensembles</span></div>
-  <div class="sb-item" style="opacity:.4;cursor:default"><span class="sb-icon">🔒</span><span class="sb-step">Ch 18: Clustering &amp; PCA</span></div>
+  <a class="sb-back" href="../python/oop05-oop-project-testing-pitfalls.html">← OOP 5: Project, Testing &amp; Pitfalls</a>
+  <div class="sb-section">FS 1 · Classical Foundations</div>
+  <div class="sb-item active" id="sb-lesson" onclick="showSection('lesson')"><span class="sb-icon">📖</span><span class="sb-step">Lesson (recap)</span></div>
+  <div class="sb-item" id="sb-practice" onclick="showSection('practice')"><span class="sb-icon">✏️</span><span class="sb-step">Practice (5 exercises)</span></div>
+  <div class="sb-item" id="sb-project" onclick="showSection('project')"><span class="sb-icon">🏗️</span><span class="sb-step">Project</span></div>
+  <div class="sb-item" id="sb-quiz" onclick="showSection('quiz')"><span class="sb-icon">🧪</span><span class="sb-step">Quiz (5 questions)</span></div>
+  <div class="sb-section" style="margin-top:12px">Coming Next — From-Scratch Track</div>
+  <div class="sb-item" style="opacity:.6" onclick="window.location.href='fs02-attention-and-language-models-from-scratch.html'"><span class="sb-icon">🧠</span><span class="sb-step">FS 2: Attention &amp; LMs From Scratch</span></div>
 </div>
 
 <div id="content">
   <div id="topbar">
-    <div class="tb-chapter">Chapter 16</div>
-    <div class="tb-title">Linear &amp; Logistic Regression</div>
+    <div class="tb-chapter">From-Scratch 1 of 2</div>
+    <div class="tb-title">Classical Foundations From Scratch</div>
     <div class="tb-gap"></div><!-- feat:search-btn:start --><button type="button" class="aiml-sb aiml-sb-bar" data-aiml-search aria-haspopup="dialog" aria-label="Search the course (Ctrl+K)" title="Search (Ctrl+K or /)"><span aria-hidden="true">🔍</span><span class="aiml-sb-t">Search</span><kbd>Ctrl K</kbd></button><!-- feat:search-btn:end -->
-    <div class="tb-chip">⚡ <span id="xp-count" class="val">0</span> XP</div>
-    <div class="tb-chip">✅ <span id="done-count" class="val">0</span>/7 done</div>
     <div class="tb-chip" id="py-chip">🟡 <span>Loading Python...</span></div>
   </div>
 
@@ -478,19 +483,16 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     </div>
 
 <div class="lesson-section show" id="sec-lesson">
-  <div class="prereq-note" id="prereq-note" style="display:none">⚠️ <span>Looks like you haven't passed the Chapter 15 quiz in this browser yet.</span></div>
-
   <div class="lesson-intro">
-    <h1>Chapter 16:<br/><span>Linear &amp; Logistic Regression</span></h1>
-    <p>Chapter 10 built gradient descent linear regression from raw NumPy — a loop, a gradient formula, 2000 steps. That was never really about linear regression; it was about proving there's no magic underneath. This chapter shows the one-line sklearn version of the SAME algorithm, then extends the idea to <strong>classification</strong>: logistic regression, which squashes a linear combination of features through a sigmoid curve to output a probability between 0 and 1. Regression predicts a NUMBER; logistic regression predicts a PROBABILITY that becomes a class.</p>
+    <h1>From-Scratch 1:<br/><span>Classical Foundations From Scratch</span></h1>
+    <p>This is a PRACTICE chapter, not a re-teaching chapter. You already met closed-form and gradient-descent linear regression, logistic regression, and manual backpropagation earlier in the course. Here you rebuild the core pieces yourself — guided, then blank-page, then modifying a working optimizer, then debugging someone else's broken backprop, then assembling all of it into one real trainer — so the ideas move from "I followed along" to "I can produce this from memory."</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~35 min read + hands-on</span>
       <span class="badge">💻 5 exercises</span>
-      <span class="badge">🏗️ 1 mini project</span>
-      <span class="badge">🧪 Quiz to complete</span>
+      <span class="badge">🏗️ 1 project</span>
+      <span class="badge">🧪 5-question quiz</span>
     </div>
-  </div>  <!-- 16.1 -->
-  <!-- videos:start -->
+  </div><!-- SEC:01:start --><!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
 .vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -511,7 +513,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </style>
 <div class="vid-panel" id="vid-panel">
   <div class="vid-head"><strong>&#9654; Watch first</strong><span class="vid-sub">Hand-picked videos on this chapter's trickiest ideas &mdash; they play right here.</span></div>
-  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="nk2CQITm_eo" data-title="Linear Regression, Clearly Explained!!!" data-chan="StatQuest with Josh Starmer">Linear regression</button><button type="button" class="vid-tab" role="tab" data-id="yIYKR4sgzI8" data-title="StatQuest: Logistic Regression" data-chan="StatQuest with Josh Starmer">Logistic regression</button></div>
+  <div class="vid-tabs" role="tablist"><button type="button" class="vid-tab active" role="tab" data-id="8jazNUpO3lQ" data-title="Machine Learning Tutorial Python - 2: Linear Regression Single Variable" data-chan="codebasics">Linear regression, coded</button><button type="button" class="vid-tab" role="tab" data-id="CKLwvuKWQjo" data-title="Tutorial 14- Stochastic Gradient Descent with Momentum" data-chan="Krish Naik">Momentum</button><button type="button" class="vid-tab" role="tab" data-id="VMj-3S1tku0" data-title="The spelled-out intro to neural networks and backpropagation: building micrograd" data-chan="Andrej Karpathy">Backprop &amp; micrograd from scratch</button></div>
   <div class="vid-stage"></div>
   <div class="vid-meta"></div>
 </div>
@@ -544,214 +546,216 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-<div class="lesson-h2">16.1 — Recap: Linear Regression From Scratch</div>
-  <p class="lesson-p">Chapter 10's capstone fit <code>y = w·x + b</code> by repeatedly computing the MSE gradient and stepping downhill. Same data, same loop, one more time — this is what every regression library is doing under the hood.</p>
+<div class="lesson-h2">1.1 — What "From Scratch" Means Here</div>
+<p class="lesson-p"><code>math/ch10-calculus-optimization.html</code> already built gradient descent from raw NumPy. <code>ml/ch16-linear-logistic-regression.html</code> already fit both regressions with a one-line scikit-learn call. <code>dl/ch21-neural-network-fundamentals.html</code> already hand-derived backpropagation for a 2-layer network. None of that is re-taught here — this chapter assumes you can read a gradient formula, know what a learning rate and an epoch are, and have seen a sigmoid before. If any of that is shaky, go read those three chapters first; this one moves fast and stays almost entirely in code.</p>
+<p class="lesson-p">What this chapter adds is repetition with the training wheels off. Chapter 10 gave you the gradient-descent loop with the gradient formula already substituted in. Chapter 16 gave you the sklearn one-liner. Chapter 21 gave you a working backprop implementation to read. Here you write the gradient yourself (exercise 1), write the whole thing with nothing scaffolded (exercise 2), extend a working optimizer (exercise 3), fix someone else's broken backprop using nothing but the error it produces (exercise 4), and finally assemble forward pass, backprop, and an optimizer better than plain SGD into one trainer that has to actually reach a target loss (exercise 5, then a bigger version as the Project).</p>
+<p class="lesson-p">Every exercise reuses the same running idea: fit a small model to a small toy dataset, using nothing but NumPy and a training loop you write or fix yourself. That is the entire "from scratch" premise — no autograd, no framework, just the linear algebra and the chain rule doing the work in plain sight.</p>
+<!-- SEC:01:end -->
 
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Gradient descent linear regression, from Chapter 10</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-
-x = np.array([<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">4</span>,<span class="nm">5</span>], dtype=<span class="bi">float</span>)
-y = np.array([<span class="nm">3</span>,<span class="nm">5</span>,<span class="nm">7</span>,<span class="nm">9</span>,<span class="nm">11</span>], dtype=<span class="bi">float</span>)   <span class="cm"># true relationship: y = 2x + 1</span>
-n = <span class="bi">len</span>(x)
-w, b = <span class="nm">0.0</span>, <span class="nm">0.0</span>
-learning_rate = <span class="nm">0.01</span>
-
-<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">2000</span>):
+<!-- SEC:02:start -->
+<div class="lesson-h2">1.2 — Recap: Linear Regression, Closed Form vs. Gradient Descent</div>
+<p class="lesson-p">For one feature and squared error, the best-fit line has an exact formula — no iteration required. It falls straight out of setting the derivative of the loss to zero (the same derivative rule from ch10): the slope is the covariance of x and y divided by the variance of x, and the intercept follows from the means.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">closed-form-linear-regression.py</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+x = np.array([1.0, 2.0, 3.0, 4.0])
+y = np.array([3.0, 5.0, 7.0, 9.0])            # true relationship: y = 2x + 1
+x_mean, y_mean = x.mean(), y.mean()
+w = np.sum((x - x_mean) * (y - y_mean)) / np.sum((x - x_mean) ** 2)
+b = y_mean - w * x_mean
+print(f"w = {w:.3f}, b = {b:.3f}")</div>
+</div>
+<p class="lesson-p">Gradient descent solves the exact same problem a different way: start anywhere, repeatedly nudge <code>w</code> and <code>b</code> opposite the gradient of the loss, and stop after enough steps. Same convention as ch10 — <code>error = predictions - y</code>, <code>dw = (2/n) * sum(error * x)</code>, <code>db = (2/n) * sum(error)</code>.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">gradient-descent-linear-regression.py</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+x = np.array([1.0, 2.0, 3.0, 4.0])
+y = np.array([3.0, 5.0, 7.0, 9.0])
+w, b = 0.0, 0.0
+learning_rate = 0.05
+n = len(x)
+for step in range(500):
     predictions = w * x + b
     error = predictions - y
-    dw = (<span class="nm">2</span> / n) * np.<span class="fn">sum</span>(error * x)
-    db = (<span class="nm">2</span> / n) * np.<span class="fn">sum</span>(error)
+    dw = (2 / n) * np.sum(error * x)
+    db = (2 / n) * np.sum(error)
     w -= learning_rate * dw
     b -= learning_rate * db
+print(f"w = {w:.3f}, b = {b:.3f}")</div>
+</div>
+<p class="lesson-p">Both land on the same <code>w = 2.000, b = 1.000</code>. So why bother with the iterative version at all when the exact formula exists? Because the closed form is a special case: it only exists because squared error plus a linear model happens to have a solvable derivative. The moment you add a sigmoid (logistic regression) or a hidden layer (a neural net), there is no clean formula to solve for — gradient descent is the technique that still works. Exercise 1 asks you to reproduce this side-by-side comparison yourself, with the gradient formulas removed.</p>
+<!-- SEC:02:end -->
 
-<span class="bi">print</span>(<span class="st">f'Learned w: <span class="bi">{w:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Learned b: <span class="bi">{b:.4f}</span>'</span>)</div>
-  </div>
+<!-- SEC:03:start -->
+<div class="lesson-h2">1.3 — Recap: Logistic Regression, From a Line to a Probability</div>
+<p class="lesson-p">Logistic regression keeps the same linear combination <code>z = X @ w + b</code> from linear regression, then squashes it through the sigmoid function so the output lands in (0, 1) and can be read as a probability.</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">sigmoid.py</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+for z in [-4, -1, 0, 1, 4]:
+    print(f"sigmoid({z}) = {sigmoid(z):.4f}")</div>
+</div>
+<p class="lesson-p">The cost function changes too: instead of mean squared error, logistic regression minimizes log-loss (cross-entropy). This is not a stylistic choice. Squaring the error of a sigmoid output produces a loss surface with large FLAT regions whenever the model is confidently wrong — the gradient nearly vanishes exactly when you need it most. Log-loss keeps the gradient large in proportion to how wrong the confident prediction is, and it stays convex for this model, so gradient descent has a well-behaved surface to walk down. The elegant part: once you take the derivative through the sigmoid and the log-loss together, the gradient comes out in the exact same SHAPE as linear regression's — <code>dw = (1/n) * X.T @ (predictions - y)</code>, <code>db = (1/n) * sum(predictions - y)</code>. Same update rule, different <code>predictions</code>. Exercise 2 asks you to implement this entire pipeline — sigmoid, cost, gradients, training loop, evaluation — from a blank page, with only the dataset and the expected printed output given.</p>
+<!-- SEC:03:end -->
 
-  <!-- 16.2 -->
-  <div class="lesson-h2">16.2 — The Same Thing, One Line: sklearn.linear_model.LinearRegression</div>
-  <p class="lesson-p"><code>LinearRegression()</code> solves for the exact best-fit line directly (no loop, no learning rate to tune) using linear algebra rather than iterative gradient descent. After <code>.fit(X, y)</code>, the learned slope(s) live in <code>.coef_</code> and the intercept in <code>.intercept_</code> — and <code>.predict()</code> uses them on new inputs.</p>
+<!-- SEC:04:start -->
+<div class="lesson-h2">1.4 — Beyond Plain SGD: Momentum (and a Nod to Adam)</div>
+<p class="lesson-p">Plain SGD (what you just used twice above) follows the raw gradient every step, with one shared learning rate. That works fine when the loss surface is a nice round bowl. Real loss surfaces are usually ill-conditioned — steep in some directions, shallow in others — and a single learning rate that is safe for the steep direction is painfully slow for the shallow one. <strong>Momentum</strong> fixes this by keeping a running "velocity": instead of stepping by the raw gradient, you step by an exponentially-weighted average of recent gradients.</p>
+<div class="diagram"><div class="dg-t">plain SGD vs. momentum, one parameter update</div><pre>plain SGD:    w = w - lr * grad(w)
 
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">LinearRegression().fit()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+momentum:     v = beta * v - lr * grad(w)      # beta ~ 0.9: how much of the PAST velocity survives
+              w = w + v</pre></div>
+<p class="lesson-p">On a direction where the gradient keeps pointing the same way, velocity keeps accumulating and you travel further per step. On a direction where the gradient keeps flipping sign (the oscillating, steep direction), the flips partially cancel inside the running average, damping the oscillation instead of letting it dominate. Below is that effect on a deliberately ill-conditioned bowl — steep in one direction, shallow in the other — after the same fixed number of steps and the same learning rate for both:</p>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">momentum-vs-plain-sgd.py</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+def grad(w):
+    return np.array([2.0 * w[0], 40.0 * w[1]])   # steep in w[1], shallow in w[0]
 
-x = np.array([<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>,<span class="nm">4</span>,<span class="nm">5</span>], dtype=<span class="bi">float</span>).reshape(-<span class="nm">1</span>,<span class="nm">1</span>)   <span class="cm"># sklearn wants 2D X</span>
-y = np.array([<span class="nm">3</span>,<span class="nm">5</span>,<span class="nm">7</span>,<span class="nm">9</span>,<span class="nm">11</span>], dtype=<span class="bi">float</span>)
+lr = 0.02
+w_plain = np.array([5.0, 5.0])
+w_mom = np.array([5.0, 5.0])
+v = np.zeros(2)
+beta = 0.85
+for step in range(60):
+    w_plain = w_plain - lr * grad(w_plain)
+    v = beta * v - lr * grad(w_mom)
+    w_mom = w_mom + v
 
-model = LinearRegression()
-model.fit(x, y)
+loss_plain = w_plain[0]**2 + 20*w_plain[1]**2
+loss_mom = w_mom[0]**2 + 20*w_mom[1]**2
+print(f"plain SGD loss after 60 steps: {loss_plain:.4f}")
+print(f"momentum loss after 60 steps: {loss_mom:.4f}")</div>
+</div>
+<p class="lesson-p">Same 60 steps, same learning rate, and momentum ends up over a hundred times closer to the minimum. <code>dl/ch22-intro-to-pytorch.html</code> showed you <code>torch.optim.Adam(...)</code> as a one-line black box — the table below places it next to what you are about to build.</p>
+<div class="tt-wrap"><table class="lesson-table tt">
+<tr><th>Optimizer</th><th>Update rule</th><th>What it fixes</th><th>Extra memory</th></tr>
+<tr><td>Plain SGD</td><td><code>w -= lr * grad</code></td><td>Nothing extra — one gradient, one step</td><td>None</td></tr>
+<tr><td>Momentum</td><td><code>v = beta*v - lr*grad; w += v</code></td><td>Oscillation on ill-conditioned or noisy loss surfaces, by remembering recent direction</td><td>One velocity array per parameter</td></tr>
+<tr><td>Adam</td><td>Tracks a running mean of the gradient AND of its square, then divides the step by the square root of that second moment</td><td>Different parameters needing very different step sizes — the common case in deep, multi-layer networks</td><td>Two arrays per parameter</td></tr>
+</table></div>
+<p class="lesson-p">Exercise 3 gives you a working plain-SGD trainer and asks you to add the momentum block yourself, on a fresh ill-conditioned problem, and show the numbers proving it converges faster.</p>
+<!-- SEC:04:end -->
 
-<span class="bi">print</span>(<span class="st">f'coef: <span class="bi">{model.coef_[0]:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'intercept: <span class="bi">{model.intercept_:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'predict(6): <span class="bi">{model.predict([[6]])[0]:.4f}</span>'</span>)</div>
-  </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Same answer, no loop.</strong> <code>coef_=2.0000</code>, <code>intercept_=1.0000</code> — exactly what 2000 iterations of gradient descent converged toward in 16.1. sklearn solved it directly with the normal equation instead of stepping downhill. Gradient descent still matters — it's what neural networks (Module 5) use, because a direct solve isn't possible for them.</div></div>
+<!-- SEC:05:start -->
+<div class="lesson-h2">1.5 — Recap: Backpropagation, the Chain Rule Applied Twice</div>
+<p class="lesson-p">A tiny 2-layer network is: input <code>x</code>, a hidden layer (<code>W1</code>, <code>b1</code>, sigmoid), an output layer (<code>W2</code>, <code>b2</code>, sigmoid), then a loss comparing the output to the true label. Backprop walks that chain in reverse, applying the chain rule once to reach <code>W2</code> (one hop: loss → output → <code>W2</code>) and again to reach <code>W1</code> (two hops: loss → output → hidden → <code>W1</code>). Nothing new here versus ch21 — this is the recap, in the same notation, on one worked example so the shapes are fresh before exercise 4 makes you debug a broken version of it.</p>
+<div class="diagram"><div class="dg-t">forward, then backward through the same two hops</div><pre>FORWARD:   x --(W1,b1)--> z1 --sigmoid--> a1 --(W2,b2)--> z2 --sigmoid--> a2 --loss(a2,y)
 
-  <!-- 16.3 -->
-  <div class="lesson-h2">16.3 — Multiple Features: Still Just <code>.fit(X, y)</code></div>
-  <p class="lesson-p">Nothing changes when <code>X</code> has more than one column — <code>LinearRegression</code> fits one coefficient per feature. This is the entire reason sklearn exists: the same four-line pattern (import, create, fit, predict) works whether <code>X</code> has 1 column or 100.</p>
+BACKWARD (chain rule, twice):
+  hop 1 (loss -> output -> W2):  d_z2 = d_loss/d_a2 * a2*(1-a2)      d_W2 = a1.T @ d_z2
+  hop 2 (loss -> output -> hidden -> W1):
+                                  d_a1 = d_z2 @ W2.T
+                                  d_z1 = d_a1 * a1*(1-a1)
+                                  d_W1 = x.T @ d_z1</pre></div>
+<div class="code-block">
+<div class="cb-header"><span class="cb-label">backprop-one-example.py</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+<div class="cb-code">import numpy as np
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
 
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Two features, one call to .fit()</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+x = np.array([0.5, 0.8])
+w1 = np.array([0.3, -0.2])     # one hidden unit, two inputs
+w2 = 0.6                        # one output unit, one hidden unit
+y_true = 1.0
 
-<span class="cm"># predicting a house price (in $1000s) from [rooms, bathrooms]</span>
-X = np.array([[<span class="nm">1</span>,<span class="nm">0</span>],[<span class="nm">2</span>,<span class="nm">1</span>],[<span class="nm">3</span>,<span class="nm">1</span>],[<span class="nm">5</span>,<span class="nm">2</span>],[<span class="nm">8</span>,<span class="nm">3</span>]], dtype=<span class="bi">float</span>)
-y = np.array([<span class="nm">45</span>,<span class="nm">55</span>,<span class="nm">60</span>,<span class="nm">75</span>,<span class="nm">95</span>], dtype=<span class="bi">float</span>)
+z1 = np.dot(x, w1); a1 = sigmoid(z1)
+z2 = a1 * w2;        a2 = sigmoid(z2)
+loss = (a2 - y_true) ** 2
 
-model = LinearRegression()
-model.fit(X, y)
+d_loss_d_a2 = 2 * (a2 - y_true)
+d_a2_d_z2 = a2 * (1 - a2)                       # hop 1
+d_loss_d_w2 = d_loss_d_a2 * d_a2_d_z2 * a1
 
-<span class="bi">print</span>(<span class="st">f'Coefficients: <span class="bi">{[round(c,4) for c in model.coef_]}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Intercept: <span class="bi">{model.intercept_:.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Predicted price for 4 rooms, 2 baths: <span class="bi">{model.predict([[4,2]])[0]:.2f}</span>'</span>)</div>
-  </div>
+d_z2_d_a1 = w2                                  # hop 2 starts here
+d_a1_d_z1 = a1 * (1 - a1)
+d_loss_d_w1 = d_loss_d_a2 * d_a2_d_z2 * d_z2_d_a1 * d_a1_d_z1 * x
 
-  <!-- 16.4 -->
-  <div class="lesson-h2">16.4 — Why Not Linear Regression for Classification?</div>
-  <p class="lesson-p">Suppose you tried to predict "qualified" (0 or 1) with plain linear regression. Nothing stops it from predicting <code>1.4</code> or <code>-0.3</code> — meaningless as a probability, and the straight line it fits is dragged around by outliers in a way that makes poor class boundaries. <strong>Logistic regression</strong> fixes this by squashing <code>w·x + b</code> through the <strong>sigmoid function</strong> <code>σ(z) = 1/(1+e^-z)</code>, which maps any real number into <code>(0, 1)</code> — a genuine probability.</p>
+print(f"a1 = {a1:.4f}, a2 = {a2:.4f}, loss = {loss:.4f}")
+print(f"d_loss/d_w2 = {d_loss_d_w2:.4f}")
+print(f"d_loss/d_w1 = {d_loss_d_w1}")</div>
+</div>
+<p class="lesson-p">Notice <code>d_loss_d_w1</code> is a longer product than <code>d_loss_d_w2</code> — it carries every factor from both hops. Miss one factor (say, the local sigmoid derivative at the hidden layer) and the gradient reaching <code>W1</code> is simply wrong, even though nothing crashes. Get an orientation wrong (a transpose in the wrong place) and NumPy usually crashes loudly with a shape error instead. Exercise 4 hands you a version with the second kind of bug.</p>
+<!-- SEC:05:end -->
 
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">The sigmoid function squashes any real number into (0, 1)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<!-- SEC:06:start -->
+<div class="lesson-h2">1.6 — Assembling One Trainer: Forward + Backward + Optimizer</div>
+<p class="lesson-p">Every "from scratch" trainer you will ever write — here, or a real one in PyTorch under the hood — is the same three-part loop, no matter how many layers or which optimizer: predict, work out who caused how much error, then decide how to use that information to move the parameters.</p>
+<div class="diagram"><div class="dg-t">the whole trainer, three parts, one loop</div><pre>for epoch in range(epochs):
+    a1, a2      = forward(X, W1, b1, W2, b2)      # 1. predict
+    grads       = backward(X, y, a1, a2, W2)      # 2. chain rule: who caused the error, how much
+    W1,b1,W2,b2 = update(params, grads, velocity)  # 3. SGD, momentum, or Adam decides HOW to apply it</pre></div>
+<p class="lesson-p">Section 1.2's gradient descent IS <code>update()</code> for plain SGD. Section 1.4's momentum block IS a different <code>update()</code>. Section 1.5's chain rule IS <code>backward()</code>. Nothing in exercise 5 or the Project is a new idea — it is exactly these three pieces, wired together, run until the loss reaches a target and held out on data the trainer never saw.</p>
+<!-- SEC:06:end -->
 
-<span class="kw">def</span> <span class="fn">sigmoid</span>(z):
-    <span class="kw">return</span> <span class="nm">1</span> / (<span class="nm">1</span> + np.exp(-z))
+<!-- SEC:07:start -->
+<div class="lesson-h2">1.7 — How This Chapter's Five Exercises Chain Together</div>
+<div class="recap"><strong class="rc-t">The arc</strong><ul>
+<li><strong>Exercise 1 (guided):</strong> linear regression, closed form vs. gradient descent — the gradient formula is the only blank.</li>
+<li><strong>Exercise 2 (blank page):</strong> logistic regression, same shape of problem one level up — nothing scaffolded but the data and the expected output.</li>
+<li><strong>Exercise 3 (modify):</strong> given a working plain-SGD trainer, add the momentum update and prove it converges faster.</li>
+<li><strong>Exercise 4 (debug):</strong> a manual-backprop implementation with a real, deliberately planted bug — find it from the actual error NumPy raises.</li>
+<li><strong>Exercise 5 (mini-project):</strong> assemble forward pass + fixed backprop + momentum into one trainer that has to reach a target loss on a toy dataset.</li>
+</ul></div>
+<p class="lesson-p">The Project then scales exercise 5 up: more data, a genuine train/val split, and a simple learning-rate schedule — graded end-to-end on validation numbers the trainer never trained on. The quiz afterward does not ask whether your code ran; it asks whether you understand WHY each piece works, which is the entire point of building it yourself.</p>
+<!-- SEC:07:end -->
 
-<span class="kw">for</span> z <span class="kw">in</span> [-<span class="nm">10</span>, -<span class="nm">2</span>, <span class="nm">0</span>, <span class="nm">2</span>, <span class="nm">10</span>]:
-    <span class="bi">print</span>(<span class="st">f'sigmoid(<span class="bi">{z}</span>) = <span class="bi">{sigmoid(z):.4f}</span>'</span>)   <span class="cm"># large negative -> ~0, large positive -> ~1, 0 -> exactly 0.5</span></div>
-  </div>
-  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>z=0 always gives exactly 0.5</strong> — that's the decision boundary. If <code>w·x + b > 0</code>, the sigmoid output is above 0.5 and the model predicts class 1; if it's negative, class 0. The boundary between the two classes is literally the line/plane where <code>w·x + b = 0</code>.</div></div>
-
-  <!-- 16.5 -->
-  <div class="lesson-h2">16.5 — sklearn.linear_model.LogisticRegression</div>
-  <p class="lesson-p">Same fit/predict pattern as linear regression, but for classification. Using the "qualified" theme from earlier chapters: two features (interview score, technical score, both 0-1) predicting whether a candidate is qualified.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Fitting a classifier</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
-
-names = [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Dave'</span>,<span class="st">'Eve'</span>,<span class="st">'Frank'</span>,<span class="st">'Grace'</span>,<span class="st">'Heidi'</span>]
-X = np.array([[<span class="nm">0.92</span>,<span class="nm">0.88</span>],[<span class="nm">0.75</span>,<span class="nm">0.70</span>],[<span class="nm">0.81</span>,<span class="nm">0.79</span>],[<span class="nm">0.60</span>,<span class="nm">0.65</span>],
-              [<span class="nm">0.95</span>,<span class="nm">0.91</span>],[<span class="nm">0.55</span>,<span class="nm">0.60</span>],[<span class="nm">0.88</span>,<span class="nm">0.84</span>],[<span class="nm">0.70</span>,<span class="nm">0.68</span>]])
-y = np.array([<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>])   <span class="cm"># 1 = qualified (avg score >= 0.80)</span>
-
-clf = LogisticRegression()
-clf.fit(X, y)
-
-preds = clf.predict(X)
-<span class="bi">print</span>(<span class="st">f'Predictions: <span class="bi">{preds.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Names:       <span class="bi">{names}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'coef: <span class="bi">{[round(c,4) for c in clf.coef_[0]]}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'intercept: <span class="bi">{clf.intercept_[0]:.4f}</span>'</span>)</div>
-  </div>
-
-  <!-- 16.6 -->
-  <div class="lesson-h2">16.6 — .predict_proba(): Probabilities, Not Just Labels</div>
-  <p class="lesson-p"><code>.predict()</code> collapses everything to a hard 0/1 at the 0.5 threshold. <code>.predict_proba()</code> returns the actual probability for EACH class — column 0 is <code>P(class=0)</code>, column 1 is <code>P(class=1)</code>, and the two always sum to 1. This matters when the decision isn't binary — e.g. "only auto-flag candidates the model is >90% confident about, send borderline ones to a human."</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">predict_proba on two new candidates</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
-
-X = np.array([[<span class="nm">0.92</span>,<span class="nm">0.88</span>],[<span class="nm">0.75</span>,<span class="nm">0.70</span>],[<span class="nm">0.81</span>,<span class="nm">0.79</span>],[<span class="nm">0.60</span>,<span class="nm">0.65</span>],
-              [<span class="nm">0.95</span>,<span class="nm">0.91</span>],[<span class="nm">0.55</span>,<span class="nm">0.60</span>],[<span class="nm">0.88</span>,<span class="nm">0.84</span>],[<span class="nm">0.70</span>,<span class="nm">0.68</span>]])
-y = np.array([<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>])
-clf = LogisticRegression()
-clf.fit(X, y)
-
-new_candidates = np.array([[<span class="nm">0.83</span>,<span class="nm">0.80</span>], [<span class="nm">0.65</span>,<span class="nm">0.62</span>]])
-new_preds = clf.predict(new_candidates)
-proba = clf.predict_proba(new_candidates)
-
-<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="bi">len</span>(new_candidates)):
-    <span class="bi">print</span>(<span class="st">f'Candidate <span class="bi">{i}</span>: P(qualified)=<span class="bi">{proba[i,1]:.4f}</span> -> predicted <span class="bi">{new_preds[i]}</span>'</span>)</div>
-  </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Candidate 0 lands at P≈0.51</strong> — barely over the 0.5 threshold, technically predicted "qualified" but with almost no confidence. <code>.predict()</code> alone hides this; always check <code>.predict_proba()</code> for borderline decisions before trusting a hard label.</div></div>
-
-  <!-- 16.7 -->
-  <div class="lesson-h2">16.7 — The Decision Boundary, By Hand</div>
-  <p class="lesson-p">A trained logistic regression model IS just <code>coef_</code> and <code>intercept_</code> — you can reproduce <code>.predict()</code> yourself: compute <code>z = X @ coef_ + intercept_</code> (the "decision function"), and predict class 1 wherever <code>z >= 0</code>. This is the same sigmoid boundary from 16.4, just written out manually to prove there's no hidden step.</p>
-
-  <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Reproducing .predict() from the raw coefficients</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
-
-X = np.array([[<span class="nm">0.92</span>,<span class="nm">0.88</span>],[<span class="nm">0.75</span>,<span class="nm">0.70</span>],[<span class="nm">0.81</span>,<span class="nm">0.79</span>],[<span class="nm">0.60</span>,<span class="nm">0.65</span>],
-              [<span class="nm">0.95</span>,<span class="nm">0.91</span>],[<span class="nm">0.55</span>,<span class="nm">0.60</span>],[<span class="nm">0.88</span>,<span class="nm">0.84</span>],[<span class="nm">0.70</span>,<span class="nm">0.68</span>]])
-y = np.array([<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>])
-clf = LogisticRegression()
-clf.fit(X, y)
-
-decision = X @ clf.coef_[<span class="nm">0</span>] + clf.intercept_[<span class="nm">0</span>]   <span class="cm"># raw z, BEFORE the sigmoid</span>
-manual_preds = (decision >= <span class="nm">0</span>).astype(<span class="bi">int</span>)
-model_preds  = clf.predict(X)
-
-<span class="bi">print</span>(<span class="st">f'Manual preds: <span class="bi">{manual_preds.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Model preds:  <span class="bi">{model_preds.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Match: <span class="bi">{(manual_preds == model_preds).all()}</span>'</span>)</div>
-  </div>
-
-  <!-- Summary -->
-  <div class="lesson-h2">Chapter 16 Summary</div>
-  <ul class="step-list">
-    <li data-n="1"><div><strong>LinearRegression().fit(X, y)</strong> solves for the same slope/intercept gradient descent converges toward, but directly — no loop needed.</div></li>
-    <li data-n="2"><div><strong>.coef_ / .intercept_</strong> hold the learned parameters; <strong>.predict()</strong> applies them to new data.</div></li>
-    <li data-n="3"><div><strong>Logistic regression</strong> squashes <code>w·x + b</code> through the sigmoid function to output a probability in (0, 1), instead of an unbounded number.</div></li>
-    <li data-n="4"><div><strong>.predict()</strong> gives the hard 0/1 label (threshold 0.5); <strong>.predict_proba()</strong> gives the actual confidence for each class.</div></li>
-    <li data-n="5"><div><strong>The decision boundary</strong> is where <code>w·x + b = 0</code> — you can reproduce any prediction by hand from just <code>coef_</code> and <code>intercept_</code>.</div></li>
-  </ul>
-
-  <div style="display:flex;gap:12px;margin-top:28px">
-    <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
-  </div>
 </div><!-- end lesson -->
 
 <div class="practice-section" id="sec-practice">
   <div class="practice-intro">
     <h2>✏️ Practice Exercises</h2>
-    <p>5 exercises. Given data is fixed so your printed output can be checked precisely.</p>
+    <p>5 exercises, one arc each: guided → blank-page → modify → debug → mini-project. All deterministic NumPy — the printed output is checked exactly.</p>
   </div>
 
   <div class="exercise" id="ex1">
     <div class="ex-header">
       <div class="ex-num">1</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Fit a LinearRegression</div>
-        <div class="ex-desc">Fit sklearn's LinearRegression on a fixed dataset and report its learned parameters.</div>
+        <span class="ex-diff diff-easy">Easy · Guided</span>
+        <div class="ex-title">Linear Regression: Closed Form Meets Gradient Descent</div>
+        <div class="ex-desc">Everything is wired up except the two gradient formulas — fill them in using the ch10 convention.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-from sklearn.linear_model import LinearRegression
-x1 = np.array([1,2,3,4,5,6], dtype=float).reshape(-1,1)
-y1 = np.array([10,8,6,4,2,0], dtype=float)
-(already given)
-
-m1 = LinearRegression()
-m1.fit(x1, y1)
-
-Print exactly:
-  f'Coef: {m1.coef_[0]:.4f}'
-  f'Intercept: {m1.intercept_:.4f}'
-  f'Predict(7): {m1.predict([[7]])[0]:.4f}'
-(Correct: Coef: -2.0000 / Intercept: 12.0000 / Predict(7): -2.0000)</div>
+The closed-form solution below is already computed for you. The gradient descent loop is fully wired
+except for dw and db, which are set to None. Fill them in using the same convention as ch10:
+  error = predictions - y
+  dw = (2/n) * sum(error * x)
+  db = (2/n) * sum(error)
+Run 2000 steps at learning_rate = 0.05 and confirm gradient descent converges to the same w, b as the
+closed-form solution. Print exactly these four lines:
+  f"Closed-form w: {w_closed:.4f}"
+  f"Closed-form b: {b_closed:.4f}"
+  f"GD w: {w:.4f}"
+  f"GD b: {b:.4f}"</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex1-code">import numpy as np
-from sklearn.linear_model import LinearRegression
-x1 = np.array([1,2,3,4,5,6], dtype=float).reshape(-1,1)
-y1 = np.array([10,8,6,4,2,0], dtype=float)
+      <textarea class="ex-editor" id="ex1-code" rows="20" spellcheck="false">import numpy as np
+x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+y = np.array([3.0, 5.0, 7.0, 9.0, 11.0, 13.0])
+n = len(x)
+x_mean, y_mean = x.mean(), y.mean()
+w_closed = np.sum((x - x_mean) * (y - y_mean)) / np.sum((x - x_mean) ** 2)
+b_closed = y_mean - w_closed * x_mean
 
-# m1 = LinearRegression()
-# m1.fit(x1, y1)
+w, b = 0.0, 0.0
+learning_rate = 0.05
+for step in range(2000):
+    predictions = w * x + b
+    error = predictions - y
+    # TODO: dw = (2/n) * sum(error * x)
+    # TODO: db = (2/n) * sum(error)
+    dw = None
+    db = None
+    w -= learning_rate * dw
+    b -= learning_rate * db
+
+print(f"Closed-form w: {w_closed:.4f}")
+print(f"Closed-form b: {b_closed:.4f}")
+print(f"GD w: {w:.4f}")
+print(f"GD b: {b:.4f}")
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
@@ -768,45 +772,44 @@ y1 = np.array([10,8,6,4,2,0], dtype=float)
     <div class="ex-header">
       <div class="ex-num">2</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Gradient Descent From Scratch</div>
-        <div class="ex-desc">Implement the training loop exactly as in 16.1, on a new dataset.</div>
+        <span class="ex-diff diff-medium">Medium · Blank Page</span>
+        <div class="ex-title">Logistic Regression From a Blank Page</div>
+        <div class="ex-desc">Only the dataset and the expected output are given — implement sigmoid, cost, gradients, and the training loop yourself.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-x2 = np.array([1,2,3,4], dtype=float)
-y2 = np.array([4,7,10,13], dtype=float)   # true: y = 3x + 1
-(already given)
-
-n2 = len(x2); w2, b2 = 0.0, 0.0; lr2 = 0.01
-Run EXACTLY 2000 iterations of:
-  predictions = w2*x2 + b2
-  error = predictions - y2
-  dw = (2/n2) * np.sum(error*x2)
-  db = (2/n2) * np.sum(error)
-  w2 -= lr2*dw
-  b2 -= lr2*db
-
+Implement logistic regression from scratch. Given X (6x2) and y (6,) below, implement:
+  1) sigmoid(z) = 1 / (1 + exp(-z))
+  2) w = zeros(n_features), b = 0.0
+  3) train 3000 epochs, learning_rate = 0.1, using:
+       predictions = sigmoid(X @ w + b)
+       dw = (1/n) * X.T @ (predictions - y)
+       db = (1/n) * sum(predictions - y)
+  4) after training: log-loss = -mean(y*log(p+1e-9) + (1-y)*log(1-p+1e-9)),
+     labels = predictions rounded at 0.5, accuracy = mean(labels == y)
 Print exactly:
-  f'Learned w: {w2:.4f}'
-  f'Learned b: {b2:.4f}'
-(Correct: Learned w: 3.0000 / Learned b: 1.0000)</div>
+  f"Final loss: {loss:.4f}"
+  f"Labels: {list(labels)}"
+  f"Accuracy: {accuracy:.4f}"</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex2-code">import numpy as np
-x2 = np.array([1,2,3,4], dtype=float)
-y2 = np.array([4,7,10,13], dtype=float)
-n2 = len(x2)
-w2, b2 = 0.0, 0.0
-lr2 = 0.01
+      <textarea class="ex-editor" id="ex2-code" rows="18" spellcheck="false">import numpy as np
+X = np.array([
+    [0.5, 1.5], [1.0, 1.0], [1.5, 0.5],
+    [3.0, 3.5], [3.5, 4.0], [4.0, 3.0],
+], dtype=float)
+y = np.array([0, 0, 0, 1, 1, 1], dtype=float)
 
-# for i in range(2000):
-#     predictions = w2*x2 + b2
-#     error = predictions - y2
-#     dw = (2/n2) * np.sum(error*x2)
-#     db = (2/n2) * np.sum(error)
-#     w2 -= lr2*dw
-#     b2 -= lr2*db
+# TODO: implement everything below from scratch -- nothing is given but the data.
+# 1) sigmoid(z) = 1 / (1 + exp(-z))
+# 2) initialize w (zeros, shape = n_features) and b = 0.0
+# 3) train for 3000 epochs, learning_rate = 0.1, using the log-loss gradient:
+#      dw = (1/n) * X.T @ (sigmoid(X@w+b) - y)
+#      db = (1/n) * sum(sigmoid(X@w+b) - y)
+# 4) after training, compute log-loss, round predictions at 0.5, compute accuracy
+# 5) print exactly:
+#      f"Final loss: {loss:.4f}"
+#      f"Labels: {list(labels)}"
+#      f"Accuracy: {accuracy:.4f}"
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
@@ -823,37 +826,50 @@ lr2 = 0.01
     <div class="ex-header">
       <div class="ex-num">3</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Fit and Predict With LogisticRegression</div>
-        <div class="ex-desc">Train a classifier on fixed data and report its predictions and training accuracy.</div>
+        <span class="ex-diff diff-medium">Medium · Modify</span>
+        <div class="ex-title">Add Momentum to a Plain SGD Trainer</div>
+        <div class="ex-desc">The plain SGD loop below already works — add a momentum loop next to it and prove it converges faster.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-(already given)
-
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-preds3 = m3.predict(X3)
-
-Print exactly:
-  f'Predictions: {preds3.tolist()}'
-  f'Train accuracy: {accuracy_score(y3, preds3):.4f}'
-(Correct: Predictions: [0, 0, 1, 0, 1, 0, 1, 0] / Train accuracy: 1.0000)</div>
+The plain SGD loop below is complete and working. Add a SECOND loop, using the SAME start point,
+learning_rate and number of epochs, that instead uses momentum:
+  velocity = beta * velocity - learning_rate * grad(w)
+  w = w + velocity
+with beta = 0.9. Use the same grad()/loss() on this new ill-conditioned bowl:
+  grad(w) = [2*w[0], 50*w[1]]     loss(w) = w[0]**2 + 25*w[1]**2
+learning_rate = 0.018, epochs = 60, start = [4.0, 4.0]. Print exactly:
+  f"Plain SGD final loss: {loss_plain:.6f}"
+  f"Momentum final loss: {loss_mom:.6f}"
+  f"Momentum faster: {loss_mom < loss_plain}"</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex3-code">import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
+      <textarea class="ex-editor" id="ex3-code" rows="22" spellcheck="false">import numpy as np
+def grad(w):
+    return np.array([2.0 * w[0], 50.0 * w[1]])
+def loss(w):
+    return w[0] ** 2 + 25.0 * w[1] ** 2
 
-# m3 = LogisticRegression()
-# m3.fit(X3, y3)
-# preds3 = m3.predict(X3)
+learning_rate = 0.018
+epochs = 60
+start = np.array([4.0, 4.0])
+
+# --- Plain SGD (given, working) ---
+w_plain = start.copy()
+for step in range(epochs):
+    g = grad(w_plain)
+    w_plain = w_plain - learning_rate * g
+loss_plain = loss(w_plain)
+
+# TODO: add a momentum trainer here, starting from the same `start`.
+#   velocity = zeros_like(start); beta = 0.9
+#   for step in range(epochs):
+#       g = grad(w_mom)
+#       velocity = beta*velocity - learning_rate*g
+#       w_mom = w_mom + velocity
+# loss_mom = loss(w_mom)
+
+print(f"Plain SGD final loss: {loss_plain:.6f}")
+# TODO: print the momentum final loss and the faster-than-plain comparison, same format as the task.
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
@@ -870,37 +886,57 @@ y3 = np.array([0,0,1,0,1,0,1,0])
     <div class="ex-header">
       <div class="ex-num">4</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Predict Probabilities for New Candidates</div>
-        <div class="ex-desc">Use the classifier from Exercise 3's data to get predict_proba() on two new points.</div>
+        <span class="ex-diff diff-hard">Hard · Debug</span>
+        <div class="ex-title">Debug a Broken Backprop Implementation</div>
+        <div class="ex-desc">Run it, read the real error NumPy gives you, then find and fix the one broken line.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-new4 = np.array([[85,86],[52,54]])
-(already given)
-
-proba4 = m3.predict_proba(new4)
-
-Print exactly:
-  f'P(class1) candidate0: {proba4[0,1]:.4f}'
-  f'P(class1) candidate1: {proba4[1,1]:.4f}'
-(Correct: P(class1) candidate0: 0.9984 / P(class1) candidate1: 0.0000)</div>
+The code below is a 2-layer (2-input, 4-hidden, 1-output) manual backprop trainer for XOR. It has ONE
+bug: one gradient is computed with its matrix operands in the wrong order. Run it first and read the
+real NumPy error carefully -- it tells you the exact shapes involved. Fix the one broken line, then
+train for 4000 epochs and print exactly:
+  f"Final loss: {loss:.4f}"
+  f"Rounded: {rounded}"
+  f"Matches XOR: {rounded == [0,1,1,0]}"
+(rounded = [int(round(float(v))) for v in a2.flatten()])</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-new4 = np.array([[85,86],[52,54]])
+      <textarea class="ex-editor" id="ex4-code" rows="26" spellcheck="false">import numpy as np
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-# proba4 = m3.predict_proba(new4)
+np.random.seed(0)
+X = np.array([[0,0],[0,1],[1,0],[1,1]], dtype=float)
+y = np.array([[0],[1],[1],[0]], dtype=float)  # XOR
+
+n_hidden = 4
+W1 = np.random.randn(2, n_hidden) * 0.5
+b1 = np.zeros(n_hidden)
+W2 = np.random.randn(n_hidden, 1) * 0.5
+b2 = np.zeros(1)
+lr = 0.5
+
+for epoch in range(4000):
+    a1 = sigmoid(X @ W1 + b1)
+    a2 = sigmoid(a1 @ W2 + b2)
+    loss = np.mean((y - a2) ** 2)
+
+    d_a2 = (a2 - y) * 2 / len(X)
+    d_z2 = d_a2 * a2 * (1 - a2)
+    d_W2 = a1.T @ d_z2
+    d_b2 = d_z2.sum(axis=0)
+    d_a1 = d_z2 @ W2.T
+    d_z1 = d_a1 * a1 * (1 - a1)
+    d_W1 = d_z1.T @ X          # <-- one operand order is wrong here
+    d_b1 = d_z1.sum(axis=0)
+
+    W2 -= lr * d_W2; b2 -= lr * d_b2
+    W1 -= lr * d_W1; b1 -= lr * d_b1
+
+rounded = [int(round(float(v))) for v in a2.flatten()]
+print(f"Final loss: {loss:.4f}")
+print(f"Rounded: {rounded}")
+print(f"Matches XOR: {rounded == [0,1,1,0]}")
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
@@ -917,42 +953,52 @@ new4 = np.array([[85,86],[52,54]])
     <div class="ex-header">
       <div class="ex-num">5</div>
       <div class="ex-meta">
-        <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">Reproduce Predictions From Raw Coefficients</div>
-        <div class="ex-desc">Compute the decision function by hand and confirm it matches .predict().</div>
+        <span class="ex-diff diff-hard">Hard · Mini-Project</span>
+        <div class="ex-title">Assemble a Complete Tiny Neural Net From Scratch</div>
+        <div class="ex-desc">Forward pass + fixed backprop + momentum, wired together into one trainer that has to reach a target loss.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-test5 = np.array([[70,72],[95,96],[40,42]])
-(already given)
-
-decision5 = test5 @ m3.coef_[0] + m3.intercept_[0]
-manual5 = (decision5 >= 0).astype(int)
-model5 = m3.predict(test5)
-
-Print exactly:
-  f'Manual preds: {manual5.tolist()}'
-  f'Model preds: {model5.tolist()}'
-  f'Match: {(manual5==model5).all()}'
-(Correct: Manual preds: [0, 1, 0] / Model preds: [0, 1, 0] / Match: True)</div>
+Assemble everything above into one 2-layer (2-input, 6-hidden, 1-output) trainer on the toy "inside vs.
+outside a ring" dataset below: forward pass (sigmoid both layers), the FIXED backprop equations from
+exercise 4, and the momentum update from exercise 3 (lr = 0.5, beta = 0.9) for all four parameters.
+Train 3000 epochs, then print exactly:
+  f"Final loss: {loss:.4f}"
+  f"Rounded: {rounded}"
+  f"Accuracy: {accuracy:.4f}"
+(rounded = [int(round(float(v))) for v in a2.flatten()], accuracy = mean of rounded == y)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex5-code">import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-test5 = np.array([[70,72],[95,96],[40,42]])
+      <textarea class="ex-editor" id="ex5-code" rows="26" spellcheck="false">import numpy as np
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-# decision5 = test5 @ m3.coef_[0] + m3.intercept_[0]
-# manual5 = (decision5 >= 0).astype(int)
-# model5 = m3.predict(test5)
+np.random.seed(1)
+X = np.array([
+    [0.1, 0.1], [-0.1, 0.15], [0.05, -0.1], [-0.15, -0.05],   # near center -> inside (0)
+    [1.6, 1.6], [-1.7, 1.5], [1.5, -1.6], [-1.6, -1.7],       # far out -> outside (1)
+], dtype=float)
+y = np.array([[0],[0],[0],[0],[1],[1],[1],[1]], dtype=float)
+
+n_in, n_hidden, n_out = 2, 6, 1
+W1 = np.random.randn(n_in, n_hidden) * 0.5
+b1 = np.zeros(n_hidden)
+W2 = np.random.randn(n_hidden, n_out) * 0.5
+b2 = np.zeros(n_out)
+
+# TODO: momentum buffers vW1, vb1, vW2, vb2 (zeros, same shapes)
+# TODO: lr = 0.5, beta = 0.9
+
+for epoch in range(3000):
+    pass
+    # TODO 1: forward -- a1 = sigmoid(X@W1+b1); a2 = sigmoid(a1@W2+b2); loss = mean((y-a2)**2)
+    # TODO 2: backprop -- reuse the FIXED equations from exercise 4
+    # TODO 3: momentum update -- reuse the velocity rule from exercise 3, for all four parameters
+
+rounded = [int(round(float(v))) for v in a2.flatten()]
+accuracy = np.mean([r == int(t) for r, t in zip(rounded, y.flatten())])
+print(f"Final loss: {loss:.4f}")
+print(f"Rounded: {rounded}")
+print(f"Accuracy: {accuracy:.4f}")
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
@@ -966,63 +1012,108 @@ test5 = np.array([[70,72],[95,96],[40,42]])
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
-    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Mini Project →</button>
+    <button class="next-btn" onclick="showSection('project')">🏗️ Go to Project →</button>
   </div>
 </div><!-- end practice -->
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Candidate Qualification Classifier</span></h2>
-    <p>Train a logistic regression model on the eight-candidate qualification dataset from the lesson, then use it to score three brand-new candidates — both their hard prediction and their probability of being qualified.</p>
+    <h2>🏗️ Project: <span>Ring Classifier With a Validation Split and an LR Schedule</span></h2>
+    <p>A bigger version of exercise 5: more data, a genuine held-out validation set the trainer never touches during training, and a step-decay learning-rate schedule. Same forward pass, same fixed backprop, same momentum optimizer — reaching a target loss is no longer enough; it has to generalize to points it never trained on.</p>
     <div class="project-tags">
-      <span class="ptag">LogisticRegression</span>
-      <span class="ptag">predict_proba</span>
-      <span class="ptag">accuracy_score</span>
+      <span class="ptag">forward pass</span>
+      <span class="ptag">backprop</span>
+      <span class="ptag">momentum</span>
+      <span class="ptag">train/val split</span>
+      <span class="ptag">LR schedule</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Fit a LogisticRegression on Xp, yp (given)</li>
-      <li>Predict hard labels for the three new_p candidates</li>
-      <li>Print each new candidate's P(qualified), formatted to 4 decimal places</li>
-      <li>Print the training accuracy on Xp/yp, formatted to 4 decimal places</li>
+      <li>Build the same 2-input → 6-hidden → 1-output network, sigmoid activations, from exercise 5</li>
+      <li>Train ONLY on X_train/y_train (16 points) for 4000 epochs with momentum (beta = 0.9)</li>
+      <li>Use a step-decay learning-rate schedule: <code>lr = 0.5 * (0.5 ** (epoch // 1500))</code> (halves every 1500 epochs)</li>
+      <li>Never train on X_val/y_val (4 points) — only run a forward pass on them once, after training, to evaluate</li>
+      <li>Print the final train loss, the val loss, the rounded val predictions, and the val accuracy</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Candidate Qualification Classifier — Your Solution</div>
+      <div class="pe-title">🏗️ Ring Classifier — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Candidate Qualification Classifier
-# Use ONLY Chapter 16 concepts
+# Project: Ring Classifier With a Validation Split and an LR Schedule
+# Reuse ONLY the forward pass, backprop equations, and momentum rule from
+# exercises 3, 4 and 5. Nothing new is required conceptually -- this is
+# exercise 5 at a bigger scale, with a schedule and a held-out check.
 # ══════════════════════════════════════════
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
-Xp = np.array([[0.92,0.88],[0.75,0.70],[0.81,0.79],[0.60,0.65],
-               [0.95,0.91],[0.55,0.60],[0.88,0.84],[0.70,0.68]])
-yp = np.array([1,0,1,0,1,0,1,0])
-new_p = np.array([[0.90,0.86],[0.58,0.61],[0.77,0.80]])
+np.random.seed(2)
+X_train = np.array([
+    [0.10, 0.10], [-0.10, 0.15], [0.05, -0.10], [-0.15, -0.05],
+    [0.20, -0.05], [-0.05, 0.20], [0.0, -0.20], [0.15, 0.15],
+    [1.60, 1.60], [-1.70, 1.50], [1.50, -1.60], [-1.60, -1.70],
+    [1.80, -0.20], [-0.20, 1.80], [2.00, 0.10], [0.10, -2.00],
+], dtype=float)
+y_train = np.array([[0],[0],[0],[0],[0],[0],[0],[0],
+                     [1],[1],[1],[1],[1],[1],[1],[1]], dtype=float)
 
-# === TODO 1: fit ===
-# modelp = LogisticRegression()
-# modelp.fit(Xp, yp)
+X_val = np.array([
+    [0.08, -0.08], [-0.12, 0.05],
+    [1.55, 1.55], [-1.65, -1.55],
+], dtype=float)
+y_val = np.array([[0],[0],[1],[1]], dtype=float)
 
-# === TODO 2: predict on new candidates ===
-# predsp = modelp.predict(new_p)
-# probap = modelp.predict_proba(new_p)
-# print(f'Predictions: {predsp.tolist()}')
-# for i in range(len(new_p)):
-#     print(f'Candidate {i}: P(qualified)={probap[i,1]:.4f}')
+n_in, n_hidden, n_out = 2, 6, 1
+W1 = np.random.randn(n_in, n_hidden) * 0.5
+b1 = np.zeros(n_hidden)
+W2 = np.random.randn(n_hidden, n_out) * 0.5
+b2 = np.zeros(n_out)
 
-# === TODO 3: training accuracy ===
-# train_preds = modelp.predict(Xp)
-# print(f'Training accuracy: {accuracy_score(yp, train_preds):.4f}')
+# === TODO 1: momentum buffers (zeros, same shapes as W1/b1/W2/b2) ===
+# vW1, vb1 = np.zeros_like(W1), np.zeros_like(b1)
+# vW2, vb2 = np.zeros_like(W2), np.zeros_like(b2)
+# base_lr, beta = 0.5, 0.9
+# epochs = 4000
+
+# === TODO 2: a forward(X, W1, b1, W2, b2) helper returning (a1, a2) ===
+# def forward(X, W1, b1, W2, b2):
+#     a1 = sigmoid(X @ W1 + b1)
+#     a2 = sigmoid(a1 @ W2 + b2)
+#     return a1, a2
+
+# === TODO 3: training loop over X_train/y_train ONLY ===
+# for epoch in range(epochs):
+#     lr = base_lr * (0.5 ** (epoch // 1500))          # step-decay schedule
+#     a1, a2 = forward(X_train, W1, b1, W2, b2)
+#     train_loss = np.mean((y_train - a2) ** 2)
+#     d_a2 = (a2 - y_train) * 2 / len(X_train)
+#     d_z2 = d_a2 * a2 * (1 - a2)
+#     d_W2 = a1.T @ d_z2; d_b2 = d_z2.sum(axis=0)
+#     d_a1 = d_z2 @ W2.T
+#     d_z1 = d_a1 * a1 * (1 - a1)
+#     d_W1 = X_train.T @ d_z1; d_b1 = d_z1.sum(axis=0)
+#     vW2 = beta*vW2 - lr*d_W2; W2 += vW2
+#     vb2 = beta*vb2 - lr*d_b2; b2 += vb2
+#     vW1 = beta*vW1 - lr*d_W1; W1 += vW1
+#     vb1 = beta*vb1 - lr*d_b1; b1 += vb1
+
+# === TODO 4: evaluate ONCE on X_val/y_val (never trained on) ===
+# _, a2_val = forward(X_val, W1, b1, W2, b2)
+# val_loss = np.mean((y_val - a2_val) ** 2)
+# val_rounded = [int(round(float(v))) for v in a2_val.flatten()]
+# val_accuracy = np.mean([r == int(t) for r, t in zip(val_rounded, y_val.flatten())])
+# print(f'Train loss: {train_loss:.4f}')
+# print(f'Val loss: {val_loss:.4f}')
+# print(f'Val rounded: {val_rounded}')
+# print(f'Val accuracy: {val_accuracy:.4f}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -1030,11 +1121,10 @@ new_p = np.array([[0.90,0.86],[0.58,0.61],[0.77,0.80]])
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>Predictions: [1, 0, 1]</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Candidate 0: P(qualified)=0.5244</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Candidate 1: P(qualified)=0.4649</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Candidate 2: P(qualified)=0.5041</div>
-    <div class="check-item"><span class="check-icon">✅</span>Training accuracy: 1.0000</div>
+    <div class="check-item"><span class="check-icon">📉</span>Train loss: 0.0001</div>
+    <div class="check-item"><span class="check-icon">🧪</span>Val loss: 0.0003</div>
+    <div class="check-item"><span class="check-icon">🎯</span>Val rounded: [0, 0, 1, 1]</div>
+    <div class="check-item"><span class="check-icon">✅</span>Val accuracy: 1.0000</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1044,78 +1134,85 @@ new_p = np.array([[0.90,0.86],[0.58,0.61],[0.77,0.80]])
 
 <div class="quiz-section" id="sec-quiz">
   <div class="quiz-banner">
-    <h2>🧪 Chapter 16 Quiz</h2>
-    <p>5 questions. You need 4/5 (80%) to pass and unlock Chapter 17. You can retake this as many times as you want.</p>
+    <h2>🧪 Classical Foundations Quiz</h2>
+    <p>5 questions testing WHY each piece works, not just whether your code ran. You need 4/5 (80%) to pass. Retake as often as you like.</p>
     <div class="quiz-score" id="quiz-score-display" style="display:none">Score: <span id="quiz-score">0</span>/5</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 1 of 5</div>
-    <div class="q-text">After <code>model.fit(X, y)</code> on a LinearRegression, where do the learned slope and intercept live?</div>
+    <div class="q-text">Simple linear regression has an exact closed-form solution — no loop required. <strong>Why bother with gradient descent at all</strong> for this family of problems?</div>
     <div class="q-options" id="q1-opts">
-      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> model.slope and model.offset</button>
-      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> model.coef_ (slope(s)) and model.intercept_ (intercept)</button>
-      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> They aren't stored — you must call .fit() again every time you predict</button>
-      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> model.weights_learned</button>
+      <button class="q-opt" onclick="selectOpt(1,'A')"><span class="q-opt-letter">A</span> Gradient descent is more numerically accurate than the closed-form formula</button>
+      <button class="q-opt" onclick="selectOpt(1,'B')"><span class="q-opt-letter">B</span> The closed form only exists because squared error plus a linear model has a solvable derivative; logistic regression and neural nets have no such formula, so gradient descent is the one technique that still works once the model stops being linear-plus-squared-error</button>
+      <button class="q-opt" onclick="selectOpt(1,'C')"><span class="q-opt-letter">C</span> Gradient descent finds the global minimum while the closed form only finds a local one</button>
+      <button class="q-opt" onclick="selectOpt(1,'D')"><span class="q-opt-letter">D</span> The closed-form formula cannot handle more than one input feature</button>
     </div>
+    <div class="q-why" id="q1-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> Both methods find the exact same optimum here — neither is "more accurate," and the closed form does generalize to multiple features (via a matrix normal equation). What it does NOT generalize to is any model where the loss/model combination has no clean derivative to solve for zero, which is every model past this one.</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 2 of 5</div>
-    <div class="q-text">Why is plain linear regression a poor fit for classification (predicting a 0/1 label)?</div>
+    <div class="q-text">Logistic regression minimizes log-loss (cross-entropy), not mean squared error, even though both could technically be computed on a sigmoid output. <strong>Why is log-loss the correct choice?</strong></div>
     <div class="q-options" id="q2-opts">
-      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> Linear regression can't be fit with sklearn</button>
-      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Its output is an unbounded number (could be 1.4 or -0.3), not a probability, and its line is distorted by outliers in ways that hurt the class boundary</button>
-      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> Linear regression only works with a single feature</button>
-      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> It always predicts exactly 0 or 1, so there's no benefit to logistic regression</button>
+      <button class="q-opt" onclick="selectOpt(2,'A')"><span class="q-opt-letter">A</span> MSE cannot be minimized with gradient descent at all, for any model</button>
+      <button class="q-opt" onclick="selectOpt(2,'B')"><span class="q-opt-letter">B</span> Log-loss is required by definition for any classification task, regardless of the model</button>
+      <button class="q-opt" onclick="selectOpt(2,'C')"><span class="q-opt-letter">C</span> MSE combined with a sigmoid produces a loss surface with near-flat regions exactly where the model is confidently wrong, so the gradient nearly vanishes when you need it most; log-loss keeps the gradient large in proportion to how wrong a confident prediction is, and stays convex for this model</button>
+      <button class="q-opt" onclick="selectOpt(2,'D')"><span class="q-opt-letter">D</span> Log-loss trains faster purely because it involves fewer floating-point operations per step</button>
     </div>
+    <div class="q-why" id="q2-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> The problem is specifically the sigmoid+MSE combination's vanishing-gradient behavior near confident-wrong predictions, not classification in general and not raw operation count. Log-loss's gradient through a sigmoid simplifies to exactly (prediction - label), which stays large until the prediction is actually correct.</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does the sigmoid function do?</div>
+    <div class="q-text">On the ill-conditioned bowl in section 1.4, momentum reached a loss over a hundred times lower than plain SGD after the identical number of steps and the identical learning rate. <strong>What mechanism causes this?</strong></div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Squashes any real number into the range (0, 1), turning a linear combination of features into a probability</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Removes missing values from a dataset</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Splits data into train and test sets</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Only works on integers, not floats</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Momentum secretly uses a larger effective learning rate, so it always wins given enough steps regardless of the loss surface's shape</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Momentum accumulates velocity in the direction the gradient consistently points (the shallow dimension), while in the oscillating steep dimension the sign flips partially cancel inside the running average — so it travels further per step in the direction that actually matters and is damped where it doesn't</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Momentum computes the exact second derivative (the Hessian) and takes a Newton step instead of a gradient step</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Momentum is mathematically identical to plain SGD; the difference in this specific example was a coincidence of the random seed</button>
     </div>
+    <div class="q-why" id="q3-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> There is no randomness in this example — both trainers are fully deterministic, so it is not a seed coincidence. Momentum never computes second derivatives (that would be a Newton or quasi-Newton method, meaningfully more expensive); it only keeps a first-moment running average of the gradient itself.</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 4 of 5</div>
-    <div class="q-text">Write the line that creates a LogisticRegression model named <code>model</code> and fits it on <code>X_train</code>, <code>y_train</code>.</div>
-    <textarea class="q-code-input" id="q4-input" placeholder="model = ...&#10;model.fit(...)" rows="3"></textarea>
-    <button class="q-submit" onclick="checkQ4()">Check Answer</button>
-    <div class="q-feedback" id="q4-feedback"></div>
+    <div class="q-text">In exercise 4, the broken backprop implementation raised <code>ValueError: operands could not be broadcast together with shapes (2,4) (4,2) (2,4)</code> on the very first epoch instead of quietly training to a wrong answer. <strong>Why is that actually useful?</strong></div>
+    <div class="q-options" id="q4-opts">
+      <button class="q-opt" onclick="selectOpt(4,'A')"><span class="q-opt-letter">A</span> It isn't useful — a silent wrong answer would have been strictly easier to debug than a crash</button>
+      <button class="q-opt" onclick="selectOpt(4,'B')"><span class="q-opt-letter">B</span> The error means the dataset itself was malformed and has nothing to do with the gradient code</button>
+      <button class="q-opt" onclick="selectOpt(4,'C')"><span class="q-opt-letter">C</span> The transposed multiply produced an array oriented the wrong way; because its shape does not match <code>W1</code>, NumPy refuses the update in-place — turning a subtle chain-rule ordering mistake into an immediate, precise crash pointing at the exact line, instead of a network that trains and just never quite works</button>
+      <button class="q-opt" onclick="selectOpt(4,'D')"><span class="q-opt-letter">D</span> The error is unrelated to the transpose and would appear even in a fully correct implementation</button>
+    </div>
+    <div class="q-why" id="q4-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> A silent wrong answer (the exercise 5 kind of missing-term bug) is strictly harder to find than a crash, because nothing points you at a line. A shape-mismatch crash is the friendlier bug precisely because the traceback and the shapes in the message narrow the search immediately.</div>
   </div>
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">What's the difference between <code>.predict()</code> and <code>.predict_proba()</code> on a fitted LogisticRegression?</div>
+    <div class="q-text">Suppose you forget to multiply by <code>a1 * (1 - a1)</code> when computing <code>d_z1</code> from <code>d_a1</code> in a sigmoid hidden layer (i.e. you propagate the raw upstream gradient straight through, skipping that one local-derivative factor). <strong>Predict what happens to training</strong>, and how this differs from exercise 4's bug.</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> They always return identical values</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> .predict() returns the hard 0/1 label at the 0.5 threshold; .predict_proba() returns the actual probability for each class</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> .predict_proba() only works on training data, never new data</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> .predict() is for regression, .predict_proba() is unrelated to classification</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> NumPy raises a shape error immediately, exactly like the transposed-matrix bug in exercise 4</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Training is completely unaffected, because that factor is just an optional optimization, not something the chain rule actually requires</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Nothing crashes — the shapes still line up — but the gradient reaching <code>W1</code> no longer reflects how the hidden sigmoid actually responds to its input, so the first layer's updates are systematically wrong; convergence gets much worse or stalls, especially on data (like XOR) that genuinely needs the hidden layer to be non-linear</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> The network trains identically because the missing term only affects <code>b1</code>, not <code>W1</code></button>
     </div>
+    <div class="q-why" id="q5-why" style="display:none;margin-top:4px;padding:10px 14px;border-radius:8px;background:var(--card2);border:1px solid var(--border);font-size:13px;line-height:1.6;color:var(--t2)"><strong>Why:</strong> This is exactly the missing-chain-rule-term bug, and its signature is the opposite of exercise 4's: shapes stay consistent (no crash) but the numbers are quietly wrong, since <code>a1*(1-a1)</code> is a real, required factor in the chain rule — not an optional tuning knob — for both <code>W1</code> and <code>b1</code>.</div>
   </div>
 
-  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz →</button>
-
+  <button class="quiz-submit-all" onclick="submitQuiz()">Submit Quiz</button>
   <div class="quiz-result-banner" id="quiz-result"></div>
 
   <div class="next-chapter-card" id="next-chapter-card" style="display:none">
-    <div class="ncc-icon">🎓</div>
+    <div class="ncc-icon">🧠</div>
     <div class="ncc-info">
-      <h3>Chapter 17: Trees, Forests &amp; Ensembles</h3>
-      <p>Decision trees that split on questions, why unlimited depth overfits, and how averaging many trees into a random forest fixes it.</p>
+      <h3>FS 2: Attention &amp; Language Models From Scratch</h3>
+      <p>Next up: scaled dot-product attention from a blank page, assembling a full Transformer block, token embeddings, and a framework-free RAG pipeline — the same guided-to-blank-page arc, one level up.</p>
     </div>
-    <a class="ncc-btn" href="ch17-trees-forests-ensembles.html">Start Chapter 17 →</a>
+    <a class="ncc-btn" href="fs02-attention-and-language-models-from-scratch.html">Start FS 2 →</a>
   </div>
 </div><!-- end quiz -->
 
-  <!-- feat:verified:start --><style>.aiml-verified{display:flex;align-items:flex-start;gap:9px;margin:28px 0 6px;padding:9px 13px;max-width:680px;border:1px dashed var(--border);border-radius:9px;background:var(--card);color:var(--t2);font:500 11.5px/1.5 var(--sans,system-ui,sans-serif)}.aiml-verified strong{color:var(--text)}.aiml-verified a{color:var(--violet);text-decoration:underline}.aiml-verified .av-i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--cyan-bg,rgba(0,217,166,.1));color:var(--cyan);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;margin-top:1px}.aiml-verified.av-out{margin:8px 24px 30px 284px}@media(min-width:821px){.aiml-verified.av-out{margin-right:444px}}@media(max-width:820px){.aiml-verified.av-out{margin:8px 16px 90px}}@media print{.aiml-verified{border-style:solid}}</style><div class="aiml-verified" role="note"><span class="av-i" aria-hidden="true">✓</span><span><strong>Verified (automated)</strong> · executed under Pyodide 0.26.4 + reviewed by AI, human review pending · checked 2026-09-20. <a href="https://github.com/bosmany/AI-ML-Training/issues/new?template=report-inaccuracy.yml" target="_blank" rel="noopener">Report an inaccuracy</a></span></div><!-- feat:verified:end --></div><!-- main-content -->
+</div><!-- main-content -->
 </div><!-- content -->
 
 <div id="console-dock">
@@ -1138,42 +1235,10 @@ new_p = np.array([[0.90,0.86],[0.58,0.61],[0.77,0.80]])
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 
 <script>
-const CH_ID='ch16';
-const STORE_KEY='aimlZTH_progress_v1';
-function loadStore(){
-  try{ return JSON.parse(localStorage.getItem(STORE_KEY))||{chapters:{}}; }
-  catch(e){ return {chapters:{}}; }
-}
-function saveStore(store){
-  try{ localStorage.setItem(STORE_KEY, JSON.stringify(store)); }catch(e){}
-}
-function persistChapter(){
-  const store=loadStore();
-  store.chapters=store.chapters||{};
-  store.chapters[CH_ID]={completed:[...completedItems], xp, quizDone};
-  saveStore(store);
-}
-
 let pyReady = false;
 let pyodide = null;
-let completedItems = new Set();
-let xp = 0;
 let quizAnswers = {1:null,2:null,3:null,4:null,5:null};
 let quizDone = false;
-
-(function restore(){
-  const store=loadStore();
-  const saved=store.chapters && store.chapters[CH_ID];
-  if(saved){
-    completedItems=new Set(saved.completed||[]);
-    xp=saved.xp||0;
-    quizDone=!!saved.quizDone;
-  }
-  const prev=store.chapters && store.chapters['ch15'];
-  if(!prev || !prev.quizDone){
-    document.getElementById('prereq-note').style.display='flex';
-  }
-})();
 
 function pyodideFailed(){
   document.getElementById('cd-status').textContent='Offline — need internet to load Python (first load only)';
@@ -1189,9 +1254,7 @@ async function initPyodide(){
     document.getElementById('cd-title').className='cd-title';
     document.getElementById('py-chip').innerHTML='🟢 <span>Python Ready</span>';
     clog('# Python ready — Ctrl+Enter to run code','info');
-    clog('# import sklearn — first use auto-fetches it, may take a few extra seconds','info');
-    if(quizDone) revealNextChapter();
-    updateUI();
+    clog('# Everything here is real NumPy, fully deterministic (fixed seeds, no wall-clock)','info');
   }catch(e){
     console.error(e);
     pyodideFailed();
@@ -1253,90 +1316,201 @@ window.runToConsole=function(btn){
 function showSection(name){
   ['lesson','practice','project','quiz'].forEach(s=>{
     document.getElementById('sec-'+s).classList.toggle('show',s===name);
-    document.getElementById('tab-'+s).classList.toggle('active',s===name);
-    document.getElementById('sb-'+s).classList.toggle('active',s===name);
+    const tabEl=document.getElementById('tab-'+s);
+    if(tabEl) tabEl.classList.toggle('active',s===name);
+    const sbEl=document.getElementById('sb-'+s);
+    if(sbEl) sbEl.classList.toggle('active',s===name);
   });
   window.scrollTo(0,0);
   document.getElementById('main-content').scrollTop=0;
 }
+window.showSection=showSection;
 
 const EXERCISES = {
   1:{
-    checks:['coef: -2.0000','intercept: 12.0000','predict(7): -2.0000'],
-    hint:"m1 = LinearRegression(); m1.fit(x1, y1); then print m1.coef_[0], m1.intercept_, m1.predict([[7]])[0]",
+    checks:["Closed-form w: 2.0000", "Closed-form b: 1.0000", "GD w: 2.0000", "GD b: 1.0000"],
+    hint:"error is already computed. dw = (2/n) * np.sum(error * x); db = (2/n) * np.sum(error) -- exactly the ch10 convention, just applied inside this loop.",
     solution:`import numpy as np
-from sklearn.linear_model import LinearRegression
-x1 = np.array([1,2,3,4,5,6], dtype=float).reshape(-1,1)
-y1 = np.array([10,8,6,4,2,0], dtype=float)
-m1 = LinearRegression()
-m1.fit(x1, y1)
-print(f'Coef: {m1.coef_[0]:.4f}')
-print(f'Intercept: {m1.intercept_:.4f}')
-print(f'Predict(7): {m1.predict([[7]])[0]:.4f}')`
+x = np.array([1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
+y = np.array([3.0, 5.0, 7.0, 9.0, 11.0, 13.0])
+n = len(x)
+x_mean, y_mean = x.mean(), y.mean()
+w_closed = np.sum((x - x_mean) * (y - y_mean)) / np.sum((x - x_mean) ** 2)
+b_closed = y_mean - w_closed * x_mean
+
+w, b = 0.0, 0.0
+learning_rate = 0.05
+for step in range(2000):
+    predictions = w * x + b
+    error = predictions - y
+    dw = (2 / n) * np.sum(error * x)
+    db = (2 / n) * np.sum(error)
+    w -= learning_rate * dw
+    b -= learning_rate * db
+
+print(f"Closed-form w: {w_closed:.4f}")
+print(f"Closed-form b: {b_closed:.4f}")
+print(f"GD w: {w:.4f}")
+print(f"GD b: {b:.4f}")`
   },
   2:{
-    checks:['learned w: 3.0000','learned b: 1.0000'],
-    hint:"same loop shape as 16.1: predictions = w2*x2+b2; error = predictions-y2; dw=(2/n2)*np.sum(error*x2); db=(2/n2)*np.sum(error); w2-=lr2*dw; b2-=lr2*db",
+    checks:["Final loss: 0.0130", "Labels: [0, 0, 0, 1, 1, 1]", "Accuracy: 1.0000"],
+    hint:"sigmoid(z) = 1/(1+np.exp(-z)). w = np.zeros(n_features), b = 0.0. Inside the loop: preds = sigmoid(X@w+b); error = preds-y; dw = (1/n)*(X.T@error); db = (1/n)*np.sum(error); w -= lr*dw; b -= lr*db. Round preds at 0.5 for labels.",
     solution:`import numpy as np
-x2 = np.array([1,2,3,4], dtype=float)
-y2 = np.array([4,7,10,13], dtype=float)
-n2 = len(x2)
-w2, b2 = 0.0, 0.0
-lr2 = 0.01
-for i in range(2000):
-    predictions = w2*x2 + b2
-    error = predictions - y2
-    dw = (2/n2) * np.sum(error*x2)
-    db = (2/n2) * np.sum(error)
-    w2 -= lr2*dw
-    b2 -= lr2*db
-print(f'Learned w: {w2:.4f}')
-print(f'Learned b: {b2:.4f}')`
+X = np.array([
+    [0.5, 1.5], [1.0, 1.0], [1.5, 0.5],
+    [3.0, 3.5], [3.5, 4.0], [4.0, 3.0],
+], dtype=float)
+y = np.array([0, 0, 0, 1, 1, 1], dtype=float)
+
+def sigmoid(z):
+    return 1.0 / (1.0 + np.exp(-z))
+
+n, n_features = X.shape
+w = np.zeros(n_features)
+b = 0.0
+learning_rate = 0.1
+epochs = 3000
+
+for epoch in range(epochs):
+    z = X @ w + b
+    preds = sigmoid(z)
+    error = preds - y
+    dw = (1 / n) * (X.T @ error)
+    db = (1 / n) * np.sum(error)
+    w -= learning_rate * dw
+    b -= learning_rate * db
+
+eps = 1e-9
+final_preds = sigmoid(X @ w + b)
+loss = -np.mean(y * np.log(final_preds + eps) + (1 - y) * np.log(1 - final_preds + eps))
+labels = (final_preds >= 0.5).astype(int)
+accuracy = np.mean(labels == y)
+
+print(f"Final loss: {loss:.4f}")
+print(f"Labels: {list(labels)}")
+print(f"Accuracy: {accuracy:.4f}")`
   },
   3:{
-    checks:['predictions: [0, 0, 1, 0, 1, 0, 1, 0]','train accuracy: 1.0000'],
-    hint:"m3 = LogisticRegression(); m3.fit(X3, y3); preds3 = m3.predict(X3); accuracy_score(y3, preds3)",
+    checks:["Plain SGD final loss: 0.196501", "Momentum final loss: 0.017709", "Momentum faster: True"],
+    hint:"velocity = beta*velocity - lr*grad(w); w = w + velocity. Keep the plain loop unchanged and add a second loop with its own w_mom and velocity, both starting from `start`.",
     solution:`import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-preds3 = m3.predict(X3)
-print(f'Predictions: {preds3.tolist()}')
-print(f'Train accuracy: {accuracy_score(y3, preds3):.4f}')`
+def grad(w):
+    return np.array([2.0 * w[0], 50.0 * w[1]])
+def loss(w):
+    return w[0] ** 2 + 25.0 * w[1] ** 2
+
+learning_rate = 0.018
+epochs = 60
+start = np.array([4.0, 4.0])
+
+w_plain = start.copy()
+for step in range(epochs):
+    g = grad(w_plain)
+    w_plain = w_plain - learning_rate * g
+loss_plain = loss(w_plain)
+
+w_mom = start.copy()
+velocity = np.zeros_like(w_mom)
+beta = 0.9
+for step in range(epochs):
+    g = grad(w_mom)
+    velocity = beta * velocity - learning_rate * g
+    w_mom = w_mom + velocity
+loss_mom = loss(w_mom)
+
+print(f"Plain SGD final loss: {loss_plain:.6f}")
+print(f"Momentum final loss: {loss_mom:.6f}")
+print(f"Momentum faster: {loss_mom < loss_plain}")`
   },
   4:{
-    checks:['p(class1) candidate0: 0.9984','p(class1) candidate1: 0.0000'],
-    hint:"proba4 = m3.predict_proba(new4); column 1 is P(class=1): proba4[0,1], proba4[1,1]",
+    checks:["Final loss: 0.0029", "Rounded: [0, 1, 1, 0]", "Matches XOR: True"],
+    hint:"Read the ValueError's shapes: (2,4) (4,2) (2,4). W1 has shape (2,4) -- features by hidden. d_z1 has shape (samples,hidden) and X has shape (samples,features), so the correct product is X.T @ d_z1, shape (2,4). The starter computes d_z1.T @ X instead, which comes out (4,2).",
     solution:`import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-new4 = np.array([[85,86],[52,54]])
-proba4 = m3.predict_proba(new4)
-print(f'P(class1) candidate0: {proba4[0,1]:.4f}')
-print(f'P(class1) candidate1: {proba4[1,1]:.4f}')`
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+np.random.seed(0)
+X = np.array([[0,0],[0,1],[1,0],[1,1]], dtype=float)
+y = np.array([[0],[1],[1],[0]], dtype=float)
+
+n_hidden = 4
+W1 = np.random.randn(2, n_hidden) * 0.5
+b1 = np.zeros(n_hidden)
+W2 = np.random.randn(n_hidden, 1) * 0.5
+b2 = np.zeros(1)
+lr = 0.5
+
+for epoch in range(4000):
+    a1 = sigmoid(X @ W1 + b1)
+    a2 = sigmoid(a1 @ W2 + b2)
+    loss = np.mean((y - a2) ** 2)
+
+    d_a2 = (a2 - y) * 2 / len(X)
+    d_z2 = d_a2 * a2 * (1 - a2)
+    d_W2 = a1.T @ d_z2
+    d_b2 = d_z2.sum(axis=0)
+    d_a1 = d_z2 @ W2.T
+    d_z1 = d_a1 * a1 * (1 - a1)
+    d_W1 = X.T @ d_z1
+    d_b1 = d_z1.sum(axis=0)
+
+    W2 -= lr * d_W2; b2 -= lr * d_b2
+    W1 -= lr * d_W1; b1 -= lr * d_b1
+
+rounded = [int(round(float(v))) for v in a2.flatten()]
+print(f"Final loss: {loss:.4f}")
+print(f"Rounded: {rounded}")
+print(f"Matches XOR: {rounded == [0,1,1,0]}")`
   },
   5:{
-    checks:['manual preds: [0, 1, 0]','model preds: [0, 1, 0]','match: true'],
-    hint:"decision5 = test5 @ m3.coef_[0] + m3.intercept_[0]; manual5 = (decision5 >= 0).astype(int)",
+    checks:["Final loss: 0.0001", "Rounded: [0, 0, 0, 0, 1, 1, 1, 1]", "Accuracy: 1.0000"],
+    hint:"Forward: a1 = sigmoid(X@W1+b1); a2 = sigmoid(a1@W2+b2). Backprop: reuse the fixed equations from exercise 4. Update: velocity = beta*velocity - lr*grad; param += velocity, for all four parameters W1, b1, W2, b2.",
     solution:`import numpy as np
-from sklearn.linear_model import LogisticRegression
-X3 = np.array([[58,60],[72,75],[90,88],[45,50],[80,82],[65,68],[93,95],[50,55]])
-y3 = np.array([0,0,1,0,1,0,1,0])
-m3 = LogisticRegression()
-m3.fit(X3, y3)
-test5 = np.array([[70,72],[95,96],[40,42]])
-decision5 = test5 @ m3.coef_[0] + m3.intercept_[0]
-manual5 = (decision5 >= 0).astype(int)
-model5 = m3.predict(test5)
-print(f'Manual preds: {manual5.tolist()}')
-print(f'Model preds: {model5.tolist()}')
-print(f'Match: {(manual5==model5).all()}')`
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+np.random.seed(1)
+X = np.array([
+    [0.1, 0.1], [-0.1, 0.15], [0.05, -0.1], [-0.15, -0.05],
+    [1.6, 1.6], [-1.7, 1.5], [1.5, -1.6], [-1.6, -1.7],
+], dtype=float)
+y = np.array([[0],[0],[0],[0],[1],[1],[1],[1]], dtype=float)
+
+n_in, n_hidden, n_out = 2, 6, 1
+W1 = np.random.randn(n_in, n_hidden) * 0.5
+b1 = np.zeros(n_hidden)
+W2 = np.random.randn(n_hidden, n_out) * 0.5
+b2 = np.zeros(n_out)
+
+vW1, vb1 = np.zeros_like(W1), np.zeros_like(b1)
+vW2, vb2 = np.zeros_like(W2), np.zeros_like(b2)
+lr, beta = 0.5, 0.9
+
+for epoch in range(3000):
+    a1 = sigmoid(X @ W1 + b1)
+    a2 = sigmoid(a1 @ W2 + b2)
+    loss = np.mean((y - a2) ** 2)
+
+    d_a2 = (a2 - y) * 2 / len(X)
+    d_z2 = d_a2 * a2 * (1 - a2)
+    d_W2 = a1.T @ d_z2
+    d_b2 = d_z2.sum(axis=0)
+    d_a1 = d_z2 @ W2.T
+    d_z1 = d_a1 * a1 * (1 - a1)
+    d_W1 = X.T @ d_z1
+    d_b1 = d_z1.sum(axis=0)
+
+    vW2 = beta * vW2 - lr * d_W2; W2 += vW2
+    vb2 = beta * vb2 - lr * d_b2; b2 += vb2
+    vW1 = beta * vW1 - lr * d_W1; W1 += vW1
+    vb1 = beta * vb1 - lr * d_b1; b1 += vb1
+
+rounded = [int(round(float(v))) for v in a2.flatten()]
+accuracy = np.mean([r == int(t) for r, t in zip(rounded, y.flatten())])
+print(f"Final loss: {loss:.4f}")
+print(f"Rounded: {rounded}")
+print(f"Accuracy: {accuracy:.4f}")`
   }
 };
 
@@ -1351,7 +1525,6 @@ window.runExercise=async function(n){
   const full=(out||'')+((!ok&&err)?'\n'+err:'');
   outEl.textContent=full||(ok?'(no output)':'Error');
   outEl.className='ex-output show '+(ok?'ok':'err');
-
   const ex=EXERCISES[n];
   let passed=ok;
   if(passed&&ex.checks){
@@ -1360,19 +1533,13 @@ window.runExercise=async function(n){
   resEl.style.display='flex';
   resEl.className='ex-result show '+(passed?'pass':'fail');
   if(passed){
-    resEl.textContent='✅ Correct! Well done. +50 XP';
-    if(!completedItems.has('ex'+n)){
-      completedItems.add('ex'+n);
-      xp+=50;updateUI();spark();persistChapter();
-    }
+    resEl.textContent='✅ Correct! Well done.';
+    spark();
   }else{
-    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — fix it and try again';
+    resEl.textContent=ok?'❌ Output doesn\'t match — check the task requirements':'❌ Python error — read it carefully, it usually tells you exactly what\'s wrong';
   }
 };
-
-window.showExHint=function(n){
-  alert('💡 Hint:\n\n'+EXERCISES[n].hint);
-};
+window.showExHint=function(n){ alert('💡 Hint:\n\n'+EXERCISES[n].hint); };
 window.showSolution=function(n){
   if(confirm('Show the solution? Try harder first! 😊')){
     document.getElementById(`ex${n}-code`).value=EXERCISES[n].solution;
@@ -1394,12 +1561,12 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['predictions: [1, 0, 1]','candidate 0: p(qualified)=0.5244','candidate 1: p(qualified)=0.4649','candidate 2: p(qualified)=0.5041','training accuracy: 1.0000'];
+  const checks=['train loss: 0.0001','val loss: 0.0003','val rounded: [0, 0, 1, 1]','val accuracy: 1.0000'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
-    res.textContent='✅ Project complete! All required elements present. +150 XP';
-    if(!completedItems.has('project')){completedItems.add('project');xp+=150;updateUI();spark();persistChapter();}
+    res.textContent='✅ Project complete! All required elements present.';
+    spark();
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
@@ -1407,102 +1574,52 @@ window.runProject=async function(){
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'A',5:'B'};
-
+/* ---------- quiz ---------- */
+const CORRECT={1:'B',2:'C',3:'B',4:'C',5:'C'};
 window.selectOpt=function(q,opt){
   if(quizDone)return;
   quizAnswers[q]=opt;
   document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
-    const letter=String.fromCharCode(65+i);
-    b.classList.toggle('selected',letter===opt);
+    b.classList.toggle('selected',String.fromCharCode(65+i)===opt);
   });
 };
-
-window.checkQ4=function(){
-  const val=document.getElementById('q4-input').value.trim().toLowerCase();
-  const fb=document.getElementById('q4-feedback');
-  const passed=val.includes('logisticregression')&&val.includes('.fit(')&&val.includes('x_train')&&val.includes('y_train');
-  quizAnswers[4]=passed?'PASS':'FAIL';
-  fb.className='q-feedback show '+(passed?'correct':'wrong');
-  fb.textContent=passed
-    ?"✅ Correct! model = LogisticRegression(); model.fit(X_train, y_train)"
-    :"❌ Not quite. You need: model = LogisticRegression() then model.fit(X_train, y_train)";
-};
-
-function revealNextChapter(){
-  document.getElementById('next-chapter-card').style.display='flex';
-}
-
+function revealNextChapter(){ document.getElementById('next-chapter-card').style.display='flex'; }
 window.submitQuiz=function(){
   if(quizDone)return;
   let score=0;
-  [1,2,3,5].forEach(q=>{
-    const correct=CORRECT[q];
-    const given=quizAnswers[q];
+  [1,2,3,4,5].forEach(q=>{
+    const correct=CORRECT[q], given=quizAnswers[q];
     if(given===correct)score++;
     document.querySelectorAll(`#q${q}-opts .q-opt`).forEach((b,i)=>{
       const letter=String.fromCharCode(65+i);
       if(letter===correct)b.classList.add('correct');
       else if(letter===given&&given!==correct)b.classList.add('wrong');
     });
+    const ex=document.getElementById(`q${q}-why`); if(ex) ex.style.display='block';
   });
-  if(quizAnswers[4]==='PASS')score++;
-  quizDone=true;
   const passed=score>=4;
   const banner=document.getElementById('quiz-result');
   banner.className='quiz-result-banner show '+(passed?'pass':'fail');
   document.getElementById('quiz-score-display').style.display='flex';
   document.getElementById('quiz-score').textContent=score;
   if(passed){
-    banner.innerHTML=`
-      <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Linear regression, logistic regression, sigmoid, and decision boundaries — the two workhorse models behind most real-world tabular ML now make sense both in theory and in one line of sklearn.</div>`;
-    if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
-    persistChapter();
+    quizDone=true;
+    banner.innerHTML=`<div class="qrb-title">🎉 Passed! ${score}/5 correct</div><div class="qrb-sub">You can now reproduce closed-form and gradient-descent linear regression, logistic regression, momentum, and manual backprop from memory -- and explain why each piece works. Move on to attention and language models next.</div>`;
+    spark();
     revealNextChapter();
   }else{
-    banner.innerHTML=`
-      <div class="qrb-title">📚 ${score}/5 — Need one more correct</div>
-      <div class="qrb-sub">You need 4/5 to pass. Review the questions you got wrong, re-read those sections in the lesson, then retake.</div>
-      <button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
+    banner.innerHTML=`<div class="qrb-title">📚 ${score}/5 — need 4 to pass</div><div class="qrb-sub">Read the explanations under the questions you missed, revisit those lesson sections, then retake.</div><button class="next-btn" style="background:var(--red);margin-top:12px" onclick="retakeQuiz()">Retake Quiz</button>`;
     quizDone=false;
   }
 };
-
 window.retakeQuiz=function(){
   quizDone=false;
   quizAnswers={1:null,2:null,3:null,4:null,5:null};
   document.querySelectorAll('.q-opt').forEach(b=>{b.className='q-opt';});
-  document.getElementById('q4-input').value='';
-  document.getElementById('q4-feedback').className='q-feedback';
+  document.querySelectorAll('.q-why').forEach(e=>{e.style.display='none';});
   document.getElementById('quiz-result').className='quiz-result-banner';
   document.getElementById('quiz-score-display').style.display='none';
 };
-
-function updateUI(){
-  document.getElementById('xp-count').textContent=xp;
-  const total=7; // 5 exercises + project + quiz
-  document.getElementById('done-count').textContent=completedItems.size;
-  const pct=Math.round(completedItems.size/total*100);
-  document.getElementById('sb-progress').style.width=pct+'%';
-  document.getElementById('sb-progress-text').textContent=pct+'% complete';
-  if(['ex1','ex2','ex3','ex4','ex5'].every(e=>completedItems.has(e))){
-    document.getElementById('sb-practice').classList.add('done');
-    document.getElementById('sb-practice').querySelector('.sb-tick').textContent='✓';
-    document.getElementById('tab-practice').classList.add('done-tab');
-  }
-  if(completedItems.has('project')){
-    document.getElementById('sb-project').classList.add('done');
-    document.getElementById('sb-project').querySelector('.sb-tick').textContent='✓';
-    document.getElementById('tab-project').classList.add('done-tab');
-  }
-  if(completedItems.has('quiz')){
-    document.getElementById('sb-quiz').classList.add('done');
-    document.getElementById('sb-quiz').querySelector('.sb-tick').textContent='✓';
-    document.getElementById('tab-quiz').classList.add('done-tab');
-  }
-}
-updateUI();
 
 function spark(){
   const em=['🎉','⭐','✨','🔥','💫','🎯'];
@@ -1518,17 +1635,11 @@ function spark(){
     },i*70);
   }
 }
-
-window.toggleSidebar=function(){
-  document.getElementById('sidebar').classList.toggle('mob-open');
-};
-window.toggleMobConsole=function(){
-  document.getElementById('console-dock').classList.toggle('mob-open');
-};
+window.toggleSidebar=function(){ document.getElementById('sidebar').classList.toggle('mob-open'); };
+window.toggleMobConsole=function(){ document.getElementById('console-dock').classList.toggle('mob-open'); };
 document.querySelectorAll('.sb-item').forEach(el=>{
   el.addEventListener('click',()=>{
-    if(window.innerWidth<=820)
-      document.getElementById('sidebar').classList.remove('mob-open');
+    if(window.innerWidth<=820) document.getElementById('sidebar').classList.remove('mob-open');
   });
 });
 </script>
@@ -1548,7 +1659,7 @@ document.querySelectorAll('.sb-item').forEach(el=>{
   function set(min,persist){
     dock.classList.toggle('cd-min',min);
     document.body.classList.toggle('cd-min',min);
-    btn.textContent=min?'\u25B4':'\u2013';
+    btn.textContent=min?'▴':'–';
     btn.setAttribute('aria-expanded',String(!min));
     var label=min?'Expand console (Ctrl+`)':'Minimize console (Ctrl+`)';
     btn.title=label;btn.setAttribute('aria-label',label);
@@ -1631,4 +1742,3 @@ document.querySelectorAll('.sb-item').forEach(el=>{
 <!-- feat:learn:start --><script src="../assets/learn.js" defer></script><!-- feat:learn:end -->
 <!-- feat:search-js:start --><script src="../assets/search.js" defer></script><!-- feat:search-js:end --><!-- feat:glossary-js:start --><script src="../assets/glossary.js" defer></script><!-- feat:glossary-js:end --></body>
 </html>
-

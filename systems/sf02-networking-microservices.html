@@ -497,13 +497,8 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
       <span class="badge">🧪 5-question quiz</span>
       <span class="badge">💼 12 Interview Prep Q&amp;A</span>
     </div>
-  </div>
-
-
-
-
-
-<!-- videos:start -->
+  </div>  <!-- 2.1 -->
+  <!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
 .vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -557,8 +552,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-  <!-- 2.1 -->
-  <div class="lesson-h2">2.1 — The Minimum Useful Networking Model</div>
+<div class="lesson-h2">2.1 — The Minimum Useful Networking Model</div>
   <p class="lesson-p">You don't need all seven OSI layers memorized to reason about microservices — you need four ideas. An <strong>IP address</strong> identifies a machine on a network. A <strong>port</strong> (0-65535) identifies WHICH process on that machine to talk to — a single server can run a web app on port 443 and a database on port 5432 at the same time, distinguished purely by port. <strong>DNS</strong> resolves a human-readable domain name (<code>api.example.com</code>) to the IP address a machine can actually route packets to — that's the entire idea, nothing more mystical than a giant lookup table. And two protocol names you'll hear constantly: <strong>TCP</strong> operates around what's informally called "Layer 4" (it deals in raw connections between IP:port pairs, with no idea what HTTP or a "request" even is), while <strong>HTTP</strong> operates around "Layer 7" (it's built ON TOP of a TCP connection, and understands methods, paths, headers). That Layer 4 / Layer 7 vocabulary matters directly in SF 3, where it's the whole difference between two kinds of load balancer.</p>
 
   <!-- 2.2 -->
@@ -640,7 +634,22 @@ result = trace_request(CALL_GRAPH, <span class="st">'api-gateway'</span>)
   <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>This is the "which hop failed" question, made concrete.</strong> Instead of guessing, the trace walks the graph hop by hop, adding up latency as it goes, and stops exactly at the failing call — telling you both WHERE it broke and how much time was spent before the failure. Real distributed tracing tools (Jaeger, Zipkin, OpenTelemetry) do exactly this, using correlation IDs (called "trace IDs" there) to stitch spans from every service back into one picture.</div></div>
 
   <!-- 2.5 -->
-  <div class="lesson-h2">2.5 — Timeouts, Retries With Backoff &amp; Circuit Breakers</div>
+  <!-- iximiuz:start -->
+<style>
+.info-box.ix{background:var(--violet-bg);border:1px solid rgba(124,92,252,.28);color:var(--text)}
+html[data-theme="light"] .info-box.ix{border-color:rgba(91,63,224,.32)}
+.info-box.ix .ib-body strong{display:block;font-weight:700;margin-bottom:4px;color:var(--text)}
+.info-box.ix .ib-body p{margin:6px 0 0;color:var(--t2);font-weight:400}
+.ix-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ix-btn{display:inline-flex;align-items:center;gap:6px;background:var(--violet);color:#fff;border-radius:20px;padding:8px 16px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.ix-btn:hover{background:var(--violet-light)}
+.ix-btn.ix-btn2{background:transparent;border:1px solid var(--border);color:var(--t2)}
+.ix-btn.ix-btn2:hover{border-color:var(--violet);color:var(--violet)}
+.ix-note{font-size:11.5px;color:var(--t3);margin-top:9px}
+</style>
+<div class="info-box ix"><div class="ib-icon">&#128225;</div><div class="ib-body"><strong>Try it on iximiuz Labs: Mini LAN playground</strong><p>This is a small multi-host Ubuntu network you can actually run <code>ping</code>, <code>curl -v</code>, <code>nc -zv</code>, <code>traceroute</code> and DNS lookups across &mdash; the exact toolkit 2.4 just walked through for telling &quot;service reachable, nothing listening&quot; (connection refused) apart from &quot;packet never got a response&quot; (timed out).</p><p>Try it: pick two hosts, start a listener on one with <code>nc -l</code>, then from the other host hit a closed port and an open one and compare the two failure modes live.</p><p>Verify: you can point to which error message means &quot;host reachable, port closed&quot; vs &quot;host/route unreachable&quot; on your own terminal, not just on the page.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/mini-lan-ubuntu" target="_blank" rel="noopener">Launch Mini LAN playground &#8599;</a><a class="ix-btn ix-btn2" href="https://labs.iximiuz.com/playgrounds?category=networking" target="_blank" rel="noopener">Browse networking playgrounds</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">2.5 — Timeouts, Retries With Backoff &amp; Circuit Breakers</div>
   <p class="lesson-p">A <strong>timeout</strong> is a promise you make to yourself: "I will not wait for this call forever." Without one, a single slow downstream call can hang your service indefinitely. A <strong>retry</strong> re-attempts a failed call — but retrying immediately, in a tight loop, can hammer an already-struggling service and make things worse (a "retry storm"). <strong>Exponential backoff</strong> fixes that by waiting progressively longer between attempts (0.1s, 0.2s, 0.4s...), giving the downstream service breathing room to recover.</p>
 
   <div class="code-block">

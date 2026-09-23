@@ -509,13 +509,8 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
       <span class="badge">🧪 Quiz to complete</span>
       <span class="badge">💼 Interview Prep</span>
     </div>
-  </div>
-
-
-
-
-
-<!-- videos:start -->
+  </div>  <!-- 33.1 -->
+  <!-- videos:start -->
 <style>
 .vid-panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin:0 0 26px}
 .vid-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:12px}
@@ -569,8 +564,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-  <!-- 33.1 -->
-  <div class="lesson-h2">33.1 — The Shape of a Real ML Project</div>
+<div class="lesson-h2">33.1 — The Shape of a Real ML Project</div>
   <p class="lesson-p">A course chapter usually hands you clean X/y arrays. Real work never does. A real project starts with a data export that has missing values, duplicate rows, and inconsistent text formatting, and ends with a decision about whether to actually replace what's running in production. Every phase below maps to something you've already built in an earlier module — this chapter's job is to run all of them in the correct order, on one dataset, so you feel what "end-to-end" actually means.</p>
 
   <table class="lesson-table">
@@ -786,6 +780,20 @@ decision = <span class="st">'SHIP'</span> <span class="kw">if</span> new_model_f
     <li data-n="5"><div><strong>Monitor every request</strong> — request count and error rate are the cheapest possible early-warning system.</div></li>
     <li data-n="6"><div><strong>Gate the ship decision on a real number</strong>, compared against what's already in production — never ship "because it's newer."</div></li>
   </ul>
+
+  <div class="lesson-h2">How This Connects: The Full Production MLOps Pipeline</div>
+  <p class="lesson-p">This chapter stops right after "SHIP" — one script, run by hand, deciding pass/fail. That's not where the job ends. The winning model still has to be packaged and actually served (<strong>Chapter 31</strong>: the same pickle-then-validate serving function from 33.6, wrapped in a FastAPI endpoint and built into a Docker image so it runs identically wherever it's deployed), and once it's live it has to stay trustworthy over time (<strong>Chapter 32</strong>: every future run logged to a registry so "what's in production" and rollback are solved problems, drift detection watching for the world changing under the model, and CI/CD re-running exactly this chapter's clean → tune → gate pipeline automatically — with a canary rollout ready to re-point traffic back if the new version regresses). Read in sequence, Chapters 33 → 31 → 32 are one pipeline, not three separate topics.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The pipeline, chained end to end</span></div>
+    <div class="cb-code">Ch 33 (this chapter)              Ch 31                          Ch 32
+────────────────────              ──────────                     ──────────────────────
+clean → features → CV     ──▶     pickle → validate     ──▶      registry (staging/prod)
+ → tune → held-out eval           → FastAPI → Docker              → drift detection
+ → gate: SHIP or HOLD                                              → CI/CD retrain trigger
+                                                                     → canary rollout + rollback
+        └──────────────────── HOLD, or a drift-triggered retrain re-enters at "clean" ────────┘</div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>

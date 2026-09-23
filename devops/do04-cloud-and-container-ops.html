@@ -1963,7 +1963,22 @@ totals = {}
     <tr><td>BestEffort</td><td>No requests or limits at all</td><td>First to be evicted</td></tr>
   </table>
 
-  <div class="lesson-h2">4.8 — Docker: inspect JSON, Image References and Container Hygiene</div>
+  <!-- iximiuz:start -->
+<style>
+.info-box.ix{background:var(--violet-bg);border:1px solid rgba(124,92,252,.28);color:var(--text)}
+html[data-theme="light"] .info-box.ix{border-color:rgba(91,63,224,.32)}
+.info-box.ix .ib-body strong{display:block;font-weight:700;margin-bottom:4px;color:var(--text)}
+.info-box.ix .ib-body p{margin:6px 0 0;color:var(--t2);font-weight:400}
+.ix-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.ix-btn{display:inline-flex;align-items:center;gap:6px;background:var(--violet);color:#fff;border-radius:20px;padding:8px 16px;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap}
+.ix-btn:hover{background:var(--violet-light)}
+.ix-btn.ix-btn2{background:transparent;border:1px solid var(--border);color:var(--t2)}
+.ix-btn.ix-btn2:hover{border-color:var(--violet);color:var(--violet)}
+.ix-note{font-size:11.5px;color:var(--t3);margin-top:9px}
+</style>
+<div class="info-box ix"><div class="ib-icon">&#129514;</div><div class="ib-body"><strong>Try it on iximiuz Labs: Kubernetes playground</strong><p>A real cluster for the <code>kubectl get pods -o json</code> triage and requests/limits/QoS math you just read in 4.6-4.7.</p><p>Try it: deploy a pod with no resource limits (BestEffort), one with matching requests=limits (Guaranteed), then <code>kubectl describe pod</code> each and compare.</p><p>Verify: <code>kubectl get pod -o json</code> on your own cluster shows the same <code>status.containerStatuses[*].state</code> shape this lesson's fixtures used.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/k8s-omni" target="_blank" rel="noopener">Launch Kubernetes playground &#8599;</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">4.8 — Docker: inspect JSON, Image References and Container Hygiene</div>
   <p class="lesson-p"><code>docker inspect</code> returns the full configuration and state of a container as JSON, and the SDK's <code>container.attrs</code> is that same document. Typical audit checks: is the image pinned, is the container privileged, is a port published on every interface, did it get OOM-killed.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Reference only — the docker SDK</span></div>
@@ -2031,7 +2046,10 @@ c.reload()                                       <span class="cm"># attrs are a 
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>Why :latest is a smell, and what to use instead.</strong> A tag is a <em>mutable pointer</em>: <code>:latest</code> can point at a different image tomorrow, so two hosts running "the same" deployment can run different code, and a rollback has nothing to go back to. Pin a version tag at minimum; pin a digest (<code>@sha256:…</code>) when you need bit-for-bit reproducibility.</div></div>
 
-  <div class="lesson-h2">4.9 — Errors, Throttling and Backoff</div>
+  <!-- iximiuz:start -->
+<div class="info-box ix"><div class="ib-icon">&#129514;</div><div class="ib-body"><strong>Try it on iximiuz Labs: Docker playground</strong><p>A real Docker engine for the <code>docker inspect</code> JSON and image-reference/hygiene ideas in 4.8.</p><p>Try it: run a container, then <code>docker inspect</code> it and find <code>State.OOMKilled</code>, <code>State.ExitCode</code> and the resolved image digest yourself.</p><p>Verify: you can locate the same fields this section parsed, in real <code>docker inspect</code> output instead of a fixture.</p><div class="ix-actions"><a class="ix-btn" href="https://labs.iximiuz.com/playgrounds/docker" target="_blank" rel="noopener">Launch Docker playground &#8599;</a></div><div class="ix-note">Opens in a new tab as a real, live terminal &mdash; no sign-in info is handled here. Come back to this lesson when you're done.</div></div></div>
+<!-- iximiuz:end -->
+<div class="lesson-h2">4.9 — Errors, Throttling and Backoff</div>
   <p class="lesson-p">Cloud APIs rate-limit you, and scripts that loop over hundreds of resources will hit it. The rule of thumb: <strong>retry what is transient, fail fast on what isn't.</strong> Throttling, timeouts and 5xx errors are worth retrying with <em>exponential backoff and jitter</em> (so a fleet of scripts doesn't retry in lock-step). <code>AccessDenied</code> or a validation error will fail identically every time, so retrying only wastes minutes.</p>
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Reference only — botocore's built-in retries and reading ClientError</span></div>
