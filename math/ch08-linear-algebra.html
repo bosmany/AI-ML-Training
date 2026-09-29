@@ -118,6 +118,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:600px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -485,7 +498,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 8:<br/><span>Linear Algebra for ML</span></h1>
     <p>Welcome to Module 2 — and to NumPy, the library every single ML tool is built on top of. Every dataset you'll ever load is a matrix. Every prediction a model makes is a dot product or a matrix multiplication. This chapter builds that vocabulary from scratch, in code, so the math in every later chapter reads as something you've already touched.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~80 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -597,6 +610,45 @@ prediction = np.dot(weights, features) + bias
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This IS linear regression, and it IS one neuron of a neural network.</strong> Both compute <code>dot(weights, inputs) + bias</code>. The entire field of deep learning stacks millions of this one operation together.</div></div>
 
+  <p class="lesson-p">That's the <em>algebraic</em> definition. There's also a <strong>geometric</strong> one, and it explains something the algebra alone doesn't: <em>why</em> similarity and dot products are related. Geometrically, <code>a · b = |a| |b| cos(θ)</code>, where <code>θ</code> is the angle between the two vectors, and <code>|a|</code> is the vector's length (its L2 norm — covered properly in 8.4). Two facts fall straight out of this formula: if the vectors point the <strong>same direction</strong> (θ ≈ 0°), <code>cos(θ) ≈ 1</code> and the dot product is as large and positive as it can be. If they point in <strong>opposite directions</strong> (θ ≈ 180°), it's as negative as it can be. If they're <strong>perpendicular</strong> (θ = 90°), <code>cos(θ) = 0</code> and the dot product is exactly zero — the vectors share nothing.</p>
+
+  <div class="diagram"><div class="dg-t">Two vectors and the angle between them</div><pre>        b
+       ↗
+      ╱
+     ╱  θ  (angle between a and b)
+    ╱ ⟩
+   •───────────→ a
+
+  θ small  → cos(θ) near  1 → a·b large & positive  (vectors agree)
+  θ = 90°  → cos(θ) = 0     → a·b = 0                (unrelated / orthogonal)
+  θ near 180° → cos(θ) near -1 → a·b large & negative (vectors disagree)</pre></div>
+
+  <p class="lesson-p">This is exactly why cosine similarity (used everywhere in ML — comparing embeddings, recommender systems, document search) is nothing but a rescaled dot product: <code>cos(θ) = (a · b) / (|a| |b|)</code>. Let's compute a real angle, between two real patients from the diabetes dataset used for the rest of this chapter.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The angle between two real patients' feature vectors</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
+
+data = load_diabetes()
+X = data.data          <span class="cm"># 442 patients, 10 features each</span>
+
+a = X[<span class="nm">0</span>]   <span class="cm"># patient 0's feature vector</span>
+b = X[<span class="nm">1</span>]   <span class="cm"># patient 1's feature vector</span>
+
+dot = np.dot(a, b)
+norm_a = np.linalg.norm(a)
+norm_b = np.linalg.norm(b)
+cos_theta = dot / (norm_a * norm_b)
+theta_deg = np.degrees(np.arccos(np.clip(cos_theta, -<span class="nm">1</span>, <span class="nm">1</span>)))
+
+<span class="bi">print</span>(<span class="st">f'a . b = <span class="bi">{dot:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'|a| = <span class="bi">{norm_a:.4f}</span>  |b| = <span class="bi">{norm_b:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'cos(theta) = <span class="bi">{cos_theta:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'theta = <span class="bi">{theta_deg:.2f}</span> degrees'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">📐</div><div class="ib-body">Real output: <code>a . b = -0.0079</code>, <code>cos(theta) = -0.4130</code>, <code>theta = 114.39 degrees</code>. These two patients' health-measurement vectors point in fairly different directions (past 90°) — the negative dot product tells you that before you even compute the angle.</div></div>
+
   <!-- 8.4 -->
   <div class="lesson-h2">8.4 — Vector Norms: Measuring Length and Distance</div>
   <p class="lesson-p">The <strong>L2 norm</strong> (Euclidean length) of a vector is <code>sqrt(sum(v**2))</code> — the straight-line distance from the origin. The <strong>L1 norm</strong> is <code>sum(abs(v))</code>. The distance BETWEEN two points is just the norm of their difference — this is exactly how algorithms like K-Nearest-Neighbors decide who's "close."</p>
@@ -619,26 +671,63 @@ distance = np.linalg.norm(a - b)
 <span class="bi">print</span>(<span class="st">f'Distance: <span class="bi">{distance:.4f}</span>'</span>)</div>
   </div>
 
-  <!-- 8.5 -->
-  <div class="lesson-h2">8.5 — Matrices: Shape and Indexing</div>
-  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column.</p>
+  <p class="lesson-p">L1 and L2 aren't interchangeable — they measure "size" differently, and that difference has real consequences (you'll see exactly this again in 8.9, for regularization). Picture the set of all points exactly "1 unit" from the origin under each norm — its <strong>unit ball</strong>:</p>
+
+  <div class="diagram"><div class="dg-t">The L2 unit ball (circle) vs the L1 unit ball (diamond)</div><pre>        L2: ||v||2 = 1              L1: ||v||1 = 1
+
+              *                           *
+           *     *                     *     *
+          *       *                  *         *
+         *    o    *                *     o     *
+          *       *                  *         *
+           *     *                     *     *
+              *                           *
+
+     smooth, all directions          sharp corners ON THE AXES
+     equally "expensive"             cheapest points sit exactly
+                                      where one coordinate is 0</pre></div>
+  <p class="lesson-p">Those corners matter: an optimizer that penalizes the L1 norm is pulled toward the diamond's corners — points where entire coordinates are exactly zero. Penalizing the L2 norm pulls toward the smooth circle instead, shrinking every coordinate a little but rarely to exactly zero. This single geometric fact is <em>why</em> L1-regularized models (Lasso) produce sparse weight vectors and L2-regularized models (Ridge) don't.</p>
+
+  <p class="lesson-p">Now the practical use of distance: <strong>K-Nearest-Neighbors</strong> doesn't have a training phase at all — to classify or predict for a new point, it just measures the distance (usually the L2 norm of the difference) from that point to every other point, and looks at whichever <code>k</code> are closest. Let's do this for real: take one real patient, and find their 3 nearest neighbors in the whole dataset by Euclidean distance.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">A dataset as a matrix — 4 samples, 3 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">Real kNN: who are patient 0's 3 nearest neighbors?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
 
-X = np.array([
-    [<span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">3</span>],
-    [<span class="nm">4</span>,  <span class="nm">5</span>,  <span class="nm">6</span>],
-    [<span class="nm">7</span>,  <span class="nm">8</span>,  <span class="nm">9</span>],
-    [<span class="nm">10</span>, <span class="nm">11</span>, <span class="nm">12</span>],
-])
+X = load_diabetes().data
+query = X[<span class="nm">0</span>]
 
-<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)             <span class="cm"># (4, 3) — 4 samples, 3 features</span>
-<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{list(X[1])}</span>'</span>)          <span class="cm"># [4, 5, 6] — sample at index 1</span>
-<span class="bi">print</span>(<span class="st">f'Column 2: <span class="bi">{list(X[:,2])}</span>'</span>)     <span class="cm"># [3, 6, 9, 12] — feature at index 2, ALL samples</span>
-<span class="bi">print</span>(<span class="st">f'Row 0 sum: <span class="bi">{X[0].sum()}</span>'</span>)</div>
+<span class="cm"># distance from query to EVERY other row, in one vectorized line</span>
+distances = np.linalg.norm(X - query, axis=<span class="nm">1</span>)
+order = np.argsort(distances)          <span class="cm"># indices sorted nearest -> farthest</span>
+nearest3 = order[<span class="nm">1</span>:<span class="nm">4</span>]                   <span class="cm"># skip index 0 — that's the query itself, distance 0</span>
+
+<span class="kw">for</span> idx <span class="kw">in</span> nearest3:
+    <span class="bi">print</span>(<span class="st">f'Neighbor idx <span class="bi">{idx}</span>: distance <span class="bi">{distances[idx]:.4f}</span>'</span>)</div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">🎯</div><div class="ib-body">Real output: patients 51, 2 and 341 (distances 0.0578, 0.0614, 0.0717) are patient 0's closest matches. Notice the whole search was <strong>one</strong> vectorized line — <code>np.linalg.norm(X - query, axis=1)</code> — computing 441 distances at once, the same "no loop for the math" idea from 8.6.</div></div>
+
+  <!-- 8.5 -->
+  <div class="lesson-h2">8.5 — Matrices: Shape and Indexing</div>
+  <p class="lesson-p">A matrix is a 2D array. <code>.shape</code> tells you (rows, columns) — for a dataset, that's (samples, features). Index with <code>[row, col]</code>, and use <code>:</code> to grab a whole row or column. Below is a real dataset loaded straight from scikit-learn — this exact <code>X</code> is what the rest of this chapter (and the exercises) build on.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real dataset as a matrix — 442 patients, 10 features</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
+
+data = load_diabetes()
+X = data.data     <span class="cm"># feature matrix</span>
+y = data.target    <span class="cm"># a real-valued disease-progression score, one per patient</span>
+
+<span class="bi">print</span>(<span class="st">f'Shape: <span class="bi">{X.shape}</span>'</span>)                              <span class="cm"># (442, 10) — 442 patients, 10 features</span>
+<span class="bi">print</span>(<span class="st">f'Feature names: <span class="bi">{data.feature_names}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Row 1: <span class="bi">{np.round(X[1], 4).tolist()}</span>'</span>)          <span class="cm"># patient at index 1, all 10 features</span>
+<span class="bi">print</span>(<span class="st">f'Column 2 (bmi), first 5: <span class="bi">{np.round(X[:5, 2], 4).tolist()}</span>'</span>)  <span class="cm"># one feature, first 5 patients</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Every scikit-learn "bundled" dataset (like this one) ships inside the library itself — no internet needed, which is why it works the same in this in-browser console as anywhere else. This dataset's features have already been mean-centered and scaled by whoever built it, which is why they're small decimals instead of raw measurements — you'll rely on that scaling later, in 8.8 and 8.9.</div></div>
+  <div class="info-box tip"><div class="ib-icon">✏️</div><div class="ib-body">Exercise 4 practices this same shape/indexing skill on a small hand-written matrix first, so your printed output is easy to check exactly — then you'll use this real one for the rest of the lesson.</div></div>
 
   <!-- 8.6 -->
   <div class="lesson-h2">8.6 — Matrix Multiplication: Computing an Entire Batch at Once</div>
@@ -658,6 +747,31 @@ predictions = X @ w + b     <span class="cm"># (3,2) @ (2,) -> (3,) : ALL 3 pred
   </div>
   <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body"><strong>This one line — <code>X @ w + b</code> — IS linear regression's prediction step.</strong> Whether it's 3 samples or 3 million, it's the same operation. This is why NumPy (and by extension PyTorch/TensorFlow) is fast: the loop happens in optimized low-level code, not in slow Python.</div></div>
 
+  <p class="lesson-p">Let's prove that with the real dataset. <code>sklearn.linear_model.LinearRegression</code> doesn't do anything mysterious to make a prediction — it fits a weight vector <code>w</code> and a bias <code>b</code> during <code>.fit()</code>, then <code>.predict()</code> is <em>exactly</em> <code>X @ w + b</code>, the same expression you just wrote by hand.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A fitted model's .predict() really is just X @ w + b</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+
+data = load_diabetes()
+X, y = data.data, data.target
+
+model = LinearRegression().fit(X, y)
+w = model.coef_          <span class="cm"># the fitted weight vector, shape (10,)</span>
+b = model.intercept_     <span class="cm"># the fitted bias, a single number</span>
+
+manual_preds = X[:<span class="nm">5</span>] @ w + b            <span class="cm"># our own matmul, using the model's own w and b</span>
+sklearn_preds = model.predict(X[:<span class="nm">5</span>])     <span class="cm"># sklearn's own .predict()</span>
+
+<span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">5</span>):
+    <span class="bi">print</span>(<span class="st">f'Sample <span class="bi">{i}</span>: manual=<span class="bi">{manual_preds[i]:.2f}</span> sklearn=<span class="bi">{sklearn_preds[i]:.2f}</span> actual=<span class="bi">{y[i]:.2f}</span>'</span>)
+
+<span class="bi">print</span>(<span class="st">f'Identical? <span class="bi">{np.allclose(manual_preds, sklearn_preds)}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🔬</div><div class="ib-body">Real output: <code>Identical? True</code>, every single time — down to floating-point precision. <code>model.predict(X)</code> is not a separate algorithm from <code>X @ w + b</code>; it <strong>is</strong> <code>X @ w + b</code>, with <code>w</code> and <code>b</code> chosen by the fitting process. Everything in 8.8 and 8.9 below builds on this same <code>X</code>, <code>y</code> and <code>w</code>.</div></div>
+
   <!-- 8.7 -->
   <div class="lesson-h2">8.7 — Transpose and the Identity Matrix</div>
   <p class="lesson-p">The <strong>transpose</strong> (<code>.T</code>) flips a matrix's rows and columns — needed constantly to make shapes line up for multiplication. The <strong>identity matrix</strong> (<code>np.eye(n)</code>) is the matrix equivalent of the number 1 — multiplying by it changes nothing.</p>
@@ -676,16 +790,145 @@ v = np.array([<span class="nm">7</span>, <span class="nm">8</span>, <span class=
 <span class="bi">print</span>(<span class="st">f'v @ I: <span class="bi">{list(v @ I)}</span>'</span>)   <span class="cm"># [7, 8, 9] — unchanged, like multiplying by 1</span></div>
   </div>
 
+  <!-- 8.8 -->
+  <div class="lesson-h2">8.8 — Eigenvectors and PCA Intuition</div>
+  <p class="lesson-p">A matrix isn't just a table of numbers — applying it (multiplying a vector by it) is a <strong>transformation</strong>: it can rotate, stretch, or squash a vector. For almost every vector you feed in, the output points in a totally different direction. An <strong>eigenvector</strong> is the rare, special exception: a vector whose <em>direction the matrix doesn't change</em> — the matrix only stretches or shrinks it, by a factor called its <strong>eigenvalue</strong>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The obvious case: a diagonal matrix's eigenvectors ARE the axes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+A = np.array([[<span class="nm">2.0</span>, <span class="nm">0.0</span>],
+              [<span class="nm">0.0</span>, <span class="nm">3.0</span>]])
+
+eigenvalues, eigenvectors = np.linalg.eig(A)
+<span class="bi">print</span>(<span class="st">f'eigenvalues: <span class="bi">{eigenvalues.real}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'eigenvectors (as columns):\n<span class="bi">{eigenvectors.real}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: eigenvalues <code>[2. 3.]</code>, eigenvectors <code>[[1,0],[0,1]]</code> — the plain x and y axes. That makes sense: this matrix stretches the x-axis by 2 and the y-axis by 3 and does nothing else, so the axes themselves are exactly the directions it doesn't rotate.</div></div>
+
+  <p class="lesson-p">Most real matrices aren't diagonal, so their eigenvectors aren't the obvious axes — but they still exist, and NumPy finds them the same way:</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A non-diagonal case — the eigenvectors are diagonal directions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+A2 = np.array([[<span class="nm">2.0</span>, <span class="nm">1.0</span>],
+               [<span class="nm">1.0</span>, <span class="nm">2.0</span>]])
+
+eigenvalues, eigenvectors = np.linalg.eig(A2)
+<span class="bi">print</span>(<span class="st">f'eigenvalues: <span class="bi">{np.round(eigenvalues.real, 4)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'eigenvectors (as columns):\n<span class="bi">{np.round(eigenvectors.real, 4)}</span>'</span>)
+
+<span class="cm"># proof: A2 @ v really does equal eigenvalue * v, for each eigenvector v</span>
+v1 = eigenvectors[:, <span class="nm">0</span>]
+<span class="bi">print</span>(<span class="st">f'A2 @ v1        = <span class="bi">{np.round(A2 @ v1, 4)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'eigenvalue * v1 = <span class="bi">{np.round(eigenvalues[0].real * v1, 4)}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: eigenvalues <code>[3. 1.]</code>, and the first eigenvector is <code>(0.7071, 0.7071)</code> — the diagonal direction. Multiplying that exact direction by A2 gives back <code>3 × (0.7071, 0.7071)</code>: same direction, just 3 times longer. That's the whole definition, proven numerically.</div></div>
+
+  <p class="lesson-p">Here's why this matters for ML: <strong>Principal Component Analysis (PCA)</strong> is nothing more than "find the eigenvectors of a dataset's covariance matrix." The covariance matrix describes how features vary together; its eigenvectors point along the directions where the data spreads out the <em>most</em>, and its eigenvalues tell you exactly how much variance lies along each one. Sorting eigenvectors by eigenvalue (largest first) gives you PCA's "principal components" — the best directions to keep if you must compress the data into fewer dimensions.</p>
+
+  <div class="diagram"><div class="dg-t">PCA on a 2-feature cloud of points</div><pre>  feature 2
+      ↑        .  .
+      |      .  .  .  ↗ 1st principal component
+      |    .  .  .  ╱   (direction of MOST spread — biggest eigenvalue)
+      |  .  .  .  ╱
+      |.  .  .  ╱  ↘ 2nd principal component
+      |  .  . ╱      (perpendicular, LESS spread — smaller eigenvalue)
+      +──────────────→ feature 1</pre></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Manual PCA (eigendecomposition of the covariance matrix) vs sklearn's PCA</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
+<span class="kw">from</span> sklearn.decomposition <span class="kw">import</span> PCA
+
+X = load_diabetes().data
+X_centered = X - X.mean(axis=<span class="nm">0</span>)          <span class="cm"># PCA always works on centered data</span>
+
+<span class="cm"># === the manual way: eigendecompose the covariance matrix ourselves ===</span>
+cov = np.cov(X_centered, rowvar=<span class="kw">False</span>)      <span class="cm"># shape (10, 10) — how each feature-pair co-varies</span>
+eigenvalues, eigenvectors = np.linalg.eig(cov)
+order = np.argsort(eigenvalues)[::-<span class="nm">1</span>]        <span class="cm"># sort by eigenvalue, largest (most variance) first</span>
+eigenvalues_sorted = eigenvalues[order].real
+manual_ratio = eigenvalues_sorted / eigenvalues_sorted.sum()
+
+<span class="cm"># === the library way ===</span>
+pca = PCA().fit(X)
+
+<span class="bi">print</span>(<span class="st">f'manual explained variance ratio:  <span class="bi">{np.round(manual_ratio[:5], 4)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'sklearn explained variance ratio: <span class="bi">{np.round(pca.explained_variance_ratio_[:5], 4)}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body">Real output — both lines print <strong>exactly</strong> <code>[0.4024 0.1492 0.1206 0.0955 0.0662]</code>. sklearn's <code>PCA</code> is not a different algorithm from "eigendecompose the covariance matrix" — it <em>is</em> that (computed via a more numerically stable route, SVD, for larger data). The first principal component alone captures 40.24% of this dataset's total variance.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">One real wrinkle if you experiment further: an eigenvector's <em>sign</em> is not unique — <code>v</code> and <code>-v</code> are both valid eigenvectors for the same eigenvalue. That's why this lesson checks the <em>eigenvalues</em> (which are unique) rather than raw eigenvector values, and why the graded exercises in this chapter don't ask you to print raw eigenvectors — matching them exactly would be flaky by nature of the math, not a bug in your code.</div></div>
+
+  <!-- 8.9 -->
+  <div class="lesson-h2">8.9 — L1 vs L2 Regularization, on a Real Linear Model</div>
+  <p class="lesson-p">Back in 8.4 you saw the L1 and L2 norms and their unit balls. <strong>Regularization</strong> is where that geometry stops being abstract: instead of just minimizing prediction error, a regularized model minimizes <code>error + λ · ||w||</code> — error PLUS a penalty on how large the weight vector is. Which norm you penalize changes the result in a very specific, predictable way.</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Ridge regression</strong> penalizes <code>||w||₂²</code> (the squared L2 norm). Because the L2 unit ball is smooth, Ridge shrinks every weight a little — toward zero, but rarely exactly to it.</div></li>
+    <li data-n="2"><div><strong>Lasso regression</strong> penalizes <code>||w||₁</code> (the L1 norm). Because the L1 unit ball has corners on the axes, Lasso pushes some weights to <em>exactly</em> zero — it performs automatic feature selection as a side effect.</div></li>
+  </ul>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Ridge vs Lasso on the same real dataset</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_diabetes
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> Ridge, Lasso
+
+X, y = load_diabetes(return_X_y=<span class="kw">True</span>)
+
+ridge = Ridge(alpha=<span class="nm">1.0</span>).fit(X, y)
+lasso = Lasso(alpha=<span class="nm">1.0</span>).fit(X, y)
+
+<span class="bi">print</span>(<span class="st">f'Ridge weights: <span class="bi">{np.round(ridge.coef_, 2)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Lasso weights: <span class="bi">{np.round(lasso.coef_, 2)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Ridge ||w||2 = <span class="bi">{np.linalg.norm(ridge.coef_):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Lasso ||w||1 = <span class="bi">{np.<span class="bi">sum</span>(np.<span class="bi">abs</span>(lasso.coef_)):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Lasso weights exactly zero: <span class="bi">{int((lasso.coef_ == 0).sum())}</span> / <span class="bi">{len(lasso.coef_)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Ridge weights exactly zero: <span class="bi">{int((ridge.coef_ == 0).sum())}</span> / <span class="bi">{len(ridge.coef_)}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🏆</div><div class="ib-body">Real output: Lasso zeroes out <strong>7 of 10</strong> weights entirely (keeping only <code>bmi</code>, <code>bp</code> and <code>s5</code> — literally selecting the 3 features it thinks matter), while Ridge's 10 weights are all nonzero, just generally smaller in magnitude than an unregularized fit. Same dataset, same target, same <code>alpha</code> — the only difference is which norm, L1 or L2, is being penalized.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 8 Summary</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>Data is vectors and matrices.</strong> One sample = a vector. A dataset = a matrix, shape (samples, features).</div></li>
     <li data-n="2"><div><strong>NumPy arrays do math elementwise</strong> — completely different from Python lists with the same operators.</div></li>
-    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum = the core of a neuron / linear model prediction.</div></li>
-    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN.</div></li>
-    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation.</div></li>
+    <li data-n="3"><div><strong>Dot product</strong> (<code>np.dot</code> or <code>@</code>) = elementwise multiply then sum, and geometrically = <code>|a||b|cos(θ)</code> — the core of a neuron, a linear model prediction, and cosine similarity.</div></li>
+    <li data-n="4"><div><strong>Norms</strong> (<code>np.linalg.norm</code>) measure length; the norm of a difference is distance — the basis of KNN. L1's unit ball has corners (sparsity); L2's is smooth (shrinkage).</div></li>
+    <li data-n="5"><div><strong>Matrix multiplication</strong> (<code>X @ w</code>) computes predictions for an entire dataset in one vectorized operation — this is literally what <code>model.predict()</code> does.</div></li>
     <li data-n="6"><div><strong>Transpose</strong> (<code>.T</code>) swaps rows/columns to make shapes compatible; <strong>identity</strong> (<code>np.eye</code>) is the matrix "1".</div></li>
+    <li data-n="7"><div><strong>Eigenvectors</strong> are directions a matrix only scales, never rotates. <strong>PCA</strong> is exactly "find the eigenvectors of the covariance matrix" — the directions of maximum variance.</div></li>
+    <li data-n="8"><div><strong>Regularization</strong> penalizes a weight vector's norm during training. L2 (Ridge) shrinks weights smoothly; L1 (Lasso) drives some weights to exactly zero.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What does the dot product of two vectors tell you, geometrically?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Geometrically, <code>a · b = |a||b|cos(θ)</code>. Its sign tells you the relationship between the vectors' directions: positive means they broadly agree (angle under 90°), zero means they're perpendicular/unrelated, and negative means they broadly disagree (angle over 90°). Cosine similarity is just this dot product rescaled by the two vectors' lengths.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why must A's number of columns equal B's number of rows for <code>A @ B</code>?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Each output entry is a dot product between a row of A and a column of B, and a dot product only makes sense between two vectors of the same length. A's rows have length "number of columns," and B's columns have length "number of rows" — those have to match, or there's nothing to sum. The result takes A's row-count and B's column-count: <code>(m,n) @ (n,p) → (m,p)</code>.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">In one sentence, what's the practical difference between L1 and L2 regularization?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">L1 (Lasso) tends to push some weights to exactly zero, effectively selecting features, because its unit ball has corners on the axes; L2 (Ridge) shrinks every weight smoothly toward zero without usually reaching it, because its unit ball is a smooth sphere.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What is an eigenvector, in plain terms?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">For a given matrix (transformation), it's a vector whose direction the matrix doesn't change — the matrix only stretches or shrinks it by a scalar factor, called the eigenvalue. Almost every other vector gets its direction changed by the same matrix; eigenvectors are the special exceptions.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is PCA described as "the eigenvectors of the covariance matrix"?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The covariance matrix encodes how much the data spreads out, and in which directions. Its eigenvectors point along those spread-out directions, and its eigenvalues say exactly how much variance lies along each one. Sorting eigenvectors by eigenvalue (largest first) gives you PCA's principal components — the best axes to keep if you need to compress the data into fewer dimensions while losing as little information as possible.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Two models are trained on the same data with the same regularization strength — one with Ridge, one with Lasso. Why might Lasso end up using far fewer features than Ridge?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because Ridge penalizes the squared L2 norm and Lasso penalizes the L1 norm, and those two norms have different-shaped "cheapest" regions. The L1 unit ball has sharp corners sitting exactly on the coordinate axes, so the optimizer is geometrically pulled toward solutions where entire coordinates (weights) are exactly zero. The L2 unit ball is a smooth sphere with no such corners, so Ridge has no special pull toward exact zeros — it just shrinks every weight a little.</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -910,6 +1153,7 @@ b = 0.2
       <span class="ptag">X @ w + b</span>
       <span class="ptag">vectorized MSE</span>
       <span class="ptag">NumPy</span>
+      <span class="ptag">weight norm</span>
     </div>
   </div>
 
@@ -921,6 +1165,7 @@ b = 0.2
       <li>Compute MSE = (errors ** 2).mean() and RMSE = MSE ** 0.5</li>
       <li>Print each sample's prediction vs actual target</li>
       <li>Print the final MSE and RMSE</li>
+      <li>Print the weight vector's L2 norm, ||w||2 (from 8.4/8.9 — a bigger norm means a "larger," less-regularized weight vector)</li>
     </ul>
   </div>
 
@@ -958,6 +1203,10 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 # rmse = mse ** 0.5
 # print(f'MSE: {mse:.6f}')
 # print(f'RMSE: {rmse:.6f}')
+
+# === TODO 4: print the weight vector's L2 norm (see 8.4 and 8.9) ===
+# w_norm = np.linalg.norm(w)
+# print(f'||w||2: {w_norm:.4f}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -969,6 +1218,7 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
     <div class="check-item"><span class="check-icon">🎯</span>MSE: 0.146000</div>
     <div class="check-item"><span class="check-icon">📊</span>RMSE: 0.382099</div>
     <div class="check-item"><span class="check-icon">⚡</span>Predictions computed with X @ w + b — not a manual per-sample formula</div>
+    <div class="check-item"><span class="check-icon">📐</span>||w||2: 0.6164</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1026,12 +1276,12 @@ y = np.array([1.4, 1.6, 2.0, 0.9, 2.5])   # actual targets
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">X has shape (10, 3) and w has shape (3,). What shape is <code>X @ w</code>?</div>
+    <div class="q-text">PCA finds the directions along which a dataset varies the most. What are those directions, mathematically?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> (10,) — one prediction per sample</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> (3,)</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> (10, 3) — unchanged</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> An error — shapes are incompatible</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> The eigenvectors of the data's covariance matrix, ranked by eigenvalue</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The rows of the original feature matrix with the largest sum</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> The columns with the smallest L1 norm</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> The transpose of the original feature matrix</button>
     </div>
   </div>
 
@@ -1305,7 +1555,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['mse: 0.146000','rmse: 0.382099'];
+  const checks=['mse: 0.146000','rmse: 0.382099','||w||2: 0.6164'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1314,7 +1564,7 @@ window.runProject=async function(){
   }else if(!ok){
     res.textContent='❌ Python error — fix it and run again';
   }else{
-    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099)';
+    res.textContent='❌ Missing some required values — check the checklist above (MSE: 0.146000, RMSE: 0.382099, ||w||2: 0.6164)';
   }
 };
 
@@ -1367,7 +1617,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Vectors, dot products, norms, and matrix multiplication are yours now. Every model prediction you'll ever compute is built from exactly these operations.</div>`;
+      <div class="qrb-sub">Vectors, dot products, norms, matrix multiplication, eigenvectors and regularization are yours now. Every model prediction, every PCA plot, and every Ridge/Lasso fit you'll ever see is built from exactly these operations.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();

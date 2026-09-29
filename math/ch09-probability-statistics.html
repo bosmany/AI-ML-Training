@@ -118,6 +118,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:600px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -484,7 +497,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 9:<br/><span>Probability &amp; Statistics</span></h1>
     <p>Every model evaluation report speaks this language: mean, variance, correlation, probability. This chapter gives you the statistics vocabulary you need to describe data, and the probability vocabulary you need to reason about uncertainty — including the single most counter-intuitive, most important idea in the chapter: why a 99%-accurate test can still be wrong most of the time.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~100 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -586,9 +599,62 @@ std      = np.std(scores)     <span class="cm"># sqrt(variance) — same units a
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>Standard deviation gives you a "typical distance from average."</strong> If test scores have mean=75 and std=5, a score of 90 is unusually high (3 std devs away) — that's the intuition behind flagging outliers, coming up in this chapter's project.</div></div>
 
+  <p class="lesson-p"><code>np.mean</code> and <code>np.var</code> compute <strong>sample</strong> statistics — estimates from data you actually collected. The theoretical concepts behind them are <strong>expectation</strong> <code>E[X]</code> and <strong>variance</strong> <code>Var(X)</code>, defined for a known probability distribution rather than a specific dataset: <code>E[X] = Σ x · P(x)</code> (a probability-weighted average of every possible outcome) and <code>Var(X) = E[(X - E[X])²]</code> (the probability-weighted average squared distance from that expectation). When you don't know the true distribution — the usual case — the sample mean and sample variance are your best <em>estimates</em> of <code>E[X]</code> and <code>Var(X)</code>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">E[X] and Var(X) for a known distribution — a loaded six-sided die</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+outcomes = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>])
+probs    = np.array([<span class="nm">0.10</span>, <span class="nm">0.10</span>, <span class="nm">0.10</span>, <span class="nm">0.10</span>, <span class="nm">0.10</span>, <span class="nm">0.50</span>])   <span class="cm"># loaded toward 6</span>
+
+<span class="cm"># E[X] = sum of (outcome * its probability)</span>
+EX = np.<span class="bi">sum</span>(outcomes * probs)
+<span class="cm"># Var(X) = E[(X - E[X])^2] = sum of ((outcome - E[X])^2 * its probability)</span>
+VarX = np.<span class="bi">sum</span>(((outcomes - EX) ** <span class="nm">2</span>) * probs)
+
+<span class="bi">print</span>(<span class="st">f'E[X] = <span class="bi">{EX:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Var(X) = <span class="bi">{VarX:.4f}</span>'</span>)
+
+<span class="cm"># Confirm it: simulate 20,000 rolls of this exact die, compare sample stats to E[X]/Var(X)</span>
+rng = np.random.default_rng(<span class="nm">42</span>)
+rolls = rng.choice(outcomes, size=<span class="nm">20000</span>, p=probs)
+<span class="bi">print</span>(<span class="st">f'sample mean (n=20000): <span class="bi">{rolls.mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'sample var  (n=20000): <span class="bi">{rolls.var():.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>E[X] = 4.5000</code>, <code>Var(X) = 3.2500</code> — and the 20,000-roll simulation lands at <code>sample mean: 4.5049</code>, <code>sample var: 3.2441</code>, very close to the true values. This is the Law of Large Numbers: sample statistics converge to the true E[X]/Var(X) as you collect more data. It's also exactly why "training loss" and "validation loss" are sample <em>estimates</em> of a model's true expected loss — they get more trustworthy with more data, never perfectly exact.</div></div>
+
   <!-- 9.4 -->
-  <div class="lesson-h2">9.4 — The Normal Distribution and Z-Scores</div>
-  <p class="lesson-p">The <strong>normal distribution</strong> (bell curve) shows up everywhere in nature and in ML. Its defining property, the <strong>68-95-99.7 rule</strong>: about 68% of values fall within 1 standard deviation of the mean, 95% within 2, and 99.7% within 3. A <strong>z-score</strong> converts any value into "how many standard deviations from the mean" — <code>z = (x - mean) / std</code> — which is exactly how you flag anomalies.</p>
+  <div class="lesson-h2">9.4 — Probability Distributions in ML</div>
+  <p class="lesson-p">A <strong>probability distribution</strong> describes every possible outcome of some random process and how likely each one is. Four show up constantly in ML, each modeling a different shape of real data — knowing which is which helps you pick the right loss function, the right synthetic-data generator, or the right sanity check.</p>
+  <table class="lesson-table">
+  <tr><th>Distribution</th><th>Models</th><th>Shows up in ML as</th></tr>
+  <tr><td>Bernoulli / Binomial</td><td style="font-family:var(--sans);color:var(--t2)">A single yes/no trial, or the count of "yes" outcomes across several trials</td><td style="font-family:var(--sans);color:var(--t2)">Binary classification labels; logistic regression's output IS a Bernoulli probability</td></tr>
+  <tr><td>Poisson</td><td style="font-family:var(--sans);color:var(--t2)">Counts of events in a fixed window (rare, independent events)</td><td style="font-family:var(--sans);color:var(--t2)">Clicks per hour, server errors per day, customer arrivals — count-data modeling</td></tr>
+  <tr><td>Uniform</td><td style="font-family:var(--sans);color:var(--t2)">Every outcome in a range is equally likely</td><td style="font-family:var(--sans);color:var(--t2)">Random weight initialization, random train/test shuffling, sampling a hyperparameter search</td></tr>
+  <tr><td>Normal (Gaussian)</td><td style="font-family:var(--sans);color:var(--t2)">Values clustering around a mean, symmetric tails</td><td style="font-family:var(--sans);color:var(--t2)">Measurement noise, many real features, weight init, and the Central Limit Theorem (9.8 — coming up)</td></tr>
+  </table>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Four distributions, side by side (scipy.stats)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+<span class="cm"># Bernoulli/Binomial: 10 independent ad clicks, each with 30% click probability</span>
+<span class="bi">print</span>(<span class="st">f'P(exactly 1 click, single trial):  <span class="bi">{stats.bernoulli.pmf(1, 0.3):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'P(exactly 3 clicks out of 10):     <span class="bi">{stats.binom.pmf(3, 10, 0.3):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Binomial(10, 0.3) mean: <span class="bi">{stats.binom.mean(10, 0.3)}</span>  variance: <span class="bi">{stats.binom.var(10, 0.3)}</span>'</span>)
+
+<span class="cm"># Poisson: average 4 server errors per hour</span>
+<span class="bi">print</span>(<span class="st">f'P(exactly 2 errors this hour):     <span class="bi">{stats.poisson.pmf(2, 4):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'P(exactly 4 errors this hour):     <span class="bi">{stats.poisson.pmf(4, 4):.4f}</span>'</span>)
+
+<span class="cm"># Normal: the probability density at the mean, and the classic 95% cutoff</span>
+<span class="bi">print</span>(<span class="st">f'Normal(0,1) density at 0:          <span class="bi">{stats.norm.pdf(0, 0, 1):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'P(Z < 1.96) for standard normal:   <span class="bi">{stats.norm.cdf(1.96):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output includes <code>P(Z &lt; 1.96) = 0.9750</code> — that's where the "95%" in a 95% confidence interval comes from (9.9, coming up): 95% of a standard normal distribution's mass sits between z=-1.96 and z=+1.96.</div></div>
+
+  <p class="lesson-p">The <strong>normal distribution</strong> (bell curve) is worth its own spotlight — it's the one you'll use constantly for continuous data. Its defining property, the <strong>68-95-99.7 rule</strong>: about 68% of values fall within 1 standard deviation of the mean, 95% within 2, and 99.7% within 3. A <strong>z-score</strong> converts any value into "how many standard deviations from the mean" — <code>z = (x - mean) / std</code> — which is exactly how you flag anomalies.</p>
 
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Z-scores flag unusual values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
@@ -621,6 +687,26 @@ correlation = correlation_matrix[<span class="nm">0</span>, <span class="nm">1</
 <span class="bi">print</span>(<span class="st">f'Correlation: <span class="bi">{correlation:.4f}</span>'</span>)   <span class="cm"># close to 1.0 — strong positive relationship</span></div>
   </div>
   <div class="info-box danger"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Correlation is not causation.</strong> Ice cream sales and drowning deaths correlate strongly — because both rise in summer, not because ice cream causes drowning. A model can find a real correlation between a spurious feature and your target purely by coincidence.</div></div>
+
+  <p class="lesson-p">Let's make that concrete instead of just asserting it. Below, two variables are generated from <em>completely separate</em> random noise — the only thing they share is being driven by the same hidden factor, <code>month</code>. There is no direct causal arrow between them at all, and yet:</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two unrelated variables, correlated only through a hidden shared driver</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+rng = np.random.default_rng(<span class="nm">7</span>)
+month = np.arange(<span class="nm">1</span>, <span class="nm">13</span>)   <span class="cm"># 1..12 — the HIDDEN shared driver</span>
+
+<span class="cm"># ice cream sales peaks in summer months — driven by month, plus independent noise</span>
+ice_cream_sales = <span class="nm">200</span> + <span class="nm">50</span>*np.sin((month-<span class="nm">1</span>)/<span class="nm">12</span>*<span class="nm">2</span>*np.pi - np.pi/<span class="nm">2</span>) + rng.normal(<span class="nm">0</span>, <span class="nm">5</span>, <span class="nm">12</span>)
+<span class="cm"># drownings ALSO peak in summer — driven by month too, but by a SEPARATE noise draw</span>
+drownings = <span class="nm">10</span> + <span class="nm">4</span>*np.sin((month-<span class="nm">1</span>)/<span class="nm">12</span>*<span class="nm">2</span>*np.pi - np.pi/<span class="nm">2</span>) + rng.normal(<span class="nm">0</span>, <span class="nm">0.5</span>, <span class="nm">12</span>)
+<span class="cm"># neither variable appears anywhere in the other's formula — no direct link exists</span>
+
+corr = np.corrcoef(ice_cream_sales, drownings)[<span class="nm">0</span>, <span class="nm">1</span>]
+<span class="bi">print</span>(<span class="st">f'correlation: <span class="bi">{corr:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">🎯</div><div class="ib-body">Real output: <code>correlation: 0.9819</code> — nearly perfect, despite zero direct causal connection. In real data, that hidden <code>month</code> variable is called a <strong>confounder</strong>: something that influences both variables and creates a correlation between them with no causal arrow needed. Before trusting a strong correlation your model found, always ask: "is there a confounder that could explain both sides at once?"</div></div>
 
   <!-- 9.6 -->
   <div class="lesson-h2">9.6 — Conditional Probability</div>
@@ -668,15 +754,181 @@ p_disease_given_positive = (p_pos_given_disease * p_disease) / p_positive
   </div>
   <div class="info-box warn"><div class="ib-icon">🤯</div><div class="ib-body"><strong>Only ~16.7%, even with a 99%-accurate test.</strong> Because the disease is so rare, most positive results are false alarms from the much larger healthy population. This exact math is why a fraud-detection model that's "99% accurate" can still be mostly wrong when fraud is rare — precision, not just accuracy, is what matters for imbalanced problems.</div></div>
 
+  <p class="lesson-p">Bayes' theorem is also the direct ancestor of a real, classic ML algorithm: <strong>Naive Bayes spam classification</strong>. The idea: start with a <em>prior</em> belief that any given email is spam, then <em>update</em> that belief using evidence — words in the email — via Bayes' theorem. "Naive" because it assumes each word's evidence is independent of the others, which isn't quite true, but works surprisingly well in practice.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Naive Bayes intuition: does the word "free" mean this is spam?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="cm"># Prior: 30% of all incoming email is spam.</span>
+<span class="cm"># Likelihood: "free" appears in 60% of spam emails, but only 5% of legitimate (ham) emails.</span>
+p_spam = <span class="nm">0.30</span>
+p_free_given_spam = <span class="nm">0.60</span>
+p_free_given_ham  = <span class="nm">0.05</span>
+p_ham = <span class="nm">1</span> - p_spam
+
+<span class="cm"># P(contains "free") = P(free|spam)*P(spam) + P(free|ham)*P(ham)</span>
+p_free = p_free_given_spam * p_spam + p_free_given_ham * p_ham
+
+<span class="cm"># Bayes' theorem: P(spam | contains "free") = P(free|spam)*P(spam) / P(free)</span>
+p_spam_given_free = (p_free_given_spam * p_spam) / p_free
+
+<span class="bi">print</span>(<span class="st">f'P(email contains "free"): <span class="bi">{p_free:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'P(spam | contains "free"): <span class="bi">{p_spam_given_free:.2%}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">📧</div><div class="ib-body">Real output: <code>P(spam | contains "free") = 83.72%</code> — seeing the word "free" pushes the spam probability from a 30% prior up to nearly 84%. A real spam filter repeats this update for <em>every</em> word in the email (multiplying likelihood ratios together, "naively" assuming independence), combining many small pieces of weak evidence into one confident prediction — the same Bayesian updating idea as the fraud example above, just applied word-by-word instead of once.</div></div>
+
+  <!-- 9.8 -->
+  <div class="lesson-h2">9.8 — Sampling and the Central Limit Theorem</div>
+  <p class="lesson-p">You almost never see the whole population — you see a <strong>sample</strong>, and use it to estimate the population's true mean. The <strong>Central Limit Theorem (CLT)</strong> is what makes that trustworthy: no matter how skewed or weird the population's own distribution is, the distribution of <em>sample means</em> (repeat the sampling many times, average each sample) becomes approximately <strong>normal</strong> as the sample size grows — and its spread shrinks predictably, proportional to <code>1/√n</code>.</p>
+
+  <div class="diagram"><div class="dg-t">What the CLT says, in one picture</div><pre>  population (heavily skewed)     sample means, small n      sample means, large n
+        █
+        ██                             ▄▄                          ▄█▄
+        ███                           ████                        █████
+       ████                         ██████                      ███████
+      ██████                      ████████                    █████████
+  ────────────────►            ──────────────►             ──────────────►
+  long right tail            still skewed, wide            symmetric, narrow
+                              (n small)                      (n large)</pre></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reproducible CLT simulation — from a heavily skewed population</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+np.random.seed(<span class="nm">42</span>)                                  <span class="cm"># reproducible — same output every run</span>
+population = np.random.uniform(<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">20000</span>) ** <span class="nm">3</span> * <span class="nm">100</span>   <span class="cm"># heavily right-skewed, NOT normal</span>
+<span class="bi">print</span>(<span class="st">f'population mean: <span class="bi">{population.mean():.4f}</span>  population std: <span class="bi">{population.std():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'population skew: <span class="bi">{stats.skew(population):.4f}</span>'</span>)   <span class="cm"># 0 = symmetric; this is far from 0</span>
+
+<span class="kw">for</span> n <span class="kw">in</span> [<span class="nm">2</span>, <span class="nm">5</span>, <span class="nm">30</span>, <span class="nm">100</span>]:
+    np.random.seed(<span class="nm">42</span>)
+    sample_means = np.array([population[np.random.randint(<span class="nm">0</span>, <span class="bi">len</span>(population), n)].mean() <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">500</span>)])
+    <span class="bi">print</span>(<span class="st">f'n=<span class="bi">{n:>3}</span>: std of sample means=<span class="bi">{sample_means.std():.4f}</span>  skew=<span class="bi">{stats.skew(sample_means):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">📉</div><div class="ib-body">Real output: as <code>n</code> grows 2 → 5 → 30 → 100, the sample-mean distribution's spread shrinks (std: <code>20.76 → 12.77 → 5.32 → 2.98</code>, roughly halving each time n is quadrupled — exactly the <code>1/√n</code> rule) and its skew collapses toward 0 (<code>0.93 → 0.34 → 0.06 → 0.05</code>) — becoming symmetric and normal-shaped, even though the original population never was.</div></div>
+  <div class="info-box note"><div class="ib-icon">🎯</div><div class="ib-body"><strong>Why this matters for ML:</strong> the CLT is the reason averaging many noisy things — model predictions in an ensemble, gradient estimates across a mini-batch, evaluation-metric estimates across a test set — tends to be well-behaved and roughly normal, even when the individual noisy things aren't. It's also the theoretical foundation under the confidence intervals and hypothesis tests in the next two sections.</div></div>
+
+  <!-- 9.9 -->
+  <div class="lesson-h2">9.9 — Hypothesis Testing, P-Values and Confidence Intervals</div>
+  <p class="lesson-p">A <strong>hypothesis test</strong> starts by assuming nothing interesting is happening — the <strong>null hypothesis</strong> (<code>H₀</code>, e.g. "these two model variants perform equally well") — then asks: if that were true, how surprising is the data I actually observed? The <strong>p-value</strong> answers exactly that: the probability of seeing a difference at least this large, purely by chance, <em>if the null hypothesis were true</em>. A small p-value (conventionally &lt; 0.05) means the observed data would be quite surprising under "no real difference," so you reject the null.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Are two model variants really different, or could this be noise?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+np.random.seed(<span class="nm">1</span>)
+variant_a = np.random.normal(<span class="nm">0.82</span>, <span class="nm">0.03</span>, <span class="nm">30</span>)   <span class="cm"># 30 accuracy measurements, variant A</span>
+variant_b = np.random.normal(<span class="nm">0.85</span>, <span class="nm">0.03</span>, <span class="nm">30</span>)   <span class="cm"># 30 accuracy measurements, variant B</span>
+
+t_stat, p_value = stats.ttest_ind(variant_a, variant_b)
+<span class="bi">print</span>(<span class="st">f'variant A mean: <span class="bi">{variant_a.mean():.4f}</span>  variant B mean: <span class="bi">{variant_b.mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f't-statistic: <span class="bi">{t_stat:.4f}</span>  p-value: <span class="bi">{p_value:.6f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: <code>p-value: 0.000017</code> — far below 0.05, so this gap between variants is very unlikely to be noise. But watch the interpretation closely: <strong>a p-value is NOT "the probability the null hypothesis is true."</strong> It's the probability of data this extreme <em>assuming</em> the null is true — a statement about the data, not about the hypothesis. This is the single most common p-value misinterpretation, including among practitioners who should know better.</div></div>
+
+  <p class="lesson-p">A <strong>confidence interval (CI)</strong> gives you a range instead of a single point estimate: <code>mean ± z · (std / √n)</code>, where <code>z ≈ 1.96</code> for 95% confidence (that 1.96 is exactly the z-score from 9.4's normal-distribution table). The correct interpretation is subtle and frequently botched:</p>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Wrong:</strong> "there's a 95% probability the true mean is inside this specific interval." <strong>Right:</strong> "if I repeated this whole sampling process many times and built an interval each time, about 95% of those intervals would contain the true mean." The true mean is a fixed number — it either is or isn't in your one specific interval; the 95% describes the <em>procedure's</em> long-run reliability, not this one result.</div></div>
+
+  <!-- 9.10 -->
+  <div class="lesson-h2">9.10 — A/B Testing in Practice</div>
+  <p class="lesson-p">A/B testing is applied hypothesis testing: show variant A to one group of users, variant B to another, and use a test to decide whether an observed difference in conversion rate is real or just noise. With two proportions, the standard tool is a <strong>two-proportion z-test</strong>.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A/B test: does the new signup page really convert better?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+n_a, x_a = <span class="nm">1200</span>, <span class="nm">96</span>     <span class="cm"># variant A: 1200 visitors, 96 signed up</span>
+n_b, x_b = <span class="nm">1180</span>, <span class="nm">132</span>    <span class="cm"># variant B: 1180 visitors, 132 signed up</span>
+
+p_a, p_b = x_a / n_a, x_b / n_b
+p_pool = (x_a + x_b) / (n_a + n_b)                          <span class="cm"># pooled conversion rate, under H0 (no real difference)</span>
+se = np.sqrt(p_pool * (<span class="nm">1</span> - p_pool) * (<span class="nm">1</span>/n_a + <span class="nm">1</span>/n_b))
+z = (p_b - p_a) / se
+p_value = <span class="nm">2</span> * (<span class="nm">1</span> - stats.norm.cdf(<span class="bi">abs</span>(z)))               <span class="cm"># two-sided p-value</span>
+
+<span class="bi">print</span>(<span class="st">f'conversion rate A: <span class="bi">{p_a:.4f}</span>  conversion rate B: <span class="bi">{p_b:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'z-statistic: <span class="bi">{z:.4f}</span>  p-value: <span class="bi">{p_value:.6f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">✅</div><div class="ib-body">Real output: <code>p-value: 0.008271</code> — below 0.05, so variant B's higher conversion rate (11.19% vs 8.00%) looks like a genuine improvement, not noise.</div></div>
+
+  <p class="lesson-p">Two practical pitfalls sink more real A/B tests than bad math ever does:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Peeking.</strong> Checking the p-value after every few visitors and stopping the moment it dips below 0.05 inflates your real false-positive rate far above 5% — you're effectively giving chance many extra opportunities to look significant for a moment.</div></li>
+    <li data-n="2"><div><strong>Underpowered tests.</strong> Too few visitors means even a real, meaningful difference won't reliably produce a significant result — "no significant difference found" is not the same claim as "no difference exists."</div></li>
+  </ul>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Proving the peeking problem — with genuinely IDENTICAL variants (no real difference)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> scipy <span class="kw">import</span> stats
+
+rng = np.random.default_rng(<span class="nm">123</span>)
+trials = <span class="nm">300</span>
+false_positive_fixed = <span class="nm">0</span>
+false_positive_peek  = <span class="nm">0</span>
+
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(trials):
+    a = rng.normal(<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">500</span>)             <span class="cm"># A and B are TRULY identical — same distribution</span>
+    b = rng.normal(<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">500</span>)
+
+    _, p_fixed = stats.ttest_ind(a, b)          <span class="cm"># check ONCE, at the planned final sample size</span>
+    <span class="kw">if</span> p_fixed < <span class="nm">0.05</span>: false_positive_fixed += <span class="nm">1</span>
+
+    found = <span class="kw">False</span>
+    <span class="kw">for</span> n <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">50</span>, <span class="nm">501</span>, <span class="nm">50</span>):             <span class="cm"># check every 50 samples, stop at the first "win"</span>
+        _, p_peek = stats.ttest_ind(a[:n], b[:n])
+        <span class="kw">if</span> p_peek < <span class="nm">0.05</span>: found = <span class="kw">True</span>; <span class="kw">break</span>
+    <span class="kw">if</span> found: false_positive_peek += <span class="nm">1</span>
+
+<span class="bi">print</span>(<span class="st">f'false positive rate, checked once:        <span class="bi">{false_positive_fixed/trials:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'false positive rate, peeked every 50:      <span class="bi">{false_positive_peek/trials:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚨</div><div class="ib-body">Real output: checking once gives a false-positive rate near <code>0.0467</code> — close to the expected 5%. Peeking every 50 samples and stopping at the first "significant" result nearly <strong>quadruples</strong> it, to <code>0.1867</code> — even though A and B were generated from the exact same distribution the entire time. The fix: decide your sample size in advance (or use a statistical method designed for sequential testing), and don't stop early just because you like what you see.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 9 Summary</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>Mean</strong> is sensitive to outliers; <strong>median</strong> isn't; <strong>mode</strong> is the most frequent value.</div></li>
-    <li data-n="2"><div><strong>Variance/std dev</strong> measure spread. <strong>Z-score</strong> = <code>(x - mean) / std</code> — how unusual a value is.</div></li>
-    <li data-n="3"><div><strong>Correlation</strong> (<code>np.corrcoef</code>) ranges -1 to 1. It is NOT causation.</div></li>
-    <li data-n="4"><div><strong>Conditional probability</strong> P(A|B) is generally different from plain P(A).</div></li>
-    <li data-n="5"><div><strong>Bayes' theorem</strong> flips P(evidence|truth) into P(truth|evidence) — and shows why rare-event detection needs more than "accuracy."</div></li>
+    <li data-n="2"><div><strong>Variance/std dev</strong> measure spread; <strong>expectation E[X]</strong> and <strong>Var(X)</strong> are their theoretical counterparts. <strong>Z-score</strong> = <code>(x - mean) / std</code> — how unusual a value is.</div></li>
+    <li data-n="3"><div><strong>Distributions</strong> — Bernoulli/Binomial (labels), Poisson (counts), Uniform (random init), Normal (noise, CLT) — model different shapes of ML data.</div></li>
+    <li data-n="4"><div><strong>Correlation</strong> (<code>np.corrcoef</code>) ranges -1 to 1. It is NOT causation — a hidden confounder can create strong correlation with zero direct link.</div></li>
+    <li data-n="5"><div><strong>Conditional probability</strong> P(A|B) is generally different from plain P(A).</div></li>
+    <li data-n="6"><div><strong>Bayes' theorem</strong> flips P(evidence|truth) into P(truth|evidence) — powers rare-event detection AND naive-Bayes spam classification.</div></li>
+    <li data-n="7"><div><strong>The CLT</strong>: sample means become approximately normal as n grows, with spread shrinking as <code>1/√n</code> — regardless of the population's own shape.</div></li>
+    <li data-n="8"><div><strong>P-values, confidence intervals and A/B tests</strong> quantify "is this real or noise?" — but peeking early inflates false positives, and neither a p-value nor a CI means what people often assume.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between the sample mean and E[X]?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">E[X] is the theoretical, probability-weighted average of a known distribution — a fixed, true number. The sample mean is an <em>estimate</em> of E[X] computed from actual observed data. By the Law of Large Numbers, the sample mean converges to E[X] as your sample size grows, but with a small sample it can be noticeably off.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Which distribution would you use to model the number of failed login attempts in an hour, and why?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Poisson — it models counts of relatively rare, independent events in a fixed window. Each individual login attempt isn't strongly dependent on the others, and you're counting occurrences over a time period, which is exactly the Poisson setup (as opposed to Binomial, which needs a fixed, known number of trials).</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Two features are 95% correlated. Your teammate wants to conclude one causes the other. What should you check first?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Whether a confounder — some third variable — could be driving both. A strong, real correlation can arise from a shared hidden cause with zero direct link between the two measured variables (the ice-cream/drowning and month example). Establishing causation needs more than correlation: a controlled experiment, a natural experiment, or a validated causal model — not just a high correlation coefficient.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">State the Central Limit Theorem in your own words. Why does it matter even if your data isn't normally distributed?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The distribution of sample means approaches a normal distribution as sample size grows, regardless of the shape of the underlying population, with spread shrinking proportional to 1/√n. It matters because it justifies using normal-distribution-based tools (z-scores, confidence intervals, many hypothesis tests) on averaged quantities even when the raw, individual data is skewed or otherwise non-normal.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A p-value comes back as 0.03. Is it correct to say "there's a 97% chance the alternative hypothesis is true"?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">No — that's the single most common p-value misinterpretation. A p-value of 0.03 means: if the null hypothesis were true, there'd be a 3% chance of seeing data this extreme purely by chance. It says nothing directly about the probability that either hypothesis is true; it's a statement about the data given the null, not a statement about the hypotheses given the data.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Your team wants to check A/B test results every morning and stop as soon as one variant looks significantly better. What's wrong with that, and what's the fix?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">This is the "peeking problem": checking repeatedly and stopping at the first significant-looking result inflates the true false-positive rate well above the nominal 5% — every extra look is another chance for random noise to briefly cross the threshold. The fix is to fix the sample size (and analysis date) in advance and only look once, or to use a sequential-testing method specifically designed to allow safe repeated peeking.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A rare disease affects 1% of people, and a test correctly flags 99% of real cases but also flags 5% of healthy people. Someone tests positive — why might they still be more likely healthy than sick?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because the healthy population is so much larger than the sick population, even a small false-positive rate (5%) applied to that huge healthy group produces more false alarms in absolute terms than the true positives from the tiny sick group. Bayes' theorem quantifies this exactly: P(sick | positive) depends on the base rate (1%), not just the test's accuracy — this is the base-rate fallacy, and it's the same math behind why "99% accurate" fraud/spam models still generate mostly false alarms when the target event is rare.</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -894,6 +1146,7 @@ p_flag_given_no_fraud = 0.03
       <span class="ptag">np.corrcoef</span>
       <span class="ptag">z-scores</span>
       <span class="ptag">mean/std</span>
+      <span class="ptag">confidence interval</span>
     </div>
   </div>
 
@@ -904,7 +1157,8 @@ p_flag_given_no_fraud = 0.03
       <li>Compute the mean and standard deviation of test_scores</li>
       <li>Compute a z-score for every value in test_scores</li>
       <li>Build a list of anomalies: any value with |z-score| > 2</li>
-      <li>Print the correlation, the mean/std, and the anomalies list</li>
+      <li>Compute a 95% confidence interval for test_scores' mean (from 9.9: mean ± 1.96 * std/√n)</li>
+      <li>Print the correlation, the mean/std, the anomalies list, and the confidence interval</li>
     </ul>
   </div>
 
@@ -937,6 +1191,11 @@ test_scores   = np.array([72,75,78,74,76,30,77,73,79,75])
 # z_scores = (test_scores - mean) / std
 # anomalies = [int(v) for v, z in zip(test_scores, z_scores) if abs(z) > 2]
 # print(f'Anomalies: {anomalies}')
+
+# === TODO 4: 95% confidence interval for test_scores' mean (see 9.9) ===
+# n = len(test_scores)
+# margin = 1.96 * std / n ** 0.5
+# print(f'95% CI: [{mean - margin:.4f}, {mean + margin:.4f}]')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -948,6 +1207,7 @@ test_scores   = np.array([72,75,78,74,76,30,77,73,79,75])
     <div class="check-item"><span class="check-icon">📊</span>Test score mean: 70.9000</div>
     <div class="check-item"><span class="check-icon">📏</span>Test score std: 13.7873</div>
     <div class="check-item"><span class="check-icon">🚨</span>Anomalies: [30]</div>
+    <div class="check-item"><span class="check-icon">📐</span>95% CI: [62.3545, 79.4455]</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1284,7 +1544,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['correlation: 0.9974','test score mean: 70.9000','test score std: 13.7873','anomalies: [30]'];
+  const checks=['correlation: 0.9974','test score mean: 70.9000','test score std: 13.7873','anomalies: [30]','95% ci: [62.3545, 79.4455]'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1346,7 +1606,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Mean, variance, correlation, and Bayes' theorem are yours now. You can describe data, and reason about uncertainty, in the same language every model report uses.</div>`;
+      <div class="qrb-sub">Mean, variance, distributions, correlation, Bayes' theorem, the CLT, p-values and A/B testing are yours now. You can describe data, reason about uncertainty, and judge whether a result is real or noise — in the same language every model report and experiment write-up uses.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
