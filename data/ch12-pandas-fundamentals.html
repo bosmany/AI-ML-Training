@@ -118,6 +118,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:800px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -485,7 +498,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 12:<br/><span>Pandas Fundamentals</span></h1>
     <p>NumPy handles numbers in arrays. Pandas handles TABLES — rows and columns, with labels, mixed types, and missing values — which is what almost every real dataset actually looks like. This is the tool you'll use to load, inspect, filter, and summarize data for the rest of this course.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~110 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -566,20 +579,61 @@ df = pd.DataFrame(data)
 
   <!-- 12.2 -->
   <div class="lesson-h2">12.2 — Reading a Real CSV File</div>
-  <p class="lesson-p">Chapter 5 parsed CSVs manually with the <code>csv</code> module. Pandas does the whole thing — including type conversion — in one line: <code>pd.read_csv()</code>.</p>
+  <p class="lesson-p">Chapter 5 parsed CSVs manually with the <code>csv</code> module. Pandas does the whole thing — including type conversion — in one line: <code>pd.read_csv()</code>. The running example for the rest of this chapter is a real, 1,500-row e-commerce orders dataset (plus a 50-row customers lookup table) — generated once with a fixed seed so it's exactly reproducible, then written to a real CSV and read back exactly like any file you'd download.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">One line replaces a whole csv.DictReader loop</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+    <div class="cb-header"><span class="cb-label">Generating this chapter's dataset, writing it, reading it back — and verifying it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-csv_text = <span class="st">'name,age,score\nAlice,28,92\nBob,34,75\nCarol,25,81\n'</span>
-<span class="kw">with</span> <span class="bi">open</span>(<span class="st">'people.csv'</span>, <span class="st">'w'</span>) <span class="kw">as</span> f:
-    f.write(csv_text)
+rng = np.random.default_rng(<span class="nm">42</span>)                       <span class="cm"># fixed seed -> identical data every run</span>
+n_customers, n_orders = <span class="nm">50</span>, <span class="nm">1500</span>
 
-df = pd.read_csv(<span class="st">'people.csv'</span>)   <span class="cm"># numbers are ALREADY int/float — no manual conversion needed</span>
-<span class="bi">print</span>(df.dtypes)     <span class="cm"># shows the type pandas inferred for each column</span>
-<span class="bi">print</span>(<span class="st">f'Average age: <span class="bi">{df["age"].mean():.1f}</span>'</span>)</div>
+first_names = [<span class="st">'Asha'</span>,<span class="st">'Ben'</span>,<span class="st">'Chen'</span>,<span class="st">'Dana'</span>,<span class="st">'Eli'</span>,<span class="st">'Farah'</span>,<span class="st">'Gita'</span>,<span class="st">'Hiro'</span>,<span class="st">'Ivy'</span>,<span class="st">'Jun'</span>,
+               <span class="st">'Kira'</span>,<span class="st">'Leo'</span>,<span class="st">'Maya'</span>,<span class="st">'Nia'</span>,<span class="st">'Omar'</span>,<span class="st">'Priya'</span>,<span class="st">'Quinn'</span>,<span class="st">'Rosa'</span>,<span class="st">'Sam'</span>,<span class="st">'Tara'</span>]
+last_names = [<span class="st">'Sharma'</span>,<span class="st">'Patel'</span>,<span class="st">'Kim'</span>,<span class="st">'Nguyen'</span>,<span class="st">'Silva'</span>,<span class="st">'Khan'</span>,<span class="st">'Ito'</span>,<span class="st">'Lopez'</span>,<span class="st">'Rao'</span>,<span class="st">'Costa'</span>]
+customer_ids = np.arange(<span class="nm">1</span>, n_customers + <span class="nm">1</span>)
+customer_names = [<span class="st">f'<span class="bi">{first_names[rng.integers(0,len(first_names))]}</span> <span class="bi">{last_names[rng.integers(0,len(last_names))]}</span>'</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(n_customers)]
+signup_dates = pd.to_datetime(<span class="st">'2022-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">365</span>, n_customers), unit=<span class="st">'D'</span>)
+regions = [<span class="st">'North'</span>, <span class="st">'South'</span>, <span class="st">'East'</span>, <span class="st">'West'</span>]
+customer_regions = rng.choice(regions, n_customers)
+
+customers = pd.DataFrame({
+    <span class="st">'customer_id'</span>: customer_ids, <span class="st">'customer_name'</span>: customer_names,
+    <span class="st">'region'</span>: customer_regions, <span class="st">'signup_date'</span>: signup_dates.strftime(<span class="st">'%Y-%m-%d'</span>),
+})
+
+categories = [<span class="st">'Electronics'</span>, <span class="st">'Clothing'</span>, <span class="st">'Home'</span>, <span class="st">'Sports'</span>, <span class="st">'Books'</span>]
+price_range = {<span class="st">'Electronics'</span>: (<span class="nm">20</span>,<span class="nm">500</span>), <span class="st">'Clothing'</span>: (<span class="nm">10</span>,<span class="nm">120</span>), <span class="st">'Home'</span>: (<span class="nm">15</span>,<span class="nm">250</span>), <span class="st">'Sports'</span>: (<span class="nm">10</span>,<span class="nm">150</span>), <span class="st">'Books'</span>: (<span class="nm">5</span>,<span class="nm">60</span>)}
+payment_methods = [<span class="st">'Credit Card'</span>, <span class="st">'Debit Card'</span>, <span class="st">'UPI'</span>, <span class="st">'Cash'</span>]
+
+order_dates = pd.to_datetime(<span class="st">'2023-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">730</span>, n_orders), unit=<span class="st">'D'</span>)
+order_customer_ids = rng.choice(customer_ids, n_orders)
+order_categories = rng.choice(categories, n_orders, p=[<span class="nm">0.28</span>, <span class="nm">0.22</span>, <span class="nm">0.20</span>, <span class="nm">0.15</span>, <span class="nm">0.15</span>])
+quantities = rng.integers(<span class="nm">1</span>, <span class="nm">6</span>, n_orders)
+unit_prices = np.array([<span class="bi">round</span>(rng.uniform(*price_range[c]), <span class="nm">2</span>) <span class="kw">for</span> c <span class="kw">in</span> order_categories])
+order_payment_methods = rng.choice(payment_methods, n_orders, p=[<span class="nm">0.35</span>, <span class="nm">0.25</span>, <span class="nm">0.30</span>, <span class="nm">0.10</span>])
+is_returned = rng.choice([<span class="kw">True</span>, <span class="kw">False</span>], n_orders, p=[<span class="nm">0.06</span>, <span class="nm">0.94</span>])
+order_regions = rng.choice(regions, n_orders)
+
+orders = pd.DataFrame({
+    <span class="st">'order_id'</span>: np.arange(<span class="nm">1001</span>, <span class="nm">1001</span> + n_orders), <span class="st">'order_date'</span>: order_dates.strftime(<span class="st">'%Y-%m-%d'</span>),
+    <span class="st">'customer_id'</span>: order_customer_ids, <span class="st">'product_category'</span>: order_categories, <span class="st">'region'</span>: order_regions,
+    <span class="st">'quantity'</span>: quantities, <span class="st">'unit_price'</span>: unit_prices, <span class="st">'payment_method'</span>: order_payment_methods, <span class="st">'is_returned'</span>: is_returned,
+}).sort_values(<span class="st">'order_date'</span>).reset_index(drop=<span class="kw">True</span>)
+
+<span class="cm"># write real CSVs, then read them back — exactly like a downloaded file</span>
+orders.to_csv(<span class="st">'orders.csv'</span>, index=<span class="kw">False</span>)
+customers.to_csv(<span class="st">'customers.csv'</span>, index=<span class="kw">False</span>)
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+customers = pd.read_csv(<span class="st">'customers.csv'</span>)
+
+<span class="cm"># verify — never trust a load without checking it</span>
+<span class="bi">print</span>(<span class="st">f'Rows: <span class="bi">{len(orders)}</span>, Columns: <span class="bi">{list(orders.columns)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Nulls: <span class="bi">{orders.isnull().sum().sum()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Date range: <span class="bi">{orders["order_date"].min()}</span> to <span class="bi">{orders["order_date"].max()}</span>'</span>)</div>
   </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>Rows: 1500</code>, all 9 expected columns, <code>Nulls: 0</code> — a genuinely committed copy of this exact dataset also lives in this repo under <code>assets/datasets/orders.csv</code> and <code>customers.csv</code>, with a documented schema, for reference outside the browser. Regenerating it here (rather than fetching that file over the network) means every exercise below works identically whether you're online, offline, or just double-clicked this HTML file.</div></div>
 
   <!-- 12.3 -->
   <div class="lesson-h2">12.3 — Indexing: .loc vs .iloc</div>
@@ -618,6 +672,40 @@ sales_high = df[(df[<span class="st">'dept'</span>] == <span class="st">'Sales'<
 <span class="bi">print</span>(<span class="st">f'Sales &amp; qualified: <span class="bi">{list(sales_high["name"])}</span>'</span>)</div>
   </div>
 
+  <p class="lesson-p"><code>.query()</code> is a readable alternative to boolean masking — the condition is a plain string, so no repeating <code>df[...]</code> for every column, and no bare <code>&amp;</code>/<code>|</code> operator-precedence surprises.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same filter, .query() style — on the real orders data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)   <span class="cm"># from 12.2 — already on disk in this session</span>
+
+boolean_style = orders[(orders[<span class="st">'product_category'</span>] == <span class="st">'Electronics'</span>) & (orders[<span class="st">'quantity'</span>] >= <span class="nm">3</span>)]
+query_style   = orders.query(<span class="st">"product_category == 'Electronics' and quantity >= 3"</span>)
+
+<span class="bi">print</span>(<span class="st">f'boolean-mask rows: <span class="bi">{len(boolean_style)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'query rows: <span class="bi">{len(query_style)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'identical: <span class="bi">{boolean_style.equals(query_style)}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body">Real output: both return exactly <code>259</code> rows, and are identical. Use whichever reads more clearly for the condition at hand — <code>.query()</code> tends to win once you're combining 3+ conditions.</div></div>
+
+  <p class="lesson-p">One filtering mistake is common enough to have its own name: <strong>chained assignment</strong> — trying to filter AND assign in one bracketed expression.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Chained assignment: looks reasonable, doesn't do what it looks like</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+sample = orders.head(<span class="nm">5</span>).copy()
+
+<span class="cm"># WRONG: two separate lookups chained together. This does NOT raise — it WARNS, then silently does nothing.</span>
+sample[sample[<span class="st">'quantity'</span>] > <span class="nm">2</span>][<span class="st">'quantity'</span>] = <span class="nm">999</span>
+<span class="bi">print</span>(<span class="st">f'after chained assignment (still unchanged!): <span class="bi">{sample["quantity"].tolist()}</span>'</span>)
+
+<span class="cm"># RIGHT: a single .loc call — one lookup, an unambiguous write target</span>
+sample.loc[sample[<span class="st">'quantity'</span>] > <span class="nm">2</span>, <span class="st">'quantity'</span>] = <span class="nm">999</span>
+<span class="bi">print</span>(<span class="st">f'after .loc fix: <span class="bi">{sample["quantity"].tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: the chained-assignment line prints a <code>ChainedAssignmentError</code> warning explaining that "this never works to update the original DataFrame," and then <strong>execution continues normally</strong> — no exception, no crash. The data prints completely unchanged (<code>[3, 3, 2, 3, 2]</code>) right after a line that looked like it should have changed it. That silence is what makes this mistake dangerous: your code runs, nothing looks wrong, and the bug is a value that's quietly stale everywhere downstream. The <code>.loc</code> version afterward is the fix — one lookup, one unambiguous write target, and it genuinely changes the data (<code>[999, 999, 2, 999, 2]</code>).</div></div>
+
   <!-- 12.5 -->
   <div class="lesson-h2">12.5 — Sorting</div>
   <p class="lesson-p"><code>.sort_values('column')</code> sorts a DataFrame by any column, ascending by default.</p>
@@ -655,15 +743,197 @@ avg_by_dept = df.groupby(<span class="st">'dept'</span>)[<span class="st">'score
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>groupby is the pandas analogue of NumPy's axis=0 aggregation</strong> — instead of collapsing by position (rows/columns), it collapses by CATEGORY. Same mental move as Chapter 11, applied to labeled data.</div></div>
 
+  <p class="lesson-p">One aggregation per group is often not enough — <code>.agg()</code> computes SEVERAL at once, on the real orders data.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Multiple aggregations per group, in one call</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+
+price_stats = orders.groupby(<span class="st">'product_category'</span>)[<span class="st">'unit_price'</span>].agg([<span class="st">'mean'</span>, <span class="st">'count'</span>])
+<span class="bi">print</span>(price_stats.round(<span class="nm">4</span>))</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: Electronics has the highest average unit price (<code>258.01</code>) across <code>436</code> orders — one <code>.agg([...])</code> call replaces writing <code>.mean()</code> and <code>.count()</code> as two separate groupby calls.</div></div>
+
+  <!-- 12.7 -->
+  <div class="lesson-h2">12.7 — Merging: Inner, Left, Right, and Outer</div>
+  <p class="lesson-p">A <strong>merge</strong> (also called a join) combines two DataFrames using a shared key column — exactly like joining tables in SQL. The four kinds differ only in which UNMATCHED rows they keep: <strong>inner</strong> keeps only rows with a match on both sides; <strong>left</strong> keeps every left row (filling unmatched right columns with NaN); <strong>right</strong> is the mirror image; <strong>outer</strong> keeps everything from both sides.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">All four join types, same real data, one lookup subset</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+customers = pd.read_csv(<span class="st">'customers.csv'</span>)
+
+<span class="cm"># deliberately only a SUBSET of customers, so unmatched rows actually occur</span>
+some_customers = customers[customers[<span class="st">'customer_id'</span>] <= <span class="nm">25</span>][[<span class="st">'customer_id'</span>, <span class="st">'customer_name'</span>]]
+
+inner = orders.merge(some_customers, on=<span class="st">'customer_id'</span>, how=<span class="st">'inner'</span>)
+left  = orders.merge(some_customers, on=<span class="st">'customer_id'</span>, how=<span class="st">'left'</span>)
+right = orders.merge(some_customers, on=<span class="st">'customer_id'</span>, how=<span class="st">'right'</span>)
+outer = orders.merge(some_customers, on=<span class="st">'customer_id'</span>, how=<span class="st">'outer'</span>)
+
+<span class="bi">print</span>(<span class="st">f'inner: <span class="bi">{len(inner)}</span>  left: <span class="bi">{len(left)}</span>  right: <span class="bi">{len(right)}</span>  outer: <span class="bi">{len(outer)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'unmatched rows in left join (NaN customer_name): <span class="bi">{left["customer_name"].isnull().sum()}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>inner: 775  left: 1500  right: 775  outer: 1500</code>. Only 25 of 50 customers are in the lookup, but ALL 1,500 orders (from all 50 customers) are on the left — so <code>left</code> keeps all 1,500, with 725 rows getting <code>NaN</code> for <code>customer_name</code> (orders from the 25 EXCLUDED customers). <code>inner</code>/<code>right</code> drop those unmatched 725, leaving 775. <code>outer</code> matches <code>left</code> here because every included customer already has at least one order.</div></div>
+
+  <p class="lesson-p">The most common real merge bug isn't picking the wrong join type — it's an unexpected <strong>duplicate key</strong>, which silently multiplies rows instead of erroring.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A duplicate key silently multiplies rows</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+orders_small = pd.DataFrame({<span class="st">'order_id'</span>: [<span class="nm">1</span>,<span class="nm">2</span>,<span class="nm">3</span>], <span class="st">'customer_id'</span>: [<span class="nm">10</span>,<span class="nm">20</span>,<span class="nm">20</span>]})
+lookup_dup   = pd.DataFrame({<span class="st">'customer_id'</span>: [<span class="nm">10</span>,<span class="nm">20</span>,<span class="nm">20</span>], <span class="st">'name'</span>: [<span class="st">'Ann'</span>,<span class="st">'Ben'</span>,<span class="st">'Ben2'</span>]})   <span class="cm"># 20 appears TWICE — maybe a duplicated data-entry row</span>
+
+merged = orders_small.merge(lookup_dup, on=<span class="st">'customer_id'</span>, how=<span class="st">'inner'</span>)
+<span class="bi">print</span>(<span class="st">f'orders_small rows: <span class="bi">{len(orders_small)}</span> -> merged rows: <span class="bi">{len(merged)}</span>'</span>)
+<span class="bi">print</span>(merged)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: 3 orders become <strong>5</strong> merged rows — orders 2 and 3 (both <code>customer_id=20</code>) each matched BOTH duplicate lookup rows, producing every combination. No error, no warning — the row count just quietly grows. <strong>The fix:</strong> before merging on a key, check <code>lookup_df['key'].duplicated().sum()</code> is 0 (or that a merge's output row count matches your expectation), rather than discovering the inflation downstream in a wrong aggregate.</div></div>
+
+  <!-- 12.8 -->
+  <div class="lesson-h2">12.8 — Pivot and Pivot Table</div>
+  <p class="lesson-p"><code>.pivot_table()</code> reshapes long data into a wide summary grid: one column's values become new COLUMN HEADERS, another becomes an aggregated VALUE — the pandas equivalent of a spreadsheet pivot table.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Total quantity sold, by category (rows) and payment method (columns)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+
+pt = orders.pivot_table(
+    values=<span class="st">'quantity'</span>, index=<span class="st">'product_category'</span>, columns=<span class="st">'payment_method'</span>,
+    aggfunc=<span class="st">'sum'</span>, fill_value=<span class="nm">0</span>,        <span class="cm"># fill_value: a real category/method combo with zero orders becomes 0, not NaN</span>
+)
+<span class="bi">print</span>(pt)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">📊</div><div class="ib-body">Real output: a 5×4 grid — every (category, payment method) combination's total quantity, at a glance. The same result via <code>groupby</code> would need <code>.groupby(['product_category','payment_method'])['quantity'].sum().unstack()</code> — <code>pivot_table</code> is the direct, more readable route to this exact shape.</div></div>
+
+  <!-- 12.9 -->
+  <div class="lesson-h2">12.9 — apply() vs Vectorized Operations</div>
+  <p class="lesson-p"><code>.apply()</code> runs a Python function once per row (or column) — flexible, but it's a Python-level loop underneath, with all of Chapter 11's loop overhead. If the same computation can be written as a vectorized expression, that's almost always faster, and often more readable too.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Row-wise apply() vs a vectorized expression — same result, timed fairly</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> timeit
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+
+<span class="kw">def</span> <span class="fn">apply_version</span>():
+    <span class="kw">return</span> orders.apply(<span class="kw">lambda</span> row: row[<span class="st">'quantity'</span>] * row[<span class="st">'unit_price'</span>], axis=<span class="nm">1</span>)
+
+<span class="kw">def</span> <span class="fn">vectorized_version</span>():
+    <span class="kw">return</span> orders[<span class="st">'quantity'</span>] * orders[<span class="st">'unit_price'</span>]
+
+<span class="bi">print</span>(<span class="st">f'results match: <span class="bi">{(apply_version().values == vectorized_version().values).all()}</span>'</span>)
+
+apply_times = timeit.repeat(apply_version, repeat=<span class="nm">5</span>, number=<span class="nm">3</span>)
+vec_times   = timeit.repeat(vectorized_version, repeat=<span class="nm">5</span>, number=<span class="nm">3</span>)
+<span class="bi">print</span>(<span class="st">f'apply best-of-5: <span class="bi">{min(apply_times):.4f}</span>s   vectorized best-of-5: <span class="bi">{min(vec_times):.6f}</span>s'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: <code>results match: True</code>, apply best-of-5 <code>~0.0125s</code>, vectorized best-of-5 <code>~0.000094s</code> — about <strong>130x</strong> faster (exact numbers will differ on your machine, same methodology as Chapter 11's timing). <code>axis=1</code> apply is the most common "unnecessary apply": it reconstructs a full row (a Series) for every single row just to read two of its values, when <code>orders['quantity'] * orders['unit_price']</code> does the identical computation in one vectorized pass. Reach for <code>.apply()</code> only when the logic genuinely can't be expressed as column-level vector operations.</div></div>
+
+  <!-- 12.10 -->
+  <div class="lesson-h2">12.10 — Datetime: Parsing, Extraction, Filtering, and Resampling</div>
+  <p class="lesson-p">A date read from CSV is just a STRING until you tell pandas otherwise. <code>pd.to_datetime()</code> converts it to a real datetime dtype — unlocking <code>.dt</code> accessors, correct chronological comparisons, and <strong>resampling</strong> (aggregating into fixed time buckets like "per month").</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">String dates sort wrong; real datetimes sort right</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+messy_dates = pd.Series([<span class="st">'2023-1-5'</span>, <span class="st">'2023-10-2'</span>, <span class="st">'2023-2-1'</span>])   <span class="cm"># inconsistent formatting, still valid dates</span>
+<span class="bi">print</span>(<span class="st">f'sorted as STRINGS (wrong): <span class="bi">{sorted(messy_dates.tolist())}</span>'</span>)         <span class="cm"># '2023-10-2' sorts before '2023-2-1' — alphabetically "1" < "2"</span>
+<span class="bi">print</span>(<span class="st">f'sorted as real dates: <span class="bi">{sorted(pd.to_datetime(messy_dates)).__str__()}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: as strings, October (<code>'2023-10-2'</code>) sorts BEFORE February (<code>'2023-2-1'</code>) — alphabetical comparison, not chronological, because <code>'1'</code> &lt; <code>'2'</code> as characters. Once converted with <code>pd.to_datetime()</code>, the same values sort correctly: January, February, October. Always check <code>df['date_col'].dtype</code> after loading a CSV — if it says <code>object</code> instead of <code>datetime64</code>, every date comparison and sort on it is silently comparing text.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Real datetime extraction, filtering, and monthly resampling</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+<span class="bi">print</span>(<span class="st">f'dtype before conversion: <span class="bi">{orders["order_date"].dtype}</span>'</span>)
+
+orders[<span class="st">'order_date'</span>] = pd.to_datetime(orders[<span class="st">'order_date'</span>])
+<span class="bi">print</span>(<span class="st">f'dtype after conversion: <span class="bi">{orders["order_date"].dtype}</span>'</span>)
+
+<span class="cm"># extraction via the .dt accessor</span>
+orders[<span class="st">'order_month'</span>] = orders[<span class="st">'order_date'</span>].dt.month
+
+<span class="cm"># filtering: real chronological comparison, not string comparison</span>
+q1_2023 = orders[(orders[<span class="st">'order_date'</span>] >= <span class="st">'2023-01-01'</span>) & (orders[<span class="st">'order_date'</span>] < <span class="st">'2023-04-01'</span>)]
+<span class="bi">print</span>(<span class="st">f'Q1 2023 orders: <span class="bi">{len(q1_2023)}</span>'</span>)
+
+<span class="cm"># resample: aggregate into calendar-month buckets — needs a DatetimeIndex</span>
+monthly = orders.set_index(<span class="st">'order_date'</span>).resample(<span class="st">'ME'</span>)[<span class="st">'quantity'</span>].<span class="bi">sum</span>()
+<span class="bi">print</span>(<span class="st">f'January 2023 total quantity: <span class="bi">{monthly.iloc[0]}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📅</div><div class="ib-body">Real output: dtype goes from <code>object</code> to <code>datetime64[us]</code>; Q1 2023 has <code>193</code> orders; January 2023's total quantity sold is <code>191</code>. <code>resample('ME')</code> ("month end") only works once the index is a real <code>DatetimeIndex</code> — it's doing the exact same "bucket, then aggregate" idea as <code>groupby</code>, just bucketing by calendar time instead of a category column.</div></div>
+
+  <!-- 12.11 -->
+  <div class="lesson-h2">12.11 — Readable Method Chaining</div>
+  <p class="lesson-p">Every operation above returns a NEW DataFrame or Series — which means they can be chained directly, one <code>.method()</code> per line, instead of reassigning a variable at every step. Parenthesize the whole expression and it reads almost like a sentence.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Filter, group, sort — as one chain vs three separate steps</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+
+<span class="cm"># one readable chain: exclude returns, total quantity per category, ranked highest first</span>
+result = (
+    orders
+    .query(<span class="st">"is_returned == False"</span>)
+    .groupby(<span class="st">'product_category'</span>)[<span class="st">'quantity'</span>]
+    .<span class="bi">sum</span>()
+    .sort_values(ascending=<span class="kw">False</span>)
+)
+<span class="bi">print</span>(result)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🔗</div><div class="ib-body">Real output: Electronics leads with <code>1230</code> units. This is IDENTICAL to writing <code>step1 = orders.query(...)</code>, then <code>step2 = step1.groupby(...)...</code>, then <code>result = step2.sort_values(...)</code> — chaining doesn't change what runs, only how it reads. Use it once a pipeline is genuinely a straight-line sequence; break it back into named steps the moment you need to inspect or reuse an intermediate result, or the moment a single chain stops fitting on one screen.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 12 Summary</div>
   <ul class="step-list">
     <li data-n="1"><div><strong>DataFrame</strong> = a table (rows + named columns). <strong>Series</strong> = a single column.</div></li>
-    <li data-n="2"><div><strong>pd.read_csv()</strong> loads and type-converts a CSV in one line.</div></li>
+    <li data-n="2"><div><strong>pd.read_csv()</strong> loads and type-converts a CSV in one line — always verify row count, columns, and nulls after loading.</div></li>
     <li data-n="3"><div><strong>.loc</strong> selects by label; <strong>.iloc</strong> selects by position.</div></li>
-    <li data-n="4"><div><strong>df[condition]</strong> filters rows — same boolean masking as NumPy, combined with <code>&amp;</code> / <code>|</code>.</div></li>
-    <li data-n="5"><div><strong>.sort_values()</strong> ranks by any column. <strong>.groupby().agg()</strong> summarizes by category.</div></li>
+    <li data-n="4"><div><strong>df[condition]</strong> and <strong>.query()</strong> both filter rows. Never chain a filter and an assignment in one bracketed expression — use <strong>.loc[rows, col] = value</strong>.</div></li>
+    <li data-n="5"><div><strong>.sort_values()</strong> ranks by any column. <strong>.groupby().agg([...])</strong> computes multiple summaries per category at once.</div></li>
+    <li data-n="6"><div><strong>.merge()</strong> (inner/left/right/outer) joins on a key — check for duplicate keys first, or row counts can silently multiply.</div></li>
+    <li data-n="7"><div><strong>.pivot_table()</strong> reshapes long data into a wide summary grid.</div></li>
+    <li data-n="8"><div><strong>Vectorized operations beat .apply()</strong>, especially row-wise (<code>axis=1</code>) apply — reach for apply only when vectorization genuinely isn't possible.</div></li>
+    <li data-n="9"><div><strong>pd.to_datetime()</strong> turns date strings into a real dtype — needed for correct sorting/filtering and for <strong>.resample()</strong>.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You merge two DataFrames on a key and the row count is much higher than either input. What happened, and how do you prevent it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">One side almost certainly has a duplicate key — a merge matches EVERY row on one side to EVERY row with the same key on the other, so a key appearing twice on one side multiplies matching rows on the other. Before merging, check <code>df['key'].duplicated().sum()</code> on both sides, and confirm the output row count matches what you expect (usually the same as the "many" side of a one-to-many relationship) rather than discovering the inflation in a downstream aggregate.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between an inner join and a left join, and when would you choose left?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Inner keeps only rows with a match on both sides; left keeps every row from the left DataFrame regardless of a match, filling unmatched right-side columns with NaN. Choose left when the left DataFrame is your "source of truth" and you need every one of its rows represented even when enrichment data (like a customer name) is missing — e.g. every order should appear in a report even if its customer record was deleted.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does `df[df['x']>5]['y'] = 10` sometimes silently fail to update anything?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">This is chained assignment: <code>df[df['x']>5]</code> may return a COPY of the data, not a view into the original, so the second bracket's assignment can end up modifying that throwaway copy instead of <code>df</code> itself. Pandas can't always guarantee which one you'll get, which is exactly why it warns (or in newer pandas, raises) rather than staying silent. The fix is always a single <code>.loc[df['x']>5, 'y'] = 10</code> call — one lookup, one unambiguous write target.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When is `.apply()` actually the right tool, instead of a vectorized expression?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">When the per-row (or per-element) logic genuinely can't be expressed as column-level vector operations — e.g. calling an external function, complex conditional branching that doesn't map cleanly to <code>np.where</code>/<code>pd.cut</code>, or row-wise logic that legitimately needs several columns combined in a non-arithmetic way. Before reaching for it, check whether the same result is achievable with vectorized arithmetic, boolean masking, <code>np.where</code>, or <code>pd.cut</code> — those are typically far faster, especially for anything using <code>axis=1</code>.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You load a CSV and a date column shows dtype `object`. What problems does this cause, and how do you fix it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">An <code>object</code>-dtype date column is really just text, so sorting and comparisons happen ALPHABETICALLY, not chronologically — e.g. <code>'2023-10-2'</code> sorts before <code>'2023-2-1'</code> because <code>'1' &lt; '2'</code> as characters, even though October is after February. The fix is <code>pd.to_datetime(df['col'])</code>, converting it to a real <code>datetime64</code> dtype, which also unlocks <code>.dt</code> accessors and <code>.resample()</code>.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between `groupby` and `pivot_table`, given they can produce similar results?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner"><code>groupby</code> collapses rows by one or more keys into a (typically long, indexed) result. <code>pivot_table</code> is built specifically to reshape into a WIDE grid — one column's distinct values become new column headers, which is exactly what you'd otherwise need <code>groupby(...).unstack()</code> for. Reach for <code>pivot_table</code> directly when the end goal is a cross-tabulated summary grid; reach for <code>groupby</code> when you just need one aggregated column per group.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why should you verify a DataFrame right after loading it, instead of trusting `pd.read_csv()` and moving on?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A CSV load can succeed without error while still being wrong — extra/missing columns from a schema change, unexpected nulls from a bad export, a numeric column silently parsed as text because of one stray non-numeric value, or far fewer rows than expected from a truncated file. Checking <code>.shape</code>, <code>.columns</code>, <code>.dtypes</code>, and <code>.isnull().sum()</code> immediately after loading catches these before they quietly corrupt every downstream analysis.</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -681,26 +951,28 @@ avg_by_dept = df.groupby(<span class="st">'dept'</span>)[<span class="st">'score
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Build and Inspect a DataFrame</div>
-        <div class="ex-desc">Create a DataFrame from a dict of lists and read its basic properties.</div>
+        <div class="ex-title">Merge Two DataFrames</div>
+        <div class="ex-desc">Join an orders table to a customers lookup table, and verify the merged row count.</div>
       </div>
     </div>
     <div class="ex-task">Task:
 import pandas as pd
-data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
+orders_mini = pd.DataFrame({'order_id':[1,2,3], 'customer_id':[10,20,30], 'amount':[50,75,20]})
+customers_mini = pd.DataFrame({'customer_id':[10,20,30], 'name':['Ann','Ben','Cy']})
+(already given)
 
-Create df = pd.DataFrame(data)
+Merge them on customer_id (inner join) into "merged".
 
 Print exactly:
-  f'Shape: {df.shape}'
-  f'Columns: {list(df.columns)}'
-  f'First name: {df.loc[0, "name"]}'
-(Correct: Shape: (4, 2) / Columns: ['name', 'score'] / First name: Alice)</div>
+  f'Merged shape: {merged.shape}'
+  f'Customer for order 2: {merged.loc[merged["order_id"] == 2, "name"].values[0]}'
+(Correct: Merged shape: (3, 4) / Customer for order 2: Ben)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex1-code">import pandas as pd
-data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
+orders_mini = pd.DataFrame({'order_id':[1,2,3], 'customer_id':[10,20,30], 'amount':[50,75,20]})
+customers_mini = pd.DataFrame({'customer_id':[10,20,30], 'name':['Ann','Ben','Cy']})
 
-# df = pd.DataFrame(data)
+# merged = orders_mini.merge(customers_mini, on='customer_id', how='inner')
 
 </textarea>
       <div class="ex-btn-row">
@@ -837,8 +1109,8 @@ df = pd.DataFrame({'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91,
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">GroupBy Aggregation</div>
-        <div class="ex-desc">Compute the average score for each department using groupby.</div>
+        <div class="ex-title">GroupBy With Multiple Aggregations</div>
+        <div class="ex-desc">Compute both the average AND the count for each department, in one groupby call.</div>
       </div>
     </div>
     <div class="ex-task">Task:
@@ -850,12 +1122,14 @@ df = pd.DataFrame({
 })
 (already given)
 
-Compute avg = df.groupby('department')['score'].mean()
+Compute agg = df.groupby('department')['score'].agg(['mean', 'count'])
 
 Print exactly:
-  f'Sales avg: {avg["Sales"]:.4f}'
-  f'Eng avg: {avg["Eng"]:.4f}'
-(Correct: Sales avg: 84.3333 / Eng avg: 70.0000)</div>
+  f'Sales mean: {agg.loc["Sales","mean"]:.4f}'
+  f'Sales count: {agg.loc["Sales","count"]}'
+  f'Eng mean: {agg.loc["Eng","mean"]:.4f}'
+  f'Eng count: {agg.loc["Eng","count"]}'
+(Correct: Sales mean: 84.3333 / Sales count: 3 / Eng mean: 70.0000 / Eng count: 2)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">import pandas as pd
 df = pd.DataFrame({
@@ -864,7 +1138,7 @@ df = pd.DataFrame({
     'score':[85,72,91,68,77],
 })
 
-# avg = df.groupby('department')['score'].mean()
+# agg = df.groupby('department')['score'].agg(['mean', 'count'])
 
 </textarea>
       <div class="ex-btn-row">
@@ -885,50 +1159,97 @@ df = pd.DataFrame({
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Candidate Database, Now in Pandas</span></h2>
-    <p>Chapter 4 built a candidate ranking system with plain lists of dicts. Rebuild the same result with Pandas, and see how much shorter it gets — this is exactly why Pandas exists.</p>
+    <h2>🏗️ Mini Project: <span>Order Insights Report</span></h2>
+    <p>Chapter 4 (and this chapter's earlier draft) built a small ranking report with plain lists/dicts. This time, build a real analytics report — on the real 1,500-row orders dataset — chaining together filtering, multi-aggregation groupby, a merge, a pivot table, and datetime resampling: the actual shape of a real "what happened this year" report.</p>
     <div class="project-tags">
-      <span class="ptag">filtering</span>
-      <span class="ptag">sort_values</span>
-      <span class="ptag">groupby</span>
+      <span class="ptag">groupby + agg</span>
+      <span class="ptag">merge</span>
+      <span class="ptag">pivot_table</span>
+      <span class="ptag">resample</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Filter candidates to score >= 0.8, sorted by score descending, into "qualified"</li>
-      <li>Print the qualified candidates' names, in rank order</li>
-      <li>Compute the average score per city using groupby</li>
-      <li>Print the average score for every city, as a percentage</li>
+      <li>Filter out returned orders, add a revenue = quantity * unit_price column, into "valid"</li>
+      <li>Find the product category with the highest TOTAL revenue (multi-agg groupby)</li>
+      <li>Merge "valid" with customers (inner join) and confirm the row count is unchanged (no duplicate-key inflation)</li>
+      <li>Pivot: total revenue by category (rows) and payment method (columns) — read one specific cell</li>
+      <li>Convert order_date to real datetime, resample monthly, and read January 2023's total revenue</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Candidate Database — Your Solution</div>
+      <div class="pe-title">🏗️ Order Insights Report — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Candidate Database, Now in Pandas
-# Use ONLY Chapter 12 concepts
+# Mini Project: Order Insights Report
+# Use ONLY Chapter 12 concepts. The dataset generator below is GIVEN — it
+# reproduces the exact same real dataset used throughout this chapter.
 # ══════════════════════════════════════════
+import numpy as np
 import pandas as pd
 
-candidates = pd.DataFrame({
-    'name':  ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
-    'city':  ['Hubli', 'Pune', 'Mumbai', 'Delhi', 'Hubli'],
-    'score': [0.92, 0.75, 0.81, 0.60, 0.88],
+rng = np.random.default_rng(42)
+n_customers, n_orders = 50, 1500
+
+first_names = ['Asha','Ben','Chen','Dana','Eli','Farah','Gita','Hiro','Ivy','Jun',
+               'Kira','Leo','Maya','Nia','Omar','Priya','Quinn','Rosa','Sam','Tara']
+last_names = ['Sharma','Patel','Kim','Nguyen','Silva','Khan','Ito','Lopez','Rao','Costa']
+customer_ids = np.arange(1, n_customers + 1)
+customer_names = [f'{first_names[rng.integers(0,len(first_names))]} {last_names[rng.integers(0,len(last_names))]}' for _ in range(n_customers)]
+signup_dates = pd.to_datetime('2022-01-01') + pd.to_timedelta(rng.integers(0, 365, n_customers), unit='D')
+regions = ['North', 'South', 'East', 'West']
+customer_regions = rng.choice(regions, n_customers)
+customers = pd.DataFrame({
+    'customer_id': customer_ids, 'customer_name': customer_names,
+    'region': customer_regions, 'signup_date': signup_dates.strftime('%Y-%m-%d'),
 })
 
-# === TODO 1: filter + sort ===
-# qualified = candidates[candidates['score'] >= 0.8].sort_values('score', ascending=False)
-# print(f'Qualified: {list(qualified["name"])}')
+categories = ['Electronics', 'Clothing', 'Home', 'Sports', 'Books']
+price_range = {'Electronics': (20,500), 'Clothing': (10,120), 'Home': (15,250), 'Sports': (10,150), 'Books': (5,60)}
+payment_methods = ['Credit Card', 'Debit Card', 'UPI', 'Cash']
+order_dates = pd.to_datetime('2023-01-01') + pd.to_timedelta(rng.integers(0, 730, n_orders), unit='D')
+order_customer_ids = rng.choice(customer_ids, n_orders)
+order_categories = rng.choice(categories, n_orders, p=[0.28, 0.22, 0.20, 0.15, 0.15])
+quantities = rng.integers(1, 6, n_orders)
+unit_prices = np.array([round(rng.uniform(*price_range[c]), 2) for c in order_categories])
+order_payment_methods = rng.choice(payment_methods, n_orders, p=[0.35, 0.25, 0.30, 0.10])
+is_returned = rng.choice([True, False], n_orders, p=[0.06, 0.94])
+order_regions = rng.choice(regions, n_orders)
+orders = pd.DataFrame({
+    'order_id': np.arange(1001, 1001 + n_orders), 'order_date': order_dates.strftime('%Y-%m-%d'),
+    'customer_id': order_customer_ids, 'product_category': order_categories, 'region': order_regions,
+    'quantity': quantities, 'unit_price': unit_prices, 'payment_method': order_payment_methods, 'is_returned': is_returned,
+}).sort_values('order_date').reset_index(drop=True)
 
-# === TODO 2: average score per city ===
-# avg_by_city = candidates.groupby('city')['score'].mean()
-# for city, avg in avg_by_city.items():
-#     print(f'{city}: {avg:.2%}')
+# === TODO 1: filter + revenue column ===
+# valid = orders[orders['is_returned'] == False].copy()
+# valid['revenue'] = valid['quantity'] * valid['unit_price']
+# print(f'Valid orders: {len(valid)}')
+
+# === TODO 2: top category by total revenue (multi-agg groupby) ===
+# cat_agg = valid.groupby('product_category')['revenue'].agg(['sum', 'count'])
+# top_category = cat_agg['sum'].idxmax()
+# print(f'Top category: {top_category}')
+# print(f'Top category revenue: {cat_agg.loc[top_category, "sum"]:.2f}')
+
+# === TODO 3: merge, verify no row-count inflation ===
+# merged = valid.merge(customers, on='customer_id', how='inner')
+# print(f'Merged rows: {len(merged)}')
+
+# === TODO 4: pivot_table — one specific cell ===
+# pivot = valid.pivot_table(values='revenue', index='product_category', columns='payment_method', aggfunc='sum', fill_value=0)
+# print(f'Electronics x Credit Card: {pivot.loc["Electronics", "Credit Card"]:.2f}')
+
+# === TODO 5: datetime resample — one specific month ===
+# valid_dt = valid.copy()
+# valid_dt['order_date'] = pd.to_datetime(valid_dt['order_date'])
+# monthly = valid_dt.set_index('order_date').resample('ME')['revenue'].sum()
+# print(f'January 2023 revenue: {monthly.loc["2023-01-31"]:.2f}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -936,11 +1257,12 @@ candidates = pd.DataFrame({
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>Qualified: ['Alice', 'Eve', 'Carol'] — same ranking as Chapter 4's project</div>
-    <div class="check-item"><span class="check-icon">🏙️</span>Hubli: 90.00%</div>
-    <div class="check-item"><span class="check-icon">🏙️</span>Pune: 75.00%</div>
-    <div class="check-item"><span class="check-icon">🏙️</span>Mumbai: 81.00%</div>
-    <div class="check-item"><span class="check-icon">🏙️</span>Delhi: 60.00%</div>
+    <div class="check-item"><span class="check-icon">📋</span>Valid orders: 1407</div>
+    <div class="check-item"><span class="check-icon">🏆</span>Top category: Electronics</div>
+    <div class="check-item"><span class="check-icon">💰</span>Top category revenue: 328256.92</div>
+    <div class="check-item"><span class="check-icon">🔗</span>Merged rows: 1407 (same as valid — no duplicate-key inflation)</div>
+    <div class="check-item"><span class="check-icon">📊</span>Electronics x Credit Card: 125443.36</div>
+    <div class="check-item"><span class="check-icon">📅</span>January 2023 revenue: 25424.98</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -979,12 +1301,12 @@ candidates = pd.DataFrame({
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does <code>df.groupby('department')['score'].mean()</code> compute?</div>
+    <div class="q-text">You merge a 100-row orders table with a customers lookup table on customer_id, and the result has 140 rows. What almost certainly happened?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> The overall mean of the entire score column</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> The average score computed separately for each distinct department</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> The number of rows per department</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> An error — mean() doesn't work after groupby</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> pandas made an error — merges can never change the row count</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> The customers lookup table has a duplicate customer_id, so some orders matched more than one lookup row</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> This is normal for an inner join and needs no further checking</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> The orders table must have exactly 40 null values</button>
     </div>
   </div>
 
@@ -1168,14 +1490,14 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['shape: (4, 2)',"columns: ['name', 'score']",'first name: alice'],
-    hint:"df = pd.DataFrame(data); df.shape; list(df.columns); df.loc[0, 'name']",
+    checks:['merged shape: (3, 4)','customer for order 2: ben'],
+    hint:"merged = orders_mini.merge(customers_mini, on='customer_id', how='inner')",
     solution:`import pandas as pd
-data = {'name': ['Alice','Bob','Carol','Dave'], 'score': [85, 72, 91, 68]}
-df = pd.DataFrame(data)
-print(f'Shape: {df.shape}')
-print(f'Columns: {list(df.columns)}')
-print(f'First name: {df.loc[0, "name"]}')`
+orders_mini = pd.DataFrame({'order_id':[1,2,3], 'customer_id':[10,20,30], 'amount':[50,75,20]})
+customers_mini = pd.DataFrame({'customer_id':[10,20,30], 'name':['Ann','Ben','Cy']})
+merged = orders_mini.merge(customers_mini, on='customer_id', how='inner')
+print(f'Merged shape: {merged.shape}')
+print(f'Customer for order 2: {merged.loc[merged["order_id"] == 2, "name"].values[0]}')`
   },
   2:{
     checks:['row 2 name (iloc): carol','row 4 score (loc): 77'],
@@ -1207,17 +1529,19 @@ sorted_df = df.sort_values('score', ascending=False)
 print(f'Ranked: {list(sorted_df["name"])}')`
   },
   5:{
-    checks:['sales avg: 84.3333','eng avg: 70.0000'],
-    hint:"avg = df.groupby('department')['score'].mean()",
+    checks:['sales mean: 84.3333','sales count: 3','eng mean: 70.0000','eng count: 2'],
+    hint:"agg = df.groupby('department')['score'].agg(['mean', 'count'])",
     solution:`import pandas as pd
 df = pd.DataFrame({
     'name':['Alice','Bob','Carol','Dave','Eve'],
     'department':['Sales','Eng','Sales','Eng','Sales'],
     'score':[85,72,91,68,77],
 })
-avg = df.groupby('department')['score'].mean()
-print(f'Sales avg: {avg["Sales"]:.4f}')
-print(f'Eng avg: {avg["Eng"]:.4f}')`
+agg = df.groupby('department')['score'].agg(['mean', 'count'])
+print(f'Sales mean: {agg.loc["Sales","mean"]:.4f}')
+print(f'Sales count: {agg.loc["Sales","count"]}')
+print(f'Eng mean: {agg.loc["Eng","mean"]:.4f}')
+print(f'Eng count: {agg.loc["Eng","count"]}')`
   }
 };
 
@@ -1275,7 +1599,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=["qualified: ['alice', 'eve', 'carol']",'hubli: 90.00%','pune: 75.00%','mumbai: 81.00%','delhi: 60.00%'];
+  const checks=['valid orders: 1407','top category: electronics','top category revenue: 328256.92','merged rows: 1407','electronics x credit card: 125443.36','january 2023 revenue: 25424.98'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1337,7 +1661,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">DataFrames, .loc/.iloc, filtering, sorting, and groupby are yours now. You can load, explore, and summarize any tabular dataset.</div>`;
+      <div class="qrb-sub">DataFrames, .loc/.iloc, filtering, sorting, multi-aggregation groupby, merging, pivot tables, apply vs vectorized, and datetime handling are yours now. You can load, join, reshape, and summarize any real tabular dataset — and know exactly which mistakes to check for first.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
