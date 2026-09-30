@@ -501,7 +501,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 10:<br/><span>Calculus &amp; Optimization</span></h1>
     <p>This is the Module 2 capstone — and the single idea that makes ML training possible: a derivative tells you which direction makes a function bigger or smaller. "Training a model" is nothing more than repeatedly asking "which way is downhill?" and taking a small step that way. By the end of this chapter, you will have implemented that algorithm — gradient descent — from scratch, and used it to discover a linear relationship in data with no library doing the learning for you.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~100 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge capstone">🏗️ Module 2 Capstone Project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -644,6 +644,133 @@ x, y = <span class="nm">2</span>, <span class="nm">3</span>
 <span class="bi">print</span>(<span class="st">f'∂f/∂y at (2,3): <span class="bi">{partial_y(x, y):.4f}</span>'</span>)   <span class="cm"># true value: 2y = 6</span></div>
   </div>
 
+  <!-- 10.6 -->
+  <div class="lesson-h2">10.6 — The Chain Rule and the Foundation of Backpropagation</div>
+  <p class="lesson-p">Real functions are built by <strong>composing</strong> simpler ones: <code>h(x) = f(g(x))</code>. The <strong>chain rule</strong> says the derivative of a composition is the product of the pieces' derivatives: <code>dh/dx = f'(g(x)) · g'(x)</code> — differentiate the outer function (evaluated at the inner function's output), then multiply by the inner function's own derivative.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Chain rule vs numerical derivative — same answer, two routes</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">g</span>(x): <span class="kw">return</span> x**<span class="nm">2</span> + <span class="nm">1</span>          <span class="cm"># inner function</span>
+<span class="kw">def</span> <span class="fn">f</span>(u): <span class="kw">return</span> u**<span class="nm">3</span>               <span class="cm"># outer function</span>
+<span class="kw">def</span> <span class="fn">h</span>(x): <span class="kw">return</span> f(g(x))            <span class="cm"># the composition h(x) = (x^2+1)^3</span>
+
+<span class="kw">def</span> <span class="fn">numerical_derivative</span>(fn, x, h=<span class="nm">0.0001</span>):
+    <span class="kw">return</span> (fn(x+h) - fn(x-h)) / (<span class="nm">2</span>*h)
+
+x0 = <span class="nm">2.0</span>
+gx = g(x0)
+
+<span class="cm"># chain rule: dh/dx = f'(g(x)) * g'(x), where f'(u)=3u^2 and g'(x)=2x</span>
+chain_rule_result = (<span class="nm">3</span> * gx**<span class="nm">2</span>) * (<span class="nm">2</span> * x0)
+numerical_result = numerical_derivative(h, x0)
+
+<span class="bi">print</span>(<span class="st">f'chain rule:           <span class="bi">{chain_rule_result:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'numerical derivative: <span class="bi">{numerical_result:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🔗</div><div class="ib-body">Real output: both routes give <code>300.0000</code>. <strong>This is backpropagation</strong>: a neural network is nothing but a deep composition of functions (layer 1, then layer 2, then a loss function on top). Training needs the gradient of the LOSS with respect to EVERY weight, in every layer — computed by repeatedly applying the chain rule, starting at the loss and working backward through the composition, layer by layer. That's the entire idea; the "back" in "backpropagation" just means "apply the chain rule from the output back toward the input."</div></div>
+
+  <!-- 10.7 -->
+  <div class="lesson-h2">10.7 — Loss Functions and Loss Surfaces</div>
+  <p class="lesson-p">Every "function" this chapter minimized was secretly a <strong>loss function</strong> — a single number measuring how wrong a model's parameters currently are (smaller is better). Chapter 9's MSE and Chapter 16's log-loss are both loss functions; this chapter's <code>(x-3)²</code> toy example is a loss function too, just for a model with one made-up parameter instead of real weights. Plot a loss function's value across every combination of its parameters, and you get a <strong>loss surface</strong> — the literal landscape gradient descent is walking across.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The capstone's real loss surface — MSE across a grid of (w, b)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+x = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>], dtype=<span class="bi">float</span>)
+y = np.array([<span class="nm">3</span>, <span class="nm">5</span>, <span class="nm">7</span>, <span class="nm">9</span>, <span class="nm">11</span>], dtype=<span class="bi">float</span>)   <span class="cm"># true relationship: y = 2x + 1</span>
+
+<span class="kw">def</span> <span class="fn">mse</span>(w, b):
+    <span class="kw">return</span> np.mean((w*x + b - y) ** <span class="nm">2</span>)
+
+<span class="kw">for</span> w <span class="kw">in</span> [<span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>]:
+    row = <span class="st">' '</span>.join(<span class="st">f'<span class="bi">{mse(w, b):7.2f}</span>'</span> <span class="kw">for</span> b <span class="kw">in</span> [-<span class="nm">2</span>, -<span class="nm">1</span>, <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span>])
+    <span class="bi">print</span>(<span class="st">f'w=<span class="bi">{w}</span>: <span class="bi">{row}</span>'</span>)   <span class="cm"># columns are b = -2, -1, 0, 1, 2</span></div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🗺️</div><div class="ib-body">Real output: the smallest number in the whole grid, <code>0.00</code>, sits at <code>w=2, b=1</code> — the true relationship — and every value gets steadily larger the further you move away. That's a <strong>bowl shape</strong>: one smooth minimum, values increasing in every direction from it. Gradient descent's whole job is finding the bottom of exactly this shape, one downhill step at a time — this printed grid IS the loss surface, just as numbers instead of a picture.</div></div>
+
+  <!-- 10.8 -->
+  <div class="lesson-h2">10.8 — Convex vs Non-Convex Optimization</div>
+  <p class="lesson-p">The bowl above is <strong>convex</strong>: it has exactly one minimum, and every "locally lowest point" IS the global lowest point — gradient descent can't get trapped. Linear and logistic regression's loss surfaces are always convex like this. Most neural network loss surfaces are <strong>non-convex</strong>: many bumps, valleys, and saddle points, where a local minimum is NOT guaranteed to be the best possible minimum.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same non-convex function, two starting points, two different answers</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">def</span> <span class="fn">f</span>(x): <span class="kw">return</span> x**<span class="nm">4</span> - <span class="nm">4</span>*x**<span class="nm">2</span> + <span class="nm">0.5</span>*x   <span class="cm"># has TWO separate local minima</span>
+<span class="kw">def</span> <span class="fn">gradient</span>(x): <span class="kw">return</span> <span class="nm">4</span>*x**<span class="nm">3</span> - <span class="nm">8</span>*x + <span class="nm">0.5</span>
+
+<span class="kw">for</span> start <span class="kw">in</span> [-<span class="nm">3.0</span>, <span class="nm">3.0</span>]:
+    x = start
+    learning_rate = <span class="nm">0.01</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">500</span>):
+        x = x - learning_rate * gradient(x)
+    <span class="bi">print</span>(<span class="st">f'started at <span class="bi">{start}</span>: landed at x=<span class="bi">{x:.4f}</span>, f(x)=<span class="bi">{f(x):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: starting at -3.0 lands at <code>x=-1.4445</code> (loss -4.7148); starting at 3.0 lands at <code>x=1.3819</code> (loss -3.3009) — a genuinely WORSE minimum, from the exact same algorithm on the exact same function. Same gradient descent, same learning rate, same number of steps — only the starting point changed, and it changed the answer. This is why neural network weight <em>initialization</em> is a real, actively-researched design decision, not an afterthought — and why "my model converged" doesn't automatically mean "my model found the best possible weights."</div></div>
+
+  <!-- 10.9 -->
+  <div class="lesson-h2">10.9 — Batch, Stochastic, and Mini-Batch Gradient Descent</div>
+  <p class="lesson-p">Every gradient descent example so far used the WHOLE dataset to compute each gradient step — <strong>batch gradient descent</strong>. Two variants trade that off differently: <strong>stochastic gradient descent (SGD)</strong> updates using just ONE random example at a time (noisy steps, but each one is nearly free), and <strong>mini-batch gradient descent</strong> uses a small chunk (e.g. 10-256 examples) — the practical default nearly every real training loop actually uses.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">All three, on the same data, same number of passes over it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+np.random.seed(<span class="nm">0</span>)
+n = <span class="nm">50</span>
+x = np.linspace(<span class="nm">0</span>, <span class="nm">10</span>, n)
+y = <span class="nm">2</span>*x + <span class="nm">1</span> + np.random.normal(<span class="nm">0</span>, <span class="nm">1</span>, n)   <span class="cm"># true slope 2, intercept 1, plus noise</span>
+
+<span class="kw">def</span> <span class="fn">run_gd</span>(kind, batch_size=<span class="kw">None</span>, lr=<span class="nm">0.01</span>, epochs=<span class="nm">20</span>):
+    rng = np.random.default_rng(<span class="nm">0</span>)
+    w, b = <span class="nm">0.0</span>, <span class="nm">0.0</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(epochs):                          <span class="cm"># one epoch = one full pass over the data</span>
+        idx = rng.permutation(n) <span class="kw">if</span> kind != <span class="st">'batch'</span> <span class="kw">else</span> np.arange(n)
+        step = <span class="nm">1</span> <span class="kw">if</span> kind == <span class="st">'sgd'</span> <span class="kw">else</span> (batch_size <span class="kw">if</span> kind == <span class="st">'minibatch'</span> <span class="kw">else</span> n)
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">0</span>, n, step):
+            bidx = idx[i:i+step]
+            xb, yb = x[bidx], y[bidx]
+            err = (w*xb + b) - yb
+            w -= lr * (<span class="nm">2</span>/<span class="bi">len</span>(bidx)) * np.<span class="bi">sum</span>(err*xb)
+            b -= lr * (<span class="nm">2</span>/<span class="bi">len</span>(bidx)) * np.<span class="bi">sum</span>(err)
+    loss = np.mean(((w*x+b) - y) ** <span class="nm">2</span>)
+    <span class="kw">return</span> w, b, loss
+
+<span class="kw">for</span> kind, bs <span class="kw">in</span> [(<span class="st">'batch'</span>, <span class="kw">None</span>), (<span class="st">'sgd'</span>, <span class="kw">None</span>), (<span class="st">'minibatch'</span>, <span class="nm">10</span>)]:
+    w, b, loss = run_gd(kind, bs)
+    <span class="bi">print</span>(<span class="st">f'<span class="bi">{kind:>10}</span>: w=<span class="bi">{w:.4f}</span> b=<span class="bi">{b:.4f}</span> final loss=<span class="bi">{loss:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">⚖️</div><div class="ib-body">Real output, all after 20 epochs (20 full passes over the 50 points): <code>batch</code> reaches loss <code>1.59</code>, <code>sgd</code> only <code>8.85</code> (noisy single-example updates need many more epochs to settle), <code>minibatch</code> reaches <code>1.34</code> — matching or beating full batch, at a fraction of batch gradient descent's per-step cost. This is exactly why mini-batch is the default in real training: full-batch gradients are the smoothest but slowest per update on large datasets, while mini-batches give a good-enough gradient estimate far more cheaply.</div></div>
+
+  <!-- 10.10 -->
+  <div class="lesson-h2">10.10 — Momentum and Adam Intuition</div>
+  <p class="lesson-p">Plain gradient descent treats every step independently — it has no memory. <strong>Momentum</strong> adds a "velocity" that accumulates gradients over time (<code>v = β·v + gradient</code>, then <code>param -= lr·v</code>): directions the gradient keeps pointing consistently build up speed, while directions that keep flipping sign get canceled out and damped. This helps most on <strong>ill-conditioned</strong> loss surfaces — steep in one direction, shallow in another — which plain gradient descent handles poorly no matter what single learning rate you pick.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Plain GD vs momentum on a steep-in-one-direction, shallow-in-another bowl</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="fn">f</span>(w1, w2): <span class="kw">return</span> <span class="nm">100</span>*w1**<span class="nm">2</span> + w2**<span class="nm">2</span>            <span class="cm"># MUCH steeper in w1 than w2</span>
+<span class="kw">def</span> <span class="fn">grad</span>(w1, w2): <span class="kw">return</span> np.array([<span class="nm">200</span>*w1, <span class="nm">2</span>*w2])
+lr = <span class="nm">0.003</span>       <span class="cm"># small enough to stay stable in the steep w1 direction</span>
+
+<span class="cm"># plain gradient descent</span>
+p = np.array([<span class="nm">1.0</span>, <span class="nm">1.0</span>])
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">50</span>):
+    p = p - lr * grad(*p)
+<span class="bi">print</span>(<span class="st">f'plain GD:     p=<span class="bi">{np.round(p, 4)}</span>  loss=<span class="bi">{f(*p):.6f}</span>'</span>)
+
+<span class="cm"># momentum: velocity accumulates gradients, beta=0.8</span>
+p = np.array([<span class="nm">1.0</span>, <span class="nm">1.0</span>])
+v = np.array([<span class="nm">0.0</span>, <span class="nm">0.0</span>])
+beta = <span class="nm">0.8</span>
+<span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">50</span>):
+    v = beta*v + grad(*p)
+    p = p - lr * v
+<span class="bi">print</span>(<span class="st">f'momentum:     p=<span class="bi">{np.round(p, 4)}</span>  loss=<span class="bi">{f(*p):.6f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🚀</div><div class="ib-body">Real output: plain GD lands at loss <code>0.547821</code> after 50 steps; momentum reaches <code>0.041521</code> — over 13x lower, same learning rate, same number of steps. The shallow <code>w2</code> direction barely moves under plain GD in this many steps, but momentum's velocity keeps building speed there since the gradient keeps pointing the same way, letting it make real progress while the steep <code>w1</code> direction stays stable.</div></div>
+  <div class="info-box note"><div class="ib-icon">🧠</div><div class="ib-body"><strong>Adam</strong>, used almost everywhere in deep learning (already imported as <code>torch.optim.Adam</code> back in Ch 22), is momentum's natural extension: it keeps a per-parameter running average of the gradient (like momentum above) AND a per-parameter running average of the squared gradient, then divides the step by that second average's square root — automatically giving each parameter its own effective learning rate, larger for parameters with small/consistent gradients and smaller for parameters with large/noisy ones. You don't need to implement Adam by hand to use it, but everything it's built from — gradients, learning rates, momentum — you just implemented yourself in this chapter.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 10 Summary</div>
   <ul class="step-list">
@@ -652,6 +779,9 @@ x, y = <span class="nm">2</span>, <span class="nm">3</span>
     <li data-n="3"><div><strong>Learning rate</strong> controls step size — too small is slow, too large can diverge entirely.</div></li>
     <li data-n="4"><div><strong>Partial derivatives</strong> generalize this to functions of many variables — exactly what a model with many weights needs.</div></li>
     <li data-n="5"><div><strong>Training a model IS gradient descent</strong> on its loss function, with respect to its parameters. You just implemented the core loop.</div></li>
+    <li data-n="6"><div><strong>The chain rule</strong> (<code>dh/dx = f'(g(x))·g'(x)</code>) is the foundation of backpropagation — applying it repeatedly, output back to input.</div></li>
+    <li data-n="7"><div><strong>Loss surfaces</strong> can be <strong>convex</strong> (one minimum, always reachable) or <strong>non-convex</strong> (multiple minima — where you start can change where you end up).</div></li>
+    <li data-n="8"><div><strong>Batch/SGD/mini-batch</strong> trade off gradient quality vs. cost per step; <strong>momentum/Adam</strong> add memory across steps to handle ill-conditioned surfaces.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -880,7 +1010,8 @@ steps = 0
       <li>Initialize w = 0.0, b = 0.0</li>
       <li>Repeat 2000 times: compute predictions = w*x + b for every point, compute the MSE gradient with respect to w and b, and step both downhill</li>
       <li>Gradient formulas: dw = (2/n) * sum(error * x), db = (2/n) * sum(error), where error = predictions - y</li>
-      <li>Print the learned w and b, and the final MSE — they should land close to the true w=2, b=1</li>
+      <li>Track the first iteration where MSE drops below 0.0001 (this chapter's "loss surface" and convergence ideas, applied to your own training loop)</li>
+      <li>Print the learned w and b, the final MSE, and the convergence iteration — w/b should land close to the true w=2, b=1</li>
     </ul>
   </div>
 
@@ -903,15 +1034,19 @@ w = 0.0
 b = 0.0
 learning_rate = 0.01
 iterations = 2000
+converged_at = None
 
 # === TODO: the training loop ===
-# for i in range(iterations):
+# for i in range(1, iterations + 1):
 #     predictions = w * x + b
 #     error = predictions - y
 #     dw = (2 / n) * np.sum(error * x)
 #     db = (2 / n) * np.sum(error)
 #     w -= learning_rate * dw
 #     b -= learning_rate * db
+#     current_mse = np.mean(((w * x + b) - y) ** 2)
+#     if converged_at is None and current_mse < 0.0001:
+#         converged_at = i
 
 # === TODO: report results ===
 # final_predictions = w * x + b
@@ -919,6 +1054,7 @@ iterations = 2000
 # print(f'Learned w: {w:.4f}')
 # print(f'Learned b: {b:.4f}')
 # print(f'Final MSE: {mse:.6f}')
+# print(f'Converged at iteration: {converged_at}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -929,6 +1065,7 @@ iterations = 2000
     <div class="check-item"><span class="check-icon">📈</span>Learned w close to 2.0 (the true slope)</div>
     <div class="check-item"><span class="check-icon">📊</span>Learned b close to 1.0 (the true intercept)</div>
     <div class="check-item"><span class="check-icon">🎯</span>Final MSE very small (well under 0.01)</div>
+    <div class="check-item"><span class="check-icon">⏱️</span>Converged at iteration ~849 (MSE first dropped below 0.0001)</div>
     <div class="check-item"><span class="check-icon">🛠️</span>Values reached by gradient descent, not hardcoded</div>
   </div>
 
@@ -1013,7 +1150,7 @@ iterations = 2000
 <div class="interview-section" id="sec-interview">
   <div class="interview-intro">
     <h2>💼 Math for ML Interview Prep</h2>
-    <p>12 questions commonly asked in ML/data science interviews, covering the linear algebra, probability/statistics, and calculus from Chapters 8-10. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
+    <p>16 questions commonly asked in ML/data science interviews, covering the linear algebra, probability/statistics, and calculus from Chapters 8-10. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
@@ -1074,6 +1211,23 @@ iterations = 2000
   <div class="iq-card" onclick="this.classList.toggle('open')">
     <div class="iq-q">What's the practical difference between variance and standard deviation, and why do we usually report standard deviation?<span class="iq-arrow">▶</span></div>
     <div class="iq-a"><div class="iq-a-inner">Variance is the average of the SQUARED deviations from the mean, so its units are squared (e.g. dollars²), which isn't intuitive. Standard deviation is the square root of variance, bringing the units back to the original scale (dollars) — that's why std, not variance, is the number typically reported and plotted alongside a mean.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Explain the chain rule and how it relates to backpropagation.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The chain rule says the derivative of a composed function <code>h(x)=f(g(x))</code> is <code>f'(g(x))·g'(x)</code> — differentiate the outer function, multiply by the inner function's derivative. A neural network is a deep composition of layer functions ending in a loss function; backpropagation is exactly the chain rule applied repeatedly, computing the loss's gradient with respect to each layer's weights by working backward from the output to the input, reusing intermediate results along the way instead of recomputing them from scratch for every weight.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between a convex and a non-convex optimization problem, and why does it matter for deep learning?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A convex loss surface has exactly one minimum, so any local minimum found by gradient descent is guaranteed to be the global minimum (linear/logistic regression are both convex). A non-convex surface can have many local minima and saddle points, so the same algorithm can land in different, non-equally-good places depending on where it started — true of nearly every neural network's loss surface. That's why weight initialization, learning rate schedules, and running multiple training attempts are real practical concerns for deep learning, not just for classical ML.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">When would you choose mini-batch gradient descent over full-batch or pure SGD?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Almost always, in practice. Full-batch gives the most accurate gradient estimate but is expensive per step and infeasible once a dataset is too large to fit in memory at once. Pure SGD (one example at a time) is cheap per step but noisy, needing many more updates to settle. Mini-batches (commonly 32-256 examples) get a gradient estimate accurate enough to make good progress, at a small, GPU-friendly cost per step — the standard default for essentially all real model training.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What problem does momentum solve that plain gradient descent can't, and how does Adam extend that idea?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Plain gradient descent uses a single learning rate for every parameter and has no memory between steps, so it struggles on "ill-conditioned" loss surfaces — steep in some directions, shallow in others — either oscillating in the steep direction or crawling in the shallow one. Momentum adds a velocity term that accumulates gradients over time: consistent directions build up speed, oscillating directions get damped out. Adam extends this further by ALSO tracking a running average of each parameter's squared gradient, giving every parameter its own effective, adaptive learning rate — which is why it's the default optimizer for most deep learning today.</div></div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:24px">
@@ -1355,11 +1509,14 @@ window.runProject=async function(){
   const wMatch = full.match(/learned w:\s*(-?\d+\.?\d*)/i);
   const bMatch = full.match(/learned b:\s*(-?\d+\.?\d*)/i);
   const mseMatch = full.match(/final mse:\s*(-?\d+\.?\d*)/i);
+  const convMatch = full.match(/converged at iteration:\s*(\d+)/i);
   const w = wMatch ? parseFloat(wMatch[1]) : NaN;
   const b = bMatch ? parseFloat(bMatch[1]) : NaN;
   const mse = mseMatch ? parseFloat(mseMatch[1]) : NaN;
-  const passed = ok && !isNaN(w) && !isNaN(b) && !isNaN(mse) &&
-    Math.abs(w - 2) < 0.1 && Math.abs(b - 1) < 0.15 && mse < 0.01;
+  const convergedAt = convMatch ? parseInt(convMatch[1], 10) : NaN;
+  const passed = ok && !isNaN(w) && !isNaN(b) && !isNaN(mse) && !isNaN(convergedAt) &&
+    Math.abs(w - 2) < 0.1 && Math.abs(b - 1) < 0.15 && mse < 0.01 &&
+    Math.abs(convergedAt - 849) < 50;
 
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
