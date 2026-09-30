@@ -651,6 +651,29 @@ df = pd.DataFrame({<span class="st">'name'</span>: [<span class="st">'Alice'</sp
 <span class="bi">print</span>(df.head(<span class="nm">2</span>))       <span class="cm"># first 2 rows</span></div>
   </div>
 
+  <p class="lesson-p">Every Series/DataFrame operation lines rows up by INDEX LABEL, not position — arithmetic between two objects with different indexes silently produces <code>NaN</code> wherever the labels don't both exist, instead of an error. The same risk applies to DataFrames, not just Series.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Index misalignment: arithmetic aligns by LABEL, not position</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+a = pd.Series([<span class="nm">10</span>, <span class="nm">20</span>, <span class="nm">30</span>], index=[<span class="st">'x'</span>,<span class="st">'y'</span>,<span class="st">'z'</span>])
+b = pd.Series([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>], index=[<span class="st">'y'</span>,<span class="st">'z'</span>,<span class="st">'w'</span>])   <span class="cm"># only y, z overlap with a</span>
+
+misaligned = a + b
+<span class="bi">print</span>(misaligned)
+<span class="bi">print</span>(<span class="st">f'NaN count: <span class="bi">{misaligned.isna().sum()}</span>'</span>)
+
+<span class="cm"># FIX 1 — you actually meant label-based alignment: fill the non-overlapping labels instead of dropping to NaN</span>
+label_fix = a.add(b, fill_value=<span class="nm">0</span>)
+<span class="bi">print</span>(<span class="st">f'label-aware fix: <span class="bi">{label_fix.tolist()}</span>'</span>)
+
+<span class="cm"># FIX 2 — you actually meant POSITIONAL alignment (e.g. after independently filtering two frames): reset both first</span>
+positional_fix = a.reset_index(drop=<span class="kw">True</span>) + b.reset_index(drop=<span class="kw">True</span>)
+<span class="bi">print</span>(<span class="st">f'positional fix: <span class="bi">{positional_fix.tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: <code>x</code> and <code>w</code> become <code>NaN</code> — 2 of 4 result rows — because each only exists in ONE of the two Series; no error, no warning. <code>a.add(b, fill_value=0)</code> treats a missing label as 0 instead of NaN (<code>[10.0, 21.0, 32.0, 3.0]</code>) — correct when the labels genuinely mean different things and a missing one should count as zero. <code>.reset_index(drop=True)</code> on both sides instead aligns by POSITION (<code>[11, 22, 33]</code>) — correct when the index labels are incidental (e.g. left over from independently filtering two different DataFrames) and you actually meant "1st with 1st, 2nd with 2nd." Picking the wrong one of these two fixes silently produces a plausible-looking but wrong number — know which kind of alignment your data actually needs.</div></div>
+
   <!-- 12.4 -->
   <div class="lesson-h2">12.4 — Filtering Rows</div>
   <p class="lesson-p">Same boolean-masking idea from Chapter 11, applied to a DataFrame: <code>df[condition]</code> keeps only the matching rows. Combine conditions the same way — <code>&amp;</code> / <code>|</code>, each side in parentheses.</p>

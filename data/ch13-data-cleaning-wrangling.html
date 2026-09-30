@@ -643,7 +643,26 @@ missing_pct = (df.isna().mean() * <span class="nm">100</span>).round(<span class
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>performance_rating</code> is missing the most (63 rows, 15.2%) — for a REAL, documented reason: new hires haven't been rated yet. Always ask WHY a column is missing before deciding how to handle it; "missing because it doesn't exist yet" (performance_rating) calls for a different fix than "missing because of a bad export" (a few <code>age</code>/<code>salary</code> cells here).</div></div>
 
-  <p class="lesson-p">Once profiled, you choose per column: <strong>mean</strong> (sensitive to outliers/skew), <strong>median</strong> (robust to both), <strong>mode</strong> (for categoricals — "most common value"), or <strong>group-based</strong> imputation (fill using the mean/median WITHIN a relevant subgroup, not the whole column) — each has different assumptions and risks.</p>
+  <p class="lesson-p">The very first decision is whether to <strong>drop</strong> incomplete rows or <strong>fill (impute)</strong> them — and dropping is riskier than it looks, because <code>.dropna()</code> with no arguments removes a row if <em>any</em> column is missing, even one you don't care about.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">dropna() vs fillna() — how much data does dropping actually throw away?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+<span class="cm"># DROP: removes a row if ANY column is missing — simple, but can be far more aggressive than intended</span>
+dropped = df.dropna()
+<span class="bi">print</span>(<span class="st">f'rows before: <span class="bi">{len(df)}</span>  after dropna(): <span class="bi">{len(dropped)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'data discarded: <span class="bi">{(1 - len(dropped)/len(df))*100:.1f}</span>%'</span>)
+
+<span class="cm"># FILL: keeps every row, filling only the column that's actually incomplete</span>
+filled = df.copy()
+filled[<span class="st">'city'</span>] = filled[<span class="st">'city'</span>].fillna(<span class="st">'Unknown'</span>)
+<span class="bi">print</span>(<span class="st">f'rows after filling just city: <span class="bi">{len(filled)}</span> (all of them — none dropped)'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: <code>dropna()</code> discards <strong>27.2%</strong> of the entire dataset (113 of 415 rows) — because 5 different columns each have a few missing values scattered across different rows, "drop if anything is missing" compounds into losing over a quarter of the data, including every OTHER perfectly good column on those rows. Filling instead keeps all 415 rows. <strong>When dropping is reasonable:</strong> the missing fraction is tiny (well under 1-2%) and rows are independent, or the row is unusable for its actual purpose without that field. <strong>When imputing is preferable:</strong> missingness is common enough that dropping would meaningfully shrink or bias the dataset — which is the case for most columns here. <strong>Risk either way:</strong> dropping silently changes WHO is left in your data (if missingness isn't random, you've biased the remaining sample); imputing invents a value that wasn't observed, which can understate real uncertainty if trusted too literally downstream.</div></div>
+
+  <p class="lesson-p">Once profiled and past that drop-or-fill decision, you choose per column: <strong>mean</strong> (sensitive to outliers/skew), <strong>median</strong> (robust to both), <strong>mode</strong> (for categoricals — "most common value"), or <strong>group-based</strong> imputation (fill using the mean/median WITHIN a relevant subgroup, not the whole column) — each has different assumptions and risks.</p>
 
   <div class="code-block">
     <div class="cb-header"><span class="cb-label">Mean vs median vs mode vs group-based — same column, four decisions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
