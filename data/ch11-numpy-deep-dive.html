@@ -118,6 +118,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:600px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -486,7 +499,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 11:<br/><span>NumPy Deep Dive</span></h1>
     <p>Welcome to Module 3 — Data Tools. Chapter 8 introduced vectors, matrices, and the dot product. This chapter turns NumPy from "new syntax" into a reflex: broadcasting, boolean masking, and axis-based aggregation are the three techniques that let you replace almost every for-loop over data with a single fast expression.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~95 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -547,7 +560,39 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 <!-- videos:end -->
 
 <div class="lesson-h2">11.1 — Why Vectorized Code Beats Loops</div>
-  <p class="lesson-p">A Python <code>for</code> loop processes one element at a time, with real overhead per iteration. NumPy's vectorized operations push the loop down into pre-compiled, low-level code — the same math, done all at once. The rule from here on: <strong>if you're writing a Python loop over a NumPy array to do math, there is almost always a vectorized way to avoid it.</strong></p>
+  <p class="lesson-p">A Python <code>for</code> loop processes one element at a time, with real overhead per iteration. NumPy's vectorized operations push the loop down into pre-compiled, low-level code — the same math, done all at once. The rule from here on: <strong>if you're writing a Python loop over a NumPy array to do math, there is almost always a vectorized way to avoid it.</strong> The running example for the rest of this chapter is a real dataset: <code>sklearn.datasets.load_digits()</code>, 1,797 real handwritten-digit images, each an 8×8 grid of pixel brightness (0-16), bundled directly with scikit-learn — no internet needed.</p>
+
+  <p class="lesson-p">Before proving the speed claim, one warning: <strong>a single timing measurement is not a benchmark</strong> — it's an anecdote. Your computer runs other things in the background, caches warm up, and one-off "I ran it and it took 0.02 seconds" numbers can easily be 2-3x off from a fair measurement purely from noise. The standard fix: run each version several times and report the <strong>minimum</strong> (the least noise-corrupted estimate — noise can only ever slow a run down, never speed it up, so the fastest run you saw is closest to the true cost), using Python's own <code>timeit</code> module, never a single <code>time.time()</code> call.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Fair, repeated timing — loop vs vectorized sum, over 115,008 real pixel values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> timeit
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_digits
+
+digits = load_digits()
+flat_pixels = digits.data.flatten()   <span class="cm"># shape (115008,) — every pixel, every image, one flat array</span>
+
+<span class="kw">def</span> <span class="fn">loop_sum</span>():
+    total = <span class="nm">0.0</span>
+    <span class="kw">for</span> v <span class="kw">in</span> flat_pixels:
+        total += v
+    <span class="kw">return</span> total
+
+<span class="kw">def</span> <span class="fn">vectorized_sum</span>():
+    <span class="kw">return</span> flat_pixels.<span class="bi">sum</span>()
+
+<span class="cm"># repeat=5 independent trials, number=3 runs averaged within each trial;</span>
+<span class="cm"># we then take the MINIMUM across the 5 trials, not the mean</span>
+loop_times = timeit.repeat(loop_sum, repeat=<span class="nm">5</span>, number=<span class="nm">3</span>)
+vec_times  = timeit.repeat(vectorized_sum, repeat=<span class="nm">5</span>, number=<span class="nm">3</span>)
+
+<span class="bi">print</span>(<span class="st">f'loop:       best of 5 = <span class="bi">{min(loop_times):.4f}</span>s'</span>)
+<span class="bi">print</span>(<span class="st">f'vectorized: best of 5 = <span class="bi">{min(vec_times):.6f}</span>s'</span>)
+<span class="bi">print</span>(<span class="st">f'speedup: <span class="bi">{min(loop_times)/min(vec_times):.1f}</span>x'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">⏱️</div><div class="ib-body">Real output from one run: loop best-of-5 <code>0.0151s</code>, vectorized best-of-5 <code>0.000042s</code> — about <strong>360x</strong> faster. Your exact numbers will differ (different machine, different load) — <strong>that's expected and fine</strong>. What's reproducible isn't the millisecond value, it's the conclusion: the vectorized version will always be dramatically faster, and repeating the measurement and taking the minimum is what makes that conclusion trustworthy instead of a lucky (or unlucky) one-off reading.</div></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Common mistake:</strong> timing something that runs in under a millisecond with just ONE run (<code>number=1</code>) mixes your actual code's cost with Python's own function-call and loop overhead in the timing harness itself — the "signal" gets lost in the "noise" of measuring it. That's why <code>number=3</code> (run it a few times per trial) combined with <code>repeat=5</code> (take the best trial) is the standard pattern, not an arbitrary choice.</div></div>
 
   <!-- 11.2 -->
   <div class="lesson-h2">11.2 — Array Creation Shortcuts</div>
@@ -580,6 +625,29 @@ centered = matrix - col_means    <span class="cm"># (3,2) - (2,)  -> broadcasts:
 <span class="bi">print</span>(centered)</div>
   </div>
   <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>The broadcasting rule in one sentence:</strong> shapes are compatible if, comparing from the right, each dimension either matches or one of them is 1 (or missing). <code>(3,2)</code> and <code>(2,)</code> match because 2=2, and the missing dimension is treated as "stretch to fit."</div></div>
+
+  <p class="lesson-p">When shapes DON'T satisfy that rule, NumPy doesn't guess — it raises a real, specific error, immediately, rather than silently computing something wrong. Recognizing this error and knowing the fix is a genuinely common real-world debugging skill.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real broadcasting failure, caught and diagnosed</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_digits
+
+img0 = load_digits().images[<span class="nm">0</span>]   <span class="cm"># one real digit image, shape (8, 8)</span>
+bad = np.array([<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>])         <span class="cm"># shape (3,) — meant for something else entirely</span>
+
+<span class="kw">try</span>:
+    result = img0 - bad
+<span class="kw">except</span> ValueError <span class="kw">as</span> e:
+    <span class="bi">print</span>(<span class="st">f'ValueError: <span class="bi">{e}</span>'</span>)
+
+<span class="cm"># the fix: match the LAST dimension. img0 is (8,8), so the other operand must be</span>
+<span class="cm"># shape (8,), (8,1), (1,8), or a scalar — not an unrelated length like 3.</span>
+fix_row = np.arange(<span class="nm">8</span>)               <span class="cm"># shape (8,) — matches img0's last dimension</span>
+fixed = img0 - fix_row
+<span class="bi">print</span>(<span class="st">f'fixed: shape <span class="bi">{fixed.shape}</span> — no error'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: <code>ValueError: operands could not be broadcast together with shapes (8,8) (3,)</code> — 8 ≠ 3, and neither is 1, so NumPy refuses rather than guessing. Whenever you see this exact error, the fix is always the same: print both shapes, compare them from the RIGHT, and find (or reshape) the dimension that's supposed to match.</div></div>
 
   <!-- 11.4 -->
   <div class="lesson-h2">11.4 — Boolean Masking: Filtering Without a Loop</div>
@@ -639,6 +707,32 @@ back_to_flat = grid.flatten()   <span class="cm"># undo it — back to shape (12
 <span class="bi">print</span>(<span class="st">f'Flattened again: <span class="bi">{list(back_to_flat)}</span>'</span>)</div>
   </div>
 
+  <p class="lesson-p">Every ML library expects data in one specific shape convention: <strong>(samples, features)</strong> — one row per example, one column per measurement (you've used this since Chapter 8). <code>load_digits()</code> ships each image BOTH ways: <code>.images</code> as <code>(1797, 8, 8)</code> (visually natural) and <code>.data</code> as <code>(1797, 64)</code> (samples×features, ML-ready) — the second is just the first with every 8×8 image flattened into one row of 64 numbers.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Reshaping into samples×features — and a real mistake to avoid</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_digits
+
+digits = load_digits()
+three_images_flat = digits.data[:<span class="nm">3</span>].flatten()   <span class="cm"># 3 real images, flattened into ONE array, shape (192,)</span>
+
+<span class="cm"># CORRECT: reshape(n_samples, n_features) — 3 rows of 64, one row per image</span>
+correct = three_images_flat.reshape(<span class="nm">3</span>, <span class="nm">64</span>)
+<span class="bi">print</span>(<span class="st">f'correct shape: <span class="bi">{correct.shape}</span>, matches original: <span class="bi">{np.allclose(correct, digits.data[:3])}</span>'</span>)
+
+<span class="cm"># MISTAKE: reshape(n_features, n_samples) — same total size, WRONG grouping</span>
+wrong = three_images_flat.reshape(<span class="nm">64</span>, <span class="nm">3</span>)
+<span class="bi">print</span>(<span class="st">f'wrong shape: <span class="bi">{wrong.shape}</span> — no error raised, but "row 0" is now 3 unrelated pixel values, not an image'</span>)
+<span class="bi">print</span>(<span class="st">f'correct row 0, first 5 values: <span class="bi">{correct[0][:5].tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'wrong   row 0, all 3 values:   <span class="bi">{wrong[0].tolist()}</span>'</span>)   <span class="cm"># only 3 numbers — not a meaningful image row at all</span>
+
+<span class="cm"># the -1 shorthand: "figure out this dimension for me" — safer once n_samples is a variable</span>
+auto = three_images_flat.reshape(-<span class="nm">1</span>, <span class="nm">64</span>)
+<span class="bi">print</span>(<span class="st">f'reshape(-1, 64) shape: <span class="bi">{auto.shape}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>This is the most dangerous reshape mistake</strong> precisely because it does NOT raise an error — <code>(192,).reshape(64, 3)</code> is a perfectly valid reshape, just the wrong one. The total element count (192) is identical either way, so NumPy has no way to know you meant <code>(3, 64)</code>. The fix is discipline, not a NumPy feature: always reshape toward <code>(n_samples, n_features)</code> explicitly, and when <code>n_samples</code> might change (e.g. a variable-sized batch), use <code>reshape(-1, n_features)</code> so NumPy computes the sample count for you instead of you hardcoding it.</div></div>
+
   <!-- 11.7 -->
   <div class="lesson-h2">11.7 — Putting It Together: Vectorized Standardization</div>
   <p class="lesson-p">Chapter 9 computed a z-score for a single vector. Now do it for an ENTIRE feature matrix at once — every column standardized in one broadcasting expression, no loop over features.</p>
@@ -662,16 +756,132 @@ standardized = (X - mean) / std   <span class="cm"># broadcasts across every row
   </div>
   <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body"><strong>This is exactly what StandardScaler does in scikit-learn</strong> (Module 4). Every feature gets rescaled to mean 0, std 1 — so a model doesn't accidentally treat "house price in dollars" as more important than "number of rooms" just because its raw numbers are bigger.</div></div>
 
+  <!-- 11.8 -->
+  <div class="lesson-h2">11.8 — Fancy Indexing: Selecting by Position, Not by Condition</div>
+  <p class="lesson-p"><strong>Boolean masking</strong> (11.4) selects rows by a CONDITION ("give me everything over 60"). <strong>Fancy indexing</strong> selects rows by explicit POSITION — pass a list or array of integer indices, and get exactly those rows back, in exactly that order (even repeated, even out of order).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Fancy indexing vs boolean masking, on real digit images</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_digits
+
+digits = load_digits()
+X, y = digits.data, digits.target
+
+<span class="cm"># fancy indexing: I want EXACTLY images 0, 10, and 50 — by position</span>
+picked = X[[<span class="nm">0</span>, <span class="nm">10</span>, <span class="nm">50</span>]]
+<span class="bi">print</span>(<span class="st">f'fancy-indexed shape: <span class="bi">{picked.shape}</span>'</span>)          <span class="cm"># (3, 64) — exactly 3 rows, in that exact order</span>
+<span class="bi">print</span>(<span class="st">f'their true digit labels: <span class="bi">{y[[0, 10, 50]].tolist()}</span>'</span>)
+
+<span class="cm"># boolean masking: I want ALL images that are actually a "3" — by condition, count unknown ahead of time</span>
+threes = X[y == <span class="nm">3</span>]
+<span class="bi">print</span>(<span class="st">f'boolean-masked shape: <span class="bi">{threes.shape}</span>'</span>)          <span class="cm"># however many 3s happen to exist in the dataset</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">💡</div><div class="ib-body">Real output: fancy indexing returns exactly <code>(3, 64)</code> — you always know the row count in advance, because YOU chose it. Boolean masking on <code>y == 3</code> returns <code>(183, 64)</code> — the row count depends on the data and is only known once you run it. Use fancy indexing when you know exactly which rows you want (a specific train/test split, a specific batch); use boolean masking when you're filtering by a condition on the data itself.</div></div>
+
+  <!-- 11.9 -->
+  <div class="lesson-h2">11.9 — Random Seeds and Reproducibility</div>
+  <p class="lesson-p">"Random" in NumPy is actually <strong>pseudo-random</strong> — deterministic, given a starting point called a <strong>seed</strong>. The same seed always produces the exact same sequence of "random" numbers. This matters enormously in ML: reproducible train/test splits, reproducible weight initialization, and reproducible experiments all depend on seeding random generators, not on true randomness.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same seed, same "random" sample — every time</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># the modern, recommended way to get a random generator: default_rng(seed)</span>
+rng1 = np.random.default_rng(<span class="nm">42</span>)
+rng2 = np.random.default_rng(<span class="nm">42</span>)   <span class="cm"># a completely separate generator, SAME seed</span>
+
+sample_a = rng1.choice(<span class="nm">1797</span>, size=<span class="nm">5</span>, replace=<span class="kw">False</span>)   <span class="cm"># "randomly" pick 5 image indices</span>
+sample_b = rng2.choice(<span class="nm">1797</span>, size=<span class="nm">5</span>, replace=<span class="kw">False</span>)
+
+<span class="bi">print</span>(<span class="st">f'sample A: <span class="bi">{sample_a.tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'sample B: <span class="bi">{sample_b.tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'identical: <span class="bi">{np.array_equal(sample_a, sample_b)}</span>'</span>)
+
+rng3 = np.random.default_rng(<span class="nm">7</span>)     <span class="cm"># a DIFFERENT seed</span>
+sample_c = rng3.choice(<span class="nm">1797</span>, size=<span class="nm">5</span>, replace=<span class="kw">False</span>)
+<span class="bi">print</span>(<span class="st">f'sample C (different seed): <span class="bi">{sample_c.tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🔁</div><div class="ib-body">Real output: sample A and sample B are byte-for-byte identical (<code>[1388, 788, 1174, 160, 778]</code>), while sample C (a different seed) is completely different. This is exactly why <code>train_test_split(..., random_state=42)</code> exists in scikit-learn — it's the same idea, so a teammate re-running your code gets the exact same split, and a bug is reproducible instead of "it worked when I ran it."</div></div>
+
+  <!-- 11.10 -->
+  <div class="lesson-h2">11.10 — dtype, Memory, Precision and Overflow</div>
+  <p class="lesson-p">Every NumPy array has a <strong>dtype</strong> — the type of every element, and therefore how many bytes each one costs. Picking the right dtype is a genuine memory/precision trade-off: smaller dtypes use less RAM (crucial once you're loading real image/audio/video datasets) but can only represent a smaller range of values, and can silently <strong>overflow</strong> — wrap around to a nonsense value — if you're not careful.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Same data, four times less memory — because the values genuinely fit</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_digits
+
+X = load_digits().data   <span class="cm"># loads as float64 by default</span>
+<span class="bi">print</span>(<span class="st">f'dtype: <span class="bi">{X.dtype}</span>, nbytes: <span class="bi">{X.nbytes:,}</span>'</span>)
+
+<span class="cm"># every pixel value is a whole number 0-16 — uint8 (0 to 255) fits with room to spare</span>
+X_uint8 = X.astype(np.uint8)
+<span class="bi">print</span>(<span class="st">f'dtype: <span class="bi">{X_uint8.dtype}</span>, nbytes: <span class="bi">{X_uint8.nbytes:,}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'memory ratio: <span class="bi">{X.nbytes / X_uint8.nbytes:.1f}</span>x'</span>)
+<span class="bi">print</span>(<span class="st">f'values preserved exactly: <span class="bi">{np.array_equal(X, X_uint8.astype(np.float64))}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">💾</div><div class="ib-body">Real output: <code>920,064</code> bytes as float64 vs <code>115,008</code> as uint8 — exactly <strong>8x less memory</strong>, with every value preserved exactly, because these particular values (whole numbers 0-16) never needed float64's range or precision in the first place. This is a completely real, common ML-systems decision: image datasets are almost always stored as <code>uint8</code>, only converted to float when actually fed into a model.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Two real failure modes: integer overflow, and float precision loss</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="cm"># int8 holds -128 to 127. Add 1 to the maximum, and it WRAPS — no error, no warning that stops you.</span>
+overflowed = np.int8(<span class="nm">127</span>) + np.int8(<span class="nm">1</span>)
+<span class="bi">print</span>(<span class="st">f'int8(127) + int8(1) = <span class="bi">{overflowed}</span>'</span>)   <span class="cm"># NOT 128 — it wrapped around to negative</span>
+
+<span class="cm"># float32 has limited precision at large magnitudes: it can't distinguish 1e8 from 1e8+1 anymore</span>
+big32 = np.float32(<span class="nm">1e8</span>)
+<span class="bi">print</span>(<span class="st">f'float32: 1e8 + 1 == 1e8?  <span class="bi">{(big32 + np.float32(1)) == big32}</span>'</span>)
+big64 = np.float64(<span class="nm">1e8</span>)
+<span class="bi">print</span>(<span class="st">f'float64: 1e8 + 1 == 1e8?  <span class="bi">{(big64 + np.float64(1)) == big64}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚨</div><div class="ib-body">Real output: <code>int8(127) + int8(1) = -128</code> — the classic overflow wraparound, silent by default. And <code>float32</code> genuinely can't tell <code>1e8</code> from <code>1e8 + 1</code> (prints <code>True</code>, meaning they're considered equal), while <code>float64</code> can (prints <code>False</code>) — float32 simply doesn't have enough precision bits to represent that tiny a difference at that large a magnitude. <strong>The fix for both:</strong> pick a dtype with enough range/precision for your actual data (check your data's real min/max first), and if you must use a small dtype for memory reasons, know its limits going in rather than discovering them from a silently wrong result.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 11 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>Vectorized operations replace loops</strong> — faster, and usually more readable once you're fluent in the pattern.</div></li>
+    <li data-n="1"><div><strong>Vectorized operations replace loops</strong> — faster, and usually more readable once you're fluent in the pattern. Prove it with repeated timing (<code>timeit.repeat</code>, take the minimum), never a single measurement.</div></li>
     <li data-n="2"><div><strong>np.arange, np.linspace, np.zeros/ones</strong> generate arrays without writing every value.</div></li>
-    <li data-n="3"><div><strong>Broadcasting</strong> lets a smaller array (like a row of column-means) apply across a whole matrix.</div></li>
-    <li data-n="4"><div><strong>Boolean masking</strong> (<code>arr[arr > x]</code>) filters without a loop. Combine conditions with <code>&amp;</code> / <code>|</code>, each side in parentheses.</div></li>
+    <li data-n="3"><div><strong>Broadcasting</strong> lets a smaller array (like a row of column-means) apply across a whole matrix — shapes must match, or be 1, from the right; otherwise a real <code>ValueError</code>.</div></li>
+    <li data-n="4"><div><strong>Boolean masking</strong> (<code>arr[arr > x]</code>) filters by condition; <strong>fancy indexing</strong> (<code>arr[[0,10,50]]</code>) selects by exact position. Combine boolean conditions with <code>&amp;</code> / <code>|</code>, each side in parentheses.</div></li>
     <li data-n="5"><div><strong>axis=0</strong> collapses rows (down each column); <strong>axis=1</strong> collapses columns (across each row).</div></li>
-    <li data-n="6"><div><strong>.reshape() / .flatten()</strong> change an array's shape without touching its data.</div></li>
+    <li data-n="6"><div><strong>.reshape() / .flatten()</strong> change an array's shape without touching its data — always reshape toward (samples, features) explicitly; the wrong grouping doesn't raise an error.</div></li>
+    <li data-n="7"><div><strong>Random seeds</strong> (<code>np.random.default_rng(seed)</code>) make "randomness" reproducible — the same seed always gives the same sequence.</div></li>
+    <li data-n="8"><div><strong>dtype</strong> controls memory and precision. Smaller dtypes save real memory when values fit, but can silently overflow or lose precision if they don't.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You timed a loop once and it took 0.02s; you timed the vectorized version once and it took 0.001s. Is that a valid benchmark?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Not reliably — a single measurement is easily distorted by background noise, cache state, or system load, and can be off by 2-3x either way. The standard fix is to run each version multiple times (e.g. <code>timeit.repeat</code>) and report the minimum, since noise can only slow a run down, never speed it up — the fastest observed run is the closest estimate to the true cost.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You get "ValueError: operands could not be broadcast together with shapes (10,5) (3,)". How do you diagnose and fix it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Compare the shapes from the RIGHT: 5 vs 3 — neither matches, and neither is 1, so broadcasting genuinely can't apply. The fix is to figure out what the second array was SUPPOSED to represent (e.g. one value per column, needing shape (5,), or one value per row, needing shape (10,1)) and reshape or recompute it to match, rather than assuming NumPy will "figure it out."</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between boolean masking and fancy indexing, and when would you use each?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Boolean masking (<code>arr[arr > 5]</code>) selects rows by a CONDITION on the data — you don't know the count in advance. Fancy indexing (<code>arr[[0,3,7]]</code>) selects by exact POSITION — you always know exactly which rows and how many. Use masking for "give me everything matching X"; use fancy indexing for "give me exactly these specific rows," such as a predetermined train/test split.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A flat array of 300 numbers represents 3 samples of 100 features each. What's wrong with <code>flat.reshape(100, 3)</code>?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It runs without error — 100×3 = 300, same total size — but it groups the data completely wrong: instead of 3 rows of 100 features, you get 100 rows of 3 numbers, none of which correspond to a real sample. NumPy has no way to detect this because reshape only checks total element count, not intended meaning. The fix is discipline: always reshape explicitly toward (n_samples, n_features), and use <code>reshape(-1, n_features)</code> when the sample count might vary.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does scikit-learn's train_test_split have a random_state parameter?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because "random" in NumPy (and by extension, most ML libraries) is actually pseudo-random and seed-controlled — the same seed always produces the same split. Setting <code>random_state</code> to a fixed value makes an experiment reproducible: a teammate re-running the same code gets the exact same train/test split, so any difference in results comes from an actual code change, not from a different lucky/unlucky split.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You store a large image dataset as uint8 instead of float64. What's the trade-off?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">uint8 uses 1 byte per value instead of float64's 8 — an 8x memory reduction — but it can only represent whole numbers from 0 to 255, with no fractional part and no negative numbers. This is a genuine win when your actual data (like 0-255 pixel intensities) fits comfortably in that range, but a real risk if you later need negative values or fractional precision (e.g. after normalizing pixels to a 0-1 float range) without converting the dtype back first.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What happens when an int8 value overflows, and why is that dangerous?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It silently wraps around: int8's maximum is 127, and adding 1 to it gives -128, not an error and (by default) not even a visible warning that stops execution. This is dangerous specifically because it fails silently — code keeps running with a nonsense value instead of crashing where the bug actually happened, which is why checking your data's real range before picking a small dtype matters more than it might seem.</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -730,23 +940,24 @@ Print exactly:
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Broadcasting: Mean-Center a Matrix</div>
-        <div class="ex-desc">Subtract each column's mean from every row, using broadcasting — no loop over columns.</div>
+        <div class="ex-title">Fancy Indexing: Select Specific Rows</div>
+        <div class="ex-desc">Select exact rows by position using an integer array — not a condition.</div>
       </div>
     </div>
     <div class="ex-task">Task:
 import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])   (already given)
+students = np.array([[85,90],[60,75],[95,88],[70,65],[55,80]])   (already given)
 
-Compute centered = matrix - matrix.mean(axis=0)
+Using fancy indexing, select rows at positions 0, 2, and 4 into "selected"
+(not a boolean condition — an explicit list of positions).
 
-Print exactly: f'Centered: {centered.tolist()}'
-(The correct answer is Centered: [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]])</div>
+Print exactly: f'Selected: {selected.tolist()}'
+(The correct answer is Selected: [[85, 90], [95, 88], [55, 80]])</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex2-code">import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])
+students = np.array([[85,90],[60,75],[95,88],[70,65],[55,80]])
 
-# centered = matrix - matrix.mean(axis=0)
+# selected = students[[0, 2, 4]]
 
 </textarea>
       <div class="ex-btn-row">
@@ -894,6 +1105,7 @@ data = np.array([[10,1],[20,2],[30,3],[40,4]], dtype=float)
       <li>Compute standardized = (X - X.mean(axis=0)) / X.std(axis=0)</li>
       <li>Compute minmax = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))</li>
       <li>Print each row of both scaled versions, clearly labeled</li>
+      <li>Print standardized's dtype and nbytes (from 11.10 — scaled features are always float, never a small int dtype)</li>
     </ul>
   </div>
 
@@ -925,6 +1137,10 @@ X = np.array([
 # minmax = (X - X.min(axis=0)) / (X.max(axis=0) - X.min(axis=0))
 # for row in minmax:
 #     print(f'MinMax: {row[0]:.4f}, {row[1]:.4f}')
+
+# === TODO 3: dtype and memory (see 11.10) ===
+# print(f'dtype: {standardized.dtype}')
+# print(f'nbytes: {standardized.nbytes}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -936,6 +1152,7 @@ X = np.array([
     <div class="check-item"><span class="check-icon">📏</span>Standardized: 1.4142, -1.4142 (last row)</div>
     <div class="check-item"><span class="check-icon">📐</span>MinMax: 0.0000, 0.5000 (first row)</div>
     <div class="check-item"><span class="check-icon">📐</span>MinMax: 1.0000, 0.0000 (last row)</div>
+    <div class="check-item"><span class="check-icon">💾</span>dtype: float64, nbytes: 80</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -974,12 +1191,12 @@ X = np.array([
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">A (5, 2) array and a (2,) array are combined with subtraction: <code>arr - row</code>. What happens?</div>
+    <div class="q-text">A (4, 3) array and a (2,) array are combined with subtraction: <code>arr - other</code>. What happens?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> An error — shapes must match exactly</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Broadcasting: the (2,) row is subtracted from every one of the 5 rows</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Only the first row of arr gets the subtraction applied</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> NumPy pads row with zeros to make shape (5, 2), losing meaning</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> It works — NumPy stretches the (2,) array to fit</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> A ValueError — comparing from the right, 3 and 2 don't match and neither is 1</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> NumPy pads the (2,) array with a zero to make it (3,)</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> Only the first 2 columns of arr get the subtraction applied</button>
     </div>
   </div>
 
@@ -993,12 +1210,12 @@ X = np.array([
 
   <div class="quiz-card">
     <div class="q-num">Question 5 of 5</div>
-    <div class="q-text">Why is a vectorized NumPy operation typically faster than the equivalent Python for-loop over the same data?</div>
+    <div class="q-text">You benchmark a loop 5 times: [0.021, 0.019, 0.025, 0.020, 0.022]s. You benchmark the vectorized version 5 times: [0.0009, 0.0011, 0.0008, 0.0010, 0.0009]s. What's the correct way to report this result?</div>
     <div class="q-options" id="q5-opts">
-      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> It isn't actually faster, just shorter to write</button>
-      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> The loop runs in pre-compiled, low-level code instead of Python's per-iteration overhead</button>
-      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> NumPy skips some of the data to save time</button>
-      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Python for-loops are actually faster for numeric work</button>
+      <button class="q-opt" onclick="selectOpt(5,'A')"><span class="q-opt-letter">A</span> Report the mean of all 10 numbers combined, as one overall average</button>
+      <button class="q-opt" onclick="selectOpt(5,'B')"><span class="q-opt-letter">B</span> Report the minimum of each group (0.019s vs 0.0008s) — the least noise-corrupted estimate of each</button>
+      <button class="q-opt" onclick="selectOpt(5,'C')"><span class="q-opt-letter">C</span> Report only the very first run of each, since order doesn't matter</button>
+      <button class="q-opt" onclick="selectOpt(5,'D')"><span class="q-opt-letter">D</span> Report the maximum of each, since that represents the worst case a user might see</button>
     </div>
   </div>
 
@@ -1174,12 +1391,12 @@ print(f'arr2: {arr2.tolist()}')
 print(f'zeros shape: {zeros.shape}')`
   },
   2:{
-    checks:['centered: [[-2.0, -2.0], [0.0, 0.0], [2.0, 2.0]]'],
-    hint:"centered = matrix - matrix.mean(axis=0); print(f'Centered: {centered.tolist()}')",
+    checks:['selected: [[85, 90], [95, 88], [55, 80]]'],
+    hint:"selected = students[[0, 2, 4]]; print(f'Selected: {selected.tolist()}')",
     solution:`import numpy as np
-matrix = np.array([[1,2],[3,4],[5,6]])
-centered = matrix - matrix.mean(axis=0)
-print(f'Centered: {centered.tolist()}')`
+students = np.array([[85,90],[60,75],[95,88],[70,65],[55,80]])
+selected = students[[0, 2, 4]]
+print(f'Selected: {selected.tolist()}')`
   },
   3:{
     checks:['filtered: [62, 78, 71]','count: 3'],
@@ -1265,7 +1482,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['standardized: -1.4142, 0.0000','standardized: 1.4142, -1.4142','minmax: 0.0000, 0.5000','minmax: 1.0000, 0.0000'];
+  const checks=['standardized: -1.4142, 0.0000','standardized: 1.4142, -1.4142','minmax: 0.0000, 0.5000','minmax: 1.0000, 0.0000','dtype: float64','nbytes: 80'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1327,7 +1544,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Broadcasting, boolean masking, and axis-based aggregation are yours now. You can process a whole dataset without writing a single loop over its rows or columns.</div>`;
+      <div class="qrb-sub">Broadcasting (success and failure), fancy/boolean indexing, axis-based aggregation, reshaping, random seeds, and dtype/memory trade-offs are yours now. You can process a whole real dataset without writing a single loop over its rows or columns — and benchmark that claim fairly.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
