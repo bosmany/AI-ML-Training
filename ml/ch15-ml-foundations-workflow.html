@@ -117,6 +117,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:800px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -482,9 +495,9 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 
   <div class="lesson-intro">
     <h1>Chapter 15:<br/><span>ML Foundations &amp; Workflow</span></h1>
-    <p>Welcome to Module 4. Everything before this point — NumPy arrays, Pandas DataFrames, gradient descent — was building the tools. This chapter is where they become <strong>machine learning</strong>: giving a model examples with known answers (features <code>X</code>, labels <code>y</code>) and letting it find a pattern that generalizes to NEW, unseen examples. That last word, generalizes, is the entire game — a model that only memorizes what it already saw is useless. This chapter covers the workflow every one of the next five chapters will reuse: split your data, train, predict, evaluate — and the vocabulary (overfitting, bias-variance, precision/recall) you need to know whether a model is actually any good.</p>
+    <p>Welcome to Module 4. Everything before this point — NumPy arrays, Pandas DataFrames, gradient descent — was building the tools. This chapter is where they become <strong>machine learning</strong>: giving a model examples with known answers (features <code>X</code>, labels <code>y</code>) and letting it find a pattern that generalizes to NEW, unseen examples. That last word, generalizes, is the entire game — a model that only memorizes what it already saw is useless. Using a real, 569-sample breast cancer dataset throughout, this chapter builds a complete, LEAKAGE-SAFE workflow every one of the next five chapters will reuse: inspect, split (properly — train/validation/test, stratified), baseline, train inside a Pipeline, evaluate, and diagnose — plus the two mistakes (target leakage and preprocessing leakage) that quietly invalidate an evaluation without ever raising an error.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~55 min read</span>
+      <span class="badge">🕐 ~130 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -544,63 +557,106 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-<div class="lesson-h2">15.1 — What "Training" a Model Actually Means</div>
-  <p class="lesson-p">A <strong>supervised</strong> ML problem has two parts: a matrix of <strong>features</strong> <code>X</code> (the inputs — one row per example, one column per measurement) and a vector of <strong>labels</strong> <code>y</code> (the known correct answers). "Training" means running an algorithm that searches for parameters making the model's predictions match <code>y</code> as closely as possible ON THE DATA IT SEES. Chapter 10 already built this from scratch with gradient descent — Module 4 is about the sklearn library that packages the same idea behind <code>.fit()</code> and <code>.predict()</code>.</p>
+<div class="lesson-h2">15.1 — The Real Dataset: Defining the Problem</div>
+  <p class="lesson-p">Every supervised ML problem starts with a clear question: given some <strong>features</strong> (measurements), predict a <strong>target</strong> (the answer). The running example for this whole chapter is a real, classic dataset: <code>sklearn.datasets.load_breast_cancer</code> — 569 real (anonymized, public, non-sensitive) breast tissue samples, each described by 30 numeric measurements from a digitized cell-nucleus image, with a genuinely important binary target: is this sample malignant or benign?</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Features (X) and labels (y) — the candidate-qualification dataset</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Inspecting the dataset before touching a model</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">import</span> numpy <span class="kw">as</span> np
 
-<span class="cm"># Each row: [interview_score, years_experience]. Each label: 1 = qualified, 0 = not.</span>
-X = np.array([
-    [<span class="nm">62</span>,<span class="nm">1</span>], [<span class="nm">68</span>,<span class="nm">2</span>], [<span class="nm">70</span>,<span class="nm">1</span>], [<span class="nm">75</span>,<span class="nm">3</span>], [<span class="nm">78</span>,<span class="nm">4</span>],
-    [<span class="nm">82</span>,<span class="nm">3</span>], [<span class="nm">85</span>,<span class="nm">5</span>], [<span class="nm">88</span>,<span class="nm">6</span>], [<span class="nm">91</span>,<span class="nm">4</span>], [<span class="nm">95</span>,<span class="nm">7</span>],
-])
-y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+data = load_breast_cancer()
+X, y = data.data, data.target
 
-<span class="bi">print</span>(<span class="st">f'X shape: <span class="bi">{X.shape}</span>'</span>)   <span class="cm"># (10 rows, 2 features)</span>
+<span class="bi">print</span>(<span class="st">f'X shape: <span class="bi">{X.shape}</span>'</span>)                       <span class="cm"># (569 samples, 30 features)</span>
 <span class="bi">print</span>(<span class="st">f'y shape: <span class="bi">{y.shape}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'One example: features=<span class="bi">{X[4]}</span>, label=<span class="bi">{y[4]}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'target names: <span class="bi">{data.target_names.tolist()}</span>'</span>)   <span class="cm"># which integer means what</span>
+<span class="bi">print</span>(<span class="st">f'first 5 feature names: <span class="bi">{data.feature_names[:5].tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'class counts: <span class="bi">{np.bincount(y).tolist()}</span>'</span>)          <span class="cm"># [malignant count, benign count]</span>
+<span class="bi">print</span>(<span class="st">f'class balance (fraction benign): <span class="bi">{y.mean():.4f}</span>'</span>)</div>
   </div>
-  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body"><strong>X is always 2D, even with one feature</strong> — sklearn expects a matrix of shape <code>(n_samples, n_features)</code>. A single feature still needs shape <code>(n, 1)</code>, not a flat <code>(n,)</code> array — this trips up almost everyone the first time.</div></div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Get the target's meaning exactly right before writing a single line of modeling code.</strong> Here <code>0 = malignant</code>, <code>1 = benign</code> — the OPPOSITE of what "1 is usually the important/positive thing" intuition might suggest. Real output: 212 malignant, 357 benign — a real, mild imbalance (62.7% benign), important enough to matter but nowhere near Chapter 14's 6% imbalance. Getting a target's meaning backwards is a real, embarrassing, entirely avoidable mistake — always print <code>target_names</code> and check.</div></div>
 
   <!-- 15.2 -->
-  <div class="lesson-h2">15.2 — Train/Test Split: The Most Important Line in ML</div>
-  <p class="lesson-p">If you train a model AND evaluate it on the exact same data, you learn nothing about whether it generalizes — a model that just memorizes the answer key will score perfectly and still fail on anything new. <code>sklearn.model_selection.train_test_split</code> randomly carves off a held-out chunk (commonly 20-30%) that the model never sees during training, so you can honestly measure performance on unseen data. <code>random_state</code> fixes the shuffle so the split is reproducible.</p>
+  <div class="lesson-h2">15.2 — Separating Features from the Target</div>
+  <p class="lesson-p"><code>X</code> (features) and <code>y</code> (target) must be kept strictly separate — <code>X</code> should NEVER contain the answer, or any column derived from it (Chapter 15.10 shows exactly how that mistake looks and what it does). <code>load_breast_cancer()</code> already returns them pre-separated, but real data rarely arrives that way — usually you'd do <code>y = df['diagnosis']; X = df.drop(columns=['diagnosis'])</code> from one combined table.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">train_test_split</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
-<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+    <div class="cb-header"><span class="cb-label">Feature scales vary enormously — worth noticing now, matters later</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
 
-X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
-              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>]])
-y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+data = load_breast_cancer()
+X = data.data
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)  <span class="cm"># 30% held out, reproducible shuffle</span>
-
-<span class="bi">print</span>(<span class="st">f'X_train shape: <span class="bi">{X_train.shape}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'X_test shape: <span class="bi">{X_test.shape}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'y_test: <span class="bi">{y_test.tolist()}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'mean radius range: <span class="bi">{X[:,0].min():.2f}</span> to <span class="bi">{X[:,0].max():.2f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'mean area range: <span class="bi">{X[:,3].min():.2f}</span> to <span class="bi">{X[:,3].max():.2f}</span>'</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Never touch the test set until final evaluation</strong> — not to pick features, not to tune settings, not "just to check." Every peek that influences a decision leaks information from the test set into your model choices, quietly making your evaluation optimistic. That's why Chapter 19 introduces a THIRD split (validation / cross-validation) for tuning.</div></div>
+  <div class="info-box note"><div class="ib-icon">📌</div><div class="ib-body">Real output: <code>mean radius</code> ranges roughly 7-28, <code>mean area</code> ranges roughly 144-2501 — over 100x larger in raw scale, despite being measurements of the same physical tumor. A model that's sensitive to feature magnitude (distance-based models, gradient-based models like logistic regression) will let <code>mean area</code> dominate purely because its numbers are bigger, not because it's more informative. This is exactly what 15.11-15.12's <code>StandardScaler</code>/Pipeline fixes — noted here, solved later, once you've seen what breaks without it.</div></div>
 
   <!-- 15.3 -->
-  <div class="lesson-h2">15.3 — Overfitting vs Underfitting</div>
+  <div class="lesson-h2">15.3 — Train/Validation/Test: Three Splits, Three Purposes</div>
+  <p class="lesson-p">If you train a model AND evaluate it on the exact same data, you learn nothing about whether it generalizes — a model that just memorizes the answer key will score perfectly and still fail on anything new. But a plain two-way split isn't quite enough either: the moment you use your "test" set to decide between models or settings, it's no longer a fair test — you've started tuning against it. The fix is <strong>three</strong> splits with three distinct jobs:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Train</strong> — what the model actually learns parameters from.</div></li>
+    <li data-n="2"><div><strong>Validation</strong> — what you use to compare models/settings and make decisions. You can look at this as many times as you want.</div></li>
+    <li data-n="3"><div><strong>Test</strong> — touched EXACTLY ONCE, at the very end, for the final honest number. If you change anything after looking at it, it has stopped being a test set.</div></li>
+  </ul>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real, stratified, reproducible 60/20/20 split</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+
+<span class="cm"># two splits chained: first carve off 40% (val+test), then split that 40% in half</span>
+X_train, X_temp, y_train, y_temp = train_test_split(
+    X, y, test_size=<span class="nm">0.4</span>, random_state=<span class="nm">42</span>, stratify=y)   <span class="cm"># stratify: keep class balance IDENTICAL in every split</span>
+X_val, X_test, y_val, y_test = train_test_split(
+    X_temp, y_temp, test_size=<span class="nm">0.5</span>, random_state=<span class="nm">42</span>, stratify=y_temp)
+
+<span class="bi">print</span>(<span class="st">f'train: <span class="bi">{X_train.shape}</span>  val: <span class="bi">{X_val.shape}</span>  test: <span class="bi">{X_test.shape}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'train class balance: <span class="bi">{y_train.mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'val class balance:   <span class="bi">{y_val.mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'test class balance:  <span class="bi">{y_test.mean():.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: <code>train: (341,30) val: (114,30) test: (114,30)</code>, and class balance stays within half a percentage point of 0.6274 in ALL THREE splits — that's <code>stratify=y</code> working exactly as intended. <strong>Without it</strong>, a small/imbalanced dataset can easily draw an unlucky split where one class is over- or under-represented in validation or test, making your metrics noisy or flat-out wrong — this is one of the 9 named mistakes for this chapter ("failing to stratify classification data"), and it's a one-keyword fix. <code>random_state=42</code> is what makes this EXACT split reproducible — you, a teammate, or CI re-running this code gets the identical rows every time.</div></div>
+
+  <!-- 15.4 -->
+  <div class="lesson-h2">15.4 — Baseline First: DummyClassifier</div>
+  <p class="lesson-p">Before training anything real, ask: what score would a model that learned NOTHING get? <code>sklearn.dummy.DummyClassifier</code> answers that precisely — e.g. <code>strategy='most_frequent'</code> always predicts whichever class is more common, completely ignoring the features. Any real model that doesn't clear this bar isn't worth using.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The baseline every later model must beat</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.dummy <span class="kw">import</span> DummyClassifier
+
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=<span class="nm">0.4</span>, random_state=<span class="nm">42</span>, stratify=y)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=<span class="nm">0.5</span>, random_state=<span class="nm">42</span>, stratify=y_temp)
+
+dummy = DummyClassifier(strategy=<span class="st">'most_frequent'</span>)
+dummy.fit(X_train, y_train)
+
+<span class="bi">print</span>(<span class="st">f'dummy validation accuracy: <span class="bi">{dummy.score(X_val, y_val):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🎯</div><div class="ib-body">Real output: <code>0.6316</code> — matching the validation set's benign fraction almost exactly, because that's literally all this "model" does. This number is the FLOOR, not a target: it's the score of doing zero real work. 15.13 compares this baseline directly against a real trained model's train/val/test scores, so "how much better than nothing are we?" is always a concrete, printed number — never assumed.</div></div>
+
+  <!-- 15.5 -->
+  <div class="lesson-h2">15.5 — Overfitting vs Underfitting</div>
   <p class="lesson-p"><strong>Underfitting</strong>: the model is too simple to capture the real pattern — it does poorly on both training AND test data. <strong>Overfitting</strong>: the model is complex enough to memorize noise and quirks specific to the training data — it does GREAT on training data but noticeably worse on test data. The gap between train accuracy and test accuracy is the tell-tale sign of overfitting.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Same data, three tree depths — watch the train/test gap grow</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Real data, three tree depths — watch train/test diverge</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
 <span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
 <span class="kw">from</span> sklearn.tree <span class="kw">import</span> DecisionTreeClassifier
 <span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
 
-X = np.array([[i] <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(<span class="nm">20</span>)])
-y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])  <span class="cm"># noisy — a few flips</span>
-
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>, stratify=y)
 
 <span class="kw">for</span> depth <span class="kw">in</span> [<span class="nm">1</span>, <span class="nm">3</span>, <span class="kw">None</span>]:
     clf = DecisionTreeClassifier(max_depth=depth, random_state=<span class="nm">42</span>)
@@ -609,11 +665,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class=
     test_acc  = accuracy_score(y_test, clf.predict(X_test))
     <span class="bi">print</span>(<span class="st">f'depth=<span class="bi">{depth}</span>: train_acc=<span class="bi">{train_acc:.4f}</span> test_acc=<span class="bi">{test_acc:.4f}</span>'</span>)</div>
   </div>
-  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body"><strong>depth=None gets 100% train accuracy but its test accuracy does NOT improve over shallower trees</strong> — that's overfitting: the unlimited-depth tree carved out a rule for every single training noise-flip instead of learning the real pattern. Chapter 17 goes deep (pun intended) on exactly why trees do this and how forests fix it.</div></div>
+  <div class="info-box tip"><div class="ib-icon">⭐</div><div class="ib-body">Real output: <code>depth=1</code> (train 0.9271, test 0.9123), <code>depth=3</code> (train 0.9799, test 0.9240 — the best TEST score of the three), <code>depth=None</code> (train 1.0000, test 0.9181). The unlimited-depth tree memorizes the training set PERFECTLY yet scores WORSE on test than the depth-3 tree — a real, honest overfitting signature. The best model isn't the one with the highest training score; it's the one with the best validation/test score, and those are often different models.</div></div>
 
-  <!-- 15.4 -->
-  <div class="lesson-h2">15.4 — The Bias-Variance Tradeoff</div>
-  <p class="lesson-p">This is the same idea as 15.3, given its formal name. <strong>Bias</strong> is error from a model being too simple to capture the real relationship (underfitting). <strong>Variance</strong> is error from a model being too sensitive to the specific training sample it happened to see (overfitting) — retrain it on a slightly different sample and its predictions swing wildly. Every model sits somewhere on this spectrum, and total error is roughly <code>bias² + variance + irreducible noise</code>. You cannot drive both to zero at once — reducing one usually raises the other, which is exactly what depth 1 vs depth None showed above.</p>
+  <!-- 15.6 -->
+  <div class="lesson-h2">15.6 — The Bias-Variance Tradeoff</div>
+  <p class="lesson-p">This is the same idea as 15.5, given its formal name. <strong>Bias</strong> is error from a model being too simple to capture the real relationship (underfitting). <strong>Variance</strong> is error from a model being too sensitive to the specific training sample it happened to see (overfitting) — retrain it on a slightly different sample and its predictions swing wildly. Every model sits somewhere on this spectrum, and total error is roughly <code>bias² + variance + irreducible noise</code>. You cannot drive both to zero at once — reducing one usually raises the other, which is exactly what depth 1 vs depth None showed above.</p>
 
   <table class="lesson-table">
     <tr><th>Symptom</th><th>Diagnosis</th><th>Typical fix</th></tr>
@@ -622,8 +678,32 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class=
     <tr><td>High train accuracy, comparably high test accuracy</td><td class="highlight">Good fit</td><td>Ship it</td></tr>
   </table>
 
+  <!-- 15.7 -->
+  <div class="lesson-h2">15.7 — Learning Curves as Diagnostic Evidence</div>
+  <p class="lesson-p">Checking ONE train/test pair (like 15.5 did) tells you about ONE dataset size. A <strong>learning curve</strong> plots training score and validation score as training set size grows — the SHAPE across many sizes is stronger evidence than any single number: converging curves at a high score means a healthy fit; a persistent gap means overfitting; both curves low and flat means underfitting no more data will fix.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real learning curve for the Pipeline built in 15.12</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> learning_curve, train_test_split
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, _, y_train, _ = train_test_split(X, y, test_size=<span class="nm">0.4</span>, random_state=<span class="nm">42</span>, stratify=y)
+
+pipe = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression(max_iter=<span class="nm">5000</span>))])
+train_sizes, train_scores, val_scores = learning_curve(
+    pipe, X_train, y_train, train_sizes=[<span class="nm">0.2</span>,<span class="nm">0.4</span>,<span class="nm">0.6</span>,<span class="nm">0.8</span>,<span class="nm">1.0</span>], cv=<span class="nm">5</span>, random_state=<span class="nm">42</span>)
+
+<span class="bi">print</span>(<span class="st">f'train scores: <span class="bi">{train_scores.mean(axis=1).round(4).tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'val scores:   <span class="bi">{val_scores.mean(axis=1).round(4).tolist()}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📈</div><div class="ib-body">Real output: train scores <code>[0.978, 0.976, 0.979, 0.985, 0.985]</code>, validation scores <code>[0.950, 0.968, 0.956, 0.962, 0.968]</code> — both high, both converging, a small stable gap. That's the "healthy fit" shape: not underfitting (both scores are high), not badly overfitting (the gap isn't widening as more data is added). Note this curve is built INSIDE the Pipeline from 15.12, on the training split only — computing it correctly depends on the same leakage-safety this chapter spends the next few sections on.</div></div>
+
   <!-- 15.5 -->
-  <div class="lesson-h2">15.5 — Classification Metrics, By Hand</div>
+  <div class="lesson-h2">15.8 — Classification Metrics, By Hand</div>
   <p class="lesson-p">For a binary classifier, every prediction falls into one of four buckets against the truth: <strong>True Positive</strong> (predicted 1, actually 1), <strong>False Positive</strong> (predicted 1, actually 0), <strong>False Negative</strong> (predicted 0, actually 1), <strong>True Negative</strong> (predicted 0, actually 0). From those four counts: <code>accuracy = (TP+TN)/total</code>, <code>precision = TP/(TP+FP)</code> ("of what I called positive, how much was right?"), <code>recall = TP/(TP+FN)</code> ("of the actual positives, how many did I find?"), and <code>F1 = 2·precision·recall/(precision+recall)</code> (their harmonic mean — a single number that punishes a model for being lopsided).</p>
 
   <div class="code-block">
@@ -651,64 +731,181 @@ f1        = <span class="nm">2</span>*precision*recall/(precision+recall)
   </div>
 
   <!-- 15.6 -->
-  <div class="lesson-h2">15.6 — The Same Metrics via sklearn.metrics</div>
-  <p class="lesson-p">You'll never hand-roll the TP/FP/FN/TN loop in real code — <code>sklearn.metrics</code> provides <code>accuracy_score</code>, <code>precision_score</code>, <code>recall_score</code>, <code>f1_score</code>, and <code>confusion_matrix</code> (the 2×2 grid of those four counts), plus <code>classification_report</code> which prints all of them at once, per class.</p>
+  <div class="lesson-h2">15.9 — The Same Metrics via sklearn.metrics, and Choosing the Right One</div>
+  <p class="lesson-p">You'll never hand-roll the TP/FP/FN/TN loop in real code — <code>sklearn.metrics</code> provides <code>accuracy_score</code>, <code>precision_score</code>, <code>recall_score</code>, <code>f1_score</code>, and <code>confusion_matrix</code>, plus <code>classification_report</code> which prints all of them at once, per class. But WHICH metric matters most depends entirely on the real-world cost of each error type — for this dataset, a false negative (predicting benign when the tumor is actually malignant) is far more dangerous than a false positive, so <strong>recall on the malignant class</strong> deserves priority over raw accuracy.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">sklearn.metrics — same data as 15.5, confirming the hand calc</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
+    <div class="cb-header"><span class="cb-label">Per-class report on a real fitted model — where does it actually fail?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> classification_report, confusion_matrix
 
-y_true = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
-y_pred = [<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">0</span>]
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=<span class="nm">0.4</span>, random_state=<span class="nm">42</span>, stratify=y)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=<span class="nm">0.5</span>, random_state=<span class="nm">42</span>, stratify=y_temp)
 
-<span class="bi">print</span>(<span class="st">f'Accuracy: <span class="bi">{accuracy_score(y_true, y_pred):.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Precision: <span class="bi">{precision_score(y_true, y_pred):.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Recall: <span class="bi">{recall_score(y_true, y_pred):.4f}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'F1: <span class="bi">{f1_score(y_true, y_pred):.4f}</span>'</span>)
-cm = confusion_matrix(y_true, y_pred)
-<span class="bi">print</span>(<span class="st">'Confusion matrix:'</span>)
-<span class="bi">print</span>(cm)      <span class="cm"># rows = actual, cols = predicted: [[TN,FP],[FN,TP]]</span></div>
+pipe = Pipeline([(<span class="st">'scaler'</span>, StandardScaler()), (<span class="st">'clf'</span>, LogisticRegression(max_iter=<span class="nm">5000</span>))])
+pipe.fit(X_train, y_train)
+preds = pipe.predict(X_test)
+
+<span class="bi">print</span>(classification_report(y_test, preds, target_names=[<span class="st">'malignant'</span>,<span class="st">'benign'</span>], digits=<span class="nm">4</span>))
+<span class="bi">print</span>(confusion_matrix(y_test, preds))</div>
   </div>
-  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Accuracy lies on imbalanced data.</strong> If 95% of candidates are NOT qualified, a model that predicts "not qualified" for everyone scores 95% accuracy while catching zero actual positives (recall = 0). Always check precision/recall/F1 alongside accuracy — especially when the classes aren't roughly balanced.</div></div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: overall accuracy <code>0.9912</code>, but the confusion matrix <code>[[42,1],[0,71]]</code> shows exactly ONE false negative — one malignant sample (of 43) predicted benign — while recall on <code>benign</code> is a perfect <code>1.0000</code>. Accuracy alone would never show you WHICH class has the costly error; this dataset is also only mildly imbalanced (not Chapter 14's severe 6% case) and accuracy is STILL hiding the one error that matters most. Always read the per-class breakdown, not just the top-line number.</div></div>
 
-  <!-- 15.7 -->
-  <div class="lesson-h2">15.7 — Putting It Together: The ML Workflow</div>
-  <p class="lesson-p">Every classical ML chapter from here follows this exact shape: <strong>split</strong> the data, <strong>fit</strong> a model on the training set, <strong>predict</strong> on the test set, <strong>evaluate</strong> with metrics. This is the whole loop — everything else in Module 4 (which model, which features, which settings) is a variation on these four verbs.</p>
+  <!-- 15.10 -->
+  <div class="lesson-h2">15.10 — Data Leakage: A Concrete Broken Example</div>
+  <p class="lesson-p"><strong>Data leakage</strong> is when information that wouldn't be available at real prediction time sneaks into training, making evaluation look far better than reality. The most dramatic form is <strong>target leakage</strong>: a feature that's accidentally derived from (or is nearly a copy of) the target itself — for example, a "treatment billing code" column that only gets recorded BECAUSE a diagnosis was already made.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">split → fit → predict → evaluate</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">A real, deliberately broken example — one leaked column</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
 <span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
 <span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
-<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> accuracy_score
+<span class="kw">import</span> numpy <span class="kw">as</span> np
 
-X = np.array([[<span class="nm">62</span>,<span class="nm">1</span>],[<span class="nm">68</span>,<span class="nm">2</span>],[<span class="nm">70</span>,<span class="nm">1</span>],[<span class="nm">75</span>,<span class="nm">3</span>],[<span class="nm">78</span>,<span class="nm">4</span>],
-              [<span class="nm">82</span>,<span class="nm">3</span>],[<span class="nm">85</span>,<span class="nm">5</span>],[<span class="nm">88</span>,<span class="nm">6</span>],[<span class="nm">91</span>,<span class="nm">4</span>],[<span class="nm">95</span>,<span class="nm">7</span>]])
-y = np.array([<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">0</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>,<span class="nm">1</span>])
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
 
-<span class="cm"># 1. SPLIT</span>
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>)
-<span class="cm"># 2. FIT</span>
-model = LogisticRegression()
-model.fit(X_train, y_train)
-<span class="cm"># 3. PREDICT</span>
-preds = model.predict(X_test)
-<span class="cm"># 4. EVALUATE</span>
-<span class="bi">print</span>(<span class="st">f'Predictions: <span class="bi">{preds.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Actual:      <span class="bi">{y_test.tolist()}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Test accuracy: <span class="bi">{accuracy_score(y_test, preds):.4f}</span>'</span>)</div>
+<span class="cm"># simulate a real mistake: a column that's basically the target with tiny noise —</span>
+<span class="cm"># exactly what a leaked "diagnosis follow-up code" would look like in real hospital data</span>
+rng = np.random.default_rng(<span class="nm">42</span>)
+leaked_feature = y + rng.normal(<span class="nm">0</span>, <span class="nm">0.01</span>, size=<span class="bi">len</span>(y))
+X_leaky = np.column_stack([X, leaked_feature])
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>, stratify=y)
+Xl_train, Xl_test, yl_train, yl_test = train_test_split(X_leaky, y, test_size=<span class="nm">0.3</span>, random_state=<span class="nm">42</span>, stratify=y)
+
+clean_model = LogisticRegression(max_iter=<span class="nm">5000</span>).fit(X_train, y_train)
+leaky_model = LogisticRegression(max_iter=<span class="nm">5000</span>).fit(Xl_train, yl_train)
+
+<span class="bi">print</span>(<span class="st">f'clean model test accuracy: <span class="bi">{clean_model.score(X_test, y_test):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'leaky model test accuracy: <span class="bi">{leaky_model.score(Xl_test, yl_test):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'leaked feature coef magnitude: <span class="bi">{abs(leaky_model.coef_[0][-1]):.2f}</span> vs max real feature: <span class="bi">{np.abs(leaky_model.coef_[0][:-1]).max():.2f}</span>'</span>)</div>
   </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: the clean model scores a solid <code>0.9474</code>; the leaky model scores a suspicious <code>1.0000</code> — PERFECT accuracy is one of the most reliable signs something is wrong, not a reason to celebrate. The leaked feature's coefficient magnitude (<code>3.92</code>) dwarfs every real feature's (max <code>0.47</code>) — a single feature massively outweighing all others is a second, independent red flag. In production, this model would fail catastrophically the moment the leaked column isn't available at real prediction time (because the diagnosis hasn't happened yet — that's the whole point of predicting it).</div></div>
+
+  <!-- 15.11 -->
+  <div class="lesson-h2">15.11 — Preprocessing Leakage: Fitting Before Splitting</div>
+  <p class="lesson-p">A subtler, more common leak: fitting a preprocessing step (like <code>StandardScaler</code>) on the WHOLE dataset before splitting. The scaler's mean/std then "sees" validation and test rows before the split ever happens — a real violation of "the model should never see test data," even though it doesn't touch <code>y</code> at all.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Fit-before-split vs fit-after-split — same model, different validity</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=<span class="nm">0.2</span>, random_state=<span class="nm">42</span>, stratify=y)
+
+<span class="cm"># WRONG: fit the scaler on ALL of X, including rows that ended up in X_val</span>
+scaler_leaky = StandardScaler().fit(X)
+<span class="cm"># RIGHT: fit the scaler on X_train ONLY</span>
+scaler_correct = StandardScaler().fit(X_train)
+
+<span class="bi">print</span>(<span class="st">f'leaky scaler mean[0]:   <span class="bi">{scaler_leaky.mean_[0]:.6f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'correct scaler mean[0]: <span class="bi">{scaler_correct.mean_[0]:.6f}</span>'</span>)
+
+model_leaky   = LogisticRegression(max_iter=<span class="nm">5000</span>).fit(scaler_leaky.transform(X_train), y_train)
+model_correct = LogisticRegression(max_iter=<span class="nm">5000</span>).fit(scaler_correct.transform(X_train), y_train)
+<span class="bi">print</span>(<span class="st">f'leaky val accuracy:   <span class="bi">{model_leaky.score(scaler_leaky.transform(X_val), y_val):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'correct val accuracy: <span class="bi">{model_correct.score(scaler_correct.transform(X_val), y_val):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: the fitted means genuinely differ (<code>14.127292</code> leaky vs <code>14.067213</code> correct) — real, measurable leakage — yet BOTH give the same <code>0.9825</code> validation accuracy on this particular split. That's an important, honest nuance: <strong>leakage is a procedural validity problem, not a guaranteed score-inflation bug.</strong> It doesn't always change the number on any one run, but it makes your evaluation methodology invalid, and on a different dataset, split, or model, it absolutely can flip a result. Never rely on "did the score look wrong" as your leakage check — check the PROCEDURE.</div></div>
+
+  <!-- 15.12 -->
+  <div class="lesson-h2">15.12 — sklearn Pipeline Fundamentals</div>
+  <p class="lesson-p">A <code>Pipeline</code> chains preprocessing and a model into ONE object with one <code>.fit()</code>/<code>.predict()</code> — and critically, when you call <code>pipe.fit(X_train, y_train)</code>, every step inside (including the scaler) is fit ONLY on the data you pass in. This makes 15.11's mistake structurally impossible to make by accident: there's no separate "fit the scaler on X" step to get wrong.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One Pipeline, fit once, correct by construction</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">from</span> sklearn.datasets <span class="kw">import</span> load_breast_cancer
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.pipeline <span class="kw">import</span> Pipeline
+<span class="kw">from</span> sklearn.preprocessing <span class="kw">import</span> StandardScaler
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LogisticRegression
+
+X, y = load_breast_cancer(return_X_y=<span class="kw">True</span>)
+X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=<span class="nm">0.4</span>, random_state=<span class="nm">42</span>, stratify=y)
+X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=<span class="nm">0.5</span>, random_state=<span class="nm">42</span>, stratify=y_temp)
+
+pipe = Pipeline([
+    (<span class="st">'scaler'</span>, StandardScaler()),
+    (<span class="st">'clf'</span>, LogisticRegression(max_iter=<span class="nm">5000</span>)),
+])
+pipe.fit(X_train, y_train)   <span class="cm"># scaler fits on X_train ONLY, automatically — no way to leak by accident</span>
+
+<span class="bi">print</span>(<span class="st">f'train accuracy: <span class="bi">{pipe.score(X_train, y_train):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'val accuracy:   <span class="bi">{pipe.score(X_val, y_val):.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🔧</div><div class="ib-body">Real output: train accuracy <code>0.9853</code>, val accuracy <code>0.9912</code>. <code>pipe.predict(new_data)</code> also applies the SAME fitted scaler automatically — this is what "using inconsistent preprocessing during training and inference" (one of this chapter's 9 named mistakes) actually looks like when it's fixed: one object, one fit, the identical transform every time, in training and in production.</div></div>
+
+  <!-- 15.13 -->
+  <div class="lesson-h2">15.13 — Comparing Baseline, Train, Validation, and Test Performance</div>
+  <p class="lesson-p">A single accuracy number means nothing on its own — it only means something next to the others: the baseline (is the model better than nothing?), the training score (is it fitting at all?), and validation vs. test (does it generalize, and does the FINAL, once-only check agree with what validation predicted?).</p>
+
+  <table class="lesson-table">
+    <tr><th>Stage</th><th>Accuracy</th><th>What it tells you</th></tr>
+    <tr><td>Dummy baseline</td><td class="highlight">0.6316</td><td style="font-family:var(--sans);color:var(--t2)">The floor — score of learning nothing</td></tr>
+    <tr><td>Pipeline, training set</td><td class="highlight">0.9853</td><td style="font-family:var(--sans);color:var(--t2)">Can it fit the data at all? (yes, clearly)</td></tr>
+    <tr><td>Pipeline, validation set</td><td class="highlight">0.9912</td><td style="font-family:var(--sans);color:var(--t2)">Used to pick this model/these settings</td></tr>
+    <tr><td>Pipeline, test set</td><td class="highlight">0.9912</td><td style="font-family:var(--sans);color:var(--t2)">Touched ONCE — the final, honest number</td></tr>
+  </table>
+  <div class="info-box note"><div class="ib-icon">✅</div><div class="ib-body">Real output, all four numbers from the exact same Pipeline and splits used throughout this chapter. Two good signs at once: massively beats the 0.6316 baseline, AND validation/test scores are close to each other AND close to (not wildly below) the training score — no overfitting red flag, no leakage red flag (no suspicious 1.0000), no baseline-beating failure. This is what "the model is genuinely good, and I can honestly say so" looks like as a comparison table, not a single cherry-picked number.</div></div>
+
+  <!-- 15.14 -->
+  <div class="lesson-h2">15.14 — Avoiding Test-Set Tuning, Reproducibility, and Documenting Experiments</div>
+  <p class="lesson-p">Two disciplines make the numbers above trustworthy, not just correct-looking:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Never tune against the test set.</strong> If you try 5 models or 10 hyperparameter settings and pick the best by TEST score, you've turned the test set into a validation set you don't admit to using — the reported number is now optimistic. All comparison, all tuning, all "which model wins" decisions happen on VALIDATION. Test gets evaluated exactly once, on the one model/pipeline you already committed to.</div></li>
+    <li data-n="2"><div><strong>Reproducibility and documentation aren't optional extras.</strong> Every <code>random_state</code> in this chapter was fixed and identical across splits, model fits, and cross-validation — a teammate (or future you) re-running this exact code gets these exact numbers. A minimal experiment record: dataset + version, exact split sizes/seed, model + hyperparameters, preprocessing steps in order, and the baseline/train/val/test table from 15.13 — without this, "0.9912 accuracy" is a claim no one can check or reproduce.</div></li>
+  </ul>
 
   <!-- Summary -->
   <div class="lesson-h2">Chapter 15 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>X</strong> (2D feature matrix) and <strong>y</strong> (label vector) — the shape of every supervised learning problem.</div></li>
-    <li data-n="2"><div><strong>train_test_split(X, y, test_size=..., random_state=...)</strong> holds out unseen data so evaluation is honest.</div></li>
-    <li data-n="3"><div><strong>Underfitting</strong> = too simple, bad everywhere. <strong>Overfitting</strong> = too complex, great on train, worse on test.</div></li>
-    <li data-n="4"><div><strong>Bias-variance tradeoff</strong>: simplicity fights complexity — you can't minimize both errors at once.</div></li>
-    <li data-n="5"><div><strong>accuracy / precision / recall / F1</strong> — computed by hand from TP/FP/FN/TN, or via <code>sklearn.metrics</code>. Accuracy alone is misleading on imbalanced data.</div></li>
-    <li data-n="6"><div><strong>The workflow</strong>: split → fit → predict → evaluate. Every chapter from here reuses this exact loop.</div></li>
+    <li data-n="1"><div>Know your dataset before modeling anything: shape, feature scales, and — critically — exactly what each target value MEANS.</div></li>
+    <li data-n="2"><div><strong>Train / validation / test</strong>, stratified, with a fixed <code>random_state</code>: train fits, validation decides, test is touched exactly once.</div></li>
+    <li data-n="3"><div><strong>DummyClassifier</strong> gives the floor every real model must beat — with a printed number, not an assumption.</div></li>
+    <li data-n="4"><div><strong>Underfitting</strong> = too simple, bad everywhere. <strong>Overfitting</strong> = too complex, great on train, worse on test. <strong>Learning curves</strong> show this shape across many training sizes, not just one split.</div></li>
+    <li data-n="5"><div><strong>accuracy / precision / recall / F1</strong> — by hand or via <code>sklearn.metrics</code>. Choose the metric that matches the real cost of each error type, not just the highest number.</div></li>
+    <li data-n="6"><div><strong>Data leakage</strong> — target leakage (a feature that IS the answer) and preprocessing leakage (fitting on data before splitting) both invalidate an evaluation, sometimes without even changing the score.</div></li>
+    <li data-n="7"><div><strong>Pipeline</strong> fits every preprocessing step only on the data you give it — leakage-safe by construction, and identical preprocessing in training and inference.</div></li>
+    <li data-n="8"><div>Compare <strong>baseline → train → validation → test</strong> together, never tune against test, and document the seed/splits/model so results are reproducible.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why do you need a validation set in addition to a test set — isn't a train/test split enough?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">If you use the test set to compare models or tune settings, you've started making decisions based on it — it's no longer a fair, unseen check. A validation set absorbs all of that decision-making (as many looks as you need), leaving the test set to be touched exactly once, at the end, for a genuinely honest final number.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why stratify a classification split, and what goes wrong if you don't?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Stratifying forces each split to have the same class proportions as the full dataset. Without it, especially on a small or imbalanced dataset, a plain random split can draw an unlucky validation or test set with a very different class balance than training — making metrics noisy, or in the worst case, a minority class barely represented at all in one split.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the point of a DummyClassifier baseline if you already know you're going to use a real model?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">It converts "is my model good?" from a gut feeling into a concrete comparison. On an imbalanced dataset especially, a real model's accuracy can look impressive while barely beating (or even losing to) a baseline that predicts the majority class every time. Without the baseline number, you can't actually tell the difference.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A model gets 100% accuracy on your test set. Should you be happy?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">No — suspicious, not happy. Perfect or near-perfect scores are one of the most reliable signs of data leakage: a feature that's accidentally derived from the target, a preprocessing step fit on data it shouldn't have seen, or (worst case) the target itself leaking into the features. Before trusting it, check for a feature with an unusually dominant coefficient/importance, and re-verify that every preprocessing step was fit on training data only.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the difference between target leakage and preprocessing leakage?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Target leakage is a FEATURE problem: a column that's derived from, or nearly equal to, the target itself, so the model "predicts" by reading off the answer. Preprocessing leakage is a PROCEDURE problem: fitting a transformation (like a scaler) on data that includes validation/test rows before splitting, so statistics computed there subtly reflect data the model shouldn't have had access to yet — even though no single feature is individually broken.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why does using an sklearn Pipeline reduce leakage risk compared to manually calling .fit_transform() then .transform()?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A Pipeline ties every preprocessing step's fitting to whatever data is passed into `.fit()` on the pipeline itself — there's no separate step where a scaler could accidentally be fit on the full dataset before splitting. It also guarantees the exact same fitted transformation is applied consistently at both training and inference time, which manual step-by-step code can easily get out of sync on.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You tried 8 different models, checked each one's test-set score, and picked the best. What's wrong with this process?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The test set was used to make a decision (which model to pick), which means it functioned as a validation set — but the reported "test" score for the winning model is now optimistic, because it was implicitly selected FOR scoring well on that exact data. The fix: compare all 8 models on a validation set, pick one, and only then evaluate that single choice on the test set, exactly once.</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -726,31 +923,32 @@ preds = model.predict(X_test)
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Split a Dataset</div>
-        <div class="ex-desc">Use train_test_split with a fixed test_size and random_state, then report the shapes.</div>
+        <div class="ex-title">Stratified Split: Preserving Class Balance</div>
+        <div class="ex-desc">This dataset is imbalanced (16 vs 4) — split it so BOTH sides keep that same imbalance, not an accidentally skewed one.</div>
       </div>
     </div>
     <div class="ex-task">Task:
 import numpy as np
 from sklearn.model_selection import train_test_split
-X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
-y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
-(already given)
+X1 = np.array([[i] for i in range(20)])
+y1 = np.array([0]*16 + [1]*4)
+(already given — 16 class-0, 4 class-1: a real 80/20 imbalance)
 
-X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+Split with test_size=0.25, random_state=1, and STRATIFY on y1 so both splits keep the same 80/20 balance.
 
 Print exactly:
   f'Train size: {len(X1_train)}'
   f'Test size: {len(X1_test)}'
-  f'Test labels: {y1_test.tolist()}'
-(Correct: Train size: 9 / Test size: 3 / Test labels: [0, 0, 0])</div>
+  f'Train balance: {y1_train.mean():.4f}'
+  f'Test balance: {y1_test.mean():.4f}'
+(Correct: Train size: 15 / Test size: 5 / Train balance: 0.2000 / Test balance: 0.2000)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex1-code">import numpy as np
 from sklearn.model_selection import train_test_split
-X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
-y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
+X1 = np.array([[i] for i in range(20)])
+y1 = np.array([0]*16 + [1]*4)
 
-# X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+# X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1, stratify=y1)
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
@@ -858,34 +1056,42 @@ y_pred3 = [0,1,0,1,0,1,1,0,1,0]
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Read a Confusion Matrix</div>
-        <div class="ex-desc">Build a confusion matrix and pull specific cells out of it by index.</div>
+        <div class="ex-title">Spot the Leakage</div>
+        <div class="ex-desc">A scaler fit on the FULL dataset before splitting is preprocessing leakage — fix it, then prove the fix actually changed something.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-from sklearn.metrics import confusion_matrix
-y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
-y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+X4 = np.array([[10],[12],[11],[13],[50],[52],[51],[53],[14],[15],[54],[55]])
+y4 = np.array([0,0,0,0,1,1,1,1,0,0,1,1])
 (already given)
 
-cm = confusion_matrix(y_true4, y_pred4)   # [[TN,FP],[FN,TP]]
+X4_train, X4_test, y4_train, y4_test = train_test_split(X4, y4, test_size=0.25, random_state=1, stratify=y4)
+
+BROKEN (do not use): scaler = StandardScaler().fit(X4)  # fit on the FULL dataset — leakage
+FIX: fit the scaler on X4_train ONLY.
+
+Compute:
+  full_mean = X4.mean()
+  correct_scaler = StandardScaler().fit(X4_train)   # <- the fix
 
 Print exactly:
-  f'True negatives: {cm[0,0]}'
-  f'False positives: {cm[0,1]}'
-  f'False negatives: {cm[1,0]}'
-  f'True positives: {cm[1,1]}'
-(Correct: True negatives: 5 / False positives: 1 / False negatives: 2 / True positives: 4)</div>
+  f'Full dataset mean: {full_mean:.4f}'
+  f'Train-only scaler mean: {correct_scaler.mean_[0]:.4f}'
+  f'Different: {round(full_mean, 4) != round(correct_scaler.mean_[0], 4)}'
+(Correct: Full dataset mean: 32.5000 / Train-only scaler mean: 30.2222 / Different: True)</div>
     <div class="ex-editor-wrap">
-      <textarea class="ex-editor" id="ex4-code">from sklearn.metrics import confusion_matrix
-y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
-y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
+      <textarea class="ex-editor" id="ex4-code">import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+X4 = np.array([[10],[12],[11],[13],[50],[52],[51],[53],[14],[15],[54],[55]])
+y4 = np.array([0,0,0,0,1,1,1,1,0,0,1,1])
 
-# cm = confusion_matrix(y_true4, y_pred4)
-# print(f'True negatives: {cm[0,0]}')
-# print(f'False positives: {cm[0,1]}')
-# print(f'False negatives: {cm[1,0]}')
-# print(f'True positives: {cm[1,1]}')
+# X4_train, X4_test, y4_train, y4_test = train_test_split(X4, y4, test_size=0.25, random_state=1, stratify=y4)
+# full_mean = X4.mean()
+# correct_scaler = StandardScaler().fit(X4_train)   # fit on TRAIN ONLY — this is the fix
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
@@ -956,60 +1162,89 @@ y5 = np.array([0,0,1,0,0,1,0,1,1,0,1,1,0,1,1,1,0,1,1,1,0,1,1,1])
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Mini Project: <span>Full Evaluation Workflow</span></h2>
-    <p>Twelve candidates, two features, a qualified/not-qualified label. Split the data, train a LogisticRegression classifier, predict on the held-out set, and report all four metrics — the exact split → fit → predict → evaluate loop from 15.7, now with a full metrics report instead of just accuracy.</p>
+    <h2>🏗️ Mini Project: <span>Leakage-Safe Diagnosis Workflow</span></h2>
+    <p>The complete, real workflow this chapter built — on the real breast-cancer dataset, start to finish: inspect it, split it properly (stratified, 3-way), beat a real baseline, build a leakage-safe Pipeline, evaluate on all three splits, diagnose the fit, and write a one-line documented conclusion. This is the actual shape of real ML work, not a toy.</p>
     <div class="project-tags">
-      <span class="ptag">train_test_split</span>
-      <span class="ptag">LogisticRegression</span>
-      <span class="ptag">metrics</span>
+      <span class="ptag">stratified 3-way split</span>
+      <span class="ptag">DummyClassifier</span>
+      <span class="ptag">Pipeline</span>
+      <span class="ptag">diagnosis + documentation</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Split Xp, yp with test_size=0.25, random_state=7</li>
-      <li>Train a LogisticRegression() on the training split</li>
-      <li>Predict on the test split</li>
-      <li>Print predictions, actual labels, and accuracy/precision/recall/F1 (all to 4 decimal places)</li>
+      <li>Inspect: shape and class balance of the real dataset</li>
+      <li>Create reproducible, stratified train/validation/test splits (60/20/20, random_state=42)</li>
+      <li>Establish a DummyClassifier baseline on validation</li>
+      <li>Build a leakage-safe Pipeline (StandardScaler + LogisticRegression)</li>
+      <li>Train it and evaluate on train, validation, AND test</li>
+      <li>Compare baseline vs. train vs. validation vs. test in one place</li>
+      <li>Diagnose overfitting/underfitting from the train-validation gap</li>
+      <li>Print a one-line documented conclusion: does it beat baseline, and what's the caveat?</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Full Evaluation Workflow — Your Solution</div>
+      <div class="pe-title">🏗️ Leakage-Safe Diagnosis Workflow — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Mini Project: Full Evaluation Workflow
+# Mini Project: Leakage-Safe Diagnosis Workflow
 # Use ONLY Chapter 15 concepts
 # ══════════════════════════════════════════
-import numpy as np
+from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
+from sklearn.dummy import DummyClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 
-Xp = np.array([[55,1],[60,2],[63,1],[68,2],[70,3],[72,2],
-               [75,4],[78,3],[80,5],[83,4],[86,6],[90,5]])
-yp = np.array([0,0,0,0,0,1,1,1,1,1,1,1])
+X, y = load_breast_cancer(return_X_y=True)
 
-# === TODO 1: split ===
-# Xp_train, Xp_test, yp_train, yp_test = train_test_split(Xp, yp, test_size=0.25, random_state=7)
+# === TODO 1: inspect ===
+# print(f'shape: {X.shape}')
+# print(f'class balance: {y.mean():.4f}')
 
-# === TODO 2: fit ===
-# model = LogisticRegression()
-# model.fit(Xp_train, yp_train)
+# === TODO 2: reproducible stratified 60/20/20 split ===
+# X_train, X_temp, y_train, y_temp = train_test_split(X, y, test_size=0.4, random_state=42, stratify=y)
+# X_val, X_test, y_val, y_test = train_test_split(X_temp, y_temp, test_size=0.5, random_state=42, stratify=y_temp)
+# print(f'train: {X_train.shape}  val: {X_val.shape}  test: {X_test.shape}')
 
-# === TODO 3: predict ===
-# preds = model.predict(Xp_test)
+# === TODO 3: DummyClassifier baseline ===
+# dummy = DummyClassifier(strategy='most_frequent').fit(X_train, y_train)
+# dummy_val_acc = dummy.score(X_val, y_val)
+# print(f'baseline val accuracy: {dummy_val_acc:.4f}')
 
-# === TODO 4: evaluate and report ===
-# print(f'Predictions: {preds.tolist()}')
-# print(f'Actual: {yp_test.tolist()}')
-# print(f'Accuracy: {accuracy_score(yp_test, preds):.4f}')
-# print(f'Precision: {precision_score(yp_test, preds):.4f}')
-# print(f'Recall: {recall_score(yp_test, preds):.4f}')
-# print(f'F1: {f1_score(yp_test, preds):.4f}')
+# === TODO 4: leakage-safe Pipeline ===
+# pipe = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression(max_iter=5000))])
+
+# === TODO 5: train and evaluate on all three splits ===
+# pipe.fit(X_train, y_train)
+# train_acc = pipe.score(X_train, y_train)
+# val_acc = pipe.score(X_val, y_val)
+# test_acc = pipe.score(X_test, y_test)
+# print(f'train accuracy: {train_acc:.4f}')
+# print(f'val accuracy: {val_acc:.4f}')
+# print(f'test accuracy: {test_acc:.4f}')
+
+# === TODO 6: compare baseline vs train vs val vs test (already have all 4 numbers above) ===
+# beats_baseline = val_acc > dummy_val_acc
+# print(f'beats baseline: {beats_baseline}')
+
+# === TODO 7: diagnose overfitting/underfitting from the train-val gap ===
+# gap = train_acc - val_acc
+# diagnosis = 'good fit' if gap < 0.05 else 'possible overfitting'
+# print(f'train-val gap: {gap:.4f}')
+# print(f'diagnosis: {diagnosis}')
+
+# === TODO 8: document the conclusion ===
+# print(f'CONCLUSION: Pipeline (StandardScaler+LogisticRegression) on load_breast_cancer, '
+#       f'60/20/20 stratified split, random_state=42. Beats DummyClassifier baseline '
+#       f'({dummy_val_acc:.4f}) with val={val_acc:.4f}, test={test_acc:.4f}. Diagnosis: {diagnosis}. '
+#       f'Limitation: test set evaluated once — re-running model selection would require a fresh test set.')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -1017,12 +1252,13 @@ yp = np.array([0,0,0,0,0,1,1,1,1,1,1,1])
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">📋</span>Predictions: [1, 1, 0]</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Actual: [1, 1, 0]</div>
-    <div class="check-item"><span class="check-icon">✅</span>Accuracy: 1.0000</div>
-    <div class="check-item"><span class="check-icon">📐</span>Precision: 1.0000</div>
-    <div class="check-item"><span class="check-icon">🔁</span>Recall: 1.0000</div>
-    <div class="check-item"><span class="check-icon">⚖️</span>F1: 1.0000</div>
+    <div class="check-item"><span class="check-icon">🔍</span>shape: (569, 30), class balance: 0.6274</div>
+    <div class="check-item"><span class="check-icon">✂️</span>train: (341, 30)  val: (114, 30)  test: (114, 30)</div>
+    <div class="check-item"><span class="check-icon">🎯</span>baseline val accuracy: 0.6316</div>
+    <div class="check-item"><span class="check-icon">📊</span>train accuracy: 0.9853, val accuracy: 0.9912, test accuracy: 0.9912</div>
+    <div class="check-item"><span class="check-icon">✅</span>beats baseline: True</div>
+    <div class="check-item"><span class="check-icon">🩺</span>train-val gap: -0.0059, diagnosis: good fit</div>
+    <div class="check-item"><span class="check-icon">📝</span>a CONCLUSION line documenting the setup, numbers, diagnosis, AND a stated limitation</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1061,12 +1297,12 @@ yp = np.array([0,0,0,0,0,1,1,1,1,1,1,1])
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">Why can accuracy alone be a misleading metric?</div>
+    <div class="q-text">You call <code>StandardScaler().fit(X)</code> on the FULL dataset, then split into train/test and use that same fitted scaler to transform both. What is wrong with this?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Accuracy is always exactly equal to precision, so it's redundant</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> On imbalanced data, a model that always predicts the majority class can score high accuracy while completely failing to catch the minority class (low recall)</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> Accuracy cannot be computed for classification problems</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It only works with regression models</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Nothing — scaling doesn't use the labels, so fitting it on all the data is always safe</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> This is preprocessing leakage: the scaler's mean and standard deviation were computed using information from the test rows, so the test set is no longer purely unseen — fit preprocessing on the training split only</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> StandardScaler can only be fit after the model has already been trained</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> sklearn would raise an error if you tried this, so it's a non-issue</button>
     </div>
   </div>
 
@@ -1250,16 +1486,17 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['train size: 9','test size: 3','test labels: [0, 0, 0]'],
-    hint:"X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1); use .tolist() when printing",
+    checks:['train size: 15','test size: 5','train balance: 0.2000','test balance: 0.2000'],
+    hint:"train_test_split(X1, y1, test_size=0.25, random_state=1, stratify=y1)",
     solution:`import numpy as np
 from sklearn.model_selection import train_test_split
-X1 = np.array([[50],[55],[60],[65],[70],[75],[80],[85],[90],[95],[40],[45]])
-y1 = np.array([0,0,0,0,0,1,1,1,1,1,0,0])
-X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1)
+X1 = np.array([[i] for i in range(20)])
+y1 = np.array([0]*16 + [1]*4)
+X1_train, X1_test, y1_train, y1_test = train_test_split(X1, y1, test_size=0.25, random_state=1, stratify=y1)
 print(f'Train size: {len(X1_train)}')
 print(f'Test size: {len(X1_test)}')
-print(f'Test labels: {y1_test.tolist()}')`
+print(f'Train balance: {y1_train.mean():.4f}')
+print(f'Test balance: {y1_test.mean():.4f}')`
   },
   2:{
     checks:['tp: 3, fp: 1, fn: 1, tn: 3','accuracy: 0.7500','precision: 0.7500','recall: 0.7500'],
@@ -1291,16 +1528,19 @@ print(f'Recall: {recall_score(y_true3, y_pred3):.4f}')
 print(f'F1: {f1_score(y_true3, y_pred3):.4f}')`
   },
   4:{
-    checks:['true negatives: 5','false positives: 1','false negatives: 2','true positives: 4'],
-    hint:"cm = confusion_matrix(y_true4, y_pred4); cm[0,0] is TN, cm[0,1] is FP, cm[1,0] is FN, cm[1,1] is TP",
-    solution:`from sklearn.metrics import confusion_matrix
-y_true4 = [1,0,1,1,0,0,1,0,1,0,1,0]
-y_pred4 = [1,0,0,1,1,0,1,0,1,0,0,0]
-cm = confusion_matrix(y_true4, y_pred4)
-print(f'True negatives: {cm[0,0]}')
-print(f'False positives: {cm[0,1]}')
-print(f'False negatives: {cm[1,0]}')
-print(f'True positives: {cm[1,1]}')`
+    checks:['full dataset mean: 32.5000','train-only scaler mean: 30.2222','different: true'],
+    hint:"correct_scaler = StandardScaler().fit(X4_train) — NOT StandardScaler().fit(X4)",
+    solution:`import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+X4 = np.array([[10],[12],[11],[13],[50],[52],[51],[53],[14],[15],[54],[55]])
+y4 = np.array([0,0,0,0,1,1,1,1,0,0,1,1])
+X4_train, X4_test, y4_train, y4_test = train_test_split(X4, y4, test_size=0.25, random_state=1, stratify=y4)
+full_mean = X4.mean()
+correct_scaler = StandardScaler().fit(X4_train)
+print(f'Full dataset mean: {full_mean:.4f}')
+print(f'Train-only scaler mean: {correct_scaler.mean_[0]:.4f}')
+print(f'Different: {round(full_mean, 4) != round(correct_scaler.mean_[0], 4)}')`
   },
   5:{
     checks:['depth=1: train=0.7778 test=0.6667','depth=none: train=1.0000 test=0.6667'],
@@ -1375,7 +1615,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['predictions: [1, 1, 0]','actual: [1, 1, 0]','accuracy: 1.0000','precision: 1.0000','recall: 1.0000','f1: 1.0000'];
+  const checks=['shape: (569, 30)','class balance: 0.6274','train: (341, 30)','val: (114, 30)','test: (114, 30)','baseline val accuracy: 0.6316','train accuracy: 0.9853','val accuracy: 0.9912','test accuracy: 0.9912','beats baseline: true','diagnosis: good fit','conclusion:'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
