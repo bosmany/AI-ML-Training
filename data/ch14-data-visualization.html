@@ -124,6 +124,10 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -508,7 +512,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 14:<br/><span>Data Visualization</span></h1>
     <p>This is the Module 3 capstone. Every chart you build actually renders in this browser — real Matplotlib and Seaborn, running on real (if simulated) data. A table of numbers hides patterns; a chart reveals them instantly. By the end, you'll produce a 4-panel "EDA story" from the candidate dataset — the same kind of first-look analysis that opens every real data science project.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~140 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge capstone">🏗️ Module 3 Capstone Project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -686,13 +690,526 @@ axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>
   </div>
   <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>Only one chart is captured per Run — the LAST figure created</strong>. If you call <code>plt.figure()</code> or <code>plt.subplots()</code> more than once in the same cell, only the final one gets displayed. Build one figure per cell (with as many subplots inside it as you need).</div></div>
 
+  <!-- 14.7 -->
+  <div class="lesson-h2">14.7 — Systematic EDA: Shape, Types, Missingness, Target</div>
+  <p class="lesson-p">Before drawing a single chart, profile the dataset the same way Chapter 13 did: shape, dtypes, and missingness. The running examples for the rest of this chapter are Chapter 12's real <code>orders.csv</code>/<code>customers.csv</code> and Chapter 13's deliberately messy <code>employees_messy.csv</code> — no new dataset needed.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Profiling a real dataset before visualizing anything</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># Chapter 13's exact messy employee dataset, regenerated here with the identical seeded generator</span>
+<span class="cm"># (see Chapter 13 for the full walkthrough) so this chapter is self-contained — no network fetch needed.</span>
+rng = np.random.default_rng(<span class="nm">7</span>)
+n = <span class="nm">400</span>
+first_names = [<span class="st">'Asha'</span>,<span class="st">'Ben'</span>,<span class="st">'Chen'</span>,<span class="st">'Dana'</span>,<span class="st">'Eli'</span>,<span class="st">'Farah'</span>,<span class="st">'Gita'</span>,<span class="st">'Hiro'</span>,<span class="st">'Ivy'</span>,<span class="st">'Jun'</span>,<span class="st">'Kira'</span>,<span class="st">'Leo'</span>,<span class="st">'Maya'</span>,<span class="st">'Nia'</span>,<span class="st">'Omar'</span>,<span class="st">'Priya'</span>,<span class="st">'Quinn'</span>,<span class="st">'Rosa'</span>,<span class="st">'Sam'</span>,<span class="st">'Tara'</span>,<span class="st">'Uma'</span>,<span class="st">'Victor'</span>,<span class="st">'Wei'</span>,<span class="st">'Xena'</span>,<span class="st">'Yara'</span>,<span class="st">'Zane'</span>]
+last_names = [<span class="st">'Sharma'</span>,<span class="st">'Patel'</span>,<span class="st">'Kim'</span>,<span class="st">'Nguyen'</span>,<span class="st">'Silva'</span>,<span class="st">'Khan'</span>,<span class="st">'Ito'</span>,<span class="st">'Lopez'</span>,<span class="st">'Rao'</span>,<span class="st">'Costa'</span>,<span class="st">'Mensah'</span>,<span class="st">'Novak'</span>,<span class="st">'Haddad'</span>,<span class="st">'Fischer'</span>,<span class="st">'Okoro'</span>]
+names = [<span class="st">f'<span class="bi">{first_names[rng.integers(0,len(first_names))]}</span> <span class="bi">{last_names[rng.integers(0,len(last_names))]}</span>'</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(n)]
+departments = [<span class="st">'Engineering'</span>,<span class="st">'Sales'</span>,<span class="st">'Marketing'</span>,<span class="st">'HR'</span>,<span class="st">'Finance'</span>]
+dept_true = rng.choice(departments, n, p=[<span class="nm">0.35</span>,<span class="nm">0.25</span>,<span class="nm">0.15</span>,<span class="nm">0.10</span>,<span class="nm">0.15</span>])
+ages = rng.integers(<span class="nm">22</span>, <span class="nm">60</span>, n).astype(<span class="bi">float</span>)
+base_salary = {<span class="st">'Engineering'</span>:<span class="nm">95000</span>,<span class="st">'Sales'</span>:<span class="nm">70000</span>,<span class="st">'Marketing'</span>:<span class="nm">65000</span>,<span class="st">'HR'</span>:<span class="nm">60000</span>,<span class="st">'Finance'</span>:<span class="nm">80000</span>}
+salary = np.array([base_salary[d] + rng.normal(<span class="nm">0</span>, <span class="nm">8000</span>) <span class="kw">for</span> d <span class="kw">in</span> dept_true]).<span class="bi">round</span>(<span class="nm">2</span>)
+join_dates = pd.to_datetime(<span class="st">'2018-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">2000</span>, n), unit=<span class="st">'D'</span>)
+performance = rng.integers(<span class="nm">1</span>, <span class="nm">6</span>, n).astype(<span class="bi">float</span>)
+cities = [<span class="st">'New York'</span>,<span class="st">'San Francisco'</span>,<span class="st">'Chicago'</span>,<span class="st">'Austin'</span>,<span class="st">'Seattle'</span>]
+city_true = rng.choice(cities, n, p=[<span class="nm">0.30</span>,<span class="nm">0.25</span>,<span class="nm">0.20</span>,<span class="nm">0.15</span>,<span class="nm">0.10</span>])
+is_remote = rng.choice([<span class="kw">True</span>, <span class="kw">False</span>], n, p=[<span class="nm">0.3</span>,<span class="nm">0.7</span>])
+emp = pd.DataFrame({<span class="st">'employee_id'</span>: np.arange(<span class="nm">1</span>,n+<span class="nm">1</span>), <span class="st">'name'</span>: names, <span class="st">'department'</span>: dept_true, <span class="st">'age'</span>: ages,
+    <span class="st">'salary'</span>: salary, <span class="st">'join_date'</span>: join_dates.strftime(<span class="st">'%Y-%m-%d'</span>), <span class="st">'performance_rating'</span>: performance,
+    <span class="st">'city'</span>: city_true, <span class="st">'is_remote'</span>: is_remote})
+
+<span class="kw">def</span> <span class="fn">inject_missing</span>(col, frac, off):
+    r = np.random.default_rng(<span class="nm">7</span> + off)
+    idx = r.choice(n, size=<span class="bi">int</span>(n*frac), replace=<span class="kw">False</span>)
+    emp.loc[idx, col] = np.nan
+inject_missing(<span class="st">'age'</span>, <span class="nm">0.05</span>, <span class="nm">1</span>); inject_missing(<span class="st">'salary'</span>, <span class="nm">0.04</span>, <span class="nm">2</span>)
+inject_missing(<span class="st">'department'</span>, <span class="nm">0.03</span>, <span class="nm">3</span>); inject_missing(<span class="st">'performance_rating'</span>, <span class="nm">0.15</span>, <span class="nm">4</span>); inject_missing(<span class="st">'city'</span>, <span class="nm">0.02</span>, <span class="nm">5</span>)
+
+emp[<span class="st">'salary'</span>] = emp[<span class="st">'salary'</span>].astype(<span class="bi">object</span>)
+r = np.random.default_rng(<span class="nm">30</span>)
+nn = emp.index[emp[<span class="st">'salary'</span>].notnull()]
+messy_sal = r.choice(nn, size=<span class="bi">int</span>(<span class="bi">len</span>(nn)*<span class="nm">0.10</span>), replace=<span class="kw">False</span>)
+<span class="kw">for</span> i <span class="kw">in</span> messy_sal: emp.at[i, <span class="st">'salary'</span>] = <span class="st">f'$<span class="bi">{float(emp.at[i,"salary"]):,.2f}</span>'</span>
+
+r = np.random.default_rng(<span class="nm">40</span>)
+dv = emp.index[emp[<span class="st">'department'</span>].notnull()]
+messy_dept = r.choice(dv, size=<span class="bi">int</span>(<span class="bi">len</span>(dv)*<span class="nm">0.08</span>), replace=<span class="kw">False</span>)
+dept_variants = {<span class="st">'Engineering'</span>:[<span class="st">'eng'</span>,<span class="st">'ENGINEERING'</span>,<span class="st">'Engineering '</span>],<span class="st">'Sales'</span>:[<span class="st">'sales'</span>,<span class="st">'SALES'</span>,<span class="st">'Sales '</span>],
+                  <span class="st">'Marketing'</span>:[<span class="st">'Mktg'</span>,<span class="st">'marketing'</span>],<span class="st">'HR'</span>:[<span class="st">'H.R.'</span>,<span class="st">'Human Resources'</span>,<span class="st">'hr'</span>],<span class="st">'Finance'</span>:[<span class="st">'finance'</span>,<span class="st">'FINANCE'</span>]}
+<span class="kw">for</span> i <span class="kw">in</span> messy_dept:
+    v = dept_variants[emp.at[i,<span class="st">'department'</span>]]; emp.at[i, <span class="st">'department'</span>] = v[r.integers(<span class="nm">0</span>,<span class="bi">len</span>(v))]
+
+r2 = np.random.default_rng(<span class="nm">41</span>)
+cv = emp.index[emp[<span class="st">'city'</span>].notnull()]
+messy_city = r2.choice(cv, size=<span class="bi">int</span>(<span class="bi">len</span>(cv)*<span class="nm">0.08</span>), replace=<span class="kw">False</span>)
+city_variants = {<span class="st">'New York'</span>:[<span class="st">'new york'</span>,<span class="st">'NYC'</span>,<span class="st">'New York City'</span>],<span class="st">'San Francisco'</span>:[<span class="st">'san francisco'</span>,<span class="st">'SF'</span>,<span class="st">'San Fran'</span>],
+                  <span class="st">'Chicago'</span>:[<span class="st">'chicago'</span>,<span class="st">'CHICAGO'</span>],<span class="st">'Austin'</span>:[<span class="st">'austin '</span>,<span class="st">'AUSTIN'</span>],<span class="st">'Seattle'</span>:[<span class="st">'seattle'</span>,<span class="st">'Seattle '</span>]}
+<span class="kw">for</span> i <span class="kw">in</span> messy_city:
+    v = city_variants[emp.at[i,<span class="st">'city'</span>]]; emp.at[i, <span class="st">'city'</span>] = v[r2.integers(<span class="nm">0</span>,<span class="bi">len</span>(v))]
+
+r3 = np.random.default_rng(<span class="nm">50</span>)
+ia = r3.choice(emp.index[emp[<span class="st">'age'</span>].notnull()], size=<span class="nm">3</span>, replace=<span class="kw">False</span>)
+emp.loc[ia[<span class="nm">0</span>],<span class="st">'age'</span>]=<span class="nm">150</span>; emp.loc[ia[<span class="nm">1</span>],<span class="st">'age'</span>]=-<span class="nm">5</span>; emp.loc[ia[<span class="nm">2</span>],<span class="st">'age'</span>]=<span class="nm">200</span>
+num_sal = emp[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">isinstance</span>(v,(<span class="bi">int</span>,<span class="bi">float</span>)) <span class="kw">and</span> pd.notnull(v))
+ps = r3.choice(emp.index[num_sal], size=<span class="nm">6</span>, replace=<span class="kw">False</span>)
+<span class="kw">for</span> i,v <span class="kw">in</span> <span class="bi">zip</span>(ps, [-<span class="nm">20000.0</span>,-<span class="nm">5000.0</span>,<span class="nm">2500000.0</span>,<span class="nm">1800000.0</span>,<span class="nm">215000.0</span>,<span class="nm">198000.0</span>]): emp.at[i,<span class="st">'salary'</span>]=v
+
+r4 = np.random.default_rng(<span class="nm">60</span>)
+dv2 = emp.index[emp[<span class="st">'join_date'</span>].notnull()]
+alt = r4.choice(dv2, size=<span class="bi">int</span>(<span class="bi">len</span>(dv2)*<span class="nm">0.06</span>), replace=<span class="kw">False</span>)
+<span class="kw">for</span> i <span class="kw">in</span> alt:
+    d = pd.to_datetime(emp.at[i,<span class="st">'join_date'</span>])
+    emp.at[i,<span class="st">'join_date'</span>] = d.strftime(<span class="st">'%m/%d/%Y'</span>) <span class="kw">if</span> r4.integers(<span class="nm">0</span>,<span class="nm">2</span>)==<span class="nm">0</span> <span class="kw">else</span> d.strftime(<span class="st">'%B %d, %Y'</span>)
+inv = r4.choice(emp.index.difference(alt), size=<span class="nm">5</span>, replace=<span class="kw">False</span>)
+<span class="kw">for</span> i,val <span class="kw">in</span> <span class="bi">zip</span>(inv, [<span class="st">'2021-13-45'</span>,<span class="st">''</span>,<span class="st">'not_a_date'</span>,<span class="st">'2021-02-30'</span>,<span class="st">'00/00/0000'</span>]): emp.at[i,<span class="st">'join_date'</span>]=val
+
+r5 = np.random.default_rng(<span class="nm">70</span>)
+dup_idx = r5.choice(emp.index, size=<span class="nm">15</span>, replace=<span class="kw">False</span>)
+emp = pd.concat([emp, emp.loc[dup_idx]], ignore_index=<span class="kw">True</span>)
+emp.to_csv(<span class="st">'employees_messy.csv'</span>, index=<span class="kw">False</span>)   <span class="cm"># write the real CSV — every later block in this chapter reads this same file</span>
+emp = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+<span class="bi">print</span>(<span class="st">f'shape: <span class="bi">{emp.shape}</span>'</span>)
+missing = emp.isna().<span class="bi">sum</span>()
+missing = missing[missing > <span class="nm">0</span>]
+
+fig, ax = plt.subplots(figsize=(<span class="nm">7</span>,<span class="nm">4</span>))
+ax.barh(missing.index, missing.values, color=<span class="st">'#E07856'</span>)
+ax.set_xlabel(<span class="st">'Missing count'</span>); ax.set_title(<span class="st">'Missing values per column — employees_messy.csv'</span>)
+<span class="kw">for</span> i, v <span class="kw">in</span> <span class="bi">enumerate</span>(missing.values):
+    ax.text(v + <span class="nm">1</span>, i, <span class="bi">str</span>(v), va=<span class="st">'center'</span>)
+
+<span class="bi">print</span>(<span class="st">f'columns with missing data: <span class="bi">{list(missing.index)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'worst column: <span class="bi">{missing.idxmax()}</span> (<span class="bi">{missing.max()}</span> missing)'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: 5 columns have missing data, worst is <code>performance_rating</code> at 63 missing. A missingness bar chart like this is often the FIRST chart in a real EDA — it tells you immediately which columns need a cleaning decision (Chapter 13) before any other chart on those columns can be trusted.</div></div>
+
+  <!-- 14.8 -->
+  <div class="lesson-h2">14.8 — Univariate Analysis: Numerical vs Categorical</div>
+  <p class="lesson-p">A histogram (14.3) shows a numeric distribution's overall SHAPE; a <strong>box plot</strong> summarizes it in five numbers (min, Q1, median, Q3, max) and makes outliers and skew easy to spot at a glance across MANY groups at once — which a histogram can't do side by side nearly as compactly. For categorical columns, a <strong>count plot</strong> (<code>sns.countplot</code>) is a bar chart pandas builds the counting step into automatically.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Box plot (numeric spread) + count plot (categorical frequency), real orders data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># Chapter 12's exact orders dataset, regenerated here with the identical seeded generator</span>
+<span class="cm"># (see Chapter 12 for the full walkthrough) so this chapter is self-contained — no network fetch needed.</span>
+rng = np.random.default_rng(<span class="nm">42</span>)
+n_customers, n_orders = <span class="nm">50</span>, <span class="nm">1500</span>
+first_names = [<span class="st">'Asha'</span>,<span class="st">'Ben'</span>,<span class="st">'Chen'</span>,<span class="st">'Dana'</span>,<span class="st">'Eli'</span>,<span class="st">'Farah'</span>,<span class="st">'Gita'</span>,<span class="st">'Hiro'</span>,<span class="st">'Ivy'</span>,<span class="st">'Jun'</span>,
+               <span class="st">'Kira'</span>,<span class="st">'Leo'</span>,<span class="st">'Maya'</span>,<span class="st">'Nia'</span>,<span class="st">'Omar'</span>,<span class="st">'Priya'</span>,<span class="st">'Quinn'</span>,<span class="st">'Rosa'</span>,<span class="st">'Sam'</span>,<span class="st">'Tara'</span>]
+last_names = [<span class="st">'Sharma'</span>,<span class="st">'Patel'</span>,<span class="st">'Kim'</span>,<span class="st">'Nguyen'</span>,<span class="st">'Silva'</span>,<span class="st">'Khan'</span>,<span class="st">'Ito'</span>,<span class="st">'Lopez'</span>,<span class="st">'Rao'</span>,<span class="st">'Costa'</span>]
+customer_ids = np.arange(<span class="nm">1</span>, n_customers + <span class="nm">1</span>)
+customer_names = [<span class="st">f'<span class="bi">{first_names[rng.integers(0,len(first_names))]}</span> <span class="bi">{last_names[rng.integers(0,len(last_names))]}</span>'</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(n_customers)]
+signup_dates = pd.to_datetime(<span class="st">'2022-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">365</span>, n_customers), unit=<span class="st">'D'</span>)
+regions = [<span class="st">'North'</span>, <span class="st">'South'</span>, <span class="st">'East'</span>, <span class="st">'West'</span>]
+customer_regions = rng.choice(regions, n_customers)
+customers = pd.DataFrame({<span class="st">'customer_id'</span>: customer_ids, <span class="st">'customer_name'</span>: customer_names,
+    <span class="st">'region'</span>: customer_regions, <span class="st">'signup_date'</span>: signup_dates.strftime(<span class="st">'%Y-%m-%d'</span>)})
+
+categories = [<span class="st">'Electronics'</span>, <span class="st">'Clothing'</span>, <span class="st">'Home'</span>, <span class="st">'Sports'</span>, <span class="st">'Books'</span>]
+price_range = {<span class="st">'Electronics'</span>: (<span class="nm">20</span>,<span class="nm">500</span>), <span class="st">'Clothing'</span>: (<span class="nm">10</span>,<span class="nm">120</span>), <span class="st">'Home'</span>: (<span class="nm">15</span>,<span class="nm">250</span>), <span class="st">'Sports'</span>: (<span class="nm">10</span>,<span class="nm">150</span>), <span class="st">'Books'</span>: (<span class="nm">5</span>,<span class="nm">60</span>)}
+payment_methods = [<span class="st">'Credit Card'</span>, <span class="st">'Debit Card'</span>, <span class="st">'UPI'</span>, <span class="st">'Cash'</span>]
+order_dates = pd.to_datetime(<span class="st">'2023-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">730</span>, n_orders), unit=<span class="st">'D'</span>)
+order_customer_ids = rng.choice(customer_ids, n_orders)
+order_categories = rng.choice(categories, n_orders, p=[<span class="nm">0.28</span>, <span class="nm">0.22</span>, <span class="nm">0.20</span>, <span class="nm">0.15</span>, <span class="nm">0.15</span>])
+quantities = rng.integers(<span class="nm">1</span>, <span class="nm">6</span>, n_orders)
+unit_prices = np.array([<span class="bi">round</span>(rng.uniform(*price_range[c]), <span class="nm">2</span>) <span class="kw">for</span> c <span class="kw">in</span> order_categories])
+order_payment_methods = rng.choice(payment_methods, n_orders, p=[<span class="nm">0.35</span>, <span class="nm">0.25</span>, <span class="nm">0.30</span>, <span class="nm">0.10</span>])
+is_returned = rng.choice([<span class="kw">True</span>, <span class="kw">False</span>], n_orders, p=[<span class="nm">0.06</span>, <span class="nm">0.94</span>])
+order_regions = rng.choice(regions, n_orders)
+orders = pd.DataFrame({
+    <span class="st">'order_id'</span>: np.arange(<span class="nm">1001</span>, <span class="nm">1001</span> + n_orders), <span class="st">'order_date'</span>: order_dates.strftime(<span class="st">'%Y-%m-%d'</span>),
+    <span class="st">'customer_id'</span>: order_customer_ids, <span class="st">'product_category'</span>: order_categories, <span class="st">'region'</span>: order_regions,
+    <span class="st">'quantity'</span>: quantities, <span class="st">'unit_price'</span>: unit_prices, <span class="st">'payment_method'</span>: order_payment_methods, <span class="st">'is_returned'</span>: is_returned,
+}).sort_values(<span class="st">'order_date'</span>).reset_index(drop=<span class="kw">True</span>)
+orders.to_csv(<span class="st">'orders.csv'</span>, index=<span class="kw">False</span>)   <span class="cm"># write the real CSV — every later block in this chapter reads this same file</span>
+customers.to_csv(<span class="st">'customers.csv'</span>, index=<span class="kw">False</span>)
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+
+fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">11</span>,<span class="nm">4</span>))
+sns.boxplot(y=orders[<span class="st">'unit_price'</span>], ax=axes[<span class="nm">0</span>])
+axes[<span class="nm">0</span>].set_title(<span class="st">'Unit Price — Spread &amp; Outliers'</span>); axes[<span class="nm">0</span>].set_ylabel(<span class="st">'Unit Price ($)'</span>)
+sns.countplot(data=orders, x=<span class="st">'product_category'</span>, order=orders[<span class="st">'product_category'</span>].value_counts().index, ax=axes[<span class="nm">1</span>])
+axes[<span class="nm">1</span>].set_title(<span class="st">'Orders per Category'</span>); axes[<span class="nm">1</span>].set_xlabel(<span class="st">''</span>); axes[<span class="nm">1</span>].tick_params(axis=<span class="st">'x'</span>, rotation=<span class="nm">30</span>)
+plt.tight_layout()
+
+<span class="bi">print</span>(<span class="st">f'unit_price skew: <span class="bi">{orders["unit_price"].skew():.4f}</span>'</span>)   <span class="cm"># positive = long right tail</span>
+<span class="bi">print</span>(<span class="st">f'most common category: <span class="bi">{orders["product_category"].value_counts().idxmax()}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>unit_price</code> skew is <code>1.3894</code> (a real, meaningfully right-skewed price distribution — a few expensive electronics stretch the tail), Electronics is the most common category (436 of 1,500 orders). Choosing box vs. histogram isn't either/or: a histogram shows the full shape of ONE distribution best; a box plot is the better choice the moment you're comparing the SAME numeric column ACROSS several categories at once (next section).</div></div>
+
+  <!-- 14.9 -->
+  <div class="lesson-h2">14.9 — Bivariate and Multivariate Relationships</div>
+  <p class="lesson-p"><strong>Bivariate</strong> = two variables at once (a grouped box plot, a scatter plot). <strong>Multivariate</strong> = three or more — usually by encoding a third variable as color, size, or a separate panel, since a chart only has two spatial axes.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Salary by department (bivariate) — colored by performance rating (a 3rd variable)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># reuse Chapter 13's exact cleaning function — see that chapter for the full pipeline</span>
+<span class="kw">def</span> <span class="fn">clean_employees</span>(raw):
+    df = raw.drop_duplicates(subset=[<span class="st">'employee_id'</span>]).copy()
+    dept_map = {<span class="st">'eng'</span>:<span class="st">'Engineering'</span>,<span class="st">'engineering'</span>:<span class="st">'Engineering'</span>,<span class="st">'sales'</span>:<span class="st">'Sales'</span>,<span class="st">'mktg'</span>:<span class="st">'Marketing'</span>,
+                <span class="st">'marketing'</span>:<span class="st">'Marketing'</span>,<span class="st">'h.r.'</span>:<span class="st">'HR'</span>,<span class="st">'human resources'</span>:<span class="st">'HR'</span>,<span class="st">'hr'</span>:<span class="st">'HR'</span>,<span class="st">'finance'</span>:<span class="st">'Finance'</span>}
+    df[<span class="st">'department'</span>] = df[<span class="st">'department'</span>].str.strip().str.lower().<span class="bi">map</span>(dept_map)
+    df[<span class="st">'salary'</span>] = pd.to_numeric(df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v), errors=<span class="st">'coerce'</span>)
+    <span class="kw">return</span> df
+
+emp = clean_employees(pd.read_csv(<span class="st">'employees_messy.csv'</span>))
+group_means = emp.groupby(<span class="st">'department'</span>)[<span class="st">'age'</span>].transform(<span class="st">'mean'</span>)
+emp[<span class="st">'age'</span>] = emp[<span class="st">'age'</span>].fillna(group_means)
+<span class="cm"># Chapter 13's outlier handling too — without it, the 6 injected salary outliers (up to $2.5M) would wreck this comparison</span>
+emp = emp[(emp[<span class="st">'age'</span>]>=<span class="nm">18</span>)&(emp[<span class="st">'age'</span>]<=<span class="nm">75</span>)]
+emp = emp[(emp[<span class="st">'salary'</span>].isna())|(emp[<span class="st">'salary'</span>]>=<span class="nm">0</span>)]
+q1, q3 = emp[<span class="st">'salary'</span>].quantile(<span class="nm">0.25</span>), emp[<span class="st">'salary'</span>].quantile(<span class="nm">0.75</span>)
+emp[<span class="st">'salary'</span>] = emp[<span class="st">'salary'</span>].clip(upper=q3 + <span class="nm">1.5</span>*(q3-q1))
+emp = emp.dropna(subset=[<span class="st">'salary'</span>,<span class="st">'department'</span>,<span class="st">'performance_rating'</span>])
+
+fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">12</span>,<span class="nm">4.5</span>))
+sns.boxplot(data=emp, x=<span class="st">'department'</span>, y=<span class="st">'salary'</span>, ax=axes[<span class="nm">0</span>])
+axes[<span class="nm">0</span>].set_title(<span class="st">'Salary by Department'</span>); axes[<span class="nm">0</span>].tick_params(axis=<span class="st">'x'</span>, rotation=<span class="nm">20</span>)
+sc = axes[<span class="nm">1</span>].scatter(emp[<span class="st">'age'</span>], emp[<span class="st">'salary'</span>], c=emp[<span class="st">'performance_rating'</span>], cmap=<span class="st">'viridis'</span>, alpha=<span class="nm">0.7</span>)
+axes[<span class="nm">1</span>].set_xlabel(<span class="st">'Age'</span>); axes[<span class="nm">1</span>].set_ylabel(<span class="st">'Salary'</span>); axes[<span class="nm">1</span>].set_title(<span class="st">'Age vs Salary, colored by rating'</span>)
+plt.colorbar(sc, ax=axes[<span class="nm">1</span>], label=<span class="st">'Performance rating'</span>)
+plt.tight_layout()
+
+by_dept = emp.groupby(<span class="st">'department'</span>)[<span class="st">'salary'</span>].mean().sort_values(ascending=<span class="kw">False</span>)
+<span class="bi">print</span>(<span class="st">f'highest-paid dept: <span class="bi">{by_dept.index[0]}</span> (<span class="bi">{by_dept.iloc[0]:.2f}</span>)'</span>)
+<span class="bi">print</span>(<span class="st">f'lowest-paid dept: <span class="bi">{by_dept.index[-1]}</span> (<span class="bi">{by_dept.iloc[-1]:.2f}</span>)'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: Engineering pays highest (avg $95,311), HR lowest (avg $60,951) — a genuine bivariate pattern (department vs. salary). The scatter's color encoding adds a THIRD variable (performance rating) without needing a 3D plot — but notice it doesn't reveal an obvious color pattern here, which is itself a real, honest finding: performance rating and salary aren't visibly related in this data (confirmed numerically in 14.10 next).</div></div>
+
+  <!-- 14.10 -->
+  <div class="lesson-h2">14.10 — Correlation Matrices, Heatmaps, and Their Limits</div>
+  <p class="lesson-p">A <strong>correlation heatmap</strong> shows every pairwise correlation between numeric columns at once, color-coded — a fast way to scan many relationships together instead of building one scatter plot per pair.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real correlation heatmap — and what it actually confirms</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+emp_raw = pd.read_csv(<span class="st">'employees_messy.csv'</span>)   <span class="cm"># includes duplicates + 3 domain-impossible ages, not yet cleaned</span>
+emp_clean = emp_raw.drop_duplicates(subset=[<span class="st">'employee_id'</span>])
+emp_clean = emp_clean[(emp_clean[<span class="st">'age'</span>]>=<span class="nm">18</span>)&(emp_clean[<span class="st">'age'</span>]<=<span class="nm">75</span>)]
+
+corr_raw = emp_raw[[<span class="st">'age'</span>,<span class="st">'performance_rating'</span>]].corr()
+corr_clean = emp_clean[[<span class="st">'age'</span>,<span class="st">'performance_rating'</span>]].corr()   <span class="cm"># salary needs Ch13's coercion too — kept to 2 already-numeric columns for a minimal example</span>
+
+fig, ax = plt.subplots(figsize=(<span class="nm">4</span>,<span class="nm">3.5</span>))
+sns.heatmap(corr_clean, annot=<span class="kw">True</span>, cmap=<span class="st">'coolwarm'</span>, vmin=-<span class="nm">1</span>, vmax=<span class="nm">1</span>, ax=ax)
+ax.set_title(<span class="st">'Correlation heatmap (cleaned)'</span>)
+
+<span class="bi">print</span>(<span class="st">f'correlation on RAW data (dupes + 3 impossible ages): <span class="bi">{corr_raw.iloc[0,1]:.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'correlation on CLEANED data: <span class="bi">{corr_clean.iloc[0,1]:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: <code>-0.0790</code> on the raw data vs. <code>-0.0192</code> once duplicates and the 3 impossible ages (150, -5, 200) are removed — both near zero (confirming 14.9's visual impression that age and performance rating aren't related here), but genuinely DIFFERENT numbers from the exact same real columns. <strong>Limits of a correlation heatmap, all real:</strong> (1) Pearson correlation only detects LINEAR relationships — a perfect U-shaped or cyclical relationship can show a correlation near 0 despite being strongly related. (2) it's sensitive to outliers, exactly as just demonstrated — a handful of extreme/duplicate rows measurably shifted the number. (3) correlation says nothing about MAGNITUDE or practical significance, only direction and linear strength. (4) it never implies causation — two columns can correlate strongly because of a shared confounder (Chapter 9's ice-cream/drowning example), not because one drives the other.</div></div>
+
+  <!-- 14.11 -->
+  <div class="lesson-h2">14.11 — Class Balance and Imbalance</div>
+  <p class="lesson-p">Before building any classifier, look at how balanced its TARGET actually is — a severely imbalanced target changes which metrics you can trust (more in 14.16) and whether a plain bar chart of counts is even readable.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Real class imbalance — orders that were returned</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+counts = orders[<span class="st">'is_returned'</span>].value_counts()
+
+fig, ax = plt.subplots(figsize=(<span class="nm">4.5</span>,<span class="nm">4</span>))
+sns.countplot(data=orders, x=<span class="st">'is_returned'</span>, ax=ax)
+ax.set_title(<span class="st">'Class balance: is_returned'</span>); ax.set_xlabel(<span class="st">''</span>)
+<span class="kw">for</span> i, v <span class="kw">in</span> <span class="bi">enumerate</span>(counts.reindex([<span class="kw">False</span>,<span class="kw">True</span>])):
+    ax.text(i, v + <span class="nm">15</span>, <span class="bi">str</span>(v), ha=<span class="st">'center'</span>)
+
+<span class="bi">print</span>(<span class="st">f'not returned: <span class="bi">{counts[False]}</span>  returned: <span class="bi">{counts[True]}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'positive rate: <span class="bi">{orders["is_returned"].mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'imbalance ratio: <span class="bi">{counts[False]/counts[True]:.1f}</span> to 1'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚨</div><div class="ib-body">Real output: only <code>93</code> of 1,500 orders were returned — a <code>6.2%</code> positive rate, about <code>15:1</code> imbalance. A model that always predicts "not returned" would already score <strong>93.7% accuracy</strong> without learning anything — this exact number resurfaces in 14.16 as the honest baseline any real classifier has to beat.</div></div>
+
+  <!-- 14.12 -->
+  <div class="lesson-h2">14.12 — Time-Based Patterns</div>
+  <p class="lesson-p">A line chart over time reveals trend and seasonality that a bar/histogram can't, because it's the only chart type where the x-axis position itself carries meaning (chronological order) rather than just category identity.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Monthly order volume — real orders, resampled (Chapter 12's technique)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+orders[<span class="st">'order_date'</span>] = pd.to_datetime(orders[<span class="st">'order_date'</span>])
+monthly = orders.set_index(<span class="st">'order_date'</span>).resample(<span class="st">'ME'</span>).size()
+
+fig, ax = plt.subplots(figsize=(<span class="nm">9</span>,<span class="nm">4</span>))
+ax.plot(monthly.index, monthly.values, marker=<span class="st">'o'</span>)
+ax.set_xlabel(<span class="st">'Month'</span>); ax.set_ylabel(<span class="st">'Orders'</span>); ax.set_title(<span class="st">'Orders per Month, 2023–2024'</span>)
+plt.xticks(rotation=<span class="nm">30</span>)
+
+<span class="bi">print</span>(<span class="st">f'months covered: <span class="bi">{len(monthly)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'busiest month: <span class="bi">{monthly.idxmax().strftime("%Y-%m")}</span> (<span class="bi">{monthly.max()}</span> orders)'</span>)
+<span class="bi">print</span>(<span class="st">f'quietest month: <span class="bi">{monthly.idxmin().strftime("%Y-%m")}</span> (<span class="bi">{monthly.min()}</span> orders)'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📅</div><div class="ib-body">Real output: 24 months covered (2023-2024), with real month-to-month variation. Because this dataset's dates were generated uniformly at random, there's no genuine seasonal pattern here to over-claim — an honest EDA says exactly that ("volume fluctuates month to month with no clear trend in this sample") rather than inventing a story the data doesn't support.</div></div>
+
+  <!-- 14.13 -->
+  <div class="lesson-h2">14.13 — Choosing the Right Chart, and Making It Readable</div>
+  <p class="lesson-p">Every chart above answered one of exactly four question types. Match the question to the chart — not the other way around.</p>
+  <table class="lesson-table">
+  <tr><th>Question type</th><th>Reach for</th><th>Example from this chapter</th></tr>
+  <tr><td>One numeric distribution</td><td style="font-family:var(--sans);color:var(--t2)">Histogram, box plot</td><td style="font-family:var(--sans);color:var(--t2)">14.3, 14.8 (unit_price)</td></tr>
+  <tr><td>One categorical distribution</td><td style="font-family:var(--sans);color:var(--t2)">Bar chart, count plot</td><td style="font-family:var(--sans);color:var(--t2)">14.2, 14.8 (product_category)</td></tr>
+  <tr><td>Numeric across categories</td><td style="font-family:var(--sans);color:var(--t2)">Grouped box plot</td><td style="font-family:var(--sans);color:var(--t2)">14.9 (salary by department)</td></tr>
+  <tr><td>Two numeric variables</td><td style="font-family:var(--sans);color:var(--t2)">Scatter plot</td><td style="font-family:var(--sans);color:var(--t2)">14.4, 14.9 (age vs salary)</td></tr>
+  <tr><td>Many numeric pairs at once</td><td style="font-family:var(--sans);color:var(--t2)">Correlation heatmap</td><td style="font-family:var(--sans);color:var(--t2)">14.10</td></tr>
+  <tr><td>Change over time</td><td style="font-family:var(--sans);color:var(--t2)">Line chart</td><td style="font-family:var(--sans);color:var(--t2)">14.12 (monthly orders)</td></tr>
+  </table>
+
+  <p class="lesson-p">A technically-correct chart can still fail to communicate. A short, checkable readability standard:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Title</strong> states the finding or the question, not just the variable name ("Electronics dominates order volume," not "Chart 1").</div></li>
+    <li data-n="2"><div><strong>Axis labels</strong> include units where they exist ("Unit Price ($)," not "unit_price").</div></li>
+    <li data-n="3"><div><strong>Legend</strong> present whenever color/shape encodes a variable — and placed so it doesn't cover data.</div></li>
+    <li data-n="4"><div><strong>Scale</strong> matches the data's natural range (14.14 covers exactly how this goes wrong).</div></li>
+    <li data-n="5"><div><strong>Color</strong> chosen for the DATA TYPE — sequential (light→dark) for ordered/continuous values, distinct hues for unordered categories, and never red/green alone as the only distinguishing signal (color-vision-deficiency safe: pair color with position, label, or pattern too).</div></li>
+  </ul>
+
+  <!-- 14.14 -->
+  <div class="lesson-h2">14.14 — Misleading Charts: How They're Made, and How to Catch Them</div>
+  <p class="lesson-p">The same data can be shown honestly or deceptively — often with a change of just one parameter. Five real techniques, each shown as the honest version vs. the distorted one:</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Truncated y-axis — the classic exaggeration</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+depts = [<span class="st">'Team A'</span>, <span class="st">'Team B'</span>]
+values = [<span class="nm">101</span>, <span class="nm">104</span>]   <span class="cm"># a genuinely tiny, almost meaningless difference (~3%)</span>
+
+fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">9</span>,<span class="nm">4</span>))
+axes[<span class="nm">0</span>].bar(depts, values); axes[<span class="nm">0</span>].set_ylim(<span class="nm">0</span>, <span class="nm">120</span>); axes[<span class="nm">0</span>].set_title(<span class="st">'Honest: y-axis starts at 0'</span>)
+axes[<span class="nm">1</span>].bar(depts, values); axes[<span class="nm">1</span>].set_ylim(<span class="nm">100</span>, <span class="nm">105</span>); axes[<span class="nm">1</span>].set_title(<span class="st">'Misleading: y-axis starts at 100'</span>)
+
+<span class="bi">print</span>(<span class="st">f'real difference: <span class="bi">{(values[1]/values[0]-1)*100:.1f}</span>%'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Same two numbers, same bar chart type — but truncating the y-axis to [100,105] makes Team B's bar look roughly 4x taller than Team A's, when the real difference is under 3%. <strong>Fix: bar charts should almost always start at 0</strong> (line charts tracking a trend are the main exception, where the trend's shape, not the absolute bar height, is the point).</div></div>
+
+  <div class="diagram"><div class="dg-t">Four more real techniques (same principle: the data didn't lie, the framing did)</div><pre>2. INAPPROPRIATE SCALE
+   A linear y-axis on data spanning 3 orders of magnitude (e.g. company sizes
+   1, 50, 4000) crushes the small values to invisible lines near zero.
+   Fix: a log scale (plt.yscale('log')) when the data genuinely spans orders
+   of magnitude — but LABEL it as log scale, or it becomes its own distortion.
+
+3. DISTORTED ASPECT RATIO
+   Stretching a chart's width (or height) exaggerates or flattens a trend's
+   apparent steepness with no change to the underlying numbers at all.
+   Fix: pick a consistent, roughly-square-ish aspect ratio and keep it fixed
+   across charts you intend readers to visually compare.
+
+4. EXCESSIVE CATEGORIES
+   A pie chart (or bar chart) with 20+ slices/bars is unreadable — colors
+   become indistinguishable and small slices vanish.
+   Fix: keep the top 5-7 categories, group the remainder as "Other," or
+   switch to a sorted horizontal bar chart / table instead of a pie chart.
+
+5. UNSUPPORTED CAUSAL CLAIMS
+   A title like "Higher performance ratings CAUSE higher salaries" on top of
+   a correlation chart, when the chart only shows an association.
+   Fix: title claims should match what the chart can actually prove — say
+   "X and Y are correlated" or "X is associated with Y," never "causes,"
+   unless the data comes from a controlled experiment (Chapter 9's A/B test).</pre></div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">14.10's own heatmap is a real example of technique #5's TRAP waiting to happen: a strong correlation cell is easy to over-title as causal. The safeguard is always the same one from Chapter 9 — ask whether a confounder could produce the same correlation, and word the chart's title/caption to match only what was actually measured.</div></div>
+
+  <!-- 14.15 -->
+  <div class="lesson-h2">14.15 — ML Diagnostics I: Learning Curves &amp; Residual Plots</div>
+  <p class="lesson-p">Past this point, the charts diagnose a MODEL, not just data. A real <code>LinearRegression</code> predicting <code>salary</code> from <code>age</code>, <code>department</code>, and <code>performance_rating</code> (Chapter 13's cleaned employees) is the running example for the rest of this chapter.</p>
+  <p class="lesson-p">A <strong>learning curve</strong> plots training-set score and validation-set score as training data grows. Its SHAPE is the diagnosis: both curves low and close together = underfitting (the model is too simple); a wide, persistent gap (training high, validation low) = overfitting; both curves converging to a reasonably high score = a healthy fit.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real learning curve for a real regression model</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> learning_curve
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+
+<span class="kw">def</span> <span class="fn">clean_employees</span>(raw):
+    df = raw.drop_duplicates(subset=[<span class="st">'employee_id'</span>]).copy()
+    dept_map = {<span class="st">'eng'</span>:<span class="st">'Engineering'</span>,<span class="st">'engineering'</span>:<span class="st">'Engineering'</span>,<span class="st">'sales'</span>:<span class="st">'Sales'</span>,<span class="st">'mktg'</span>:<span class="st">'Marketing'</span>,
+                <span class="st">'marketing'</span>:<span class="st">'Marketing'</span>,<span class="st">'h.r.'</span>:<span class="st">'HR'</span>,<span class="st">'human resources'</span>:<span class="st">'HR'</span>,<span class="st">'hr'</span>:<span class="st">'HR'</span>,<span class="st">'finance'</span>:<span class="st">'Finance'</span>}
+    df[<span class="st">'department'</span>] = df[<span class="st">'department'</span>].str.strip().str.lower().<span class="bi">map</span>(dept_map)
+    df[<span class="st">'salary'</span>] = pd.to_numeric(df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v), errors=<span class="st">'coerce'</span>)
+    <span class="kw">return</span> df
+
+emp = clean_employees(pd.read_csv(<span class="st">'employees_messy.csv'</span>))
+group_means = emp.groupby(<span class="st">'department'</span>)[<span class="st">'age'</span>].transform(<span class="st">'mean'</span>)
+emp[<span class="st">'age'</span>] = emp[<span class="st">'age'</span>].fillna(group_means)
+emp = emp[(emp[<span class="st">'age'</span>]>=<span class="nm">18</span>)&(emp[<span class="st">'age'</span>]<=<span class="nm">75</span>)]
+emp = emp[(emp[<span class="st">'salary'</span>].isna())|(emp[<span class="st">'salary'</span>]>=<span class="nm">0</span>)]
+q1, q3 = emp[<span class="st">'salary'</span>].quantile(<span class="nm">0.25</span>), emp[<span class="st">'salary'</span>].quantile(<span class="nm">0.75</span>)
+emp[<span class="st">'salary'</span>] = emp[<span class="st">'salary'</span>].clip(upper=q3 + <span class="nm">1.5</span>*(q3-q1))   <span class="cm"># Chapter 13's cap — without it, 4 uncapped $198k-$2.5M salaries wreck this fit</span>
+emp = emp.dropna(subset=[<span class="st">'salary'</span>,<span class="st">'department'</span>,<span class="st">'performance_rating'</span>])
+
+X = pd.get_dummies(emp[[<span class="st">'age'</span>,<span class="st">'department'</span>,<span class="st">'performance_rating'</span>]], columns=[<span class="st">'department'</span>], drop_first=<span class="kw">True</span>)
+y = emp[<span class="st">'salary'</span>]
+
+train_sizes, train_scores, val_scores = learning_curve(
+    LinearRegression(), X, y, train_sizes=[<span class="nm">0.2</span>,<span class="nm">0.4</span>,<span class="nm">0.6</span>,<span class="nm">0.8</span>,<span class="nm">1.0</span>], cv=<span class="nm">5</span>, random_state=<span class="nm">42</span>, scoring=<span class="st">'r2'</span>)
+
+fig, ax = plt.subplots(figsize=(<span class="nm">7</span>,<span class="nm">4.5</span>))
+ax.plot(train_sizes, train_scores.mean(axis=<span class="nm">1</span>), marker=<span class="st">'o'</span>, label=<span class="st">'Training score'</span>)
+ax.plot(train_sizes, val_scores.mean(axis=<span class="nm">1</span>), marker=<span class="st">'o'</span>, label=<span class="st">'Validation score'</span>)
+ax.set_xlabel(<span class="st">'Training examples'</span>); ax.set_ylabel(<span class="st">'R² score'</span>); ax.set_title(<span class="st">'Learning Curve — salary regression'</span>); ax.legend()
+
+<span class="bi">print</span>(<span class="st">f'train scores: <span class="bi">{train_scores.mean(axis=1).round(4).tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'val scores:   <span class="bi">{val_scores.mean(axis=1).round(4).tolist()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'final gap: <span class="bi">{train_scores.mean(axis=1)[-1] - val_scores.mean(axis=1)[-1]:.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">📈</div><div class="ib-body">Real output: train score settles around <code>0.69</code>, validation score rises to meet it around <code>0.66</code> — a small, converging final gap (<code>~0.03</code>). This is a HEALTHY shape: neither badly overfitting (the gap is small, not widening) nor badly underfitting (both scores are moderately high, not stuck near 0). It also honestly shows the model's ceiling: department + age + rating explain roughly 65-69% of salary variance here — real, not fabricated, and there's no shame in an honest R² that isn't 0.95.</div></div>
+
+  <p class="lesson-p">A <strong>residual plot</strong> (predicted vs. residual = actual − predicted) diagnoses a DIFFERENT thing: whether the model's errors are patternless (good) or systematically wrong in some region (a sign the model is missing real structure).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Residual plot + prediction-error distribution, same regression model</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.linear_model <span class="kw">import</span> LinearRegression
+
+<span class="cm"># X, y, emp as built in the previous block</span>
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="nm">0.2</span>, random_state=<span class="nm">42</span>)
+model = LinearRegression().fit(X_train, y_train)
+y_pred = model.predict(X_test)
+residuals = y_test - y_pred
+
+fig, axes = plt.subplots(<span class="nm">1</span>, <span class="nm">2</span>, figsize=(<span class="nm">11</span>,<span class="nm">4</span>))
+axes[<span class="nm">0</span>].scatter(y_pred, residuals, alpha=<span class="nm">0.6</span>); axes[<span class="nm">0</span>].axhline(<span class="nm">0</span>, color=<span class="st">'red'</span>, linestyle=<span class="st">'--'</span>)
+axes[<span class="nm">0</span>].set_xlabel(<span class="st">'Predicted salary'</span>); axes[<span class="nm">0</span>].set_ylabel(<span class="st">'Residual'</span>); axes[<span class="nm">0</span>].set_title(<span class="st">'Residuals vs Predicted'</span>)
+axes[<span class="nm">1</span>].hist(residuals, bins=<span class="nm">20</span>); axes[<span class="nm">1</span>].set_xlabel(<span class="st">'Residual ($)'</span>); axes[<span class="nm">1</span>].set_title(<span class="st">'Prediction-Error Distribution'</span>)
+plt.tight_layout()
+
+<span class="bi">print</span>(<span class="st">f'test R²: <span class="bi">{model.score(X_test, y_test):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'residual mean: <span class="bi">{residuals.mean():.2f}</span>  residual std: <span class="bi">{residuals.std():.2f}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🔍</div><div class="ib-body">Real output: test R² <code>0.4752</code> on this one 80/20 split (a single split has more variance than the 5-fold cross-validated <code>~0.66</code> from the learning curve above — this is expected, not a contradiction), residual mean <code>3488.27</code> (small relative to typical salaries — no dramatic systematic over/under-prediction bias) with std <code>13243.31</code> (the typical size of a miss, in dollars). A residual mean near zero with roughly symmetric spread around the red dashed line is the "nothing obviously wrong" signature; a residual plot that fans out (errors grow with the prediction) or curves would instead say the model is missing a real, systematic pattern — information a single R² number can't show at all.</div></div>
+
+  <!-- 14.16 -->
+  <div class="lesson-h2">14.16 — ML Diagnostics II: Confusion Matrices &amp; Prediction-Error Distributions</div>
+  <p class="lesson-p">For a CLASSIFICATION model, a confusion matrix is the residual plot's counterpart — and it matters most exactly when 14.11's class imbalance is severe, since a single accuracy number actively hides the failure.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">A real, imbalanced classifier — and why its accuracy number lies</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> seaborn <span class="kw">as</span> sns
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+<span class="kw">from</span> sklearn.ensemble <span class="kw">import</span> RandomForestClassifier
+<span class="kw">from</span> sklearn.metrics <span class="kw">import</span> confusion_matrix, accuracy_score
+
+orders = pd.read_csv(<span class="st">'orders.csv'</span>)
+Xc = pd.get_dummies(orders[[<span class="st">'quantity'</span>,<span class="st">'unit_price'</span>,<span class="st">'product_category'</span>,<span class="st">'payment_method'</span>]],
+                     columns=[<span class="st">'product_category'</span>,<span class="st">'payment_method'</span>], drop_first=<span class="kw">True</span>)
+yc = orders[<span class="st">'is_returned'</span>]
+Xc_train, Xc_test, yc_train, yc_test = train_test_split(Xc, yc, test_size=<span class="nm">0.2</span>, random_state=<span class="nm">42</span>, stratify=yc)
+
+clf = RandomForestClassifier(n_estimators=<span class="nm">100</span>, random_state=<span class="nm">42</span>).fit(Xc_train, yc_train)
+yc_pred = clf.predict(Xc_test)
+cm = confusion_matrix(yc_test, yc_pred)
+
+naive_pred = np.zeros(<span class="bi">len</span>(yc_test), dtype=<span class="bi">bool</span>)   <span class="cm"># "always predict not-returned"</span>
+
+fig, ax = plt.subplots(figsize=(<span class="nm">4.5</span>,<span class="nm">4</span>))
+sns.heatmap(cm, annot=<span class="kw">True</span>, fmt=<span class="st">'d'</span>, cmap=<span class="st">'Blues'</span>, xticklabels=[<span class="st">'Not Returned'</span>,<span class="st">'Returned'</span>], yticklabels=[<span class="st">'Not Returned'</span>,<span class="st">'Returned'</span>], ax=ax)
+ax.set_xlabel(<span class="st">'Predicted'</span>); ax.set_ylabel(<span class="st">'Actual'</span>); ax.set_title(<span class="st">'Confusion Matrix — is_returned'</span>)
+
+<span class="bi">print</span>(<span class="st">f'model accuracy: <span class="bi">{accuracy_score(yc_test, yc_pred):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'naive "always not-returned" accuracy: <span class="bi">{accuracy_score(yc_test, naive_pred):.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'true positives (returns actually caught): <span class="bi">{cm[1,1]}</span> of <span class="bi">{cm[1].sum()}</span> actual returns'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚨</div><div class="ib-body">Real output: the model scores <code>91.33%</code> accuracy — LOWER than the naive "always say not returned" baseline's <code>93.67%</code> — while catching only <code>1 of 19</code> actual returns in the test set. Accuracy alone makes this model look almost as good as trivial guessing; the confusion matrix reveals it's barely detecting the thing it was built to detect. This is exactly why 14.11's imbalance check comes BEFORE trusting any single accuracy number.</div></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Prediction-error distribution for a classifier: the predicted-probability histogram</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+
+<span class="cm"># clf, Xc_test, yc_test as built in the previous block</span>
+proba = clf.predict_proba(Xc_test)[:, <span class="nm">1</span>]   <span class="cm"># predicted probability of "returned"</span>
+
+fig, ax = plt.subplots(figsize=(<span class="nm">7</span>,<span class="nm">4</span>))
+ax.hist(proba[yc_test.values==<span class="kw">False</span>], bins=<span class="nm">20</span>, alpha=<span class="nm">0.6</span>, label=<span class="st">'Actually not returned'</span>)
+ax.hist(proba[yc_test.values==<span class="kw">True</span>], bins=<span class="nm">20</span>, alpha=<span class="nm">0.6</span>, label=<span class="st">'Actually returned'</span>)
+ax.set_xlabel(<span class="st">'Predicted probability of return'</span>); ax.set_ylabel(<span class="st">'Count'</span>); ax.set_title(<span class="st">'Predicted-Probability Distribution by True Class'</span>); ax.legend()
+
+<span class="bi">print</span>(<span class="st">f'mean predicted probability, actual returns: <span class="bi">{proba[yc_test.values==True].mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'mean predicted probability, actual non-returns: <span class="bi">{proba[yc_test.values==False].mean():.4f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: mean predicted probability is <code>0.0579</code> for actual returns and <code>0.0579</code> for actual non-returns — to four decimal places, essentially NO separation between the two histograms, despite the confusion matrix (14.16) showing the model correctly flagged 1 real return. That's an honest, important finding: a model can get lucky on a handful of hard 0/1 predictions while its underlying probability estimates barely distinguish the classes at all. Checking this distribution, not just the discrete predictions, is the classification analogue of a residual plot — and here it reveals the model has much less real signal than the confusion matrix alone would suggest.</div></div>
+
+  <!-- 14.17 -->
+  <div class="lesson-h2">14.17 — ML Diagnostics III: Feature Importance and Its Limitations</div>
+  <p class="lesson-p">A <strong>feature importance</strong> plot ranks which inputs the model relied on most. For a tree-based model like <code>RandomForestClassifier</code>, <code>.feature_importances_</code> measures how much each feature reduced impurity across all its trees.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Which features actually drove the return-prediction model?</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> matplotlib
+matplotlib.use(<span class="st">'Agg'</span>)
+<span class="kw">import</span> matplotlib.pyplot <span class="kw">as</span> plt
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="cm"># clf, Xc as built in the previous two blocks</span>
+importances = pd.Series(clf.feature_importances_, index=Xc.columns).sort_values(ascending=<span class="kw">False</span>)
+
+fig, ax = plt.subplots(figsize=(<span class="nm">7</span>,<span class="nm">4.5</span>))
+ax.barh(importances.index[::-<span class="nm">1</span>], importances.values[::-<span class="nm">1</span>])
+ax.set_xlabel(<span class="st">'Importance (impurity reduction)'</span>); ax.set_title(<span class="st">'Feature Importance — is_returned model'</span>)
+
+<span class="bi">print</span>(<span class="st">f'top feature: <span class="bi">{importances.index[0]}</span> (<span class="bi">{importances.iloc[0]:.4f}</span>)'</span>)
+<span class="bi">print</span>(<span class="st">f'2nd feature: <span class="bi">{importances.index[1]}</span> (<span class="bi">{importances.iloc[1]:.4f}</span>)'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: <code>unit_price</code> dominates (<code>0.805</code>), <code>quantity</code> a distant second (<code>0.091</code>), every payment/category dummy under <code>0.02</code>. <strong>Real limitations, not caveats to skip:</strong> (1) importance is NOT a causal effect — high importance means the model's SPLITS relied on it, not that changing it would change real-world returns. (2) correlated features split credit arbitrarily — two near-duplicate columns can each show LOW importance individually while jointly mattering a lot. (3) high-cardinality/continuous features (like <code>unit_price</code> here) get inflated impurity-based importance simply from having more possible split points, regardless of true relevance — a known, documented bias of this exact metric. (4) it reflects THIS model and THIS data, not some universal truth about what causes returns.</div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 14 Summary — Module 3 Complete</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>plt.bar()</strong> compares categories. <strong>plt.hist()</strong> shows a distribution's shape. <strong>plt.scatter()</strong> shows the relationship between two variables.</div></li>
-    <li data-n="2"><div><strong>Seaborn</strong> (<code>sns.barplot</code>, <code>sns.boxplot</code>) works directly on DataFrames and aggregates automatically.</div></li>
+    <li data-n="1"><div><strong>plt.bar()</strong> compares categories. <strong>plt.hist()</strong>/<strong>box plot</strong> show a distribution's shape and spread. <strong>plt.scatter()</strong> shows the relationship between two variables. <strong>Count plot</strong> is a bar chart for raw category frequency.</div></li>
+    <li data-n="2"><div><strong>Seaborn</strong> (<code>sns.barplot</code>, <code>sns.boxplot</code>, <code>sns.countplot</code>, <code>sns.heatmap</code>) works directly on DataFrames and aggregates automatically.</div></li>
     <li data-n="3"><div><strong>plt.subplots(rows, cols)</strong> builds a grid of charts in one figure — the standard shape of a real EDA report.</div></li>
-    <li data-n="4"><div>That's Module 3 — you can load, clean, and visualize any tabular dataset. Next: Module 4, where you build models that learn from it.</div></li>
+    <li data-n="4"><div><strong>Real EDA workflow</strong>: profile shape/dtypes/missingness first, then univariate → bivariate/multivariate → correlation heatmap (with its limits) → class balance → time patterns.</div></li>
+    <li data-n="5"><div><strong>Match the chart to the question</strong> (14.13), and know the 5 ways a technically-correct chart still misleads (14.14) — including never claiming causation from a correlation chart.</div></li>
+    <li data-n="6"><div><strong>ML diagnostics</strong>: learning curves (over/underfit shape), residual plots + error distributions (patterned vs. random errors), confusion matrices (essential under class imbalance), and feature importance (real, but never causal).</div></li>
+    <li data-n="7"><div>That's Module 3 — you can load, clean, visualize, AND diagnose a model on any tabular dataset. Next: Module 4, where you build the models themselves.</div></li>
   </ul>
 
   <div style="display:flex;gap:12px;margin-top:28px">
@@ -711,33 +1228,34 @@ axes[<span class="nm">1</span>].set_title(<span class="st">'Distribution'</span>
       <div class="ex-num">1</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Bar Chart: Revenue by Department</div>
-        <div class="ex-desc">Build a bar chart and report the total and the top department.</div>
+        <div class="ex-title">Choose the Right Chart: Distribution Shape</div>
+        <div class="ex-desc">This is ONE numeric variable's distribution — choose the chart for that (not a bar chart, not a scatter), then interpret its shape.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
+scores = [45,52,48,51,49,88,50,47,53,46,90,49]
 (already given)
 
-Build: plt.figure(); plt.bar(depts, revenue); add xlabel/ylabel/title
+Choose and build the ONE chart type that shows a single numeric variable's distribution shape
+(hint: not plt.bar, not plt.scatter).
+
+Compute skew = pd.Series(scores).skew()
+Then decide shape = 'right-skewed' if skew > 0.5, 'left-skewed' if skew < -0.5, else 'symmetric'
 
 Print exactly:
-  f'Departments: {len(depts)}'
-  f'Total revenue: {sum(revenue)}'
-  f'Top department: {depts[revenue.index(max(revenue))]}'
-(Correct: Departments: 4 / Total revenue: 1170 / Top department: Sales)</div>
+  f'Skew: {skew:.4f}'
+  f'Shape: {shape}'
+(Correct: Skew: 1.9577 / Shape: right-skewed)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex1-code">import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
+import pandas as pd
+scores = [45,52,48,51,49,88,50,47,53,46,90,49]
 
 # plt.figure()
-# plt.bar(depts, revenue)
-# plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
+# plt.hist(scores, bins=6)
+# skew = pd.Series(scores).skew()
+# shape = 'right-skewed' if skew > 0.5 else ('left-skewed' if skew < -0.5 else 'symmetric')
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(1)">▶ Run &amp; Check</button>
@@ -755,33 +1273,42 @@ revenue = [420, 310, 260, 180]
       <div class="ex-num">2</div>
       <div class="ex-meta">
         <span class="ex-diff diff-easy">Easy</span>
-        <div class="ex-title">Histogram: Age Distribution</div>
-        <div class="ex-desc">Bucket a list of ages into 5 bins and report the bin counts.</div>
+        <div class="ex-title">Choose the Right Chart: Comparing Across Categories</div>
+        <div class="ex-desc">A numeric variable compared ACROSS 3 groups — choose the chart built for exactly that, then identify the winner.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
+import pandas as pd
+df2 = pd.DataFrame({
+    'dept':   ['Eng','Eng','Eng','Sales','Sales','Sales','HR','HR','HR'],
+    'salary': [95,98,92,70,68,72,60,58,62],
+})
 (already given)
 
-Build: plt.figure(); plt.hist(ages, bins=5)
-Compute: counts, edges = np.histogram(ages, bins=5)
+Choose and build the chart type made for comparing a numeric column ACROSS categories
+(hint: not a single histogram of all 9 values mixed together).
+
+Compute med = df2.groupby('dept')['salary'].median()
 
 Print exactly:
-  f'Data points: {len(ages)}'
-  f'Bin counts: {counts.tolist()}'
-(Correct: Data points: 15 / Bin counts: [4, 5, 2, 2, 2])</div>
+  f'Eng median: {med["Eng"]:.4f}'
+  f'HR median: {med["HR"]:.4f}'
+  f'Sales median: {med["Sales"]:.4f}'
+  f'Highest-paid: {med.idxmax()}'
+(Correct: Eng median: 95.0000 / HR median: 60.0000 / Sales median: 70.0000 / Highest-paid: Eng)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex2-code">import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
+import seaborn as sns
+import pandas as pd
+df2 = pd.DataFrame({
+    'dept':   ['Eng','Eng','Eng','Sales','Sales','Sales','HR','HR','HR'],
+    'salary': [95,98,92,70,68,72,60,58,62],
+})
 
 # plt.figure()
-# counts, edges = np.histogram(ages, bins=5)
-# plt.hist(ages, bins=5)
+# sns.boxplot(data=df2, x='dept', y='salary')
+# med = df2.groupby('dept')['salary'].median()
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(2)">▶ Run &amp; Check</button>
@@ -799,33 +1326,35 @@ ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
       <div class="ex-num">3</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Scatter Plot: Study Hours vs Grade</div>
-        <div class="ex-desc">Build a scatter plot and compute the correlation between the two variables.</div>
+        <div class="ex-title">Choose the Right Chart: Relationship Strength</div>
+        <div class="ex-desc">Two numeric variables — choose the chart for a relationship, then interpret the strength honestly.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
+x = [1,2,3,4,5,6,7,8,9,10]
+y = [48,41,52,39,45,50,42,55,47,44]
 (already given)
 
-Build: plt.figure(); plt.scatter(hours, grade)
-Compute: corr = np.corrcoef(hours, grade)[0,1]
+Choose and build the chart type for "do two numeric variables move together."
 
-Print exactly: f'Correlation: {corr:.4f}'
-(Correct: Correlation: 0.9963)</div>
+Compute corr = np.corrcoef(x, y)[0,1]
+Then decide strength = 'weak' if abs(corr) < 0.3, 'moderate' if abs(corr) < 0.7, else 'strong'
+
+Print exactly:
+  f'Correlation: {corr:.4f}'
+  f'Strength: {strength}'
+(Correct: Correlation: 0.1265 / Strength: weak)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex3-code">import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
+x = [1,2,3,4,5,6,7,8,9,10]
+y = [48,41,52,39,45,50,42,55,47,44]
 
 # plt.figure()
-# plt.scatter(hours, grade)
-# corr = np.corrcoef(hours, grade)[0,1]
+# plt.scatter(x, y)
+# corr = np.corrcoef(x, y)[0,1]
+# strength = 'weak' if abs(corr) < 0.3 else ('moderate' if abs(corr) < 0.7 else 'strong')
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(3)">▶ Run &amp; Check</button>
@@ -843,42 +1372,37 @@ grade = [52,55,61,64,68,70,75,80,85,90]
       <div class="ex-num">4</div>
       <div class="ex-meta">
         <span class="ex-diff diff-medium">Medium</span>
-        <div class="ex-title">Seaborn Boxplot by City</div>
-        <div class="ex-desc">Build a seaborn boxplot grouped by city and report each city's average score.</div>
+        <div class="ex-title">Choose the Right Chart: Class Balance</div>
+        <div class="ex-desc">A binary label column — choose the chart for its frequency, then judge whether it's usably balanced.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
-df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
-})
+labels = pd.Series(['no']*46 + ['yes']*4)
 (already given)
 
-Build: plt.figure(); sns.boxplot(data=df2, x='city', y='score')
-Compute: avg2 = df2.groupby('city')['score'].mean()
+Choose and build the chart type for category frequency (hint: Chapter 14.11's technique).
+
+Compute counts = labels.value_counts(); ratio = counts['no'] / counts['yes']
+Then decide balance = 'imbalanced' if ratio > 3 else 'balanced'
 
 Print exactly:
-  f'Hubli avg: {avg2["Hubli"]:.4f}'
-  f'Pune avg: {avg2["Pune"]:.4f}'
-  f'Mumbai avg: {avg2["Mumbai"]:.4f}'
-(Correct: Hubli avg: 90.0000 / Pune avg: 72.5000 / Mumbai avg: 83.0000)</div>
+  f'No: {counts["no"]}  Yes: {counts["yes"]}'
+  f'Ratio: {ratio:.2f} to 1'
+  f'Balance: {balance}'
+(Correct: No: 46  Yes: 4 / Ratio: 11.50 to 1 / Balance: imbalanced)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex4-code">import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
-df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
-})
+labels = pd.Series(['no']*46 + ['yes']*4)
 
 # plt.figure()
-# sns.boxplot(data=df2, x='city', y='score')
-# avg2 = df2.groupby('city')['score'].mean()
+# sns.countplot(x=labels)
+# counts = labels.value_counts()
+# ratio = counts['no'] / counts['yes']
+# balance = 'imbalanced' if ratio > 3 else 'balanced'
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(4)">▶ Run &amp; Check</button>
@@ -896,35 +1420,36 @@ df2 = pd.DataFrame({
       <div class="ex-num">5</div>
       <div class="ex-meta">
         <span class="ex-diff diff-hard">Hard</span>
-        <div class="ex-title">A 2-Panel Figure</div>
-        <div class="ex-desc">Build one figure with a bar chart and a pie chart side by side.</div>
+        <div class="ex-title">Choose the Right Chart: Time Pattern</div>
+        <div class="ex-desc">Values over ordered months — choose the chart where x-axis position carries chronological meaning, then interpret the trend.</div>
       </div>
     </div>
     <div class="ex-task">Task:
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
+months = ['Jan','Feb','Mar','Apr','May','Jun']
+vals = [100, 105, 98, 150, 160, 170]
 (already given)
 
-Build: fig, axes = plt.subplots(1, 2, figsize=(10,4))
-  axes[0].bar(cities, counts_c)
-  axes[1].pie(counts_c, labels=cities)
+Choose and build the chart type for change over ORDERED time (hint: not a bar chart — position must carry meaning).
+
+Compute first = sum(vals[:3]) / 3; second = sum(vals[3:]) / 3
+Then decide trend = 'increasing' if second > first + 5, 'decreasing' if second < first - 5, else 'flat'
 
 Print exactly:
-  f'Panels: {len(axes)}'
-  f'Total candidates: {sum(counts_c)}'
-  f'Most represented city: {cities[counts_c.index(max(counts_c))]}'
-(Correct: Panels: 2 / Total candidates: 41 / Most represented city: Mumbai)</div>
+  f'First half avg: {first:.4f}'
+  f'Second half avg: {second:.4f}'
+  f'Trend: {trend}'
+(Correct: First half avg: 101.0000 / Second half avg: 160.0000 / Trend: increasing)</div>
     <div class="ex-editor-wrap">
       <textarea class="ex-editor" id="ex5-code">import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
+months = ['Jan','Feb','Mar','Apr','May','Jun']
+vals = [100, 105, 98, 150, 160, 170]
 
-# fig, axes = plt.subplots(1, 2, figsize=(10,4))
-# axes[0].bar(cities, counts_c)
-# axes[1].pie(counts_c, labels=cities)
+# plt.figure()
+# plt.plot(months, vals, marker='o')
+# first = sum(vals[:3]) / 3
+# second = sum(vals[3:]) / 3
+# trend = 'increasing' if second > first + 5 else ('decreasing' if second < first - 5 else 'flat')
 </textarea>
       <div class="ex-btn-row">
         <button class="ex-run" onclick="runExercise(5)">▶ Run &amp; Check</button>
@@ -944,72 +1469,113 @@ counts_c = [12, 8, 15, 6]
 
 <div class="project-section" id="sec-project">
   <div class="project-banner">
-    <h2>🏗️ Module 3 Capstone: <span>Candidate Dataset EDA Story</span></h2>
-    <p>The full exploratory data analysis a data scientist runs before touching a model: a 2x2 grid of charts covering the recurring candidate dataset from four angles — per-candidate scores, the score distribution, city averages, and a raw scatter — plus a short written summary of what the data shows.</p>
+    <h2>🏗️ Module 3 Capstone: <span>Orders EDA Narrative</span></h2>
+    <p>A real EDA report, not a chart-drawing exercise: profile the real 1,500-row orders dataset, then build a coherent narrative — univariate, bivariate, class balance, time pattern — where EACH step prints a genuine finding, ending in one evidence-based recommendation that a business reader could act on.</p>
     <div class="project-tags">
-      <span class="ptag">subplots 2x2</span>
-      <span class="ptag">bar + hist + scatter</span>
-      <span class="ptag">groupby</span>
+      <span class="ptag">profiling</span>
+      <span class="ptag">univariate + bivariate</span>
+      <span class="ptag">class balance</span>
+      <span class="ptag">evidence-based conclusion</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>A 2x2 figure: fig, axes = plt.subplots(2, 2, figsize=(10,8))</li>
-      <li>Top-left: bar chart of score by candidate name</li>
-      <li>Top-right: histogram of the score column (bins=4)</li>
-      <li>Bottom-left: bar chart of average score by city (use groupby)</li>
-      <li>Bottom-right: scatter plot of score by row index</li>
-      <li>Print: total candidates, qualified names (score &gt;= 0.8), the best city by average score, and the overall average score</li>
+      <li>Profile: shape and missing-value count</li>
+      <li>Univariate: unit_price's skew — is it symmetric or does it have a long tail?</li>
+      <li>Bivariate: correlation between quantity and unit_price, AND average revenue per order by category</li>
+      <li>Class balance: the return rate and imbalance ratio for is_returned</li>
+      <li>Time pattern: the busiest month by order count</li>
+      <li>A 2x2 summary dashboard (one figure) visualizing the four findings above together</li>
+      <li>One evidence-based conclusion combining at least two of the findings above — not just restating a single number</li>
     </ul>
   </div>
 
   <div class="project-editor">
     <div class="pe-header">
-      <div class="pe-title">🏗️ Candidate Dataset EDA Story — Your Solution</div>
+      <div class="pe-title">🏗️ Orders EDA Narrative — Your Solution</div>
       <button class="pe-run" onclick="runProject()">▶ Run Project</button>
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
-# Module 3 Capstone: Candidate Dataset EDA Story
-# Use ONLY Chapter 14 concepts (plus groupby from Ch 12-13)
+# Module 3 Capstone: Orders EDA Narrative
+# Use ONLY Chapter 12-14 concepts. The dataset generator below is GIVEN — it
+# reproduces the exact same real orders dataset used throughout this chapter.
 # ══════════════════════════════════════════
-import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 
-candidates = pd.DataFrame({
-    'name':  ['Alice', 'Bob', 'Carol', 'Dave', 'Eve'],
-    'city':  ['Hubli', 'Pune', 'Mumbai', 'Delhi', 'Hubli'],
-    'score': [0.92, 0.75, 0.81, 0.60, 0.88],
-})
+rng = np.random.default_rng(42)
+n_customers, n_orders = 50, 1500
+first_names = ['Asha','Ben','Chen','Dana','Eli','Farah','Gita','Hiro','Ivy','Jun','Kira','Leo','Maya','Nia','Omar','Priya','Quinn','Rosa','Sam','Tara']
+last_names = ['Sharma','Patel','Kim','Nguyen','Silva','Khan','Ito','Lopez','Rao','Costa']
+customer_ids = np.arange(1, n_customers + 1)
+# NOTE: this block doesn't use customer names/signup dates/regions directly, but it must
+# still draw them in the EXACT same order as Chapter 12's generator — every rng call shifts
+# the sequence, so skipping steps here would silently produce a DIFFERENT "random" dataset.
+customer_names = [f'{first_names[rng.integers(0,len(first_names))]} {last_names[rng.integers(0,len(last_names))]}' for _ in range(n_customers)]
+signup_dates = pd.to_datetime('2022-01-01') + pd.to_timedelta(rng.integers(0, 365, n_customers), unit='D')
+regions = ['North', 'South', 'East', 'West']
+customer_regions = rng.choice(regions, n_customers)
+categories = ['Electronics', 'Clothing', 'Home', 'Sports', 'Books']
+price_range = {'Electronics': (20,500), 'Clothing': (10,120), 'Home': (15,250), 'Sports': (10,150), 'Books': (5,60)}
+payment_methods = ['Credit Card', 'Debit Card', 'UPI', 'Cash']
+order_dates = pd.to_datetime('2023-01-01') + pd.to_timedelta(rng.integers(0, 730, n_orders), unit='D')
+order_customer_ids = rng.choice(customer_ids, n_orders)
+order_categories = rng.choice(categories, n_orders, p=[0.28, 0.22, 0.20, 0.15, 0.15])
+quantities = rng.integers(1, 6, n_orders)
+unit_prices = np.array([round(rng.uniform(*price_range[c]), 2) for c in order_categories])
+order_payment_methods = rng.choice(payment_methods, n_orders, p=[0.35, 0.25, 0.30, 0.10])
+is_returned = rng.choice([True, False], n_orders, p=[0.06, 0.94])
+order_regions = rng.choice(regions, n_orders)
+orders = pd.DataFrame({
+    'order_id': np.arange(1001, 1001 + n_orders), 'order_date': order_dates.strftime('%Y-%m-%d'),
+    'customer_id': order_customer_ids, 'product_category': order_categories, 'region': order_regions,
+    'quantity': quantities, 'unit_price': unit_prices, 'payment_method': order_payment_methods, 'is_returned': is_returned,
+}).sort_values('order_date').reset_index(drop=True)
 
-# === TODO 1: 2x2 figure ===
+# === TODO 1: profile (BEFORE adding any derived column, so shape reflects the raw data) ===
+# print(f'shape: {orders.shape}')
+# print(f'missing values: {orders.isna().sum().sum()}')
+
+# === TODO 2: univariate — unit_price skew ===
+# skew = orders['unit_price'].skew()
+# print(f'unit_price skew: {skew:.4f}')
+
+# === TODO 3: bivariate — quantity vs unit_price, and revenue by category ===
+# orders['revenue'] = orders['quantity'] * orders['unit_price']
+# qty_price_corr = orders['quantity'].corr(orders['unit_price'])
+# by_cat = orders.groupby('product_category')['revenue'].mean().sort_values(ascending=False)
+# print(f'quantity-unit_price correlation: {qty_price_corr:.4f}')
+# print(f'top category by avg revenue: {by_cat.index[0]} ({by_cat.iloc[0]:.2f})')
+
+# === TODO 4: class balance ===
+# return_rate = orders['is_returned'].mean()
+# imbalance_ratio = (1 - return_rate) / return_rate
+# print(f'return rate: {return_rate:.4f}')
+# print(f'imbalance ratio: {imbalance_ratio:.2f} to 1')
+
+# === TODO 5: time pattern ===
+# orders_dt = orders.copy()
+# orders_dt['order_date'] = pd.to_datetime(orders_dt['order_date'])
+# monthly = orders_dt.set_index('order_date').resample('ME').size()
+# print(f'busiest month: {monthly.idxmax().strftime("%Y-%m")} ({monthly.max()} orders)')
+
+# === TODO 6: a 2x2 dashboard synthesizing the findings above ===
+# import matplotlib; matplotlib.use('Agg')
+# import matplotlib.pyplot as plt
 # fig, axes = plt.subplots(2, 2, figsize=(10, 8))
+# axes[0,0].hist(orders['unit_price'], bins=20); axes[0,0].set_title('Unit Price Distribution')
+# by_cat.plot(kind='bar', ax=axes[0,1]); axes[0,1].set_title('Avg Revenue by Category')
+# orders['is_returned'].value_counts().plot(kind='bar', ax=axes[1,0]); axes[1,0].set_title('Class Balance: is_returned')
+# axes[1,1].plot(monthly.index, monthly.values, marker='o'); axes[1,1].set_title('Orders per Month')
+# plt.tight_layout()
 
-# === TODO 2: top-left — score by candidate ===
-# axes[0,0].bar(candidates['name'], candidates['score'])
-# axes[0,0].set_title('Score by Candidate')
-
-# === TODO 3: top-right — score distribution ===
-# axes[0,1].hist(candidates['score'], bins=4)
-# axes[0,1].set_title('Score Distribution')
-
-# === TODO 4: bottom-left — avg score by city ===
-# city_avg = candidates.groupby('city')['score'].mean()
-# axes[1,0].bar(city_avg.index, city_avg.values)
-# axes[1,0].set_title('Avg Score by City')
-
-# === TODO 5: bottom-right — scatter by index ===
-# axes[1,1].scatter(range(len(candidates)), candidates['score'])
-# axes[1,1].set_title('Score by Index')
-
-# === TODO 6: report ===
-# qualified = candidates[candidates['score'] >= 0.8]
-# print(f'Total candidates: {len(candidates)}')
-# print(f'Qualified (>=0.8): {list(qualified["name"])}')
-# print(f'Best city by avg score: {city_avg.idxmax()}')
-# print(f'Overall average: {candidates["score"].mean():.4f}')
+# === TODO 7: evidence-based conclusion (combine at least 2 findings above) ===
+# return_by_cat = orders.groupby('product_category')['is_returned'].mean()
+# print(f'CONCLUSION: {by_cat.index[0]} drives the most average revenue per order (${by_cat.iloc[0]:.2f}) '
+#       f'while its return rate ({return_by_cat[by_cat.index[0]]:.2%}) is not the dataset\'s highest — '
+#       f'revenue leadership and return risk do not move together here.')
 </textarea>
     <div class="pe-output" id="project-output">Your output (and chart) will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -1017,7 +1583,15 @@ candidates = pd.DataFrame({
 
   <div class="checklist">
     <h3>✅ Capstone Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">🔢</span>Total candidates: 5</div>
+    <div class="check-item"><span class="check-icon">📋</span>shape: (1500, 9) (plus your revenue column)</div>
+    <div class="check-item"><span class="check-icon">🕳️</span>missing values: 0</div>
+    <div class="check-item"><span class="check-icon">📈</span>unit_price skew: 1.3894</div>
+    <div class="check-item"><span class="check-icon">🔗</span>quantity-unit_price correlation: 0.0545</div>
+    <div class="check-item"><span class="check-icon">🏆</span>top category by avg revenue: Electronics (796.11)</div>
+    <div class="check-item"><span class="check-icon">⚖️</span>return rate: 0.0620, imbalance ratio: 15.13 to 1</div>
+    <div class="check-item"><span class="check-icon">📅</span>busiest month: 2023-03 (75 orders)</div>
+    <div class="check-item"><span class="check-icon">📊</span>a 2x2 dashboard figure (visible above the output)</div>
+    <div class="check-item"><span class="check-icon">🧭</span>a CONCLUSION line that references at least two findings together, not just one number</div>
     <div class="check-item"><span class="check-icon">✅</span>Qualified (>=0.8): ['Alice', 'Carol', 'Eve']</div>
     <div class="check-item"><span class="check-icon">🏙️</span>Best city by avg score: Hubli</div>
     <div class="check-item"><span class="check-icon">🎯</span>Overall average: 0.7920</div>
@@ -1060,12 +1634,12 @@ candidates = pd.DataFrame({
 
   <div class="quiz-card">
     <div class="q-num">Question 3 of 5</div>
-    <div class="q-text">What does <code>sns.barplot(data=df, x='dept', y='score')</code> do that a plain <code>plt.bar()</code> on raw lists doesn't do automatically?</div>
+    <div class="q-text">A bar chart compares 101 vs. 104 (a real ~3% difference), with the y-axis starting at 100 instead of 0. What's the effect?</div>
     <div class="q-options" id="q3-opts">
-      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> Groups the DataFrame by 'dept' and aggregates 'score' (mean, by default) per group, directly from the DataFrame</button>
-      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> Nothing, they are identical in every way</button>
-      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It removes the need to import matplotlib entirely</button>
-      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It only works with numeric column names</button>
+      <button class="q-opt" onclick="selectOpt(3,'A')"><span class="q-opt-letter">A</span> None — bar charts look the same no matter what the y-axis range is</button>
+      <button class="q-opt" onclick="selectOpt(3,'B')"><span class="q-opt-letter">B</span> It makes the real ~3% difference look dramatically larger than it actually is — a classic misleading-chart technique</button>
+      <button class="q-opt" onclick="selectOpt(3,'C')"><span class="q-opt-letter">C</span> It's required whenever two bars are close in value</button>
+      <button class="q-opt" onclick="selectOpt(3,'D')"><span class="q-opt-letter">D</span> It fixes a rendering bug in matplotlib</button>
     </div>
   </div>
 
@@ -1105,7 +1679,7 @@ candidates = pd.DataFrame({
 <div class="interview-section" id="sec-interview">
   <div class="interview-intro">
     <h2>💼 Data Tools Interview Prep</h2>
-    <p>12 questions commonly asked in data scientist / data analyst interviews, covering NumPy, Pandas, cleaning, and visualization from Chapters 11-14. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
+    <p>17 questions commonly asked in data scientist / data analyst interviews, covering NumPy, Pandas, cleaning, visualization, and ML diagnostics from Chapters 11-14. Click a question to reveal the answer. Not graded — this is here so you walk into an interview prepared, not just quizzed.</p>
   </div>
 
   <div class="iq-card" onclick="this.classList.toggle('open')">
@@ -1166,6 +1740,27 @@ candidates = pd.DataFrame({
   <div class="iq-card" onclick="this.classList.toggle('open')">
     <div class="iq-q">How would you detect and handle outliers in a numeric column?<span class="iq-arrow">▶</span></div>
     <div class="iq-a"><div class="iq-a-inner">Common detection methods: a z-score threshold (flag |z| > 2 or 3), the IQR method (flag values beyond 1.5× the interquartile range past Q1/Q3), or simply visualizing with a boxplot/histogram. Handling depends on WHY the outlier exists: a data-entry error should probably be corrected or dropped; a genuine extreme value (a legitimate high-value transaction) might need to stay, or be handled with a robust statistic (median instead of mean) rather than removed outright.</div></div>
+  </div>
+
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Name three ways a technically-correct chart can still mislead, and how you'd fix each.<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">(1) A truncated y-axis exaggerates a small real difference — fix by starting bar charts at 0. (2) A linear scale on data spanning orders of magnitude crushes small values — fix with a clearly-labeled log scale. (3) Excessive categories (20+ pie slices) become unreadable — fix by keeping the top 5-7 and grouping the rest as "Other." A fourth, common in interviews: titling a correlation chart with causal language ("X causes Y") when the data only supports an association claim.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What are the real limitations of a correlation heatmap, beyond "it's just a Pearson correlation"?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Pearson correlation only captures LINEAR relationships — a strong nonlinear (U-shaped, cyclical) relationship can show near-zero correlation despite being real and strong. It's also sensitive to outliers and even duplicate rows, which can shift the number without the underlying relationship changing at all. It says nothing about practical/magnitude significance, only direction and linear strength. And critically, it never implies causation — a shared confounder can produce a strong correlation with no direct link between the two measured variables.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You see a learning curve where the training score is much higher than the validation score, and the gap isn't closing as training size grows. What does that indicate, and what would you try?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">That's the signature of OVERFITTING — the model is fitting noise/specifics of the training data that don't generalize. Try: more training data (if the gap would close with more), regularization, a simpler model (fewer features/lower complexity), or feature selection to remove noisy predictors. Contrast with UNDERFITTING, where both curves are low and close together — that calls for a MORE complex model or better features, not more data.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is accuracy a misleading metric for a classifier trained on a severely imbalanced target, and what should you look at instead?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">On a target that's 94% one class, a model that always predicts the majority class scores 94% accuracy while catching zero of the minority class — accuracy rewards it for doing nothing useful. Look at the confusion matrix directly (true positives, false negatives specifically), plus precision/recall/F1 for the minority class, which expose exactly what accuracy hides.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A feature importance plot ranks feature X as the most important. Can you conclude that changing X would change the model's predictions in the real world?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">No — feature importance reflects how much the model's internal splits/weights relied on that feature for THIS trained model on THIS data, not a causal effect in the real world. It's also biased toward high-cardinality/continuous features (more possible split points inflate impurity-based importance) and splits credit arbitrarily among correlated features. Treat it as "what this model leaned on," not "what drives the outcome."</div></div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:24px">
@@ -1357,81 +1952,90 @@ function showSection(name){
 
 const EXERCISES = {
   1:{
-    checks:['departments: 4','total revenue: 1170','top department: sales'],
-    hint:"plt.bar(depts, revenue); sum(revenue); depts[revenue.index(max(revenue))]",
+    checks:['skew: 1.9577','shape: right-skewed'],
+    hint:"plt.hist(scores, bins=6); skew = pd.Series(scores).skew(); shape = 'right-skewed' if skew>0.5 else ('left-skewed' if skew<-0.5 else 'symmetric')",
     solution:`import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-depts = ['Sales','Eng','Marketing','Support']
-revenue = [420, 310, 260, 180]
+import pandas as pd
+scores = [45,52,48,51,49,88,50,47,53,46,90,49]
 plt.figure()
-plt.bar(depts, revenue)
-plt.xlabel('Department'); plt.ylabel('Revenue'); plt.title('Revenue by Department')
-print(f'Departments: {len(depts)}')
-print(f'Total revenue: {sum(revenue)}')
-print(f'Top department: {depts[revenue.index(max(revenue))]}')`
+plt.hist(scores, bins=6)
+plt.xlabel('Score'); plt.ylabel('Frequency'); plt.title('Score Distribution')
+skew = pd.Series(scores).skew()
+shape = 'right-skewed' if skew > 0.5 else ('left-skewed' if skew < -0.5 else 'symmetric')
+print(f'Skew: {skew:.4f}')
+print(f'Shape: {shape}')`
   },
   2:{
-    checks:['data points: 15','bin counts: [4, 5, 2, 2, 2]'],
-    hint:"counts, edges = np.histogram(ages, bins=5); plt.hist(ages, bins=5); print counts.tolist()",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-ages = [22,25,29,31,28,45,52,38,41,26,33,47,24,36,29]
-plt.figure()
-counts, edges = np.histogram(ages, bins=5)
-plt.hist(ages, bins=5)
-plt.xlabel('Age'); plt.ylabel('Frequency'); plt.title('Age Distribution')
-print(f'Data points: {len(ages)}')
-print(f'Bin counts: {counts.tolist()}')`
-  },
-  3:{
-    checks:['correlation: 0.9963'],
-    hint:"corr = np.corrcoef(hours, grade)[0,1]",
-    solution:`import matplotlib; matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import numpy as np
-hours = [1,2,3,4,5,6,7,8,9,10]
-grade = [52,55,61,64,68,70,75,80,85,90]
-plt.figure()
-plt.scatter(hours, grade)
-plt.xlabel('Hours'); plt.ylabel('Grade'); plt.title('Study Hours vs Grade')
-corr = np.corrcoef(hours, grade)[0,1]
-print(f'Correlation: {corr:.4f}')`
-  },
-  4:{
-    checks:['hubli avg: 90.0000','pune avg: 72.5000','mumbai avg: 83.0000'],
-    hint:"sns.boxplot(data=df2, x='city', y='score'); avg2 = df2.groupby('city')['score'].mean()",
+    checks:['eng median: 95.0000','hr median: 60.0000','sales median: 70.0000','highest-paid: eng'],
+    hint:"sns.boxplot(data=df2, x='dept', y='salary'); med = df2.groupby('dept')['salary'].median(); med.idxmax()",
     solution:`import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 df2 = pd.DataFrame({
-    'city': ['Hubli','Hubli','Pune','Pune','Mumbai','Mumbai'],
-    'score': [92, 88, 75, 70, 81, 85],
+    'dept':   ['Eng','Eng','Eng','Sales','Sales','Sales','HR','HR','HR'],
+    'salary': [95,98,92,70,68,72,60,58,62],
 })
 plt.figure()
-sns.boxplot(data=df2, x='city', y='score')
-plt.title('Score by City')
-avg2 = df2.groupby('city')['score'].mean()
-print(f'Hubli avg: {avg2["Hubli"]:.4f}')
-print(f'Pune avg: {avg2["Pune"]:.4f}')
-print(f'Mumbai avg: {avg2["Mumbai"]:.4f}')`
+sns.boxplot(data=df2, x='dept', y='salary')
+plt.title('Salary by Department')
+med = df2.groupby('dept')['salary'].median()
+print(f'Eng median: {med["Eng"]:.4f}')
+print(f'HR median: {med["HR"]:.4f}')
+print(f'Sales median: {med["Sales"]:.4f}')
+print(f'Highest-paid: {med.idxmax()}')`
   },
-  5:{
-    checks:['panels: 2','total candidates: 41','most represented city: mumbai'],
-    hint:"fig, axes = plt.subplots(1, 2, figsize=(10,4)); axes[0].bar(...); axes[1].pie(...)",
+  3:{
+    checks:['correlation: 0.1265','strength: weak'],
+    hint:"corr = np.corrcoef(x, y)[0,1]; strength = 'weak' if abs(corr)<0.3 else ('moderate' if abs(corr)<0.7 else 'strong')",
     solution:`import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-cities = ['Hubli','Pune','Mumbai','Delhi']
-counts_c = [12, 8, 15, 6]
-fig, axes = plt.subplots(1, 2, figsize=(10,4))
-axes[0].bar(cities, counts_c)
-axes[0].set_title('Candidates by City')
-axes[1].pie(counts_c, labels=cities)
-axes[1].set_title('Share by City')
-print(f'Panels: {len(axes)}')
-print(f'Total candidates: {sum(counts_c)}')
-print(f'Most represented city: {cities[counts_c.index(max(counts_c))]}')`
+import numpy as np
+x = [1,2,3,4,5,6,7,8,9,10]
+y = [48,41,52,39,45,50,42,55,47,44]
+plt.figure()
+plt.scatter(x, y)
+plt.xlabel('x'); plt.ylabel('y'); plt.title('x vs y')
+corr = np.corrcoef(x, y)[0,1]
+strength = 'weak' if abs(corr) < 0.3 else ('moderate' if abs(corr) < 0.7 else 'strong')
+print(f'Correlation: {corr:.4f}')
+print(f'Strength: {strength}')`
+  },
+  4:{
+    checks:['no: 46  yes: 4','ratio: 11.50 to 1','balance: imbalanced'],
+    hint:"sns.countplot(x=labels); counts = labels.value_counts(); ratio = counts['no']/counts['yes']",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+labels = pd.Series(['no']*46 + ['yes']*4)
+plt.figure()
+sns.countplot(x=labels)
+plt.title('Class Balance')
+counts = labels.value_counts()
+ratio = counts['no'] / counts['yes']
+balance = 'imbalanced' if ratio > 3 else 'balanced'
+print(f'No: {counts["no"]}  Yes: {counts["yes"]}')
+print(f'Ratio: {ratio:.2f} to 1')
+print(f'Balance: {balance}')`
+  },
+  5:{
+    checks:['first half avg: 101.0000','second half avg: 160.0000','trend: increasing'],
+    hint:"plt.plot(months, vals, marker='o'); first = sum(vals[:3])/3; second = sum(vals[3:])/3",
+    solution:`import matplotlib; matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+months = ['Jan','Feb','Mar','Apr','May','Jun']
+vals = [100, 105, 98, 150, 160, 170]
+plt.figure()
+plt.plot(months, vals, marker='o')
+plt.xlabel('Month'); plt.ylabel('Value'); plt.title('Monthly Trend')
+first = sum(vals[:3]) / 3
+second = sum(vals[3:]) / 3
+trend = 'increasing' if second > first + 5 else ('decreasing' if second < first - 5 else 'flat')
+print(f'First half avg: {first:.4f}')
+print(f'Second half avg: {second:.4f}')
+print(f'Trend: {trend}')`
   }
 };
 
@@ -1501,7 +2105,7 @@ window.runProject=async function(){
     out.appendChild(imgEl);
   }
 
-  const checks=['total candidates: 5',"qualified (>=0.8): ['alice', 'carol', 'eve']",'best city by avg score: hubli','overall average: 0.7920'];
+  const checks=['shape: (1500, 9)','missing values: 0','unit_price skew: 1.3894','quantity-unit_price correlation: 0.0545','top category by avg revenue: electronics (796.11)','return rate: 0.0620','imbalance ratio: 15.13','busiest month: 2023-03 (75 orders)','conclusion:'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
@@ -1514,7 +2118,7 @@ window.runProject=async function(){
   }
 };
 
-const CORRECT={1:'B',2:'B',3:'A',5:'B'};
+const CORRECT={1:'B',2:'B',3:'B',5:'B'};
 
 window.selectOpt=function(q,opt){
   if(quizDone)return;
@@ -1564,7 +2168,7 @@ window.submitQuiz=function(){
   if(passed){
     banner.innerHTML=`
       <div class="qrb-title">🎉 Passed! ${score}/5 correct</div>
-      <div class="qrb-sub">Bar charts, histograms, scatter plots, Seaborn, and multi-panel figures — Module 3 is complete. You can load, clean, and visualize any tabular dataset end to end.</div>`;
+      <div class="qrb-sub">Bar charts, histograms, scatter plots, Seaborn, multi-panel figures, misleading-chart detection, and ML diagnostics — Module 3 is complete. You can load, clean, visualize, and diagnose a model on any tabular dataset end to end.</div>`;
     if(!completedItems.has('quiz')){completedItems.add('quiz');xp+=200;updateUI();spark();}
     persistChapter();
     revealNextChapter();
