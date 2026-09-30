@@ -117,6 +117,19 @@ textarea,input{font-family:var(--mono);outline:none;border:none}
 .step-list li::before{content:attr(data-n);width:22px;height:22px;background:var(--violet);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:2px}
 .step-list li strong{color:var(--text)}
 
+.diagram{background:var(--card2);border:1px solid var(--border);border-radius:10px;margin:16px 0;overflow-x:auto}
+.diagram .dg-t{padding:7px 14px;border-bottom:1px solid var(--border);font:700 10.5px var(--mono);letter-spacing:.5px;text-transform:uppercase;color:var(--t3)}
+.diagram pre{margin:0;padding:12px 14px;font:12px/1.5 var(--mono);color:var(--text);white-space:pre}
+
+.iq-card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden;cursor:pointer}
+.iq-q{padding:16px 20px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:700}
+.iq-q .iq-arrow{margin-left:auto;color:var(--t3);transition:transform .2s;font-size:12px}
+.iq-card.open .iq-arrow{transform:rotate(90deg)}
+.iq-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.iq-card.open .iq-a{max-height:800px}
+.iq-a-inner{padding:0 20px 18px;font-size:13.5px;color:var(--t2);line-height:1.75;border-top:1px solid var(--border);padding-top:14px}
+.iq-a-inner code{font-family:var(--mono);font-size:12.5px;background:var(--card2);padding:1px 6px;border-radius:4px;color:var(--violet)}
+
 .practice-section{display:none}.practice-section.show{display:block}
 .practice-intro{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px 24px;margin-bottom:24px}
 .practice-intro h2{font-size:20px;font-weight:800;margin-bottom:6px}
@@ -483,7 +496,7 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
     <h1>Chapter 13:<br/><span>Data Cleaning &amp; Wrangling</span></h1>
     <p>Real datasets are never clean. Missing values, exact and near-duplicate rows, data spread across multiple files that need joining, and inconsistent text formatting — cleaning this up isn't a chore before "the real work," it IS most of the real work. Industry surveys consistently put data cleaning at 60-80% of a data scientist's time. This chapter is that 60-80%.</p>
     <div class="badge-row">
-      <span class="badge">🕐 ~60 min read</span>
+      <span class="badge">🕐 ~120 min read</span>
       <span class="badge">💻 5 exercises</span>
       <span class="badge">🏗️ 1 mini project</span>
       <span class="badge">🧪 Quiz to complete</span>
@@ -543,50 +556,130 @@ html[data-theme="light"] .cb-run:hover,html[data-theme="light"] .cd-run:hover,ht
 </script>
 <!-- videos:end -->
 
-<div class="lesson-h2">13.1 — Missing Values: Find Them, Then Decide</div>
-  <p class="lesson-p">Missing data shows up as <code>NaN</code> (Not a Number) in pandas. <code>.isna()</code> flags every missing cell; <code>.dropna()</code> removes rows with any missing value; <code>.fillna(value)</code> replaces missing values — often with the column's mean, median, or a sentinel like <code>0</code> or <code>'unknown'</code>.</p>
+<div class="lesson-h2">13.1 — Missing Values: Profile, Then Decide</div>
+  <p class="lesson-p">Missing data shows up as <code>NaN</code> (Not a Number) in pandas. Before fixing anything, <strong>profile</strong> it systematically — which columns, how many, what fraction — rather than reacting to the first missing cell you notice. The running example for the rest of this chapter is a real, deliberately messy 415-row employee dataset, generated once with a fixed seed so every issue below is exact and reproducible.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Detecting and handling missing values</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
-    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
-<span class="kw">import</span> numpy <span class="kw">as</span> np
+    <div class="cb-header"><span class="cb-label">Generating this chapter's real messy dataset, then profiling it</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> numpy <span class="kw">as</span> np
+<span class="kw">import</span> pandas <span class="kw">as</span> pd
 
-df = pd.DataFrame({
-    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Carol'</span>,<span class="st">'Dave'</span>,<span class="st">'Eve'</span>],
-    <span class="st">'score'</span>: [<span class="nm">92</span>, np.nan, <span class="nm">81</span>, <span class="nm">60</span>, np.nan],
-    <span class="st">'city'</span>: [<span class="st">'Hubli'</span>, <span class="st">'Pune'</span>, <span class="kw">None</span>, <span class="st">'Delhi'</span>, <span class="st">'Hubli'</span>],
-})
+<span class="cm"># fixed seed -> the exact same messy dataset every run (see the Project tab for the full generator + every injected-issue count)</span>
+rng = np.random.default_rng(<span class="nm">7</span>)
+n = <span class="nm">400</span>
+first_names = [<span class="st">'Asha'</span>,<span class="st">'Ben'</span>,<span class="st">'Chen'</span>,<span class="st">'Dana'</span>,<span class="st">'Eli'</span>,<span class="st">'Farah'</span>,<span class="st">'Gita'</span>,<span class="st">'Hiro'</span>,<span class="st">'Ivy'</span>,<span class="st">'Jun'</span>,<span class="st">'Kira'</span>,<span class="st">'Leo'</span>,<span class="st">'Maya'</span>,<span class="st">'Nia'</span>,<span class="st">'Omar'</span>,<span class="st">'Priya'</span>,<span class="st">'Quinn'</span>,<span class="st">'Rosa'</span>,<span class="st">'Sam'</span>,<span class="st">'Tara'</span>,<span class="st">'Uma'</span>,<span class="st">'Victor'</span>,<span class="st">'Wei'</span>,<span class="st">'Xena'</span>,<span class="st">'Yara'</span>,<span class="st">'Zane'</span>]
+last_names = [<span class="st">'Sharma'</span>,<span class="st">'Patel'</span>,<span class="st">'Kim'</span>,<span class="st">'Nguyen'</span>,<span class="st">'Silva'</span>,<span class="st">'Khan'</span>,<span class="st">'Ito'</span>,<span class="st">'Lopez'</span>,<span class="st">'Rao'</span>,<span class="st">'Costa'</span>,<span class="st">'Mensah'</span>,<span class="st">'Novak'</span>,<span class="st">'Haddad'</span>,<span class="st">'Fischer'</span>,<span class="st">'Okoro'</span>]
+names = [<span class="st">f'<span class="bi">{first_names[rng.integers(0,len(first_names))]}</span> <span class="bi">{last_names[rng.integers(0,len(last_names))]}</span>'</span> <span class="kw">for</span> _ <span class="kw">in</span> <span class="bi">range</span>(n)]
+departments = [<span class="st">'Engineering'</span>,<span class="st">'Sales'</span>,<span class="st">'Marketing'</span>,<span class="st">'HR'</span>,<span class="st">'Finance'</span>]
+dept_true = rng.choice(departments, n, p=[<span class="nm">0.35</span>,<span class="nm">0.25</span>,<span class="nm">0.15</span>,<span class="nm">0.10</span>,<span class="nm">0.15</span>])
+ages = rng.integers(<span class="nm">22</span>, <span class="nm">60</span>, n).astype(<span class="bi">float</span>)
+base_salary = {<span class="st">'Engineering'</span>:<span class="nm">95000</span>,<span class="st">'Sales'</span>:<span class="nm">70000</span>,<span class="st">'Marketing'</span>:<span class="nm">65000</span>,<span class="st">'HR'</span>:<span class="nm">60000</span>,<span class="st">'Finance'</span>:<span class="nm">80000</span>}
+salary = np.array([base_salary[d] + rng.normal(<span class="nm">0</span>, <span class="nm">8000</span>) <span class="kw">for</span> d <span class="kw">in</span> dept_true]).<span class="bi">round</span>(<span class="nm">2</span>)
+join_dates = pd.to_datetime(<span class="st">'2018-01-01'</span>) + pd.to_timedelta(rng.integers(<span class="nm">0</span>, <span class="nm">2000</span>, n), unit=<span class="st">'D'</span>)
+performance = rng.integers(<span class="nm">1</span>, <span class="nm">6</span>, n).astype(<span class="bi">float</span>)
+cities = [<span class="st">'New York'</span>,<span class="st">'San Francisco'</span>,<span class="st">'Chicago'</span>,<span class="st">'Austin'</span>,<span class="st">'Seattle'</span>]
+city_true = rng.choice(cities, n, p=[<span class="nm">0.30</span>,<span class="nm">0.25</span>,<span class="nm">0.20</span>,<span class="nm">0.15</span>,<span class="nm">0.10</span>])
+is_remote = rng.choice([<span class="kw">True</span>, <span class="kw">False</span>], n, p=[<span class="nm">0.3</span>,<span class="nm">0.7</span>])
+df = pd.DataFrame({<span class="st">'employee_id'</span>: np.arange(<span class="nm">1</span>,n+<span class="nm">1</span>), <span class="st">'name'</span>: names, <span class="st">'department'</span>: dept_true, <span class="st">'age'</span>: ages,
+    <span class="st">'salary'</span>: salary, <span class="st">'join_date'</span>: join_dates.strftime(<span class="st">'%Y-%m-%d'</span>), <span class="st">'performance_rating'</span>: performance,
+    <span class="st">'city'</span>: city_true, <span class="st">'is_remote'</span>: is_remote})
 
-<span class="bi">print</span>(df.isna().sum())                          <span class="cm"># missing count PER COLUMN</span>
-<span class="bi">print</span>(<span class="st">f'Rows with any missing: <span class="bi">{df.isna().any(axis=1).sum()}</span>'</span>)
+<span class="kw">def</span> <span class="fn">inject_missing</span>(col, frac, off):
+    r = np.random.default_rng(<span class="nm">7</span> + off)
+    idx = r.choice(n, size=<span class="bi">int</span>(n*frac), replace=<span class="kw">False</span>)
+    df.loc[idx, col] = np.nan
+inject_missing(<span class="st">'age'</span>, <span class="nm">0.05</span>, <span class="nm">1</span>); inject_missing(<span class="st">'salary'</span>, <span class="nm">0.04</span>, <span class="nm">2</span>)
+inject_missing(<span class="st">'department'</span>, <span class="nm">0.03</span>, <span class="nm">3</span>); inject_missing(<span class="st">'performance_rating'</span>, <span class="nm">0.15</span>, <span class="nm">4</span>); inject_missing(<span class="st">'city'</span>, <span class="nm">0.02</span>, <span class="nm">5</span>)
 
-filled = df.copy()
-filled[<span class="st">'score'</span>] = filled[<span class="st">'score'</span>].fillna(filled[<span class="st">'score'</span>].mean())
-<span class="bi">print</span>(<span class="st">f'Filled mean score: <span class="bi">{filled["score"].iloc[1]:.4f}</span>'</span>)   <span class="cm"># Bob's NaN -> column mean</span>
+df[<span class="st">'salary'</span>] = df[<span class="st">'salary'</span>].astype(<span class="bi">object</span>)
+r = np.random.default_rng(<span class="nm">30</span>)
+nn = df.index[df[<span class="st">'salary'</span>].notnull()]
+messy_sal = r.choice(nn, size=<span class="bi">int</span>(<span class="bi">len</span>(nn)*<span class="nm">0.10</span>), replace=<span class="kw">False</span>)
+<span class="kw">for</span> i <span class="kw">in</span> messy_sal: df.at[i, <span class="st">'salary'</span>] = <span class="st">f'$<span class="bi">{float(df.at[i,"salary"]):,.2f}</span>'</span>
 
-dropped = df.dropna()
-<span class="bi">print</span>(<span class="st">f'Rows after dropna: <span class="bi">{len(dropped)}</span>'</span>)              <span class="cm"># rows with ANY NaN are gone</span></div>
+r = np.random.default_rng(<span class="nm">40</span>)
+dv = df.index[df[<span class="st">'department'</span>].notnull()]
+messy_dept = r.choice(dv, size=<span class="bi">int</span>(<span class="bi">len</span>(dv)*<span class="nm">0.08</span>), replace=<span class="kw">False</span>)
+dept_variants = {<span class="st">'Engineering'</span>:[<span class="st">'eng'</span>,<span class="st">'ENGINEERING'</span>,<span class="st">'Engineering '</span>],<span class="st">'Sales'</span>:[<span class="st">'sales'</span>,<span class="st">'SALES'</span>,<span class="st">'Sales '</span>],
+                  <span class="st">'Marketing'</span>:[<span class="st">'Mktg'</span>,<span class="st">'marketing'</span>],<span class="st">'HR'</span>:[<span class="st">'H.R.'</span>,<span class="st">'Human Resources'</span>,<span class="st">'hr'</span>],<span class="st">'Finance'</span>:[<span class="st">'finance'</span>,<span class="st">'FINANCE'</span>]}
+<span class="kw">for</span> i <span class="kw">in</span> messy_dept:
+    v = dept_variants[df.at[i,<span class="st">'department'</span>]]; df.at[i, <span class="st">'department'</span>] = v[r.integers(<span class="nm">0</span>,<span class="bi">len</span>(v))]
+
+r2 = np.random.default_rng(<span class="nm">41</span>)
+cv = df.index[df[<span class="st">'city'</span>].notnull()]
+messy_city = r2.choice(cv, size=<span class="bi">int</span>(<span class="bi">len</span>(cv)*<span class="nm">0.08</span>), replace=<span class="kw">False</span>)
+city_variants = {<span class="st">'New York'</span>:[<span class="st">'new york'</span>,<span class="st">'NYC'</span>,<span class="st">'New York City'</span>],<span class="st">'San Francisco'</span>:[<span class="st">'san francisco'</span>,<span class="st">'SF'</span>,<span class="st">'San Fran'</span>],
+                  <span class="st">'Chicago'</span>:[<span class="st">'chicago'</span>,<span class="st">'CHICAGO'</span>],<span class="st">'Austin'</span>:[<span class="st">'austin '</span>,<span class="st">'AUSTIN'</span>],<span class="st">'Seattle'</span>:[<span class="st">'seattle'</span>,<span class="st">'Seattle '</span>]}
+<span class="kw">for</span> i <span class="kw">in</span> messy_city:
+    v = city_variants[df.at[i,<span class="st">'city'</span>]]; df.at[i, <span class="st">'city'</span>] = v[r2.integers(<span class="nm">0</span>,<span class="bi">len</span>(v))]
+
+r3 = np.random.default_rng(<span class="nm">50</span>)
+ia = r3.choice(df.index[df[<span class="st">'age'</span>].notnull()], size=<span class="nm">3</span>, replace=<span class="kw">False</span>)
+df.loc[ia[<span class="nm">0</span>],<span class="st">'age'</span>]=<span class="nm">150</span>; df.loc[ia[<span class="nm">1</span>],<span class="st">'age'</span>]=-<span class="nm">5</span>; df.loc[ia[<span class="nm">2</span>],<span class="st">'age'</span>]=<span class="nm">200</span>
+num_sal = df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">isinstance</span>(v,(<span class="bi">int</span>,<span class="bi">float</span>)) <span class="kw">and</span> pd.notnull(v))
+ps = r3.choice(df.index[num_sal], size=<span class="nm">6</span>, replace=<span class="kw">False</span>)
+<span class="kw">for</span> i,v <span class="kw">in</span> <span class="bi">zip</span>(ps, [-<span class="nm">20000.0</span>,-<span class="nm">5000.0</span>,<span class="nm">2500000.0</span>,<span class="nm">1800000.0</span>,<span class="nm">215000.0</span>,<span class="nm">198000.0</span>]): df.at[i,<span class="st">'salary'</span>]=v
+
+r4 = np.random.default_rng(<span class="nm">60</span>)
+dv2 = df.index[df[<span class="st">'join_date'</span>].notnull()]
+alt = r4.choice(dv2, size=<span class="bi">int</span>(<span class="bi">len</span>(dv2)*<span class="nm">0.06</span>), replace=<span class="kw">False</span>)
+<span class="kw">for</span> i <span class="kw">in</span> alt:
+    d = pd.to_datetime(df.at[i,<span class="st">'join_date'</span>])
+    df.at[i,<span class="st">'join_date'</span>] = d.strftime(<span class="st">'%m/%d/%Y'</span>) <span class="kw">if</span> r4.integers(<span class="nm">0</span>,<span class="nm">2</span>)==<span class="nm">0</span> <span class="kw">else</span> d.strftime(<span class="st">'%B %d, %Y'</span>)
+inv = r4.choice(df.index.difference(alt), size=<span class="nm">5</span>, replace=<span class="kw">False</span>)
+<span class="kw">for</span> i,val <span class="kw">in</span> <span class="bi">zip</span>(inv, [<span class="st">'2021-13-45'</span>,<span class="st">''</span>,<span class="st">'not_a_date'</span>,<span class="st">'2021-02-30'</span>,<span class="st">'00/00/0000'</span>]): df.at[i,<span class="st">'join_date'</span>]=val
+
+r5 = np.random.default_rng(<span class="nm">70</span>)
+dup_idx = r5.choice(df.index, size=<span class="nm">15</span>, replace=<span class="kw">False</span>)
+df = pd.concat([df, df.loc[dup_idx]], ignore_index=<span class="kw">True</span>)
+df.to_csv(<span class="st">'employees_messy.csv'</span>, index=<span class="kw">False</span>)   <span class="cm"># write the real CSV — every later block in this chapter reads this same file</span>
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+missing_count = df.isna().sum()
+missing_pct = (df.isna().mean() * <span class="nm">100</span>).round(<span class="nm">1</span>)
+<span class="kw">for</span> col <span class="kw">in</span> df.columns:
+    <span class="kw">if</span> missing_count[col] > <span class="nm">0</span>:
+        <span class="bi">print</span>(<span class="st">f'<span class="bi">{col}</span>: <span class="bi">{missing_count[col]}</span> missing (<span class="bi">{missing_pct[col]}</span>%)'</span>)</div>
   </div>
-  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body"><strong>dropna() vs fillna() is a real decision, not a default</strong> — dropping rows throws away every OTHER column's data too, just because one field was missing. Filling with the mean is safer for numeric columns you plan to keep using in bulk, but can quietly bias small datasets. There's no universally "correct" choice — know why you picked one.</div></div>
+  <div class="info-box note"><div class="ib-icon">💡</div><div class="ib-body">Real output: <code>performance_rating</code> is missing the most (63 rows, 15.2%) — for a REAL, documented reason: new hires haven't been rated yet. Always ask WHY a column is missing before deciding how to handle it; "missing because it doesn't exist yet" (performance_rating) calls for a different fix than "missing because of a bad export" (a few <code>age</code>/<code>salary</code> cells here).</div></div>
+
+  <p class="lesson-p">Once profiled, you choose per column: <strong>mean</strong> (sensitive to outliers/skew), <strong>median</strong> (robust to both), <strong>mode</strong> (for categoricals — "most common value"), or <strong>group-based</strong> imputation (fill using the mean/median WITHIN a relevant subgroup, not the whole column) — each has different assumptions and risks.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Mean vs median vs mode vs group-based — same column, four decisions</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+<span class="bi">print</span>(<span class="st">f'age mean: <span class="bi">{df["age"].mean():.4f}</span>  median: <span class="bi">{df["age"].median()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'department mode: <span class="bi">{df["department"].mode()[0]}</span>'</span>)
+
+<span class="cm"># GLOBAL mean: every missing age gets the SAME value, regardless of department</span>
+global_mean_fill = df[<span class="st">'age'</span>].fillna(df[<span class="st">'age'</span>].mean())
+
+<span class="cm"># GROUP-BASED: each missing age gets ITS OWN department's mean age instead</span>
+group_means = df.groupby(<span class="st">'department'</span>)[<span class="st">'age'</span>].transform(<span class="st">'mean'</span>)
+group_based_fill = df[<span class="st">'age'</span>].fillna(group_means)
+
+<span class="bi">print</span>(<span class="st">f'Engineering avg age: <span class="bi">{df[df["department"]=="Engineering"]["age"].mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Overall avg age: <span class="bi">{df["age"].mean():.4f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'rows where the two fills differ: <span class="bi">{(global_mean_fill.round(4) != group_based_fill.round(4)).sum()}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: Engineering's average age (<code>42.51</code>) differs from the overall average (<code>41.52</code>) — every one of the 23 missing ages gets a different fill value depending on which method you pick. <strong>Assumptions and risks:</strong> mean/median imputation assumes a missing value looks like a "typical" row overall; group-based imputation assumes it looks like a typical row <em>within its group</em> — a better assumption when groups genuinely differ, but it can leak group identity into the imputed value in a way that quietly flatters a downstream model if that same group is also predictive of your target. Mode imputation for categoricals has the blunt risk of over-representing whatever was already most common, understating genuine diversity. None of these are "safe defaults" — they're modeling decisions, and the right one depends on why the data is missing.</div></div>
 
   <!-- 13.2 -->
   <div class="lesson-h2">13.2 — Duplicates: Exact Repeats</div>
   <p class="lesson-p"><code>.duplicated()</code> flags rows that are exact repeats of an earlier row (keeping the first occurrence as "not a duplicate"). <code>.drop_duplicates()</code> removes them.</p>
 
   <div class="code-block">
-    <div class="cb-header"><span class="cb-label">Finding and removing duplicate rows</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-header"><span class="cb-label">Finding and removing duplicate rows — the real employee dataset</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
     <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
 
-df = pd.DataFrame({
-    <span class="st">'name'</span>: [<span class="st">'Alice'</span>,<span class="st">'Bob'</span>,<span class="st">'Alice'</span>,<span class="st">'Carol'</span>,<span class="st">'Bob'</span>],
-    <span class="st">'score'</span>: [<span class="nm">92</span>, <span class="nm">75</span>, <span class="nm">92</span>, <span class="nm">81</span>, <span class="nm">75</span>],
-})
-
-<span class="bi">print</span>(<span class="st">f'Duplicate rows: <span class="bi">{df.duplicated().sum()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'Exact duplicate rows: <span class="bi">{df.duplicated().sum()}</span>'</span>)
 deduped = df.drop_duplicates()
-<span class="bi">print</span>(<span class="st">f'Rows after drop_duplicates: <span class="bi">{len(deduped)}</span>'</span>)
-<span class="bi">print</span>(<span class="st">f'Unique names: <span class="bi">{list(deduped["name"])}</span>'</span>)</div>
+<span class="bi">print</span>(<span class="st">f'Rows after drop_duplicates: <span class="bi">{len(df)}</span> -> <span class="bi">{len(deduped)}</span>'</span>)</div>
   </div>
+  <div class="info-box tip"><div class="ib-icon">🔑</div><div class="ib-body">Real output: 15 exact duplicate rows, all safely dropped — a genuine re-exported batch. This worked cleanly because <code>employee_id</code> is a real unique identifier: <strong>define what actually makes a row a duplicate BEFORE deduplicating.</strong> With no clear key, <code>.duplicated()</code> defaults to "every column matches exactly," which misses a real duplicate that differs by even one re-typed field (e.g. the same employee entered twice with slightly different capitalization), and — the opposite risk — <code>.duplicated(subset=['name'])</code> would wrongly treat two DIFFERENT employees who happen to share a name as duplicates. Here, checking <code>df.duplicated(subset=['employee_id']).sum()</code> also gives exactly 15, confirming <code>employee_id</code> is a trustworthy key for this decision.</div></div>
 
   <!-- 13.3 -->
   <div class="lesson-h2">13.3 — Merging: Combining Data Sideways</div>
@@ -662,16 +755,228 @@ cleaned[<span class="st">'score'</span>] = cleaned[<span class="st">'score_text'
   </div>
   <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body"><strong>Summing a text column silently does string concatenation, not addition</strong> — <code>'92' + '75'</code> gives <code>'9275'</code>, not <code>167</code>, and pandas won't warn you. Always confirm a column's dtype (<code>df.dtypes</code>) before trusting arithmetic on it.</div></div>
 
+  <p class="lesson-p">Plain <code>.astype()</code> is fragile — it raises the moment it hits ONE value it can't convert. The real employee dataset's <code>salary</code> column mixes plain numbers with currency-formatted strings like <code>"$95,432.10"</code> — a single bad value would crash <code>.astype(float)</code> entirely.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Robust numeric coercion — strip formatting, THEN coerce</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+<span class="bi">print</span>(<span class="st">f'salary dtype: <span class="bi">{df["salary"].dtype}</span>'</span>)   <span class="cm"># object — because SOME values are text like "$95,432.10"</span>
+
+<span class="cm"># WRONG-ish: pd.to_numeric alone silently loses every "$"-formatted value to NaN</span>
+naive = pd.to_numeric(df[<span class="st">'salary'</span>], errors=<span class="st">'coerce'</span>)
+<span class="bi">print</span>(<span class="st">f'naive to_numeric, non-null count: <span class="bi">{naive.notna().sum()}</span> / <span class="bi">{len(df)}</span>'</span>)
+
+<span class="cm"># RIGHT: strip currency formatting from strings FIRST, then coerce</span>
+cleaned = df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v)
+salary_clean = pd.to_numeric(cleaned, errors=<span class="st">'coerce'</span>)
+<span class="bi">print</span>(<span class="st">f'after stripping formatting, non-null count: <span class="bi">{salary_clean.notna().sum()}</span> / <span class="bi">{len(df)}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: naive <code>pd.to_numeric</code> recovers only <code>358</code> of 415 values — the 41 currency-formatted strings all silently become <code>NaN</code>, indistinguishable from genuinely missing data unless you specifically checked the count. Stripping <code>$</code>/<code>,</code> first recovers all <code>399</code> non-null values (415 total minus the 16 genuinely missing). <strong>The fix pattern:</strong> inspect a sample of the "failed" conversions before trusting <code>errors='coerce'</code> — a big unexpected jump in null count almost always means a formatting issue, not real missingness.</div></div>
+
+  <p class="lesson-p">Real categorical columns accumulate inconsistent labels from manual entry — <code>'eng'</code>, <code>'ENGINEERING'</code>, <code>'Engineering '</code> should all mean the same department.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Standardizing 18 messy department labels down to 5 canonical ones</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+<span class="bi">print</span>(<span class="st">f'distinct labels before: <span class="bi">{df["department"].nunique()}</span>'</span>)
+
+<span class="cm"># canonical mapping, keyed by a normalized (stripped, lowercased) version of each messy label</span>
+dept_map = {
+    <span class="st">'eng'</span>: <span class="st">'Engineering'</span>, <span class="st">'engineering'</span>: <span class="st">'Engineering'</span>,
+    <span class="st">'sales'</span>: <span class="st">'Sales'</span>,
+    <span class="st">'mktg'</span>: <span class="st">'Marketing'</span>, <span class="st">'marketing'</span>: <span class="st">'Marketing'</span>,
+    <span class="st">'h.r.'</span>: <span class="st">'HR'</span>, <span class="st">'human resources'</span>: <span class="st">'HR'</span>, <span class="st">'hr'</span>: <span class="st">'HR'</span>,
+    <span class="st">'finance'</span>: <span class="st">'Finance'</span>,
+}
+department_std = df[<span class="st">'department'</span>].str.strip().str.lower().<span class="bi">map</span>(dept_map)
+<span class="bi">print</span>(<span class="st">f'distinct labels after: <span class="bi">{department_std.nunique()}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'still-missing after mapping: <span class="bi">{department_std.isna().sum()}</span>'</span>)   <span class="cm"># should equal the ORIGINAL missing count, not more</span></div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">🏷️</div><div class="ib-body">Real output: 18 labels collapse to exactly 5, and the missing count after mapping (12) matches the original missing count exactly — proving the map covers every non-null variant that actually occurs. <strong>The real risk here:</strong> a mapping dict that's missing even one variant turns that variant into a NEW, silent <code>NaN</code> — always check that post-mapping missing count against the pre-mapping one; a jump means your map has a gap.</div></div>
+
+  <p class="lesson-p">Dates are the hardest type-coercion case: they can be VALID but inconsistently formatted, or genuinely invalid.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Parsing, validating, and repairing a real mixed-format date column</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+<span class="cm"># naive parse: pandas infers ONE format from the column and applies it uniformly</span>
+naive_dates = pd.to_datetime(df[<span class="st">'join_date'</span>], errors=<span class="st">'coerce'</span>)
+<span class="bi">print</span>(<span class="st">f'naive parse, became NaT: <span class="bi">{naive_dates.isna().sum()}</span> / <span class="bi">{len(df)}</span>'</span>)
+
+<span class="cm"># format='mixed': let pandas infer a DIFFERENT format PER ROW instead of one for the whole column</span>
+mixed_dates = pd.to_datetime(df[<span class="st">'join_date'</span>], format=<span class="st">'mixed'</span>, errors=<span class="st">'coerce'</span>)
+<span class="bi">print</span>(<span class="st">f'format=\'mixed\' parse, became NaT: <span class="bi">{mixed_dates.isna().sum()}</span> / <span class="bi">{len(df)}</span>'</span>)
+
+still_invalid = df[<span class="st">'join_date'</span>].notna() & mixed_dates.isna()
+<span class="bi">print</span>(<span class="st">f'genuinely unparseable strings: <span class="bi">{still_invalid.sum()}</span>'</span>)
+<span class="bi">print</span>(<span class="bi">list</span>(df.loc[still_invalid, <span class="st">'join_date'</span>]))</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: naively parsing turns <code>29</code> values into <code>NaT</code> — far more than expected, because this column mixes ISO (<code>2023-05-01</code>), US-slash (<code>05/01/2023</code>), and spelled-out (<code>May 1, 2023</code>) formats, and pandas' default parser picks ONE format for the whole column, silently failing every row that doesn't match it. <code>format='mixed'</code> infers per-row and recovers all but <code>5</code> — 1 originally-empty cell plus 4 genuinely broken strings (<code>'not_a_date'</code>, <code>'00/00/0000'</code>, <code>'2021-02-30'</code> — a real calendar date that doesn't exist, and <code>'2021-13-45'</code>). <strong>Never trust a date column's <code>NaT</code> count from a naive parse</strong> — a large jump can mean "mixed formats," not "actually missing."</div></div>
+
+  <!-- 13.7 -->
+  <div class="lesson-h2">13.7 — Detecting and Handling Outliers</div>
+  <p class="lesson-p">An outlier is a value that doesn't fit the rest of the data — but "doesn't fit" needs a definition. Three complementary approaches: <strong>domain rules</strong> (a human fact makes a value impossible, e.g. negative salary), the <strong>IQR method</strong> (statistically extreme relative to the middle 50% of the data), and <strong>robust statistics</strong> (comparing mean/std, which outliers distort, against median/IQR, which barely move).</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">Domain rules vs the IQR method, on real age and salary data</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+<span class="cm"># domain rule: nobody employed here is under 18 or over 75 — that's a FACT about this company, not a statistic</span>
+domain_bad_age = df[(df[<span class="st">'age'</span>] < <span class="nm">18</span>) | (df[<span class="st">'age'</span>] > <span class="nm">75</span>)]
+<span class="bi">print</span>(<span class="st">f'domain-rule impossible ages: <span class="bi">{list(domain_bad_age["age"])}</span>'</span>)
+
+<span class="cm"># IQR method on cleaned salary (from 13.6's coercion)
+cleaned = df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v)
+salary = pd.to_numeric(cleaned, errors=<span class="st">'coerce'</span>)
+q1, q3 = salary.quantile(<span class="nm">0.25</span>), salary.quantile(<span class="nm">0.75</span>)
+iqr = q3 - q1
+low, high = q1 - <span class="nm">1.5</span>*iqr, q3 + <span class="nm">1.5</span>*iqr
+iqr_outliers = salary[(salary < low) | (salary > high)]
+<span class="bi">print</span>(<span class="st">f'IQR bounds: [<span class="bi">{low:.2f}</span>, <span class="bi">{high:.2f}</span>]'</span>)
+<span class="bi">print</span>(<span class="st">f'IQR-flagged salaries: <span class="bi">{sorted(iqr_outliers.dropna().tolist())}</span>'</span>)
+
+<span class="cm"># robust vs non-robust: how much do these 6 values distort the mean?</span>
+<span class="bi">print</span>(<span class="st">f'mean WITH outliers: <span class="bi">{salary.mean():.2f}</span>   mean WITHOUT: <span class="bi">{salary[(salary>=low)&(salary<=high)].mean():.2f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'median WITH outliers: <span class="bi">{salary.median():.2f}</span>  median WITHOUT: <span class="bi">{salary[(salary>=low)&(salary<=high)].median():.2f}</span>'</span>)</div>
+  </div>
+  <div class="info-box warn"><div class="ib-icon">⚠️</div><div class="ib-body">Real output: 3 domain-impossible ages (<code>200, 150, -5</code>) and 6 IQR-flagged salaries (two negative — <code>-20000, -5000</code> — and four extreme highs, <code>198000</code> to <code>2500000</code>). Removing the outliers barely moves the MEDIAN (<code>75736.90 → 75338.71</code>, a $398 shift) but moves the MEAN by over $10,500 (<code>88717.45 → 78143.16</code>) — exactly why the median is called "robust" and the mean isn't: a handful of extreme values can drag a mean a long way, while the median barely notices.</div></div>
+
+  <p class="lesson-p">Detecting an outlier is only half the job — deciding its fate is the real judgment call, and it's rarely the same answer for every outlier:</p>
+  <ul class="step-list">
+    <li data-n="1"><div><strong>Remove</strong> — for values that are IMPOSSIBLE (negative salary, age 200): they're errors, not real extreme cases, and keeping them only adds noise.</div></li>
+    <li data-n="2"><div><strong>Cap / winsorize</strong> — for values that are real but extreme (a legitimately high earner): clip to the IQR boundary instead of deleting the row, keeping the rest of that row's data.</div></li>
+    <li data-n="3"><div><strong>Transform</strong> — for a whole column that's naturally skewed (income, city population): a log transform can shrink the influence of the tail without discarding anything.</div></li>
+    <li data-n="4"><div><strong>Retain</strong> — when the "outlier" is the actual thing you're trying to detect (fraud amounts, rare failures): removing it would delete the signal, not the noise.</div></li>
+  </ul>
+
+  <!-- 13.8 -->
+  <div class="lesson-h2">13.8 — Encoding Categorical Variables</div>
+  <p class="lesson-p">Models need numbers, not text. <strong>One-hot encoding</strong> turns a NOMINAL category (no natural order — department, city) into one 0/1 column per category. <strong>Ordinal encoding</strong> turns an ORDERED category (small/medium/large; a 1-5 rating) into a single number that preserves the order — one-hot would incorrectly imply "Marketing" and "Sales" have some numeric distance between them, which is meaningless.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One-hot for a nominal column (department, cleaned)</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+
+dept_map = {<span class="st">'eng'</span>:<span class="st">'Engineering'</span>,<span class="st">'engineering'</span>:<span class="st">'Engineering'</span>,<span class="st">'sales'</span>:<span class="st">'Sales'</span>,<span class="st">'mktg'</span>:<span class="st">'Marketing'</span>,
+            <span class="st">'marketing'</span>:<span class="st">'Marketing'</span>,<span class="st">'h.r.'</span>:<span class="st">'HR'</span>,<span class="st">'human resources'</span>:<span class="st">'HR'</span>,<span class="st">'hr'</span>:<span class="st">'HR'</span>,<span class="st">'finance'</span>:<span class="st">'Finance'</span>}
+department_std = df[<span class="st">'department'</span>].str.strip().str.lower().<span class="bi">map</span>(dept_map)
+
+onehot = pd.get_dummies(department_std, prefix=<span class="st">'dept'</span>)
+<span class="bi">print</span>(<span class="st">f'columns created: <span class="bi">{list(onehot.columns)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'shape: <span class="bi">{onehot.shape}</span>'</span>)</div>
+  </div>
+  <div class="info-box note"><div class="ib-icon">🔢</div><div class="ib-body">Real output: 5 new 0/1 columns, one per canonical department. <code>performance_rating</code>, by contrast, is ALREADY the right encoding for an ordinal scale — it's already a number (1-5) where 5 genuinely means "better than" 4, so it needs no further encoding at all; one-hot-encoding it would throw away that order for no benefit.</div></div>
+
+  <!-- 13.9 -->
+  <div class="lesson-h2">13.9 — Reproducible Cleaning Workflows</div>
+  <p class="lesson-p">A cleaning script you run once, by hand, in a notebook is not reproducible — wrap the whole sequence into ONE function, taking raw data in and clean data out, so it can be rerun identically on tomorrow's export.</p>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">One function, run twice, proven identical</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+
+<span class="kw">def</span> <span class="fn">clean_employees</span>(raw):
+    df = raw.drop_duplicates(subset=[<span class="st">'employee_id'</span>]).copy()
+    dept_map = {<span class="st">'eng'</span>:<span class="st">'Engineering'</span>,<span class="st">'engineering'</span>:<span class="st">'Engineering'</span>,<span class="st">'sales'</span>:<span class="st">'Sales'</span>,<span class="st">'mktg'</span>:<span class="st">'Marketing'</span>,
+                <span class="st">'marketing'</span>:<span class="st">'Marketing'</span>,<span class="st">'h.r.'</span>:<span class="st">'HR'</span>,<span class="st">'human resources'</span>:<span class="st">'HR'</span>,<span class="st">'hr'</span>:<span class="st">'HR'</span>,<span class="st">'finance'</span>:<span class="st">'Finance'</span>}
+    df[<span class="st">'department'</span>] = df[<span class="st">'department'</span>].str.strip().str.lower().<span class="bi">map</span>(dept_map)
+    df[<span class="st">'salary'</span>] = pd.to_numeric(
+        df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v),
+        errors=<span class="st">'coerce'</span>)
+    df[<span class="st">'join_date'</span>] = pd.to_datetime(df[<span class="st">'join_date'</span>], format=<span class="st">'mixed'</span>, errors=<span class="st">'coerce'</span>)
+    <span class="kw">return</span> df
+
+raw = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+run1 = clean_employees(raw)
+run2 = clean_employees(raw)
+<span class="bi">print</span>(<span class="st">f'rows after cleaning: <span class="bi">{len(run1)}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'two runs identical: <span class="bi">{run1.equals(run2)}</span>'</span>)</div>
+  </div>
+  <div class="info-box tip"><div class="ib-icon">♻️</div><div class="ib-body">Real output: <code>two runs identical: True</code> — because the function has no hidden state and no randomness, running it twice on the same input always gives the same output. This is the difference between "I cleaned the data" (a one-time, unrepeatable act) and "I have a cleaning PIPELINE" (a function anyone, including future-you, can re-run on a new export and trust).</div></div>
+
+  <!-- 13.10 -->
+  <div class="lesson-h2">13.10 — Preventing Leakage: Split Before You Fit</div>
+  <p class="lesson-p">Every imputation value, encoding, or scaling statistic computed above was fit on the WHOLE dataset. That's fine for exploring and understanding data — but for building a model, it's <strong>data leakage</strong>: information from rows that should be "unseen test data" quietly influenced values used to train on. The fix is procedural, not clever: <strong>split first, fit cleaning statistics only on the training fold, then apply those same statistics to the test fold.</strong></p>
+
+  <div class="diagram"><div class="dg-t">Leaky vs correct order of operations</div><pre>LEAKY (common mistake):
+  clean_and_impute(full_data) --> split(train, test)
+  the imputed mean already "saw" every test-set value
+
+CORRECT:
+  split(full_data) --> train, test
+  fit imputation mean on train ONLY --> apply that same mean to both train and test</pre></div>
+
+  <div class="code-block">
+    <div class="cb-header"><span class="cb-label">The leak, measured — a mean that shifts depending on when you split</span><button class="cb-run" onclick="runToConsole(this)">▶ Run</button></div>
+    <div class="cb-code"><span class="kw">import</span> pandas <span class="kw">as</span> pd
+<span class="kw">from</span> sklearn.model_selection <span class="kw">import</span> train_test_split
+
+df = pd.read_csv(<span class="st">'employees_messy.csv'</span>)
+df[<span class="st">'salary_clean'</span>] = pd.to_numeric(
+    df[<span class="st">'salary'</span>].<span class="bi">apply</span>(<span class="kw">lambda</span> v: <span class="bi">str</span>(v).replace(<span class="st">'$'</span>,<span class="st">''</span>).replace(<span class="st">','</span>,<span class="st">''</span>) <span class="kw">if</span> pd.notna(v) <span class="kw">else</span> v),
+    errors=<span class="st">'coerce'</span>)
+
+train, test = train_test_split(df, test_size=<span class="nm">0.2</span>, random_state=<span class="nm">42</span>)
+
+leaky_mean   = df[<span class="st">'salary_clean'</span>].mean()      <span class="cm"># WRONG: computed on ALL rows, including test</span>
+correct_mean = train[<span class="st">'salary_clean'</span>].mean()    <span class="cm"># RIGHT: computed on train rows ONLY</span>
+
+<span class="bi">print</span>(<span class="st">f'leaky (full-data) mean:   <span class="bi">{leaky_mean:.2f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'correct (train-only) mean: <span class="bi">{correct_mean:.2f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'difference: <span class="bi">{abs(leaky_mean - correct_mean):.2f}</span>'</span>)
+<span class="bi">print</span>(<span class="st">f'train rows: <span class="bi">{len(train)}</span>  test rows: <span class="bi">{len(test)}</span>'</span>)</div>
+  </div>
+  <div class="info-box danger"><div class="ib-icon">🚫</div><div class="ib-body">Real output: the leaky, full-data mean (<code>88717.45</code>) differs from the correct, train-only mean (<code>91177.50</code>) by <code>$2,460.05</code> — a real, measurable difference from a mistake that produces no error, no warning, and a model that looks fine in development. The rule for every cleaning statistic (imputation values, scaler mean/std, encoding categories learned from data) is the same: <strong>fit only on the training fold, then apply — never fit — those exact values to the test fold.</strong></div></div>
+
   <!-- Summary -->
   <div class="lesson-h2">Chapter 13 Summary</div>
   <ul class="step-list">
-    <li data-n="1"><div><strong>.isna() / .dropna() / .fillna()</strong> find and handle missing values — dropping loses other columns' data, filling can bias the data. Choose deliberately.</div></li>
-    <li data-n="2"><div><strong>.duplicated() / .drop_duplicates()</strong> find and remove exact repeat rows.</div></li>
+    <li data-n="1"><div><strong>Profile missing values first</strong> (count + %, and WHY). Then choose: mean, median, mode, or group-based imputation — each with different assumptions and risks.</div></li>
+    <li data-n="2"><div><strong>Define your duplicate KEY before deduplicating</strong> — <code>.duplicated()</code>'s default (every column) can miss or over-flag duplicates depending on your real data.</div></li>
     <li data-n="3"><div><strong>pd.merge(..., on=key, how=...)</strong> joins tables sideways by a shared key — check row counts for accidental fan-out.</div></li>
     <li data-n="4"><div><strong>pd.concat([...])</strong> stacks tables of the same shape vertically.</div></li>
     <li data-n="5"><div><strong>.pivot_table()</strong> reshapes long data into a wide summary grid.</div></li>
-    <li data-n="6"><div><strong>.str accessor + .astype()</strong> clean inconsistent text and fix wrong column types before doing any math.</div></li>
+    <li data-n="6"><div><strong>Coerce, don't just cast</strong> — strip formatting before <code>pd.to_numeric</code>, use <code>format='mixed'</code> for inconsistently-formatted dates, and map messy categorical labels to a canonical set.</div></li>
+    <li data-n="7"><div><strong>Outliers</strong>: detect via domain rules, IQR, or robust-vs-non-robust comparison; decide per case to remove, cap, transform, or retain.</div></li>
+    <li data-n="8"><div><strong>Encoding</strong>: one-hot for nominal categories, ordinal/already-numeric for ordered ones.</div></li>
+    <li data-n="9"><div><strong>Wrap cleaning in one deterministic function</strong> for reproducibility; <strong>always split before fitting</strong> any cleaning statistic, to prevent leakage.</div></li>
   </ul>
+
+  <div class="lesson-h2">Interview Questions</div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">A column is 15% missing. What do you check before deciding how to handle it?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Why it's missing. "Missing because it doesn't exist yet" (e.g. a new hire's performance rating) needs a different treatment than "missing because of a bad export" — the first might justify leaving it missing or a placeholder category, the second is a candidate for imputation. Also check whether missingness itself correlates with anything meaningful (e.g. newer employees are disproportionately missing a rating) before picking a fill method.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">What's the risk specifically introduced by group-based imputation that mean/median imputation don't have?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Group-based imputation can leak the group's identity into the imputed value — if the grouping column is also predictive of your target (e.g. department correlates with the outcome you're modeling), filling missing values with that group's mean effectively hands the model a hint derived from the label indirectly. It's often the better assumption when groups genuinely differ, but it needs to be justified, not applied automatically.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why should you define a duplicate KEY before calling drop_duplicates(), instead of using the default?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The default checks every column for an exact match, which is often either too strict (a real duplicate that differs by one re-typed field is missed entirely) or too loose (two different real records that coincidentally share only the columns you'd naturally check on get merged into one). Defining the real business key first (e.g. an ID column) makes deduplication a deliberate, correct decision instead of an accidental one.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">You call pd.to_numeric on a currency column and get a suspiciously high null count. What's the likely cause and fix?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">The column likely mixes plain numbers with formatted strings (like "$95,432.10" or with thousands-separator commas) — to_numeric can't parse those directly and silently coerces them to NaN, which looks identical to genuine missingness. The fix is to strip the non-numeric formatting characters first (currency symbols, commas) and THEN coerce, and to always compare the before/after null count to catch this class of bug.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">How do you decide whether a detected outlier should be removed, capped, transformed, or kept?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Ask whether the value is actually IMPOSSIBLE (a negative salary, an age of 200) — remove those, they're errors. If it's real but extreme (a legitimately very high earner), capping/winsorizing to a boundary keeps the rest of that row's data. If an entire column is naturally skewed, a transform (like log) reduces the tail's influence without deleting anything. And if the "outlier" is literally what you're trying to detect — fraud, rare failures — removing it deletes the signal you actually care about.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why is fitting an imputation value or scaler on the full dataset before splitting into train/test considered data leakage?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">Because that statistic (a mean, a std, a set of encoded categories) is computed using rows that should represent "unseen" future data — so information from the test set quietly influences values used during training, making evaluation on that test set overly optimistic. The fix is procedural: split first, fit every cleaning/preprocessing statistic on the training fold only, then apply those exact fitted values to the test fold without refitting.</div></div>
+  </div>
+  <div class="iq-card" onclick="this.classList.toggle('open')">
+    <div class="iq-q">Why wrap a data-cleaning process into a single function instead of a sequence of notebook cells?<span class="iq-arrow">▶</span></div>
+    <div class="iq-a"><div class="iq-a-inner">A sequence of manually-run cells depends on execution order, which cells were re-run, and what state variables happen to hold — it's easy to silently get a different result the second time. A single deterministic function with no hidden state (raw data in, clean data out) can be re-run on tomorrow's export, tested, and trusted to produce identical output given identical input — the actual definition of "reproducible."</div></div>
+  </div>
 
   <div style="display:flex;gap:12px;margin-top:28px">
     <button class="next-btn" onclick="showSection('practice')">✏️ Go to Practice Exercises →</button>
@@ -905,22 +1210,24 @@ data5 = pd.DataFrame({
 <div class="project-section" id="sec-project">
   <div class="project-banner">
     <h2>🏗️ Mini Project: <span>Full Cleaning Pipeline</span></h2>
-    <p>The candidate dataset arrives messy: names with stray whitespace, an exact duplicate row, and a missing score. Build a three-step pipeline — clean the text, drop the duplicate, fill the missing value — the same sequence you'd run on any real dataset before analysis.</p>
+    <p>The real 415-row employee dataset, start to finish: dedupe by a real key, standardize categories, coerce a currency column, impute missing ages by group, handle outliers with a clear decision per case, and split before fitting anything further — the actual shape of a real cleaning pipeline, not a toy.</p>
     <div class="project-tags">
-      <span class="ptag">.str.strip()</span>
-      <span class="ptag">drop_duplicates</span>
-      <span class="ptag">fillna</span>
+      <span class="ptag">dedup by key</span>
+      <span class="ptag">group imputation</span>
+      <span class="ptag">outlier handling</span>
+      <span class="ptag">split before fit</span>
     </div>
   </div>
 
   <div class="project-spec">
     <h3>📋 What to Build</h3>
     <ul class="spec-list">
-      <li>Strip whitespace from the name column (step1)</li>
-      <li>Count duplicate rows in step1, then drop them into step2</li>
-      <li>Count missing scores in step2, then fill them with step2's score mean</li>
-      <li>Print the duplicate count, missing count, final row count, and final names</li>
-      <li>Print Carol's filled-in score, formatted to 4 decimal places</li>
+      <li>Deduplicate by employee_id (the real key), not the default all-columns check</li>
+      <li>Standardize department to its 5 canonical labels</li>
+      <li>Coerce salary (strip $/, formatting first, then to_numeric)</li>
+      <li>Impute missing age using GROUP-based (per-department) mean, not the global mean</li>
+      <li>Remove domain-impossible ages/salaries; cap remaining IQR-high salaries at the IQR upper bound</li>
+      <li>Split into train/test BEFORE computing any further fitted statistic</li>
     </ul>
   </div>
 
@@ -931,36 +1238,123 @@ data5 = pd.DataFrame({
     </div>
     <textarea id="project-editor"># ══════════════════════════════════════════
 # Mini Project: Full Cleaning Pipeline
-# Use ONLY Chapter 13 concepts
+# Use ONLY Chapter 13 concepts. The dataset generator below is GIVEN — it
+# reproduces the exact same real, deliberately messy dataset used all chapter.
 # ══════════════════════════════════════════
-import pandas as pd
 import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
-raw = pd.DataFrame({
-    'name':  [' Alice ', 'Bob', 'Alice ', 'Carol', 'Dave', 'Bob'],
-    'score': [92, 75, 92, np.nan, 60, 75],
-    'city':  ['Hubli', 'Pune', 'Hubli', 'Mumbai', None, 'Pune'],
-})
+rng = np.random.default_rng(7)
+N = 400
+first_names = ['Asha','Ben','Chen','Dana','Eli','Farah','Gita','Hiro','Ivy','Jun','Kira','Leo','Maya','Nia','Omar','Priya','Quinn','Rosa','Sam','Tara','Uma','Victor','Wei','Xena','Yara','Zane']
+last_names = ['Sharma','Patel','Kim','Nguyen','Silva','Khan','Ito','Lopez','Rao','Costa','Mensah','Novak','Haddad','Fischer','Okoro']
+names = [f"{first_names[rng.integers(0,len(first_names))]} {last_names[rng.integers(0,len(last_names))]}" for _ in range(N)]
+departments_canonical = ['Engineering','Sales','Marketing','HR','Finance']
+dept_true = rng.choice(departments_canonical, N, p=[0.35,0.25,0.15,0.10,0.15])
+ages = rng.integers(22, 60, N).astype(float)
+dept_base_salary = {'Engineering':95000,'Sales':70000,'Marketing':65000,'HR':60000,'Finance':80000}
+salary = np.array([dept_base_salary[d] + rng.normal(0, 8000) for d in dept_true]).round(2)
+join_dates = pd.to_datetime('2018-01-01') + pd.to_timedelta(rng.integers(0, 2000, N), unit='D')
+performance = rng.integers(1, 6, N).astype(float)
+cities_canonical = ['New York','San Francisco','Chicago','Austin','Seattle']
+city_true = rng.choice(cities_canonical, N, p=[0.30,0.25,0.20,0.15,0.10])
+is_remote = rng.choice([True, False], N, p=[0.3,0.7])
+df = pd.DataFrame({'employee_id': np.arange(1, N+1), 'name': names, 'department': dept_true, 'age': ages,
+    'salary': salary, 'join_date': join_dates.strftime('%Y-%m-%d'), 'performance_rating': performance,
+    'city': city_true, 'is_remote': is_remote})
 
-# === TODO 1: clean whitespace ===
-# step1 = raw.copy()
-# step1['name'] = step1['name'].str.strip()
+def inject_missing(col, frac, seed_offset):
+    r = np.random.default_rng(7 + seed_offset)
+    idx = r.choice(N, size=int(N*frac), replace=False)
+    df.loc[idx, col] = np.nan
+inject_missing('age', 0.05, 1); inject_missing('salary', 0.04, 2)
+inject_missing('department', 0.03, 3); inject_missing('performance_rating', 0.15, 4); inject_missing('city', 0.02, 5)
 
-# === TODO 2: drop duplicates ===
-# dup_count = step1.duplicated().sum()
-# step2 = step1.drop_duplicates()
+df['salary'] = df['salary'].astype(object)
+r = np.random.default_rng(30)
+non_null_salary_idx = df.index[df['salary'].notnull()]
+messy_salary_idx = r.choice(non_null_salary_idx, size=int(len(non_null_salary_idx)*0.10), replace=False)
+for i in messy_salary_idx:
+    df.at[i, 'salary'] = f"${float(df.at[i, 'salary']):,.2f}"
 
-# === TODO 3: fill missing scores ===
-# missing_count = step2['score'].isna().sum()
-# step2 = step2.copy()
-# step2['score'] = step2['score'].fillna(step2['score'].mean())
+r = np.random.default_rng(40)
+dept_valid_idx = df.index[df['department'].notnull()]
+messy_dept_idx = r.choice(dept_valid_idx, size=int(len(dept_valid_idx)*0.08), replace=False)
+dept_variants = {'Engineering': ['eng','ENGINEERING','Engineering '],'Sales': ['sales','SALES','Sales '],
+                  'Marketing': ['Mktg','marketing'],'HR': ['H.R.','Human Resources','hr'],'Finance': ['finance','FINANCE']}
+for i in messy_dept_idx:
+    variants = dept_variants[df.at[i, 'department']]
+    df.at[i, 'department'] = variants[r.integers(0, len(variants))]
 
-# === TODO 4: report ===
-# print(f'Duplicates removed: {dup_count}')
-# print(f'Missing scores filled: {missing_count}')
-# print(f'Final row count: {len(step2)}')
-# print(f'Names: {list(step2["name"])}')
-# print(f'Carol filled score: {step2[step2["name"]=="Carol"]["score"].iloc[0]:.4f}')
+r2 = np.random.default_rng(41)
+city_valid_idx = df.index[df['city'].notnull()]
+messy_city_idx = r2.choice(city_valid_idx, size=int(len(city_valid_idx)*0.08), replace=False)
+city_variants = {'New York': ['new york','NYC','New York City'],'San Francisco': ['san francisco','SF','San Fran'],
+                  'Chicago': ['chicago','CHICAGO'],'Austin': ['austin ','AUSTIN'],'Seattle': ['seattle','Seattle ']}
+for i in messy_city_idx:
+    variants = city_variants[df.at[i, 'city']]
+    df.at[i, 'city'] = variants[r2.integers(0, len(variants))]
+
+r3 = np.random.default_rng(50)
+impossible_age_idx = r3.choice(df.index[df['age'].notnull()], size=3, replace=False)
+df.loc[impossible_age_idx[0], 'age'] = 150; df.loc[impossible_age_idx[1], 'age'] = -5; df.loc[impossible_age_idx[2], 'age'] = 200
+numeric_salary_mask = df['salary'].apply(lambda v: isinstance(v,(int,float)) and pd.notnull(v))
+plausible_salary_idx = r3.choice(df.index[numeric_salary_mask], size=6, replace=False)
+df.loc[plausible_salary_idx[0], 'salary'] = -20000.0; df.loc[plausible_salary_idx[1], 'salary'] = -5000.0
+df.loc[plausible_salary_idx[2], 'salary'] = 2500000.0; df.loc[plausible_salary_idx[3], 'salary'] = 1800000.0
+df.loc[plausible_salary_idx[4], 'salary'] = 215000.0; df.loc[plausible_salary_idx[5], 'salary'] = 198000.0
+
+r4 = np.random.default_rng(60)
+date_valid_idx = df.index[df['join_date'].notnull()]
+alt_format_idx = r4.choice(date_valid_idx, size=int(len(date_valid_idx)*0.06), replace=False)
+for i in alt_format_idx:
+    d = pd.to_datetime(df.at[i, 'join_date'])
+    df.at[i, 'join_date'] = d.strftime('%m/%d/%Y') if r4.integers(0,2)==0 else d.strftime('%B %d, %Y')
+invalid_date_idx = r4.choice(df.index.difference(alt_format_idx), size=5, replace=False)
+for i, val in zip(invalid_date_idx, ['2021-13-45', '', 'not_a_date', '2021-02-30', '00/00/0000']):
+    df.at[i, 'join_date'] = val
+
+r5 = np.random.default_rng(70)
+dup_source_idx = r5.choice(df.index, size=15, replace=False)
+df = pd.concat([df, df.loc[dup_source_idx]], ignore_index=True)
+
+# === TODO 1: deduplicate by the real key ===
+# deduped = df.drop_duplicates(subset=['employee_id']).copy()
+# print(f'Rows after dedup: {len(deduped)}')
+
+# === TODO 2: standardize department to 5 canonical labels ===
+# dept_map = {'eng':'Engineering','engineering':'Engineering','sales':'Sales','mktg':'Marketing',
+#             'marketing':'Marketing','h.r.':'HR','human resources':'HR','hr':'HR','finance':'Finance'}
+# deduped['department'] = deduped['department'].str.strip().str.lower().map(dept_map)
+# print(f'Distinct departments: {deduped["department"].nunique()}')
+
+# === TODO 3: coerce salary ===
+# deduped['salary'] = pd.to_numeric(
+#     deduped['salary'].apply(lambda v: str(v).replace('$','').replace(',','') if pd.notna(v) else v),
+#     errors='coerce')
+# print(f'Salary non-null after coercion: {deduped["salary"].notna().sum()}')
+
+# === TODO 4: group-based age imputation ===
+# group_means = deduped.groupby('department')['age'].transform('mean')
+# deduped['age'] = deduped['age'].fillna(group_means)
+# print(f'Age missing after group-based fill: {deduped["age"].isna().sum()}')
+
+# === TODO 5: outlier handling — remove impossible, cap extreme ===
+# before_rows = len(deduped)
+# deduped = deduped[(deduped['age'].isna()) | ((deduped['age'] >= 18) & (deduped['age'] <= 75))]
+# deduped = deduped[(deduped['salary'].isna()) | (deduped['salary'] >= 0)]
+# print(f'Rows removed as impossible: {before_rows - len(deduped)}')
+# q1, q3 = deduped['salary'].quantile(0.25), deduped['salary'].quantile(0.75)
+# iqr = q3 - q1
+# hi = q3 + 1.5 * iqr
+# capped_count = (deduped['salary'] > hi).sum()
+# deduped['salary'] = deduped['salary'].clip(upper=hi)
+# print(f'Salaries capped: {capped_count}')
+
+# === TODO 6: split BEFORE fitting any further statistic ===
+# train, test = train_test_split(deduped, test_size=0.2, random_state=42)
+# print(f'Train rows: {len(train)}  Test rows: {len(test)}')
 </textarea>
     <div class="pe-output" id="project-output">Your output will appear here when you click Run...</div>
     <div class="pe-result" id="project-result"></div>
@@ -968,11 +1362,13 @@ raw = pd.DataFrame({
 
   <div class="checklist">
     <h3>✅ Project Checklist — did your output include?</h3>
-    <div class="check-item"><span class="check-icon">🧹</span>Duplicates removed: 2</div>
-    <div class="check-item"><span class="check-icon">🩹</span>Missing scores filled: 1</div>
-    <div class="check-item"><span class="check-icon">🔢</span>Final row count: 4</div>
-    <div class="check-item"><span class="check-icon">📋</span>Names: ['Alice', 'Bob', 'Carol', 'Dave']</div>
-    <div class="check-item"><span class="check-icon">🎯</span>Carol filled score: 75.6667</div>
+    <div class="check-item"><span class="check-icon">🔑</span>Rows after dedup: 400</div>
+    <div class="check-item"><span class="check-icon">🏷️</span>Distinct departments: 5</div>
+    <div class="check-item"><span class="check-icon">💰</span>Salary non-null after coercion: 384</div>
+    <div class="check-item"><span class="check-icon">🩹</span>Age missing after group-based fill: 0</div>
+    <div class="check-item"><span class="check-icon">🚫</span>Rows removed as impossible: 5</div>
+    <div class="check-item"><span class="check-icon">📐</span>Salaries capped: 4</div>
+    <div class="check-item"><span class="check-icon">✂️</span>Train rows: 316  Test rows: 79</div>
   </div>
 
   <div style="display:flex;gap:12px;margin-top:8px">
@@ -1315,7 +1711,7 @@ window.runProject=async function(){
   out.textContent=full||(ok?'(no output — add print() statements)':'Error');
   out.className='pe-output'+(full?' has-output':'');
 
-  const checks=['duplicates removed: 2','missing scores filled: 1','final row count: 4',"names: ['alice', 'bob', 'carol', 'dave']",'carol filled score: 75.6667'];
+  const checks=['rows after dedup: 400','distinct departments: 5','salary non-null after coercion: 384','age missing after group-based fill: 0','rows removed as impossible: 5','salaries capped: 4','train rows: 316','test rows: 79'];
   const passed=ok&&checks.every(c=>full.toLowerCase().includes(c));
   res.style.display='flex';res.className='pe-result show '+(passed?'pass':'fail');
   if(passed){
